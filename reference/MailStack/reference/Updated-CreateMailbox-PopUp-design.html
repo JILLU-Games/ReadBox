@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailStack - Mailboxes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom compact scrollbar for user assign list */
+    .compact-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .compact-scroll::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    .compact-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-900 flex h-screen overflow-hidden antialiased">
+
+  <!-- ================================================================= -->
+  <!-- BACKGROUND DASHBOARD (Exact screenshot mimic with blur on modal) -->
+  <!-- ================================================================= -->
+  <div class="flex-1 flex flex-col h-full filter blur-[1px] select-none pointer-events-none">
+    <header class="h-12 border-b border-slate-200 bg-white px-8 flex items-center justify-between">
+      <div class="text-xs">
+        <span class="font-semibold text-slate-800">MailStack</span>
+        <span class="text-slate-400 ml-2">Default domain: vibmail.my</span>
+      </div>
+      <div class="text-xs font-semibold text-slate-700">admin (Administrator)</div>
+    </header>
+    <main class="p-8">
+      <h1 class="text-xl font-bold text-slate-800 mb-4">Mailboxes</h1>
+      <div class="h-9 w-full max-w-sm bg-white border border-slate-200 rounded-md"></div>
+    </main>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- [PROMPT FIX 1]: MODAL BACKDROP CONTAINER                          -->
+  <!-- Centered flexbox overlay, subtle dark tint + fast smooth blur     -->
+  <!-- ================================================================= -->
+  <div id="createMailboxModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px]">
+    
+    <!-- [PROMPT FIX 2]: MODAL BOX CARD SIZE & SPACING                   -->
+    <!-- max-w-[540px] avoids squishing quick-chips and user list          -->
+    <div class="w-full max-w-[530px] bg-white rounded-xl border border-slate-200/90 shadow-2xl overflow-hidden flex flex-col">
+      
+      <!-- [PROMPT FIX 3]: MODAL HEADER                                  -->
+      <!-- Compact eyebrow label + Title + Slim Dismiss Button           -->
+      <div class="px-5 pt-4 pb-3 border-b border-slate-100 flex items-start justify-between">
+        <div>
+          <span class="text-[10px] font-bold tracking-wider uppercase text-blue-600">Mailbox</span>
+          <h2 class="text-base font-bold text-slate-900 leading-tight mt-0.5">Create mailbox</h2>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md p-1 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- FORM BODY -->
+      <form id="mailboxForm" onsubmit="event.preventDefault();" class="p-5 space-y-4">
+        
+        <!-- ============================================================= -->
+        <!-- [PROMPT FIX 4]: MAILBOX ADDRESS & QUICK CHIPS ROW             -->
+        <!-- Label row with live refresh icon and flex-aligned elements    -->
+        <!-- ============================================================= -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="username" class="text-xs font-semibold text-slate-700">Mailbox address</label>
+            
+            <!-- Quick Chips Aligned (No vertical breaking) -->
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-medium text-slate-400">Quick:</span>
+              <div id="chipsContainer" class="flex items-center gap-1">
+                <!-- Dynamic USA chips inject here -->
+              </div>
+              <button 
+                type="button" 
+                id="refreshNamesBtn" 
+                title="Shuffle USA names"
+                class="text-slate-400 hover:text-blue-600 p-0.5 rounded hover:bg-slate-100 transition">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- [PROMPT FIX 5]: UNIFIED INPUT WITH PROPER INNER PADDING      -->
+          <!-- Input + Dice Random + Divider + Dropdown in 1 neat border    -->
+          <div class="relative flex items-stretch border border-slate-300 rounded-lg bg-white focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 transition overflow-hidden">
+            
+            <input 
+              type="text" 
+              id="username" 
+              placeholder="e.g. logan.rodriguez"
+              class="flex-1 min-w-0 px-3 py-2 text-xs font-mono text-slate-800 placeholder-slate-400 bg-transparent border-0 focus:outline-none"
+              autocomplete="off"
+              spellcheck="false"
+            />
+
+            <!-- Inline Random Generator Button -->
+            <button 
+              type="button" 
+              id="randomBtn" 
+              title="Generate random username"
+              class="px-2 text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition border-l border-slate-100 flex items-center justify-center">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+
+            <!-- Domain Select Dropdown Section -->
+            <div class="flex items-center border-l border-slate-200 bg-slate-50/80 px-2.5">
+              <span class="text-xs text-slate-400 font-mono mr-1 select-none">@</span>
+              <div class="relative">
+                <select 
+                  id="domainSelect" 
+                  class="appearance-none bg-transparent pr-5 text-xs font-mono text-slate-700 font-medium focus:outline-none cursor-pointer py-2">
+                  <option value="vibmail.my">vibmail.my</option>
+                  <option value="cloudnode.io">cloudnode.io</option>
+                  <option value="secureinbox.co">secureinbox.co</option>
+                </select>
+                <svg class="w-3 h-3 text-slate-400 pointer-events-none absolute right-0 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- [PROMPT FIX 6]: ASSIGN TO USERS (REPLACED RAW SELECT BOX)     -->
+        <!-- Modern checkbox card list with avatar initial and counter     -->
+        <!-- ============================================================= -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-semibold text-slate-700">Assign to users</label>
+            <span id="selectedCounter" class="text-[10px] font-medium text-slate-400">0 selected</span>
+          </div>
+
+          <div class="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-36 overflow-y-auto compact-scroll bg-slate-50/40">
+            
+            <!-- User Item 1 -->
+            <label class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer select-none transition">
+              <input type="checkbox" value="HenryogDada" class="user-check w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+              <div class="w-5 h-5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold flex items-center justify-center">H</div>
+              <span class="text-xs font-medium text-slate-700">HenryogDada</span>
+            </label>
+
+            <!-- User Item 2 -->
+            <label class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer select-none transition">
+              <input type="checkbox" value="teamdarkdevil24" class="user-check w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" checked>
+              <div class="w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold flex items-center justify-center">T</div>
+              <span class="text-xs font-medium text-slate-700">teamdarkdevil24</span>
+              <span class="ml-auto text-[10px] font-mono text-slate-400">You</span>
+            </label>
+
+            <!-- User Item 3 -->
+            <label class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer select-none transition">
+              <input type="checkbox" value="TryAllWeb@420" class="user-check w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+              <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold flex items-center justify-center">T</div>
+              <span class="text-xs font-medium text-slate-700">TryAllWeb@420</span>
+            </label>
+
+            <!-- User Item 4 -->
+            <label class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer select-none transition">
+              <input type="checkbox" value="ZohoBook@420" class="user-check w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+              <div class="w-5 h-5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold flex items-center justify-center">Z</div>
+              <span class="text-xs font-medium text-slate-700">ZohoBook@420</span>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- [PROMPT FIX 7]: ACTION BUTTONS WITH FULL CLIPBOARD FEEDBACK   -->
+        <!-- Balanced flex arrangement: Primary | Secondary | Neutral      -->
+        <!-- ============================================================= -->
+        <div class="flex items-center gap-2 pt-3 border-t border-slate-100">
+          
+          <!-- 1. Create mailbox -->
+          <button 
+            type="submit" 
+            class="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition shadow-xs active:scale-[0.98]">
+            Create mailbox
+          </button>
+
+          <!-- 2. Create & Copy with feedback -->
+          <button 
+            type="button" 
+            id="createAndCopyBtn"
+            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-300/80 rounded-md transition shadow-2xs active:scale-[0.98]">
+            <svg id="copyIcon" class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+            </svg>
+            <span id="copyBtnText">Create & copy</span>
+          </button>
+
+          <!-- 3. Cancel -->
+          <button 
+            type="button" 
+            class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition ml-auto">
+            Cancel
+          </button>
+
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE FUNCTIONALITY SCRIPT -->
+  <script>
+    const usernameInput = document.getElementById('username');
+    const domainSelect = document.getElementById('domainSelect');
+    const randomBtn = document.getElementById('randomBtn');
+    const chipsContainer = document.getElementById('chipsContainer');
+    const refreshNamesBtn = document.getElementById('refreshNamesBtn');
+    const createAndCopyBtn = document.getElementById('createAndCopyBtn');
+    const copyBtnText = document.getElementById('copyBtnText');
+    const copyIcon = document.getElementById('copyIcon');
+    const userCheckboxes = document.querySelectorAll('.user-check');
+    const selectedCounter = document.getElementById('selectedCounter');
+
+    // USA Names Generator Pool
+    const usaFirstNames = ['logan', 'abigail', 'henry', 'chloe', 'liam', 'emma', 'ethan', 'olivia', 'mason', 'sophia'];
+    const usaLastNames = ['jones', 'clark', 'rodriguez', 'smith', 'miller', 'davis', 'wilson', 'taylor'];
+
+    function generateUsaSuggestions(count = 3) {
+      const names = [];
+      while (names.length < count) {
+        const f = usaFirstNames[Math.floor(Math.random() * usaFirstNames.length)];
+        const l = usaLastNames[Math.floor(Math.random() * usaLastNames.length)];
+        const candidate = `${f}.${l}`;
+        if (!names.includes(candidate)) names.push(candidate);
+      }
+      return names;
+    }
+
+    function renderChips() {
+      const names = generateUsaSuggestions(3);
+      chipsContainer.innerHTML = '';
+      names.forEach(name => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'text-[11px] font-mono bg-slate-50 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 transition';
+        btn.textContent = name;
+        btn.onclick = () => {
+          usernameInput.value = name;
+          usernameInput.focus();
+        };
+        chipsContainer.appendChild(btn);
+      });
+    }
+
+    // Input Sanitizer
+    usernameInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    });
+
+    // Random generator icon click
+    randomBtn.addEventListener('click', () => {
+      const f = usaFirstNames[Math.floor(Math.random() * usaFirstNames.length)];
+      const l = usaLastNames[Math.floor(Math.random() * usaLastNames.length)];
+      const n = Math.floor(10 + Math.random() * 89);
+      usernameInput.value = `${f}.${l}${n}`;
+      usernameInput.focus();
+    });
+
+    refreshNamesBtn.addEventListener('click', renderChips);
+
+    // Selected Users Counter
+    function updateCounter() {
+      const count = document.querySelectorAll('.user-check:checked').length;
+      selectedCounter.textContent = `${count} selected`;
+    }
+    userCheckboxes.forEach(cb => cb.addEventListener('change', updateCounter));
+
+    // Full Address Helper
+    function getFinalAddress() {
+      let u = usernameInput.value.trim();
+      if (!u) {
+        const f = usaFirstNames[Math.floor(Math.random() * usaFirstNames.length)];
+        const l = usaLastNames[Math.floor(Math.random() * usaLastNames.length)];
+        u = `${f}.${l}`;
+        usernameInput.value = u;
+      }
+      return `${u}@${domainSelect.value}`;
+    }
+
+    // Create & Copy action
+    createAndCopyBtn.addEventListener('click', async () => {
+      const fullAddress = getFinalAddress();
+      try {
+        await navigator.clipboard.writeText(fullAddress);
+        copyBtnText.textContent = 'Copied!';
+        createAndCopyBtn.classList.add('text-emerald-700', 'bg-emerald-50', 'border-emerald-300');
+        copyIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>`;
+        copyIcon.classList.replace('text-slate-500', 'text-emerald-600');
+
+        setTimeout(() => {
+          copyBtnText.textContent = 'Create & copy';
+          createAndCopyBtn.classList.remove('text-emerald-700', 'bg-emerald-50', 'border-emerald-300');
+          copyIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>`;
+          copyIcon.classList.replace('text-emerald-600', 'text-slate-500');
+        }, 1500);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    // Run on Init
+    renderChips();
+    updateCounter();
+  </script>
+</body>
+</html>

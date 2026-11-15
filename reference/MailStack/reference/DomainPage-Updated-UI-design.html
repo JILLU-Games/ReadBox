@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailStack - Domains</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .compact-scroll::-webkit-scrollbar {
+      height: 4px;
+      width: 4px;
+    }
+    .compact-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-[#fafafa] text-slate-900 flex h-screen overflow-hidden antialiased">
+
+  <!-- ========================================================================= -->
+  <!-- LEFT SIDEBAR                                                              -->
+  <!-- ========================================================================= -->
+  <aside class="w-64 border-r border-slate-200 bg-white flex flex-col justify-between p-4 shrink-0 select-none">
+    <div class="space-y-6">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <span class="font-bold text-sm text-slate-900 tracking-tight">MailStack</span>
+        </div>
+        <button class="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        </button>
+      </div>
+
+      <nav class="space-y-4">
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Overview</span>
+          <div class="mt-1">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              Dashboard
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Mail</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+              Mailboxes
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Create mailbox
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Management</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50/80 rounded-md border border-blue-100/60 shadow-xs">
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+              Domains
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              User management
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              System Update
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="border border-slate-200/80 rounded-lg p-2.5 bg-slate-50/50">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+        <span class="text-[11px] font-semibold text-slate-700">Receive-only mode</span>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-0.5 leading-tight">Outbound sending is disabled</p>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE                                                            -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa]">
+    
+    <!-- Topbar -->
+    <header class="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-8 shrink-0">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="font-semibold text-slate-800">MailStack</span>
+        <span class="text-slate-300">/</span>
+        <span id="topbarDefaultDomain" class="text-slate-500 font-mono text-[11px]">Default domain: vibmail.my</span>
+      </div>
+      <div class="flex items-center gap-2 text-xs cursor-pointer select-none">
+        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold flex items-center justify-center border border-blue-100">A</div>
+        <span class="font-medium text-slate-700 text-xs">admin</span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="max-w-[1100px] mx-auto">
+        
+        <!-- Header & Action Row -->
+        <div class="mb-4 flex items-center justify-between gap-4">
+          <h2 class="text-base font-bold text-slate-900 tracking-tight">Domains</h2>
+          
+          <button 
+            type="button" 
+            class="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition shadow-xs active:scale-[0.98] flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <span>Add domain</span>
+          </button>
+        </div>
+
+        <!-- Compact Card Container -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
+          
+          <!-- SEARCH FILTER TOOLBAR (Above Table) -->
+          <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
+            <div class="relative w-full max-w-xs flex items-center">
+              <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input 
+                type="text" 
+                id="tableSearchInput"
+                placeholder="Search domain or status..." 
+                class="w-full pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-blue-500 focus:bg-white transition"
+              />
+            </div>
+            
+            <div class="text-[11px] text-slate-400 font-medium">
+              <span id="domainCountText">3 domains</span>
+            </div>
+          </div>
+
+          <!-- COMPACT DOMAINS TABLE -->
+          <div class="overflow-x-auto compact-scroll">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <tr>
+                  <th class="px-4 py-2.5">Domain</th>
+                  <th class="px-4 py-2.5">Delivery</th>
+                  <th class="px-4 py-2.5">DNS</th>
+                  <th class="px-4 py-2.5 text-center">Mailboxes</th>
+                  <th class="px-4 py-2.5">Last checked</th>
+                  <th class="px-4 py-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="domainTableBody" class="divide-y divide-slate-100 font-sans text-[12px] text-slate-700">
+                
+                <!-- ROW 1 -->
+                <tr class="domain-row hover:bg-slate-50/70 transition" data-domain="paypalmail.co" data-dns="verified">
+                  <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono font-medium text-slate-900 domain-name">paypalmail.co</span>
+                      <span class="default-badge hidden px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-200">Default</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="dns-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5 text-center font-mono text-slate-600">1</td>
+                  <td class="px-4 py-2.5 text-slate-500 text-[11px] last-checked">Sept. 18, 2026, 1:15 a.m.</td>
+                  <td class="px-4 py-2.5 text-right">
+                    <!-- ICON-ONLY COMPACT BUTTONS -->
+                    <div class="inline-flex items-center gap-1">
+                      <button type="button" title="Make Default Domain" onclick="makeDefault(this, 'paypalmail.co')" class="default-btn p-1.5 rounded text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5 star-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                      </button>
+                      <button type="button" title="DNS Records & Propagation Check" onclick="openDnsModal('paypalmail.co', 'verified')" class="p-1.5 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                      </button>
+                      <button type="button" title="Edit Domain" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button type="button" title="Disable Domain" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- ROW 2 -->
+                <tr class="domain-row hover:bg-slate-50/70 transition" data-domain="pypal.pl" data-dns="pending">
+                  <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono font-medium text-slate-900 domain-name">pypal.pl</span>
+                      <span class="default-badge hidden px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-200">Default</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="dns-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Pending
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5 text-center font-mono text-slate-600">0</td>
+                  <td class="px-4 py-2.5 text-slate-500 text-[11px] last-checked">Sept. 18, 2026, 1:22 a.m.</td>
+                  <td class="px-4 py-2.5 text-right">
+                    <div class="inline-flex items-center gap-1">
+                      <button type="button" title="Make Default Domain" onclick="makeDefault(this, 'pypal.pl')" class="default-btn p-1.5 rounded text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5 star-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                      </button>
+                      <button type="button" title="DNS Records & Propagation Check" onclick="openDnsModal('pypal.pl', 'pending')" class="p-1.5 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                      </button>
+                      <button type="button" title="Edit Domain" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button type="button" title="Disable Domain" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                      </button>
+                      <button type="button" title="Remove Domain" class="p-1.5 rounded text-rose-500 hover:bg-rose-50 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- ROW 3 (Default Active) -->
+                <tr class="domain-row hover:bg-slate-50/70 transition" data-domain="vibmail.my" data-dns="verified">
+                  <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono font-medium text-slate-900 domain-name">vibmail.my</span>
+                      <span class="default-badge px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-200">Default</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="dns-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5 text-center font-mono text-slate-600">14</td>
+                  <td class="px-4 py-2.5 text-slate-500 text-[11px] last-checked">Sept. 18, 2026, 12:55 a.m.</td>
+                  <td class="px-4 py-2.5 text-right">
+                    <div class="inline-flex items-center gap-1">
+                      <button type="button" title="Current Default Domain" onclick="makeDefault(this, 'vibmail.my')" class="default-btn p-1.5 rounded text-amber-500 bg-amber-50/60 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5 star-icon" fill="currentColor" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                      </button>
+                      <button type="button" title="DNS Records & Propagation Check" onclick="openDnsModal('vibmail.my', 'verified')" class="p-1.5 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                      </button>
+                      <button type="button" title="Edit Domain" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button type="button" title="Disable Domain" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Compact Footer -->
+    <footer class="h-9 px-8 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-200 bg-white shrink-0">
+      <span>© 2026 MailStack by <a href="#" class="text-blue-600 font-medium">Vib Tools</a>. Authorized team use only.</span>
+      <a href="#" class="text-blue-600 hover:underline">Source code</a>
+    </footer>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- DNS COMPACT POPUP MODAL WITH 1-BY-1 PROGRESSION CHECKER                   -->
+  <!-- ========================================================================= -->
+  <div id="dnsPopupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-200">
+    <div id="dnsModalCard" class="w-full max-w-[680px] bg-white rounded-xl border border-slate-200 shadow-2xl scale-95 transition-transform duration-200 overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-white">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center font-mono text-xs font-bold">@</div>
+          <h3 class="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+            DNS Records: <span id="modalDomainTitle" class="font-mono text-blue-600 font-normal">vibmail.my</span>
+          </h3>
+        </div>
+        <button type="button" onclick="closeDnsModal()" class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md p-1 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        
+        <!-- Live Check Controls & Progress Bar -->
+        <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-lg space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span id="dnsCheckSummary" class="text-xs font-medium text-slate-700">Propagation Status</span>
+              <span id="dnsCheckTag" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200 text-slate-600">Ready</span>
+            </div>
+            
+            <button 
+              type="button" 
+              id="startCheckBtn"
+              onclick="runDnsCheckSequence()"
+              class="px-2.5 py-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded transition shadow-2xs active:scale-95 flex items-center gap-1.5">
+              <svg id="checkBtnIcon" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span id="checkBtnText">Check DNS</span>
+            </button>
+          </div>
+
+          <!-- Progress Track -->
+          <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+            <div id="dnsProgressBar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- DNS Records Table (Compact & Scrollable) -->
+        <div class="border border-slate-200 rounded-lg overflow-hidden">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-semibold text-slate-500 uppercase">
+              <tr>
+                <th class="px-3 py-2 w-20">Type</th>
+                <th class="px-3 py-2 w-36">Host</th>
+                <th class="px-3 py-2">Value</th>
+                <th class="px-3 py-2 w-20 text-center">Status</th>
+                <th class="px-3 py-2 w-16 text-right">Copy</th>
+              </tr>
+            </thead>
+            <tbody id="modalDnsRows" class="divide-y divide-slate-100 font-mono text-[11px] text-slate-700">
+              <!-- Rendered Dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <button 
+            type="button" 
+            id="modalDownloadZoneBtn"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md transition shadow-2xs">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            <span>Export for Cloudflare</span>
+          </button>
+
+          <button 
+            type="button" 
+            onclick="closeDnsModal()"
+            class="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition">
+            Close
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT: LIVE SEARCH, MAKE DEFAULT, & 1-BY-1 DNS CHECKER               -->
+  <!-- ========================================================================= -->
+  <script>
+    // --- 1. LIVE SEARCH FILTER ---
+    const tableSearchInput = document.getElementById('tableSearchInput');
+    const domainRows = document.querySelectorAll('.domain-row');
+    const domainCountText = document.getElementById('domainCountText');
+
+    tableSearchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      let visible = 0;
+      domainRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(q)) {
+          row.style.display = '';
+          visible++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      domainCountText.textContent = `${visible} domain${visible !== 1 ? 's' : ''}`;
+    });
+
+    // --- 2. MAKE DEFAULT DOMAIN FEATURE ---
+    const topbarDefaultDomain = document.getElementById('topbarDefaultDomain');
+
+    window.makeDefault = (btn, domain) => {
+      // Reset all rows
+      document.querySelectorAll('.domain-row').forEach(r => {
+        r.querySelector('.default-badge').classList.add('hidden');
+        const dBtn = r.querySelector('.default-btn');
+        dBtn.className = 'default-btn p-1.5 rounded text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition active:scale-95';
+        dBtn.title = 'Make Default Domain';
+        dBtn.querySelector('.star-icon').setAttribute('fill', 'none');
+        dBtn.querySelector('.star-icon').setAttribute('stroke-width', '2');
+      });
+
+      // Set target row as active default
+      const row = btn.closest('.domain-row');
+      row.querySelector('.default-badge').classList.remove('hidden');
+      btn.className = 'default-btn p-1.5 rounded text-amber-500 bg-amber-50/60 transition active:scale-95';
+      btn.title = 'Current Default Domain';
+      btn.querySelector('.star-icon').setAttribute('fill', 'currentColor');
+      btn.querySelector('.star-icon').setAttribute('stroke-width', '1.5');
+
+      // Update Topbar
+      topbarDefaultDomain.textContent = `Default domain: ${domain}`;
+    };
+
+    // --- 3. DNS POPUP MODAL & 1-BY-1 CHECK ENGINE ---
+    const dnsPopupModal = document.getElementById('dnsPopupModal');
+    const dnsModalCard = document.getElementById('dnsModalCard');
+    const modalDomainTitle = document.getElementById('modalDomainTitle');
+    const modalDnsRows = document.getElementById('modalDnsRows');
+    const dnsProgressBar = document.getElementById('dnsProgressBar');
+    const dnsCheckTag = document.getElementById('dnsCheckTag');
+    const checkBtnText = document.getElementById('checkBtnText');
+    const checkBtnIcon = document.getElementById('checkBtnIcon');
+    const modalDownloadZoneBtn = document.getElementById('modalDownloadZoneBtn');
+
+    let activeModalDomain = '';
+    let currentDnsItems = [];
+
+    function generateDnsData(domain) {
+      return [
+        { type: 'MX', host: domain, cfHost: '@', value: `mail.${domain}`, priority: 10, status: 'checked' },
+        { type: 'A', host: `mail.${domain}`, cfHost: 'mail', value: '173.212.201.250', priority: null, status: 'checked' },
+        { type: 'TXT', host: domain, cfHost: '@', value: `"v=spf1 a:mail.${domain} -all"`, priority: null, status: 'checked' },
+        { type: 'TXT', host: `mail._domainkey.${domain}`, cfHost: 'mail._domainkey', value: `"v=DKIM1; k=rsa; p=MIGfMA0..."`, priority: null, status: domain.includes('pypal') ? 'pending' : 'checked' },
+        { type: 'TXT', host: `_dmarc.${domain}`, cfHost: '_dmarc', value: `"v=DMARC1; p=none; rua=mailto:postmaster@${domain}"`, priority: null, status: 'checked' }
+      ];
+    }
+
+    window.openDnsModal = (domain, status) => {
+      activeModalDomain = domain;
+      modalDomainTitle.textContent = domain;
+      currentDnsItems = generateDnsData(domain);
+      
+      // Reset Check State
+      dnsProgressBar.style.width = status === 'verified' ? '100%' : '60%';
+      dnsProgressBar.className = status === 'verified' ? 'bg-emerald-500 h-1.5 rounded-full transition-all duration-300' : 'bg-amber-500 h-1.5 rounded-full transition-all duration-300';
+      dnsCheckTag.className = status === 'verified' ? 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200';
+      dnsCheckTag.textContent = status === 'verified' ? '100% Propagated' : 'Issues Detected';
+
+      renderModalTable();
+
+      // Show Modal
+      dnsPopupModal.classList.remove('opacity-0', 'pointer-events-none');
+      dnsModalCard.classList.remove('scale-95');
+      dnsModalCard.classList.add('scale-100');
+    };
+
+    window.closeDnsModal = () => {
+      dnsPopupModal.classList.add('opacity-0', 'pointer-events-none');
+      dnsModalCard.classList.remove('scale-100');
+      dnsModalCard.classList.add('scale-95');
+    };
+
+    dnsPopupModal.addEventListener('click', (e) => {
+      if (e.target === dnsPopupModal) closeDnsModal();
+    });
+
+    function renderModalTable() {
+      modalDnsRows.innerHTML = '';
+      currentDnsItems.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/70 transition';
+        
+        let statusBadge = '';
+        if (item.status === 'checking') {
+          statusBadge = `<span class="inline-flex items-center text-blue-600 gap-1 text-[10px]"><svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Testing</span>`;
+        } else if (item.status === 'checked') {
+          statusBadge = `<span class="text-emerald-600 font-sans font-medium text-[10px] inline-flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> OK</span>`;
+        } else if (item.status === 'pending') {
+          statusBadge = `<span class="text-amber-600 font-sans font-medium text-[10px] inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Missing</span>`;
+        } else {
+          statusBadge = `<span class="text-slate-400 text-[10px]">Pending</span>`;
+        }
+
+        const rawClean = item.value.replace(/^"|"$/g, '');
+
+        tr.innerHTML = `
+          <td class="px-3 py-2 font-semibold text-slate-800">${item.type}</td>
+          <td class="px-3 py-2 text-slate-600 truncate max-w-[120px]" title="${item.host}">${item.host}</td>
+          <td class="px-3 py-2 text-slate-600 truncate max-w-[200px]" title="${rawClean}">${rawClean}</td>
+          <td class="px-3 py-2 text-center" id="status-cell-${index}">${statusBadge}</td>
+          <td class="px-3 py-2 text-right">
+            <button type="button" onclick="copyDnsItem(this, '${encodeURIComponent(rawClean)}')" class="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+            </button>
+          </td>
+        `;
+        modalDnsRows.appendChild(tr);
+      });
+    }
+
+    // 1-BY-1 PROGRESSION TEST SEQUENCE
+    window.runDnsCheckSequence = () => {
+      checkBtnText.textContent = 'Checking...';
+      checkBtnIcon.classList.add('animate-spin');
+      dnsProgressBar.className = 'bg-blue-600 h-1.5 rounded-full transition-all duration-300';
+      dnsProgressBar.style.width = '0%';
+      dnsCheckTag.className = 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-50 text-blue-600 border border-blue-200';
+      dnsCheckTag.textContent = 'Resolving 0/5';
+
+      let step = 0;
+      const total = currentDnsItems.length;
+
+      // Set all to waiting
+      currentDnsItems.forEach(i => i.status = 'wait');
+      renderModalTable();
+
+      const interval = setInterval(() => {
+        if (step < total) {
+          // Current item checking
+          currentDnsItems[step].status = 'checking';
+          renderModalTable();
+
+          setTimeout(() => {
+            // Check result logic (simulated)
+            if (activeModalDomain.includes('pypal') && step === 3) {
+              currentDnsItems[step].status = 'pending'; // DKIM missing
+            } else {
+              currentDnsItems[step].status = 'checked';
+            }
+
+            step++;
+            const pct = Math.round((step / total) * 100);
+            dnsProgressBar.style.width = `${pct}%`;
+            dnsCheckTag.textContent = `Testing ${step}/${total}`;
+            renderModalTable();
+
+            if (step === total) {
+              clearInterval(interval);
+              finishCheckSequence();
+            }
+          }, 350);
+        }
+      }, 400);
+    };
+
+    function finishCheckSequence() {
+      checkBtnText.textContent = 'Re-check';
+      checkBtnIcon.classList.remove('animate-spin');
+
+      const hasPending = currentDnsItems.some(i => i.status === 'pending');
+      if (hasPending) {
+        dnsProgressBar.className = 'bg-amber-500 h-1.5 rounded-full transition-all duration-300';
+        dnsCheckTag.className = 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200';
+        dnsCheckTag.textContent = '1 Record Missing';
+      } else {
+        dnsProgressBar.className = 'bg-emerald-500 h-1.5 rounded-full transition-all duration-300';
+        dnsCheckTag.className = 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200';
+        dnsCheckTag.textContent = 'All Verified (100%)';
+      }
+    }
+
+    // Copy Individual Record Value
+    window.copyDnsItem = async (btn, val) => {
+      try {
+        await navigator.clipboard.writeText(decodeURIComponent(val));
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+        setTimeout(() => btn.innerHTML = originalHTML, 1000);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    // Export Cloudflare Zone File
+    modalDownloadZoneBtn.addEventListener('click', () => {
+      let zone = `;; Cloudflare Zone File for ${activeModalDomain}\n$ORIGIN ${activeModalDomain}.\n$TTL 1\n\n`;
+      currentDnsItems.forEach(r => {
+        if (r.type === 'MX') zone += `${r.cfHost}\tIN\tMX\t${r.priority}\t${r.value}.\n`;
+        else if (r.type === 'A') zone += `${r.cfHost}\tIN\tA\t${r.value}\n`;
+        else if (r.type === 'TXT') zone += `${r.cfHost}\tIN\tTXT\t${r.value}\n`;
+      });
+
+      const blob = new Blob([zone], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeModalDomain}-cloudflare-dns.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

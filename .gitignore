@@ -11,7 +11,9 @@
 # Local environment and secrets
 .env*
 !.env.example
-/reference/
+# Python bytecode caches
+*.pyc
+**/__pycache__/
 
 # TypeScript and coverage output
 *.tsbuildinfo

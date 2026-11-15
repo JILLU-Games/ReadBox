@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailStack - Site Settings</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-[#fafafa] text-slate-900 flex h-screen overflow-hidden antialiased">
+
+  <!-- ========================================================================= -->
+  <!-- LEFT SIDEBAR                                                              -->
+  <!-- ========================================================================= -->
+  <aside class="w-64 border-r border-slate-200 bg-white flex flex-col justify-between p-4 shrink-0 select-none">
+    <div class="space-y-6">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2.5">
+          <div id="sidebarLogoContainer" class="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-white shadow-sm shadow-blue-500/30 overflow-hidden">
+            <svg id="sidebarDefaultIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            <img id="sidebarCustomLogo" class="w-full h-full object-cover hidden" alt="Logo" />
+          </div>
+          <span id="sidebarSiteName" class="font-bold text-sm text-slate-900 tracking-tight">MailStack</span>
+        </div>
+        <button class="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        </button>
+      </div>
+
+      <nav class="space-y-4">
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Overview</span>
+          <div class="mt-1">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              Dashboard
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Mail</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+              Mailboxes
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Create mailbox
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Management</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+              Domains
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              User management
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50/80 rounded-md border border-blue-100/60 shadow-xs">
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Site Settings
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="border border-slate-200/80 rounded-lg p-2.5 bg-slate-50/50">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+        <span class="text-[11px] font-semibold text-slate-700">Receive-only mode</span>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-0.5 leading-tight">Outbound sending is disabled</p>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE                                                            -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa]">
+    
+    <header class="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-8 shrink-0">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="font-semibold text-slate-800">MailStack</span>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-500 font-mono text-[11px]">System Configuration</span>
+      </div>
+      <div class="flex items-center gap-2 text-xs cursor-pointer select-none">
+        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold flex items-center justify-center border border-blue-100">A</div>
+        <span class="font-medium text-slate-700 text-xs">admin</span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="max-w-[760px] mx-auto space-y-4">
+        
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-slate-900 tracking-tight">Site Settings</h2>
+
+          <button 
+            type="button" 
+            id="saveSettingsBtn"
+            class="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition shadow-xs active:scale-[0.98] flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <span>Save Changes</span>
+          </button>
+        </div>
+
+        <!-- Success Toast Alert -->
+        <div id="saveToast" class="hidden p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-emerald-800 text-xs transition-all">
+          <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          <span class="font-medium">Settings saved successfully.</span>
+        </div>
+
+        <!-- 1. BRAND & ASSETS -->
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div class="px-4 py-2 border-b border-slate-100 bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-800">Brand</span>
+          </div>
+
+          <div class="p-4 space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label for="inputSiteName" class="block text-xs font-semibold text-slate-700 mb-1">Site Name</label>
+                <input 
+                  type="text" 
+                  id="inputSiteName" 
+                  value="MailStack"
+                  class="w-full h-9 px-3 text-xs text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+                />
+              </div>
+              <div>
+                <label for="inputTagline" class="block text-xs font-semibold text-slate-700 mb-1">Site Tagline</label>
+                <input 
+                  type="text" 
+                  id="inputTagline" 
+                  value="Fast & Secure Inbound Mail Relay"
+                  class="w-full h-9 px-3 text-xs text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-slate-100">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Site Logo</label>
+                <div class="flex items-center gap-3">
+                  <div id="logoPreviewBox" class="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                    <span id="logoPlaceholder" class="text-[10px] font-mono text-slate-400 font-medium">SVG</span>
+                    <img id="logoImg" class="w-full h-full object-contain hidden" alt="Logo preview" />
+                  </div>
+                  <input type="file" id="logoUpload" accept="image/*" class="hidden" />
+                  <button type="button" onclick="document.getElementById('logoUpload').click()" class="px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md transition shadow-2xs">
+                    Upload Logo
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Favicon</label>
+                <div class="flex items-center gap-3">
+                  <div id="faviconPreviewBox" class="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                    <span id="faviconPlaceholder" class="text-[10px] font-mono text-slate-400 font-medium">ICO</span>
+                    <img id="faviconImg" class="w-5 h-5 object-contain hidden" alt="Favicon preview" />
+                  </div>
+                  <input type="file" id="faviconUpload" accept="image/x-icon,image/png" class="hidden" />
+                  <button type="button" onclick="document.getElementById('faviconUpload').click()" class="px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md transition shadow-2xs">
+                    Upload Favicon
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. CONTACT DETAILS -->
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div class="px-4 py-2 border-b border-slate-100 bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-800">Contact Details</span>
+          </div>
+
+          <div class="p-4 space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Support Email</label>
+                <input 
+                  type="email" 
+                  id="inputSupportEmail" 
+                  value="support@vibmail.my"
+                  class="w-full h-9 px-3 text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Contact Phone</label>
+                <input 
+                  type="text" 
+                  id="inputContactPhone" 
+                  value="+1 (555) 019-2834"
+                  class="w-full h-9 px-3 text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Office Address</label>
+              <input 
+                type="text" 
+                id="inputAddress" 
+                value="Vib Tools Inc, 742 Evergreen Terrace, Tech Park"
+                class="w-full h-9 px-3 text-xs text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. FOOTER & LEGAL (WITH PUBLIC FOOTER DESCRIPTION ADDED) -->
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div class="px-4 py-2 border-b border-slate-100 bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-800">Footer</span>
+          </div>
+
+          <div class="p-4 space-y-3">
+            <!-- Added: Public Footer Description Form Field -->
+            <div>
+              <label for="inputFooterDescription" class="block text-xs font-semibold text-slate-700 mb-1">Public Footer description</label>
+              <textarea 
+                id="inputFooterDescription" 
+                rows="2" 
+                placeholder="Brief public description or about note displayed in the site footer..."
+                class="w-full px-3 py-2 text-xs text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition resize-none">MailStack provides isolated, disposable, and high-performance incoming email management tools built for modern teams and autonomous pipelines.</textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Copyright Text</label>
+              <input 
+                type="text" 
+                id="inputCopyright" 
+                value="© 2026 MailStack by Vib Tools. Authorized team use only."
+                class="w-full h-9 px-3 text-xs text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Source Code URL</label>
+                <input 
+                  type="text" 
+                  id="inputSourceUrl" 
+                  value="https://github.com/vibtools/mailstack"
+                  class="w-full h-9 px-3 text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Privacy / Terms URL</label>
+                <input 
+                  type="text" 
+                  id="inputPrivacyUrl" 
+                  value="https://vibmail.my/legal"
+                  class="w-full h-9 px-3 text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Compact Footer -->
+    <footer class="h-9 px-8 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-200 bg-white shrink-0">
+      <span id="footerCopyrightDisplay">© 2026 MailStack by Vib Tools. Authorized team use only.</span>
+      <a id="footerSourceDisplay" href="#" class="text-blue-600 hover:underline">Source code</a>
+    </footer>
+
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const inputSiteName = document.getElementById('inputSiteName');
+    const sidebarSiteName = document.getElementById('sidebarSiteName');
+    const inputCopyright = document.getElementById('inputCopyright');
+    const footerCopyrightDisplay = document.getElementById('footerCopyrightDisplay');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const saveToast = document.getElementById('saveToast');
+
+    const logoUpload = document.getElementById('logoUpload');
+    const logoImg = document.getElementById('logoImg');
+    const logoPlaceholder = document.getElementById('logoPlaceholder');
+    const sidebarDefaultIcon = document.getElementById('sidebarDefaultIcon');
+    const sidebarCustomLogo = document.getElementById('sidebarCustomLogo');
+
+    const faviconUpload = document.getElementById('faviconUpload');
+    const faviconImg = document.getElementById('faviconImg');
+    const faviconPlaceholder = document.getElementById('faviconPlaceholder');
+
+    inputSiteName.addEventListener('input', (e) => {
+      sidebarSiteName.textContent = e.target.value.trim() || 'MailStack';
+    });
+
+    inputCopyright.addEventListener('input', (e) => {
+      footerCopyrightDisplay.textContent = e.target.value.trim();
+    });
+
+    logoUpload.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          logoImg.src = e.target.result;
+          logoImg.classList.remove('hidden');
+          logoPlaceholder.classList.add('hidden');
+
+          sidebarCustomLogo.src = e.target.result;
+          sidebarCustomLogo.classList.remove('hidden');
+          sidebarDefaultIcon.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    faviconUpload.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          faviconImg.src = e.target.result;
+          faviconImg.classList.remove('hidden');
+          faviconPlaceholder.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    saveSettingsBtn.addEventListener('click', () => {
+      const originalText = saveSettingsBtn.innerHTML;
+      saveSettingsBtn.innerHTML = `
+        <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span>Saving...</span>
+      `;
+
+      setTimeout(() => {
+        saveSettingsBtn.innerHTML = originalText;
+        saveToast.classList.remove('hidden');
+        setTimeout(() => {
+          saveToast.classList.add('hidden');
+        }, 2000);
+      }, 350);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailStack - System Info</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-[#fafafa] text-slate-900 flex h-screen overflow-hidden antialiased">
+
+  <!-- ========================================================================= -->
+  <!-- LEFT SIDEBAR                                                              -->
+  <!-- ========================================================================= -->
+  <aside class="w-64 border-r border-slate-200 bg-white flex flex-col justify-between p-4 shrink-0 select-none">
+    <div class="space-y-6">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <span class="font-bold text-sm text-slate-900 tracking-tight">MailStack</span>
+        </div>
+        <button class="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        </button>
+      </div>
+
+      <nav class="space-y-4">
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Overview</span>
+          <div class="mt-1">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              Dashboard
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Mail</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+              Mailboxes
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Create mailbox
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Management</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+              Domains
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              User management
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50/80 rounded-md border border-blue-100/60 shadow-xs">
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              System info
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Mode Badge -->
+    <div class="border border-slate-200/80 rounded-lg p-2.5 bg-slate-50/50">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+        <span class="text-[11px] font-semibold text-slate-700">Receive-only mode</span>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-0.5 leading-tight">Outbound sending is disabled</p>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT CONTAINER                                                    -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa]">
+    
+    <!-- Topbar -->
+    <header class="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-8 shrink-0">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="font-semibold text-slate-800">MailStack</span>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-500 font-mono text-[11px]">Default domain: vibmail.my</span>
+      </div>
+      <div class="flex items-center gap-2 text-xs cursor-pointer select-none">
+        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold flex items-center justify-center border border-blue-100">A</div>
+        <span class="font-medium text-slate-700 text-xs">admin</span>
+      </div>
+    </header>
+
+    <!-- Page Workspace -->
+    <main class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="max-w-[860px] mx-auto space-y-4">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h2 class="text-base font-bold text-slate-900 tracking-tight">System Info</h2>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> All Services Healthy
+            </span>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-2">
+            <button 
+              type="button" 
+              id="refreshStatusBtn"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition shadow-2xs active:scale-95">
+              <svg id="refreshIcon" class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Refresh</span>
+            </button>
+
+            <button 
+              type="button" 
+              id="copyDiagnosticsBtn"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition shadow-2xs active:scale-95">
+              <svg id="copyDiagIcon" class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+              <span id="copyDiagText">Copy Diagnostics</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. CORE STACK SERVICE HEALTH (GRID) -->
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div class="px-4 py-2.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-800">Core Services & Daemons</span>
+            <span class="text-[11px] font-mono text-slate-400">Ubuntu 24.04.1 LTS (Linux 6.8.0)</span>
+          </div>
+
+          <div class="divide-y divide-slate-100 text-xs">
+            
+            <!-- Postfix -->
+            <div class="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50/50 transition">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <div>
+                  <span class="font-semibold text-slate-800">Postfix</span>
+                  <span class="text-slate-400 text-[11px] ml-1.5 font-mono">v3.8.6 · SMTP Inbound (Port 25)</span>
+                </div>
+              </div>
+              <span class="font-mono text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 font-medium">active (running)</span>
+            </div>
+
+            <!-- Dovecot LMTP -->
+            <div class="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50/50 transition">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <div>
+                  <span class="font-semibold text-slate-800">Dovecot LMTP</span>
+                  <span class="text-slate-400 text-[11px] ml-1.5 font-mono">v2.3.21 · Local Mail Delivery Agent</span>
+                </div>
+              </div>
+              <span class="font-mono text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 font-medium">active (running)</span>
+            </div>
+
+            <!-- Nginx -->
+            <div class="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50/50 transition">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <div>
+                  <span class="font-semibold text-slate-800">Nginx</span>
+                  <span class="text-slate-400 text-[11px] ml-1.5 font-mono">v1.24.0 · Reverse Proxy & SSL Gateway</span>
+                </div>
+              </div>
+              <span class="font-mono text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 font-medium">active (running)</span>
+            </div>
+
+            <!-- MariaDB -->
+            <div class="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50/50 transition">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <div>
+                  <span class="font-semibold text-slate-800">MariaDB Server</span>
+                  <span class="text-slate-400 text-[11px] ml-1.5 font-mono">v10.11.8 · Database Engine</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-mono text-slate-500">4 conns / 0.8ms</span>
+                <span class="font-mono text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 font-medium">healthy</span>
+              </div>
+            </div>
+
+            <!-- Django Web Application -->
+            <div class="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50/50 transition">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <div>
+                  <span class="font-semibold text-slate-800">Django Application</span>
+                  <span class="text-slate-400 text-[11px] ml-1.5 font-mono">v5.1 (Python 3.12.3) · Gunicorn WSGI</span>
+                </div>
+              </div>
+              <span class="font-mono text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 font-medium">online (24 workers)</span>
+            </div>
+
+            <!-- Maildir Storage System -->
+            <div class="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50/50 transition">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <div>
+                  <span class="font-semibold text-slate-800">Maildir Storage</span>
+                  <span class="text-slate-400 text-[11px] ml-1.5 font-mono">/var/vmail/%d/%n · Single-file format</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-mono text-slate-500">4.12 GB (8.2%)</span>
+                <span class="font-mono text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 font-medium">mounted</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 2. WORKERS, QUEUE & SYSTEM METRICS (2-COLUMN COMPACT ROW) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- Workers & Processing Queue -->
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800">Background Workers</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">2 Workers Active</span>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between py-1 border-b border-slate-100">
+                <span class="text-slate-500 font-sans">LMTP Ingestion Queue</span>
+                <span class="font-mono font-medium text-slate-800">0 pending</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-slate-100">
+                <span class="text-slate-500 font-sans">DKIM / Spam Filter Worker</span>
+                <span class="font-mono text-emerald-600 font-medium">Idle (0 ms latency)</span>
+              </div>
+              <div class="flex items-center justify-between py-1">
+                <span class="text-slate-500 font-sans">Mailbox Sync Dispatcher</span>
+                <span class="font-mono text-slate-700">Running (PID: 10482)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Host & Resource Metrics -->
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800">Host Resources</span>
+              <span class="text-[11px] font-mono text-slate-400">Ubuntu 24.04</span>
+            </div>
+
+            <div class="space-y-2">
+              <!-- CPU -->
+              <div>
+                <div class="flex items-center justify-between text-[11px] mb-1">
+                  <span class="text-slate-500">CPU Load (4 vCPU)</span>
+                  <span class="font-mono text-slate-700">12%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-blue-600 h-1.5 rounded-full" style="width: 12%"></div>
+                </div>
+              </div>
+
+              <!-- RAM -->
+              <div>
+                <div class="flex items-center justify-between text-[11px] mb-1">
+                  <span class="text-slate-500">Memory (RAM)</span>
+                  <span class="font-mono text-slate-700">1.82 GB / 8 GB (22.7%)</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-indigo-600 h-1.5 rounded-full" style="width: 22.7%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Compact Footer -->
+    <footer class="h-9 px-8 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-200 bg-white shrink-0">
+      <span>© 2026 MailStack by <a href="#" class="text-blue-600 font-medium">Vib Tools</a>. Authorized team use only.</span>
+      <a href="#" class="text-blue-600 hover:underline">Source code</a>
+    </footer>
+
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const refreshStatusBtn = document.getElementById('refreshStatusBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+    const copyDiagnosticsBtn = document.getElementById('copyDiagnosticsBtn');
+    const copyDiagText = document.getElementById('copyDiagText');
+    const copyDiagIcon = document.getElementById('copyDiagIcon');
+
+    // Simulate Status Refresh
+    refreshStatusBtn.addEventListener('click', () => {
+      refreshIcon.classList.add('animate-spin');
+      setTimeout(() => {
+        refreshIcon.classList.remove('animate-spin');
+      }, 500);
+    });
+
+    // Copy Diagnostics
+    copyDiagnosticsBtn.addEventListener('click', async () => {
+      const diagData = `MailStack Server Diagnostics:
+- Host OS: Ubuntu 24.04.1 LTS (Linux 6.8.0)
+- MTA: Postfix v3.8.6 (Port 25 - Active)
+- MDA: Dovecot LMTP v2.3.21 (Active)
+- Web: Nginx v1.24.0
+- Engine: Django v5.1 (Python 3.12.3)
+- Database: MariaDB v10.11.8 (Healthy)
+- Storage Format: Maildir (/var/vmail)
+- Workers: 2 Active (0 Queue Backlog)
+- Overall Status: 100% Operational`;
+
+      try {
+        await navigator.clipboard.writeText(diagData);
+        copyDiagText.textContent = 'Copied!';
+        copyDiagnosticsBtn.classList.add('text-emerald-700', 'bg-emerald-50', 'border-emerald-300');
+        copyDiagIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>`;
+        copyDiagIcon.classList.replace('text-slate-500', 'text-emerald-600');
+
+        setTimeout(() => {
+          copyDiagText.textContent = 'Copy Diagnostics';
+          copyDiagnosticsBtn.classList.remove('text-emerald-700', 'bg-emerald-50', 'border-emerald-300');
+          copyDiagIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>`;
+          copyDiagIcon.classList.replace('text-emerald-600', 'text-slate-500');
+        }, 1500);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>

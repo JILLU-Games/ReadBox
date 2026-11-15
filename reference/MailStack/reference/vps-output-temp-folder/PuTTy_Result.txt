@@ -1,0 +1,155 @@
+login as: root
+root@173.212.201.250's password:
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.8.0-139-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Wed Sep 23 17:40:20 CEST 2026
+
+  System load:  0.37              Processes:             171
+  Usage of /:   6.2% of 95.82GB   Users logged in:       1
+  Memory usage: 12%               IPv4 address for eth0: 173.212.201.250
+  Swap usage:   0%                IPv6 address for eth0: 2a02:c207:2358:5287::1
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+Expanded Security Maintenance for Applications is not enabled.
+
+22 updates can be applied immediately.
+1 of these updates is a standard security update.
+To see these additional updates run: apt list --upgradable
+
+3 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+  _____
+ / ___/___  _  _ _____ _   ___  ___
+| |   / _ \| \| |_   _/ \ | _ )/ _ \
+| |__| (_) | .` | | |/ _ \| _ \ (_) |
+ \____\___/|_|\_| |_/_/ \_|___/\___/
+
+Welcome!
+
+This server is hosted by Contabo. If you have any questions or need help,
+please raise a support ticket from your customer control panel.
+Last login: Wed Sep 23 17:34:21 2026 from 103.160.16.37
+root@vmi3585287:~# sudo systemctl stop vibmail-ingestion.service
+sudo systemctl stop vibmail-gunicorn.service
+
+sudo mkdir -p /opt/vibmail-data/mail
+sudo mkdir -p /opt/vibmail-data/attachments
+
+sudo chown -R vmail:vmail /opt/vibmail-data/mail
+sudo chown -R vmail:vmail /opt/vibmail-data/attachments
+
+sudo find /opt/vibmail-data/mail -type d -exec chmod 750 {} +
+sudo find /opt/vibmail-data/attachments -type d -exec chmod 700 {} +
+sudo find /opt/vibmail-data/attachments -type f -exec chmod 600 {} +
+
+sudo mkdir -p /etc/systemd/system/vibmail-gunicorn.service.d
+sudo mkdir -p /etc/systemd/system/vibmail-ingestion.service.d
+
+sudo tee /etc/systemd/system/vibmail-gunicorn.service.d/storage.conf >/dev/null <<'EOF'
+[Service]
+RequiresMountsFor=/opt/vibmail-data/mail /opt/vibmail-data/attachments
+ReadWritePaths=/opt/vibmail-data/mail /opt/vibmail-data/attachments
+EOF
+
+sudo tee /etc/systemd/system/vibmail-ingestion.service.d/storage.conf >/dev/nullsudo systemctl status vibmail-ingestion.service --no-pageril-ingestion.service
+● vibmail-gunicorn.service - MailStack Gunicorn application
+     Loaded: loaded (/etc/systemd/system/vibmail-gunicorn.service; enabled; preset: enabled)
+    Drop-In: /etc/systemd/system/vibmail-gunicorn.service.d
+             └─storage.conf
+     Active: active (running) since Wed 2026-09-23 17:40:34 CEST; 68ms ago
+   Main PID: 375104 (gunicorn)
+      Tasks: 1 (limit: 9483)
+     Memory: 7.4M (peak: 7.4M)
+        CPU: 64ms
+     CGroup: /system.slice/vibmail-gunicorn.service
+             └─375104 /opt/vibmail/venv/bin/python3 /opt/vibmail/venv/bin/gunic…
+
+Sep 23 17:40:34 vmi3585287 systemd[1]: Started vibmail-gunicorn.service - M…ion.
+Hint: Some lines were ellipsized, use -l to show in full.
+● vibmail-ingestion.service - MailStack Maildir ingestion worker
+     Loaded: loaded (/etc/systemd/system/vibmail-ingestion.service; enabled; preset: enabled)
+    Drop-In: /etc/systemd/system/vibmail-ingestion.service.d
+             └─storage.conf
+     Active: active (running) since Wed 2026-09-23 17:40:34 CEST; 67ms ago
+   Main PID: 375109 (python)
+      Tasks: 1 (limit: 9483)
+     Memory: 6.7M (peak: 7.0M)
+        CPU: 64ms
+     CGroup: /system.slice/vibmail-ingestion.service
+             └─375109 /opt/vibmail/venv/bin/python manage.py ingest_maildir --w…
+
+Sep 23 17:40:34 vmi3585287 systemd[1]: Started vibmail-ingestion.service - …ker.
+Hint: Some lines were ellipsized, use -l to show in full.
+root@vmi3585287:~# sudo journalctl -u vibmail-ingestion.service -n 30 --no-pager
+sudo journalctl -u vibmail-gunicorn.service -n 30 --no-pager
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.328892+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "elijah.williams@sotflo.com", "message_uuid": "84ad5503-4fcb-4394-aeeb-c7672d9216e0", "source_file_key": "new/1790153906.M113738P320996.vmi3585287,S=890776,W=902524"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.397116+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "elitemobileworks2154@mailvib.com", "message_uuid": "c18d96b6-c3ce-41f9-8f0f-7944ae49aaea", "source_file_key": "new/1790061314.M371494P117735.vmi3585287,S=54930,W=55736"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.493072+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "ellissupply96@pingmx.shop", "message_uuid": "a449ffeb-41ce-4be3-9269-7b030cf7f282", "source_file_key": "new/1790059159.M796592P113172.vmi3585287,S=54866,W=55672"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.571028+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "expressdevicehub45@mailvib.com", "message_uuid": "baa9bd17-a51a-436c-90d8-6c2ff931bbe5", "source_file_key": "new/1790056411.M182923P107395.vmi3585287,S=53333,W=54105"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.611609+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "expressdevicehub45@mailvib.com", "message_uuid": "74b52371-b640-4187-aeee-8c3e66bc5de9", "source_file_key": "new/1790056549.M742748P107691.vmi3585287,S=53324,W=54096"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.655436+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "expressdevicehub45@mailvib.com", "message_uuid": "96d8a9c8-9903-4d3d-ac0c-c45dc266355e", "source_file_key": "new/1790056291.M508887P107132.vmi3585287,S=53341,W=54113"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.694970+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "expressdevicehub45@mailvib.com", "message_uuid": "cfdb746c-4d85-47ad-abf0-0061e4088ab3", "source_file_key": "new/1790056129.M385034P106777.vmi3585287,S=16275,W=16581"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.736042+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "fashion6553@mailvib.com", "message_uuid": "65a67ebc-adc2-48db-a8d6-156172ea4987", "source_file_key": "new/1790051775.M135852P97025.vmi3585287,S=16247,W=16553"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.819475+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "haydenmarket34@relayo.shop", "message_uuid": "db865c9a-77cf-4ad3-8670-62729773166d", "source_file_key": "new/1790059453.M333603P113831.vmi3585287,S=54875,W=55681"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.895509+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "julianmarket333@postiq.shop", "message_uuid": "4f2f59d3-d3bc-475b-b752-723312916489", "source_file_key": "new/1790059993.M636900P115205.vmi3585287,S=54889,W=55695"}
+Sep 23 17:40:36 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:36.979641+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "landongoods56@sotflo.com", "message_uuid": "52308080-722e-47cd-9e4c-277d9d2e644f", "source_file_key": "new/1790059245.M896881P113557.vmi3585287,S=54860,W=55666"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.087072+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "marvinsupplyw45@mxpost.shop", "message_uuid": "ad068b4b-5d0c-4ea6-8988-33c948bf099b", "source_file_key": "new/1790059660.M722704P114460.vmi3585287,S=54890,W=55696"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.154483+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "metrophonestore2565@mailvib.com", "message_uuid": "11c3db5f-fa36-4207-be98-f31d088c18bb", "source_file_key": "new/1790061138.M30300P117735.vmi3585287,S=54917,W=55723"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.241815+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "mobiledirecthub54@mailfy.shop", "message_uuid": "42340b28-9c84-4b3d-828f-aa56d485183f", "source_file_key": "new/1790060751.M326759P116680.vmi3585287,S=54905,W=55711"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.304142+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "mobilegearco34@pingmx.shop", "message_uuid": "e369e0f2-1513-4732-a4c8-ba665309e5ff", "source_file_key": "new/1790060502.M509963P116102.vmi3585287,S=54878,W=55684"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.387612+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "mobilenextco34@mailvib.com", "message_uuid": "a644f0a6-8af2-4371-b80d-9a8a2599ae2c", "source_file_key": "new/1790061540.M830682P118304.vmi3585287,S=54874,W=55680"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.543280+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "novamobileco2544@mailvib.com", "message_uuid": "c523bff4-1586-4134-9c39-7088e16baac3", "source_file_key": "new/1790060319.M383129P115573.vmi3585287,S=54893,W=55699"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.666216+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "orvantallc86@vibmail.my", "message_uuid": "f64fdae2-cdfa-4e5a-84f8-16e1946c52c1", "source_file_key": "new/1790102929.M352096P209435.vmi3585287,S=52694,W=53455"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.717530+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "orvantallc864456@vibmail.my", "message_uuid": "d3712411-1cbd-4d52-9957-2a2b5cb15fb4", "source_file_key": "new/1790103439.M632061P210747.vmi3585287,S=52705,W=53466"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.768023+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "orvantallc864456@vibmail.my", "message_uuid": "82179af2-902f-4f15-bd3c-7b9335a432e1", "source_file_key": "new/1790103438.M450832P210747.vmi3585287,S=52710,W=53471"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.870066+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "phoneexpressstore@mxpost.shop", "message_uuid": "d5a826a6-8699-45a6-89b5-371779612b47", "source_file_key": "new/1790060833.M818320P117048.vmi3585287,S=54905,W=55711"}
+Sep 23 17:40:37 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:37.951488+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "phoneflexcenter97@relayo.shop", "message_uuid": "c619742b-fd21-408c-8358-468f6adf96b8", "source_file_key": "new/1790061636.M147486P118869.vmi3585287,S=54897,W=55703"}
+Sep 23 17:40:38 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:38.011131+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "phoneplusworks45@relayo.shop", "message_uuid": "da77dbe7-ed04-479a-820f-e990b72cb9d7", "source_file_key": "new/1790060578.M389657P116102.vmi3585287,S=54889,W=55695"}
+Sep 23 17:40:38 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:38.151424+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "riverviewwireless65@mailvib.com", "message_uuid": "d4dbdfb5-7131-44c4-86dc-c02e9935a539", "source_file_key": "new/1790060241.M986233P115573.vmi3585287,S=54926,W=55732"}
+Sep 23 17:40:38 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:38.236915+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "russelldevices454@mailvib.com", "message_uuid": "079e8f7d-3e6f-4c8a-8f40-5d2530766ab6", "source_file_key": "new/1790059069.M484267P113172.vmi3585287,S=54911,W=55717"}
+Sep 23 17:40:38 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:38.352956+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "travistrading87@mailfy.shop", "message_uuid": "ea0eadbf-ca86-425e-88b2-14fbe8135e0b", "source_file_key": "new/1790058959.M627084P112930.vmi3585287,S=54875,W=55681"}
+Sep 23 17:40:38 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:38.414133+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "trevordigital@mailfy.shop", "message_uuid": "ebafea88-3503-450d-aac5-0fea3fe67be9", "source_file_key": "new/1790059898.M868792P114989.vmi3585287,S=54870,W=55676"}
+Sep 23 17:40:38 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:38.496577+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "urbanmobileshop564@mailvib.com", "message_uuid": "b3dbc9e7-b844-4d76-b16b-288c32ba54ed", "source_file_key": "new/1790061387.M151448P118304.vmi3585287,S=54901,W=55707"}
+Sep 23 17:40:38 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:40:38.754845+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "westonmarket45@vibmail.my", "message_uuid": "2572ff0d-22fe-4f0a-b953-1c736d95f171", "source_file_key": "new/1790058799.M937746P112583.vmi3585287,S=54872,W=55678"}
+Sep 23 17:42:51 vmi3585287 python[375109]: {"timestamp": "2026-09-23T15:42:51.663524+00:00", "level": "INFO", "logger": "apps.ingestion.service", "message": "Message ingested", "event": "message_ingested", "mailbox": "harper.martinez@mailvib.com", "message_uuid": "3c749dd3-b440-479f-871b-03e422d93113", "source_file_key": "new/1790178162.M256037P375388.vmi3585287,S=4888,W=4975"}
+Sep 23 17:41:48 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:41:48 +0000] "GET /messages/live/?cursor=0 HTTP/1.0" 200 241 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:41:53 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:41:53 +0000] "GET /messages/live/?cursor=0 HTTP/1.0" 200 241 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:41:56 vmi3585287 gunicorn[375116]: {"timestamp": "2026-09-23T15:41:56.109951+00:00", "level": "INFO", "logger": "apps.mailboxes.services", "message": "Mailbox provisioned", "event": "mailbox_provisioned", "mailbox": "harper.martinez@mailvib.com"}
+Sep 23 17:41:56 vmi3585287 gunicorn[375116]:  - - [23/Sep/2026:15:41:56 +0000] "POST /mailboxes/create/ HTTP/1.0" 302 0 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:41:56 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:41:56 +0000] "GET /mailboxes/ HTTP/1.0" 200 12489 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:41:56 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:41:56 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:02 vmi3585287 gunicorn[375116]:  - - [23/Sep/2026:15:42:02 +0000] "GET /messages/live/?cursor=0&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:09 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:09 +0000] "GET / HTTP/1.0" 200 11661 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:09 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:09 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:11 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:11 +0000] "GET /mailboxes/ HTTP/1.0" 200 12253 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:12 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:12 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:30 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:30 +0000] "GET /messages/live/?cursor=0&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:32 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:32 +0000] "GET /messages/live/?cursor=0&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:37 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:37 +0000] "GET /messages/live/?cursor=0&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:39 vmi3585287 gunicorn[375116]:  - - [23/Sep/2026:15:42:39 +0000] "GET /mailboxes/ HTTP/1.0" 200 12253 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:40 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:40 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:40 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:40 +0000] "GET /mailboxes/ HTTP/1.0" 200 12253 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:41 vmi3585287 gunicorn[375116]:  - - [23/Sep/2026:15:42:41 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:41 vmi3585287 gunicorn[375116]:  - - [23/Sep/2026:15:42:41 +0000] "GET /mailboxes/ HTTP/1.0" 200 12253 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:42 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:42 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:50 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:50 +0000] "GET /messages/live/?cursor=0&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 426 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:51 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:51 +0000] "GET /mailboxes/ HTTP/1.0" 200 12253 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:52 vmi3585287 gunicorn[375116]:  - - [23/Sep/2026:15:42:52 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 475 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:52 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:52 +0000] "GET /mailboxes/ HTTP/1.0" 200 12266 "https://app.vibmail.my/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:53 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:53 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 475 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:54 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:54 +0000] "GET /messages/mailbox/92950af4-ff1a-43d7-8279-647fe3688ba7/ HTTP/1.0" 200 12687 "https://app.vibmail.my/mailboxes/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:55 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:55 +0000] "GET /messages/live/?cursor=0&bootstrap=1&mailboxes=92950af4-ff1a-43d7-8279-647fe3688ba7 HTTP/1.0" 200 475 "https://app.vibmail.my/messages/mailbox/92950af4-ff1a-43d7-8279-647fe3688ba7/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:56 vmi3585287 gunicorn[375117]:  - - [23/Sep/2026:15:42:56 +0000] "GET /messages/mailbox/92950af4-ff1a-43d7-8279-647fe3688ba7/3c749dd3-b440-479f-871b-03e422d93113/ HTTP/1.0" 200 12883 "https://app.vibmail.my/messages/mailbox/92950af4-ff1a-43d7-8279-647fe3688ba7/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:56 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:56 +0000] "GET /messages/html/3c749dd3-b440-479f-871b-03e422d93113/ HTTP/1.0" 200 589 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+Sep 23 17:42:56 vmi3585287 gunicorn[375118]:  - - [23/Sep/2026:15:42:56 +0000] "GET /messages/live/?cursor=0&bootstrap=1 HTTP/1.0" 200 475 "https://app.vibmail.my/messages/mailbox/92950af4-ff1a-43d7-8279-647fe3688ba7/3c749dd3-b440-479f-871b-03e422d93113/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+root@vmi3585287:~#

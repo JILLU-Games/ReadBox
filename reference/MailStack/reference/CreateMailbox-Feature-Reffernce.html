@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailStack - Mailboxes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-[#fafafa] text-slate-900 flex h-screen overflow-hidden antialiased">
+
+  <!-- Left Navigation (Current Design Aligned) -->
+  <aside class="w-64 border-r border-slate-200 bg-white flex flex-col justify-between p-4 shrink-0 select-none">
+    <div class="space-y-6">
+      <!-- Brand -->
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <span class="font-bold text-sm text-slate-900 tracking-tight">MailStack</span>
+        </div>
+        <button class="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="space-y-4">
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Overview</span>
+          <div class="mt-1">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              Dashboard
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Mail</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+              Mailboxes
+            </a>
+            <!-- Sidebar Trigger Button for Modal -->
+            <button 
+              type="button" 
+              id="sidebarOpenModalBtn"
+              class="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50/80 hover:bg-blue-100/60 rounded-md border border-blue-100/60 shadow-xs transition text-left">
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Create mailbox
+            </button>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Mode Pill -->
+    <div class="border border-slate-200/80 rounded-lg p-2.5 bg-slate-50/50">
+      <div class="flex items-center gap-2">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+        </span>
+        <span class="text-[11px] font-semibold text-slate-700">Receive-only mode</span>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-0.5 leading-normal">Outbound sending is disabled</p>
+    </div>
+  </aside>
+
+  <!-- Main View Area (Background Page Behind Modal) -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa]">
+    
+    <!-- Topbar -->
+    <header class="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-8 shrink-0">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="font-semibold text-slate-800">MailStack</span>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-500 font-mono text-[11px]">vibmail.my</span>
+      </div>
+
+      <div class="flex items-center gap-2 text-xs cursor-pointer select-none">
+        <div class="w-6 h-6 rounded bg-slate-100 text-slate-700 text-[10px] font-bold flex items-center justify-center border border-slate-200">
+          T
+        </div>
+        <span class="font-medium text-slate-700 text-xs">teamdarkdevil24</span>
+        <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+    </header>
+
+    <!-- Content Workspace Placeholder (Clean Mailbox Dashboard View) -->
+    <main class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="flex items-center justify-between pb-5 border-b border-slate-200">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900 tracking-tight">Active Mailboxes</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Manage and monitor incoming mailboxes configured on this domain.</p>
+        </div>
+        <button 
+          id="pageOpenModalBtn"
+          type="button" 
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition shadow-xs">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          Create mailbox
+        </button>
+      </div>
+
+      <!-- Demonstration Table -->
+      <div class="mt-5 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500">
+            <tr>
+              <th class="px-4 py-2.5">Mailbox</th>
+              <th class="px-4 py-2.5">Status</th>
+              <th class="px-4 py-2.5">Created</th>
+              <th class="px-4 py-2.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr>
+              <td class="px-4 py-3 font-mono font-medium text-slate-800">support@vibmail.my</td>
+              <td class="px-4 py-3"><span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span></td>
+              <td class="px-4 py-3 text-slate-500 text-[11px]">Today</td>
+              <td class="px-4 py-3 text-right"><span class="text-blue-600 hover:underline cursor-pointer">Manage</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <!-- Compact Footer -->
+    <footer class="h-9 px-8 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-200 bg-white shrink-0">
+      <span>© 2026 MailStack. Authorized team use only.</span>
+      <a href="#" class="text-blue-600 hover:underline">Source code</a>
+    </footer>
+
+  </div>
+
+  <!-- ============================================== -->
+  <!-- POPUP MODAL COMPONENT (CLEAN & COMPACT)        -->
+  <!-- ============================================== -->
+  <div 
+    id="createMailboxModal" 
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-200">
+    
+    <!-- Modal Card Box -->
+    <div 
+      id="modalContainer" 
+      class="w-full max-w-[460px] bg-white rounded-xl border border-slate-200/90 shadow-2xl scale-95 transition-transform duration-200 overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          </div>
+          <h3 class="text-sm font-semibold text-slate-900">Create mailbox</h3>
+        </div>
+        <!-- Close button (X) -->
+        <button 
+          type="button" 
+          id="closeModalBtn" 
+          class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md p-1 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Compact Form) -->
+      <div class="p-5">
+        <form id="mailboxForm" onsubmit="event.preventDefault();">
+          
+          <label for="username" class="block text-xs font-medium text-slate-700 mb-1.5">
+            Mailbox address
+          </label>
+
+          <!-- Unified Input Bar: [Input] + [Random Dice] + [Domain Dropdown] -->
+          <div class="relative flex items-center border border-slate-200 rounded-md bg-white focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-50 transition duration-150 group">
+            
+            <input 
+              type="text" 
+              id="username" 
+              placeholder="alias or username"
+              class="flex-1 min-w-0 pl-3 pr-2 py-2 text-xs font-mono text-slate-800 placeholder-slate-400 bg-transparent border-0 focus:outline-none"
+              autocomplete="off"
+              spellcheck="false"
+            />
+
+            <!-- Inline Random Dice Action -->
+            <button 
+              type="button" 
+              id="randomBtn" 
+              title="Generate completely random address"
+              class="p-1.5 mr-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition shrink-0 active:scale-90">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+
+            <!-- Domain Dropdown Segment -->
+            <div class="flex items-center border-l border-slate-200 bg-slate-50/70 h-full px-2">
+              <span class="text-xs text-slate-400 font-mono mr-1">@</span>
+              <div class="relative">
+                <select 
+                  id="domainSelect" 
+                  class="appearance-none bg-transparent pr-5 text-xs font-mono text-slate-700 font-medium focus:outline-none cursor-pointer py-2">
+                  <option value="vibmail.my">vibmail.my</option>
+                  <option value="teammail.dev">teammail.dev</option>
+                  <option value="inbox.tools">inbox.tools</option>
+                </select>
+                <svg class="w-3 h-3 text-slate-400 pointer-events-none absolute right-0 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Dynamic USA Name Quick Chips -->
+          <div class="flex items-center gap-1.5 mt-2.5">
+            <span class="text-[10px] font-medium text-slate-400">Quick:</span>
+            <div id="chipsContainer" class="flex flex-wrap gap-1">
+              <!-- Dynamically populated via JS -->
+            </div>
+            <button 
+              type="button" 
+              id="refreshNamesBtn"
+              title="Get new USA name suggestions"
+              class="text-slate-400 hover:text-slate-600 p-0.5 rounded hover:bg-slate-100 transition">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Footer Actions inside Modal -->
+          <div class="flex items-center gap-2 mt-5 pt-3.5 border-t border-slate-100">
+            <!-- 1. Create mailbox -->
+            <button 
+              type="submit" 
+              id="createBtn"
+              class="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition shadow-xs active:scale-[0.98]">
+              Create mailbox
+            </button>
+
+            <!-- 2. Create & Copy -->
+            <button 
+              type="button" 
+              id="createAndCopyBtn"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-md transition shadow-2xs active:scale-[0.98]">
+              <svg id="copyIcon" class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+              </svg>
+              <span id="copyBtnText">Create & Copy</span>
+            </button>
+
+            <!-- 3. Cancel (Closes modal) -->
+            <button 
+              type="button" 
+              id="cancelModalBtn"
+              class="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition ml-auto">
+              Cancel
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Client Script for Modal and Features -->
+  <script>
+    // Modal Elements
+    const modal = document.getElementById('createMailboxModal');
+    const modalContainer = document.getElementById('modalContainer');
+    const sidebarOpenModalBtn = document.getElementById('sidebarOpenModalBtn');
+    const pageOpenModalBtn = document.getElementById('pageOpenModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+
+    // Form Elements
+    const usernameInput = document.getElementById('username');
+    const domainSelect = document.getElementById('domainSelect');
+    const randomBtn = document.getElementById('randomBtn');
+    const chipsContainer = document.getElementById('chipsContainer');
+    const refreshNamesBtn = document.getElementById('refreshNamesBtn');
+    
+    const createBtn = document.getElementById('createBtn');
+    const createAndCopyBtn = document.getElementById('createAndCopyBtn');
+    const copyBtnText = document.getElementById('copyBtnText');
+    const copyIcon = document.getElementById('copyIcon');
+
+    // --- Modal Open/Close Controls ---
+    function openModal() {
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modalContainer.classList.remove('scale-95');
+      modalContainer.classList.add('scale-100');
+      setTimeout(() => usernameInput.focus(), 150);
+      renderSuggestions(); // fresh suggestions on each open
+    }
+
+    function closeModal() {
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modalContainer.classList.remove('scale-100');
+      modalContainer.classList.add('scale-95');
+    }
+
+    sidebarOpenModalBtn.addEventListener('click', openModal);
+    pageOpenModalBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelModalBtn.addEventListener('click', closeModal);
+
+    // Close when clicking outside modal box
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('pointer-events-none')) {
+        closeModal();
+      }
+    });
+
+    // --- USA Names Generator Pool ---
+    const usaFirstNames = [
+      'james', 'olivia', 'liam', 'emma', 'noah', 'charlotte', 'ethan', 'amelia',
+      'lucas', 'sophia', 'mason', 'isabella', 'logan', 'harper', 'elijah', 'evelyn',
+      'aiden', 'abigail', 'jackson', 'emily', 'henry', 'elizabeth', 'alex', 'chloe'
+    ];
+
+    const usaLastNames = [
+      'smith', 'johnson', 'williams', 'brown', 'jones', 'miller', 'davis', 'garcia',
+      'rodriguez', 'wilson', 'martinez', 'anderson', 'taylor', 'thomas', 'moore',
+      'jackson', 'martin', 'lee', 'perez', 'thompson', 'white', 'harris', 'clark'
+    ];
+
+    function generateUsaSuggestions(count = 3) {
+      const generated = [];
+      while (generated.length < count) {
+        const first = usaFirstNames[Math.floor(Math.random() * usaFirstNames.length)];
+        const last = usaLastNames[Math.floor(Math.random() * usaLastNames.length)];
+        
+        const formats = [
+          `${first}.${last}`,
+          `${first[0]}.${last}`,
+          `${first}${Math.floor(10 + Math.random() * 89)}`
+        ];
+        const selected = formats[Math.floor(Math.random() * formats.length)];
+        
+        if (!generated.includes(selected)) {
+          generated.push(selected);
+        }
+      }
+      return generated;
+    }
+
+    function renderSuggestions() {
+      const names = generateUsaSuggestions(3);
+      chipsContainer.innerHTML = '';
+
+      names.forEach(name => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'preset-chip text-[11px] font-mono bg-slate-50 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 transition';
+        btn.textContent = name;
+        btn.onclick = () => {
+          usernameInput.value = name;
+          usernameInput.focus();
+        };
+        chipsContainer.appendChild(btn);
+      });
+    }
+
+    usernameInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    });
+
+    // Random generator (dice)
+    randomBtn.addEventListener('click', () => {
+      const first = usaFirstNames[Math.floor(Math.random() * usaFirstNames.length)];
+      const last = usaLastNames[Math.floor(Math.random() * usaLastNames.length)];
+      const num = Math.floor(10 + Math.random() * 90);
+      usernameInput.value = `${first}.${last}${num}`;
+      usernameInput.focus();
+    });
+
+    refreshNamesBtn.addEventListener('click', renderSuggestions);
+
+    function getFullMailboxAddress() {
+      let username = usernameInput.value.trim();
+      if (!username) {
+        const first = usaFirstNames[Math.floor(Math.random() * usaFirstNames.length)];
+        const last = usaLastNames[Math.floor(Math.random() * usaLastNames.length)];
+        username = `${first}.${last}`;
+        usernameInput.value = username;
+      }
+      return `${username}@${domainSelect.value}`;
+    }
+
+    // Standard Create mailbox button
+    createBtn.addEventListener('click', () => {
+      const fullAddress = getFullMailboxAddress();
+      // Form submission logic can go here
+      closeModal();
+    });
+
+    // Create & Copy to Clipboard
+    createAndCopyBtn.addEventListener('click', async () => {
+      const fullAddress = getFullMailboxAddress();
+      
+      try {
+        await navigator.clipboard.writeText(fullAddress);
+        
+        copyBtnText.textContent = 'Copied!';
+        createAndCopyBtn.classList.add('text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+        copyIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>`;
+        copyIcon.classList.remove('text-slate-500');
+        copyIcon.classList.add('text-emerald-600');
+
+        setTimeout(() => {
+          copyBtnText.textContent = 'Create & Copy';
+          createAndCopyBtn.classList.remove('text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+          copyIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>`;
+          copyIcon.classList.add('text-slate-500');
+          copyIcon.classList.remove('text-emerald-600');
+          closeModal();
+        }, 800);
+
+      } catch (err) {
+        console.error('Failed to copy: ', err);
+      }
+    });
+
+    // Auto-open modal on first load for instant preview
+    openModal();
+  </script>
+</body>
+</html>

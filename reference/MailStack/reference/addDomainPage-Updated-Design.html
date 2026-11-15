@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailStack - Add Domain</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .compact-scroll::-webkit-scrollbar {
+      height: 4px;
+      width: 4px;
+    }
+    .compact-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-[#fafafa] text-slate-900 flex h-screen overflow-hidden antialiased">
+
+  <!-- ========================================================================= -->
+  <!-- LEFT SIDEBAR                                                              -->
+  <!-- ========================================================================= -->
+  <aside class="w-64 border-r border-slate-200 bg-white flex flex-col justify-between p-4 shrink-0 select-none">
+    <div class="space-y-6">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <span class="font-bold text-sm text-slate-900 tracking-tight">MailStack</span>
+        </div>
+        <button class="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        </button>
+      </div>
+
+      <nav class="space-y-4">
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Overview</span>
+          <div class="mt-1">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              Dashboard
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Mail</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+              Mailboxes
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Create mailbox
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Management</span>
+          <div class="mt-1 space-y-0.5">
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50/80 rounded-md border border-blue-100/60 shadow-xs">
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+              Domains
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              User management
+            </a>
+            <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 rounded-md hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              System Update
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="border border-slate-200/80 rounded-lg p-2.5 bg-slate-50/50">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+        <span class="text-[11px] font-semibold text-slate-700">Receive-only mode</span>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-0.5 leading-tight">Outbound sending is disabled</p>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE                                                            -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa]">
+    
+    <header class="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-8 shrink-0">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="font-semibold text-slate-800">MailStack</span>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-500 font-mono text-[11px]">Default domain: vibmail.my</span>
+      </div>
+      <div class="flex items-center gap-2 text-xs cursor-pointer select-none">
+        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold flex items-center justify-center border border-blue-100">A</div>
+        <span class="font-medium text-slate-700 text-xs">admin</span>
+        <svg class="w-3 h-3 text-slate-400 ml-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="max-w-[860px]">
+        
+        <div class="mb-4">
+          <h2 class="text-base font-bold text-slate-900 tracking-tight">Add domain</h2>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-4">
+
+          <!-- ================================================================= -->
+          <!-- STEP 01: FIXED SINGLE-ROW ALIGNED INPUTS + GET DNS BUTTON        -->
+          <!-- ================================================================= -->
+          <div class="pb-4 border-b border-slate-100">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2.5">
+              
+              <!-- 1. Domain Name Input -->
+              <div class="flex-1">
+                <label for="domainInput" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Domain Name
+                </label>
+                <input 
+                  type="text" 
+                  id="domainInput" 
+                  placeholder="e.g. yourdomain.com"
+                  class="w-full h-[38px] px-3 text-xs font-mono text-slate-800 placeholder-slate-400 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-50 focus:outline-none transition"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- 2. Status Dropdown -->
+              <div class="w-full sm:w-36 shrink-0">
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Status</label>
+                <select id="domainStatus" class="w-full h-[38px] px-2.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none cursor-pointer">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
+              <!-- 3. Get DNS Button (Perfect Same-line Alignment) -->
+              <div class="w-full sm:w-32 shrink-0">
+                <button 
+                  type="button" 
+                  id="getDnsBtn"
+                  class="w-full h-[38px] px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-xs active:scale-[0.98] flex items-center justify-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  <span>Get DNS</span>
+                </button>
+              </div>
+
+            </div>
+
+            <!-- Error Banner -->
+            <div id="errorAlert" class="hidden mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-xs">
+              <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>দয়া করে একটি সঠিক ডোমেন নাম দিন (e.g. <span class="font-mono">yourdomain.com</span>), এরপর <b>Get DNS</b> এ ক্লিক করুন।</span>
+            </div>
+          </div>
+
+          <!-- STEP 02 & 03: DNS RECORDS TABLE -->
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="text-xs font-bold text-slate-800">DNS records</span>
+
+              <!-- Export for Cloudflare Button -->
+              <button 
+                type="button" 
+                id="exportAllBtn"
+                disabled
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-400 bg-slate-100 border border-slate-200 rounded-md transition cursor-not-allowed shrink-0">
+                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Export for Cloudflare</span>
+              </button>
+            </div>
+
+            <!-- DNS Records Table -->
+            <div class="border border-slate-200 rounded-lg overflow-x-auto compact-scroll bg-white">
+              <table class="w-full text-left text-xs border-collapse min-w-[700px]">
+                <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500">
+                  <tr>
+                    <th class="px-3.5 py-2 w-24">Type</th>
+                    <th class="px-3.5 py-2 w-44">Host</th>
+                    <th class="px-3.5 py-2">Value</th>
+                    <th class="px-3.5 py-2 w-16 text-center">Priority</th>
+                    <th class="px-3.5 py-2 w-20 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="dnsTableBody" class="divide-y divide-slate-100 font-mono text-[11.5px] text-slate-700">
+                  <tr id="emptyStateRow">
+                    <td colspan="5" class="py-8 text-center text-slate-400 font-sans text-xs">
+                      No DNS records generated yet
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- STEP 04: CONFIRMATION CHECKBOX -->
+          <div class="pt-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                id="confirmCheckbox" 
+                disabled
+                class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed transition"
+              />
+              <span class="text-xs font-medium text-slate-700">I have added all DNS records to my domain provider</span>
+            </label>
+          </div>
+
+          <!-- STEP 05: ACTION BUTTONS -->
+          <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+            <button 
+              type="button" 
+              id="addDomainBtn"
+              disabled
+              class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed rounded-md transition shadow-xs active:scale-[0.98]">
+              Add domain
+            </button>
+
+            <button 
+              type="button" 
+              class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-md transition">
+              Cancel
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="h-9 px-8 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-200 bg-white shrink-0">
+      <span>© 2026 MailStack by <a href="#" class="text-blue-600 font-medium">Vib Tools</a>. Authorized team use only.</span>
+      <a href="#" class="text-blue-600 hover:underline">Source code</a>
+    </footer>
+
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const domainInput = document.getElementById('domainInput');
+    const getDnsBtn = document.getElementById('getDnsBtn');
+    const errorAlert = document.getElementById('errorAlert');
+    const dnsTableBody = document.getElementById('dnsTableBody');
+    const exportAllBtn = document.getElementById('exportAllBtn');
+    const confirmCheckbox = document.getElementById('confirmCheckbox');
+    const addDomainBtn = document.getElementById('addDomainBtn');
+
+    let currentDnsRecords = [];
+
+    function isValidDomain(domain) {
+      const regex = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/;
+      return regex.test(domain.trim());
+    }
+
+    function generateRecords(domain) {
+      const clean = domain.trim().toLowerCase();
+      return [
+        { type: 'MX', host: clean, cfName: '@', value: `mail.${clean}`, priority: 10 },
+        { type: 'A', host: `mail.${clean}`, cfName: 'mail', value: '173.212.201.250', priority: null },
+        { type: 'TXT', host: clean, cfName: '@', value: `"v=spf1 a:mail.${clean} -all"`, priority: null },
+        { type: 'TXT', host: `mail._domainkey.${clean}`, cfName: 'mail._domainkey', value: `"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC0hV..."`, priority: null },
+        { type: 'TXT', host: `_dmarc.${clean}`, cfName: '_dmarc', value: `"v=DMARC1; p=none; rua=mailto:postmaster@${clean}"`, priority: null }
+      ];
+    }
+
+    getDnsBtn.addEventListener('click', () => {
+      const rawDomain = domainInput.value.trim();
+
+      if (!rawDomain || !isValidDomain(rawDomain)) {
+        errorAlert.classList.remove('hidden');
+        domainInput.classList.add('border-red-400', 'focus:border-red-500', 'focus:ring-red-100');
+        domainInput.focus();
+        return;
+      }
+
+      errorAlert.classList.add('hidden');
+      domainInput.classList.remove('border-red-400', 'focus:border-red-500', 'focus:ring-red-100');
+
+      const originalBtnHTML = getDnsBtn.innerHTML;
+      getDnsBtn.innerHTML = `
+        <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Resolving...</span>
+      `;
+
+      setTimeout(() => {
+        getDnsBtn.innerHTML = originalBtnHTML;
+        renderGeneratedTable(rawDomain);
+      }, 300);
+    });
+
+    domainInput.addEventListener('input', () => {
+      if (!errorAlert.classList.contains('hidden')) {
+        errorAlert.classList.add('hidden');
+        domainInput.classList.remove('border-red-400', 'focus:border-red-500', 'focus:ring-red-100');
+      }
+    });
+
+    function renderGeneratedTable(domain) {
+      currentDnsRecords = generateRecords(domain);
+      dnsTableBody.innerHTML = '';
+
+      currentDnsRecords.forEach(record => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/70 transition';
+
+        const displayPriority = record.priority !== null ? record.priority : '-';
+        const rawCleanValue = record.value.replace(/^"|"$/g, '');
+
+        tr.innerHTML = `
+          <td class="px-3.5 py-2 font-semibold text-slate-800">${record.type}</td>
+          <td class="px-3.5 py-2 text-slate-600 truncate max-w-[150px]" title="${record.host}">${record.host}</td>
+          <td class="px-3.5 py-2 text-slate-600 font-mono break-all max-w-[280px]" title="${rawCleanValue}">${rawCleanValue}</td>
+          <td class="px-3.5 py-2 text-center text-slate-400">${displayPriority}</td>
+          <td class="px-3.5 py-2 text-right">
+            <button 
+              type="button" 
+              onclick="copyValue(this, '${encodeURIComponent(rawCleanValue)}')"
+              class="px-2 py-0.5 text-[11px] font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded shadow-2xs transition active:scale-95">
+              Copy
+            </button>
+          </td>
+        `;
+        dnsTableBody.appendChild(tr);
+      });
+
+      exportAllBtn.disabled = false;
+      exportAllBtn.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-300/80 rounded-md transition shrink-0 cursor-pointer shadow-2xs';
+
+      confirmCheckbox.disabled = false;
+    }
+
+    window.copyValue = async (btn, encoded) => {
+      const text = decodeURIComponent(encoded);
+      try {
+        await navigator.clipboard.writeText(text);
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('text-emerald-700', 'bg-emerald-50', 'border-emerald-300');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('text-emerald-700', 'bg-emerald-50', 'border-emerald-300');
+        }, 1200);
+      } catch (err) {
+        console.error('Clipboard failed', err);
+      }
+    };
+
+    exportAllBtn.addEventListener('click', () => {
+      const domain = domainInput.value.trim().toLowerCase();
+      if (!currentDnsRecords.length) return;
+
+      let zoneFile = `;; BIND Zone File for Cloudflare DNS Import\n;; Domain: ${domain}\n$ORIGIN ${domain}.\n$TTL 1\n\n`;
+
+      currentDnsRecords.forEach(r => {
+        if (r.type === 'MX') zoneFile += `${r.cfName}\tIN\tMX\t${r.priority}\t${r.value}.\n`;
+        else if (r.type === 'A') zoneFile += `${r.cfName}\tIN\tA\t${r.value}\n`;
+        else if (r.type === 'TXT') zoneFile += `${r.cfName}\tIN\tTXT\t${r.value}\n`;
+      });
+
+      const blob = new Blob([zoneFile], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = `${domain}-cloudflare-dns.txt`;
+      downloadLink.click();
+      URL.revokeObjectURL(url);
+    });
+
+    confirmCheckbox.addEventListener('change', (e) => {
+      addDomainBtn.disabled = !e.target.checked;
+    });
+
+    addDomainBtn.addEventListener('click', () => {
+      alert(`Domain "${domainInput.value.trim()}" successfully registered!`);
+    });
+  </script>
+</body>
+</html>
