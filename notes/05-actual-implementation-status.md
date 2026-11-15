@@ -75,3 +75,4 @@
 | **Phase 5** *(Completed)* | Full `/users` webmail workspace (inbox, auto-read, soft-delete, CSP iframe reader, attachment download, live polling) | Phases 6 – 7 |
 | **Phase 6** *(Completed)* | `/vcon/settings` + `/vcon/system-update` + complete `/health/ready` + VPS `pgsql:` & `pg_dump` templates | Phase 7 |
 | **Phase 7** *(Completed)* | 320/768/1280px Light/Dark/Reduced-Motion/PWA browser verification + isolated Postgres integration pass -> **Production Cutover Ready** | **None (Complete)** |
+| **Public Website** *(Completed)* | Compact, SEO-optimized public landing page (`/`), Contact/Onboarding page (`/contact` + `/api/contact/*`), Privacy page (`/privacy`), and `/robots.txt` + `/sitemap.xml` | **None (Complete)** |

@@ -15,6 +15,11 @@ function createMockPrismaClient(): PrismaClient {
     count: async () => 0,
     create: async (d?: { data?: Record<string, unknown> }) => d?.data ?? {},
     update: async (d?: { data?: Record<string, unknown> }) => d?.data ?? {},
+    upsert: async (d?: { create?: Record<string, unknown>; update?: Record<string, unknown> }) => ({
+      id: BigInt(1),
+      updatedAt: new Date(),
+      ...(d?.create ?? d?.update ?? {}),
+    }),
     delete: async () => ({}),
     deleteMany: async () => ({ count: 0 }),
   };
@@ -39,7 +44,7 @@ export function getPrismaClient(): PrismaClient {
     if (env.nodeEnv === "production") {
       throw new Error("DATABASE_URL is required in production");
     }
-    console.warn("[AI Studio] Database not connected — using mock");
+    console.info("[AI Studio] Database not connected — using mock");
     return createMockPrismaClient();
   }
 
@@ -51,7 +56,7 @@ export function getPrismaClient(): PrismaClient {
       if (env.nodeEnv === "production") {
         throw error;
       }
-      console.warn("[AI Studio] Database not connected — using mock");
+      console.info("[AI Studio] Database not connected — using mock");
       return createMockPrismaClient();
     }
   }

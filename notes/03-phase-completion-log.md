@@ -298,4 +298,20 @@ Before writing a single line of code in any Phase `N`:
   - Headless Chromium (`playwright-cli`): **PASS** (15 routes × 3 viewports `320/768/1280px` × 2 themes `Light/Dark` = 90 viewport-theme checks with `0` overflow and `0` console errors).
 - **Remaining Phases:** **`0` remaining — All 8 Phases (`Phase 0` – `Phase 7`) Complete & Production Cutover Ready.**
 
+---
 
+### Entry 09 — Public Website (`/`, `/contact`, `/privacy`), Contact Service (`/api/contact/*`), and SEO Routes (`/robots.txt`, `/sitemap.xml`)
+- **Date Completed:** 2026-11-15
+- **Scope & Reference:** Ported `/reference/MailStack/public-site` into the Next.js 16 App Router root domain (`/`, `/contact`, `/privacy`) with a compact, user-friendly, productive, and SEO-optimized design while preserving `/sign-in`, `/reset-password`, `/users/*`, and `/vcon/*` intact and adhering strictly to `/AGENTS.md` (single PostgreSQL database + in-memory rate-limiting/CSRF tracking — zero SQLite).
+- **Features Added:**
+  - **Public Landing Page (`/src/app/page.tsx`):** Replaced root redirect (`/users` -> `/sign-in`) with a compact, high-craft public landing page featuring a live Business Inbox preview card, 4-pillar trust strip, 3 service tiers (`Personal Private Mailbox`, `Team Mailbox Access`, `Business Mailbox Operations` linking to `/contact?service=personal|team|business`), 4 platform feature cards, 3-step onboarding workflow, Security by Design section, 4 use cases, interactive 5-item FAQ accordion, and bottom CTA banner.
+  - **Public Contact & Onboarding Page (`/src/app/contact/page.tsx` & `/src/components/public/contact-inquiry-form.tsx`):** Interactive inquiry form with `?service=` query prefill, live `0 / 2000` character counter, CSRF token handshake (`GET /api/contact/csrf` -> `POST /api/contact`), honeypot + 2.5s timing guard, and dynamic `SiteSettings` contact details (`supportEmail`, `contactPhone`, `officeAddress`).
+  - **Public Privacy Notice Page (`/src/app/privacy/page.tsx`):** All 8 privacy sections (`Overview`, `Information We Collect`, `How Information Is Used`, `Security and Access Controls`, `Data Retention`, `Sharing and Third Parties`, `Your Choices`, `Contact`) hydrated with dynamic `SiteSettings`.
+  - **Public Contact Service & API Routes (`/src/core/contact/service.ts`, `/src/app/api/contact/{csrf,health}/route.ts`, `/src/app/api/contact/route.ts`):** Stateless HMAC + single-use session-bound CSRF token verification, field & spam validation, IP/email rate limiting (`5/IP/15m`, `20/IP/day`, `3/email/hr` with `Retry-After`), and PostgreSQL `public_contact_submitted` audit logging via `recordAudit`.
+  - **SEO & Structured Data (`/src/app/robots.ts`, `/src/app/sitemap.ts`):** Canonical URLs, OpenGraph, Twitter cards, Schema.org `@graph` JSON-LD (`Organization`, `Service`, `WebApplication`, `FAQPage`), `/robots.txt`, and `/sitemap.xml`.
+- **Verification Gate Output:**
+  - `npm run verify:safe`: **PASS** (`test:admin` 31/31 incl. 4 new contact service tests, `tsc --noEmit`, `eslint .`, `prisma validate`).
+  - `npm run test:ui`: **PASS** (14 files, 49/49 UI tests).
+  - `compile_applet` & `lint_applet`: **PASS**.
+  - Headless Chromium (`playwright-cli`): Verified `/`, `/contact?service=team`, `/privacy`, `/robots.txt`, `/sitemap.xml`, and end-to-end `POST /api/contact` (`201 Created`) at `320px`, `768px`, and `1280px` in Light and Dark themes (`overflow: false`, `0` console errors).
+  - **Prisma Fallback & Cooldown Fix (`site_settings_load_fallback`):** Added a 30-second connection cooldown to `getSiteSettings()` so unreachable loopback databases in preview/dev mode don't trigger repeated connection attempts or flood logs with warnings, updated fallback logging to `logger.debug`, and added `upsert` support to `createMockPrismaClient()`.

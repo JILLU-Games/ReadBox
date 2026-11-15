@@ -19,11 +19,18 @@ import { z } from "zod";
 import {
   DEFAULT_SITE_SETTINGS,
   getCachedSiteSettingsSnapshot,
-  resetDevFallbackSiteSettings,
+  resetDevFallbackSiteSettings as resetSnapshotFallback,
   setCachedSiteSettingsSnapshot,
 } from "./snapshot";
 
-export { getCachedSiteSettingsSnapshot, resetDevFallbackSiteSettings };
+let dbCheckCooldownUntil = 0;
+
+export function resetDevFallbackSiteSettings(): void {
+  resetSnapshotFallback();
+  dbCheckCooldownUntil = 0;
+}
+
+export { getCachedSiteSettingsSnapshot };
 
 export const MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_FAVICON_SIZE_BYTES = 512 * 1024;
@@ -322,6 +329,15 @@ export async function getSiteSettings(options?: {
   readonly prisma?: SiteSettingsPrismaLike | null;
   readonly baseOrigin?: string;
 }): Promise<SiteSettingsView> {
+  const now = Date.now();
+  if (now < dbCheckCooldownUntil && options?.prisma === undefined) {
+    return toSiteSettingsView(
+      getCachedSiteSettingsSnapshot(),
+      false,
+      options?.baseOrigin,
+    );
+  }
+
   const client =
     options?.prisma !== undefined
       ? options.prisma
@@ -343,6 +359,7 @@ export async function getSiteSettings(options?: {
     });
     if (existing) {
       setCachedSiteSettingsSnapshot(existing);
+      dbCheckCooldownUntil = 0;
       return toSiteSettingsView(existing, true, options?.baseOrigin);
     }
 
@@ -364,9 +381,11 @@ export async function getSiteSettings(options?: {
       update: {},
     });
     setCachedSiteSettingsSnapshot(created);
+    dbCheckCooldownUntil = 0;
     return toSiteSettingsView(created, true, options?.baseOrigin);
   } catch (error) {
-    logger.warn("site_settings_load_fallback", {
+    dbCheckCooldownUntil = Date.now() + 30_000;
+    logger.debug("site_settings_load_fallback", {
       reason: error instanceof Error ? error.name : "unknown_error",
     });
     return toSiteSettingsView(
@@ -533,6 +552,7 @@ export async function updateSiteSettings(
           update: payload,
         });
         dbConnected = true;
+        dbCheckCooldownUntil = 0;
       } catch (dbError) {
         if (env.nodeEnv === "production") {
           throw dbError;
