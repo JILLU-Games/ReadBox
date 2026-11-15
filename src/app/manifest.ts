@@ -1,10 +1,16 @@
+import { getCachedSiteSettingsSnapshot } from "@/core/settings/snapshot";
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const settings = getCachedSiteSettingsSnapshot();
+  const siteName = settings.siteName || "MailStack";
+  const description =
+    settings.siteTagline || "Private team mailbox workspace";
+
   return {
-    name: "MailStack",
-    short_name: "MailStack",
-    description: "Private team mailbox workspace",
+    name: siteName,
+    short_name: siteName.slice(0, 32),
+    description,
     start_url: "/users",
     display: "standalone",
     background_color: "#f3f6f8",

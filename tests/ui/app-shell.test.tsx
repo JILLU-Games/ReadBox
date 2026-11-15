@@ -91,6 +91,10 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(
       screen.getByRole("link", { name: "Audit & security" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "System update" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("navigation", { name: "Management navigation" }),
     ).toBeInTheDocument();
@@ -140,7 +144,9 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     const mailboxesLink = screen.getByRole("link", { name: "Mailboxes" });
     const usersLink = screen.getByRole("link", { name: "Users" });
     const operationsLink = screen.getByRole("link", { name: "Operations" });
-    const lastLink = screen.getByRole("link", { name: "Audit & security" });
+    const auditLink = screen.getByRole("link", { name: "Audit & security" });
+    const settingsLink = screen.getByRole("link", { name: "Settings" });
+    const lastLink = screen.getByRole("link", { name: "System update" });
     const closeButton = screen.getByRole("button", {
       name: "Close navigation drawer",
     });
@@ -158,6 +164,10 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(usersLink).toHaveFocus();
     await user.tab();
     expect(operationsLink).toHaveFocus();
+    await user.tab();
+    expect(auditLink).toHaveFocus();
+    await user.tab();
+    expect(settingsLink).toHaveFocus();
     await user.tab();
     expect(lastLink).toHaveFocus();
     await user.tab();

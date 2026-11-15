@@ -22,7 +22,7 @@ export default async function SignInPage() {
   const currentUser = authActive ? await getCurrentUser() : null;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center px-4 py-10 sm:px-6 sm:py-12">
       <h1 className="text-2xl font-semibold">Sign in</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Use your local ReadBox account.

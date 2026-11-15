@@ -1,17 +1,32 @@
 import { ServiceWorkerRegistration } from "@/components/providers/service-worker-registration";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { getSiteSettings } from "@/core/settings/service";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  applicationName: "MailStack",
-  title: {
-    default: "MailStack",
-    template: "%s | MailStack",
-  },
-  description: "MailStack application foundation",
-  manifest: "/manifest.webmanifest",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteName = settings.siteName || "MailStack";
+  const description =
+    settings.siteTagline || "Self-hosted mail server and shared team inbox.";
+
+  return {
+    applicationName: siteName,
+    title: {
+      default: siteName,
+      template: `%s | ${siteName}`,
+    },
+    description,
+    manifest: "/manifest.webmanifest",
+    ...(settings.faviconUrl
+      ? {
+          icons: {
+            icon: settings.faviconUrl,
+          },
+        }
+      : {}),
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -20,7 +35,9 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">

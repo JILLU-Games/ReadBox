@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  sudo /opt/vibmail/app/scripts/updater/upgrade.sh \
+    --archive /absolute/path/readbox-X.Y.Z-source.zip \
+    --checksum /absolute/path/readbox-X.Y.Z-source.zip.sha256 \
+    [--allow-migrations] \
+    --confirm-upgrade
+EOF
+  exit 2
+}
+
+STATUS_FILE="${UPDATE_STATUS_FILE:-/run/vibmail/update_status.json}"
+report_progress() {
+  local step="$1"
+  local message="$2"
+  local progress="$3"
+  printf '{"step": "%s", "message": "%s", "progress": %d}\n' "$step" "$message" "$progress" > "$STATUS_FILE" 2>/dev/null || true
+  chmod 0644 "$STATUS_FILE" 2>/dev/null || true
+  chown vmail:vmail "$STATUS_FILE" 2>/dev/null || true
+}
+
+die() {
+  printf 'UPGRADE_FINDING=%s\n' "$*" >&2
+  printf '{"step": "error", "message": "%s", "progress": -1}\n' "$*" > "$STATUS_FILE" 2>/dev/null || true
+  chmod 0644 "$STATUS_FILE" 2>/dev/null || true
+  chown vmail:vmail "$STATUS_FILE" 2>/dev/null || true
+  exit 1
+}
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "run as root"
+
+ARCHIVE=""
+CHECKSUM=""
+ALLOW_MIGRATIONS=0
+CONFIRM=0
+while (($#)); do
+  case "$1" in
+    --archive) ARCHIVE=${2:?}; shift 2 ;;
+    --checksum) CHECKSUM=${2:?}; shift 2 ;;
+    --allow-migrations) ALLOW_MIGRATIONS=1; shift ;;
+    --confirm-upgrade) CONFIRM=1; shift ;;
+    -h|--help) usage ;;
+    *) die "unknown option: $1" ;;
+  esac
+done
+[[ -n "$ARCHIVE" && -n "$CHECKSUM" && $CONFIRM -eq 1 ]] || usage
+
+ARCHIVE=$(realpath -e -- "$ARCHIVE")
+CHECKSUM=$(realpath -e -- "$CHECKSUM")
+[[ -f "$ARCHIVE" && ! -L "$ARCHIVE" ]] || die "target archive must be a regular non-symlink file"
+[[ -f "$CHECKSUM" && ! -L "$CHECKSUM" ]] || die "checksum must be a regular non-symlink file"
+
+APP_ROOT=${APP_ROOT:-/opt/vibmail/app}
+ENV_FILE=${VIBMAIL_ENV_FILE:-/etc/vibmail/vibmail.env}
+LOCK_FILE=${UPGRADE_LOCK_FILE:-/run/vibmail/vibmail-upgrade.lock}
+UPGRADE_ROOT=${UPGRADE_ROOT:-/var/backups/vibmail/upgrades}
+STAGING_ROOT=${STAGING_ROOT:-/opt/vibmail-upgrades}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+VERIFY_HELPER="$SCRIPT_DIR/verify_upgrade_archive.py"
+
+for command_name in node npm python3 flock rsync tar sha256sum systemctl curl nginx postfix realpath readlink doveconf pg_dump; do
+  command -v "$command_name" >/dev/null 2>&1 || die "required command is missing: $command_name"
+done
+[[ -f "$VERIFY_HELPER" ]] || die "upgrade archive verifier is missing: $VERIFY_HELPER"
+[[ -f "$APP_ROOT/package.json" && -f "$APP_ROOT/prisma/schema.prisma" ]] || die "current ReadBox application is incomplete"
+[[ -r "$ENV_FILE" ]] || die "environment file is missing: $ENV_FILE"
+
+install -d -o root -g root -m 0755 "$(dirname -- "$LOCK_FILE")"
+exec 9>"$LOCK_FILE"
+flock -n 9 || die "another ReadBox upgrade is already running"
+
+report_progress "verify" "Verifying release archive and SHA-256 checksum" 10
+install -d -o root -g root -m 0700 "$UPGRADE_ROOT" "$STAGING_ROOT"
+STAGE_PARENT=$(mktemp -d "$STAGING_ROOT/stage.XXXXXX")
+cleanup_stage() { rm -rf -- "$STAGE_PARENT"; }
+trap cleanup_stage EXIT
+
+VERIFY_OUTPUT=$(
+  python3 "$VERIFY_HELPER" \
+    --archive "$ARCHIVE" \
+    --checksum "$CHECKSUM" \
+    --current-app "$APP_ROOT" \
+    --extract-to "$STAGE_PARENT"
+) || die "target release archive verification failed"
+
+CURRENT_VERSION=$(printf '%s\n' "$VERIFY_OUTPUT" | sed -n 's/^CURRENT_VERSION=//p')
+TARGET_VERSION=$(printf '%s\n' "$VERIFY_OUTPUT" | sed -n 's/^TARGET_VERSION=//p')
+TARGET_ROOT=$(printf '%s\n' "$VERIFY_OUTPUT" | sed -n 's/^TARGET_ROOT=//p')
+NEW_MIGRATIONS=$(printf '%s\n' "$VERIFY_OUTPUT" | sed -n 's/^NEW_MIGRATIONS=//p')
+
+if (( NEW_MIGRATIONS > 0 && ALLOW_MIGRATIONS == 0 )); then
+  die "target contains $NEW_MIGRATIONS new Prisma migration(s); rerun only after review with --allow-migrations"
+fi
+
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+ROLLBACK_ROOT="$UPGRADE_ROOT/${STAMP}-from-${CURRENT_VERSION}-to-${TARGET_VERSION}"
+APP_ARCHIVE="$ROLLBACK_ROOT/application.tar.gz"
+DATA_ROOT="$ROLLBACK_ROOT/data"
+
+report_progress "backup" "Creating pre-upgrade application and PostgreSQL backup" 25
+install -d -o root -g root -m 0700 "$ROLLBACK_ROOT" "$DATA_ROOT"
+tar --one-file-system -C "$APP_ROOT" -czf "$APP_ARCHIVE" .
+BACKUP_ROOT="$DATA_ROOT" "$APP_ROOT/scripts/ops/backup.sh"
+
+report_progress "mutate" "Stopping web/ingestion workers while keeping Postfix and Dovecot active" 45
+systemctl stop vibmail-ingestion.service vibmail-web.service
+systemctl is-active --quiet postfix.service || die "Postfix stopped unexpectedly"
+systemctl is-active --quiet dovecot.service || die "Dovecot stopped unexpectedly"
+
+report_progress "mutate" "Deploying verified application files" 60
+rsync -a --delete-delay \
+  --exclude='.env*' --exclude='node_modules' --exclude='.next' --exclude='.runtime' \
+  "$TARGET_ROOT/" "$APP_ROOT/"
+chown -R root:vmail "$APP_ROOT"
+
+report_progress "migrate" "Installing dependencies, applying Prisma migrations, and building production bundle" 75
+cd "$APP_ROOT"
+npm ci --omit=dev
+npx prisma migrate deploy
+npm run build
+
+report_progress "restart" "Restarting ReadBox services and verifying health readiness" 90
+systemctl daemon-reload
+systemctl start vibmail-web.service vibmail-ingestion.service
+curl --fail --silent --show-error --max-time 20 "http://127.0.0.1:3000/health/ready" >/dev/null
+
+report_progress "complete" "Upgrade successfully completed" 100
+printf 'READBOX_UPGRADE=PASS\n'

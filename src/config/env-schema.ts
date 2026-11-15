@@ -139,6 +139,36 @@ const environmentSchema = z
       emptyToUndefined,
       z.coerce.number().int().min(1).max(200).default(25),
     ),
+    MEDIA_ROOT: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().min(1).default("/var/lib/readbox/media"),
+    ),
+    PUBLIC_SITE_ORIGIN: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().url().optional(),
+    ),
+    UPDATE_RUNTIME_DIR: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().min(1).default("/run/vibmail"),
+    ),
+    UPDATE_SERVICE_NAME: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().min(1).default("vibmail-updater.service"),
+    ),
+    UPDATE_SCRIPT_PATH: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().min(1).default("/opt/vibmail/app/scripts/upgrade.sh"),
+    ),
+    UPDATE_GITHUB_REPO: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .trim()
+        .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, {
+          message: "UPDATE_GITHUB_REPO must be in owner/repo format",
+        })
+        .default("vibtools/MailStack"),
+    ),
   })
   .superRefine((value, context) => {
     if (value.AUTH_ENABLED && !value.AUTH_SECRET) {
@@ -192,6 +222,12 @@ export type MailStackEnv = Readonly<{
   maxMessageSizeMb: number;
   maxAttachmentSizeMb: number;
   maxAttachmentsPerMessage: number;
+  mediaRoot: string;
+  publicSiteOrigin: string | undefined;
+  updateRuntimeDir: string;
+  updateServiceName: string;
+  updateScriptPath: string;
+  updateGithubRepo: string;
 }>;
 
 export function parseEnvironment(
@@ -240,5 +276,11 @@ export function parseEnvironment(
     maxMessageSizeMb: result.data.MAX_MESSAGE_SIZE_MB,
     maxAttachmentSizeMb: result.data.MAX_ATTACHMENT_SIZE_MB,
     maxAttachmentsPerMessage: result.data.MAX_ATTACHMENTS_PER_MESSAGE,
+    mediaRoot: result.data.MEDIA_ROOT,
+    publicSiteOrigin: result.data.PUBLIC_SITE_ORIGIN,
+    updateRuntimeDir: result.data.UPDATE_RUNTIME_DIR,
+    updateServiceName: result.data.UPDATE_SERVICE_NAME,
+    updateScriptPath: result.data.UPDATE_SCRIPT_PATH,
+    updateGithubRepo: result.data.UPDATE_GITHUB_REPO,
   });
 }

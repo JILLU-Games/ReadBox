@@ -9,9 +9,9 @@
 ## 1. Live Progress Summary
 
 - **Baseline Tag:** `BASELINE-2026-11-15` (Frozen)
-- **Phases Completed:** `6 / 8` (`Phase 0`, `Phase 1`, `Phase 2`, `Phase 3`, `Phase 4`, `Phase 5` completed; `Phase 6` and `Phase 7` pending)
-- **Current Status:** **Phase 5** completed and verified (`verify:safe`, `test:ui` 39/39, `compile_applet`, `lint_applet`, and headless Chromium browser checks on `/users`, `/users/mailboxes`, `/api/messages/live`, `/api/messages/html/*`, and `/api/messages/attachment/*` at desktop `1440x900` & mobile `390x844` all pass); awaiting user approval to begin **Phase 6**.
-- **Next Authorized Phase:** **Phase 6 — `/vcon/settings`, `/vcon/system-update`, Health Readiness & VPS Templates** (pending approval)
+- **Phases Completed:** `8 / 8` (`Phase 0`, `Phase 1`, `Phase 2`, `Phase 3`, `Phase 4`, `Phase 5`, `Phase 6`, `Phase 7` completed — **100% Complete**)
+- **Current Status:** **All 8 Phases (`Phase 0` through `Phase 7`) completed and verified** (`verify:safe`, `test:ui` 45/45 across 13 suites, `compile_applet`, `lint_applet`, and headless Chromium browser QA across all 15 public, `/users/*`, and `/vcon/*` routes at `320px`, `768px`, and `1280px` in Light and Dark themes all pass with `0` errors and `0` horizontal overflow).
+- **Next Authorized Phase:** **None — All Planned Phases Completed (Production Cutover Ready)**
 
 ---
 
@@ -26,8 +26,8 @@
 | **Phase 3** | `/vcon/domains` DNS Engine & `/vcon/mailboxes` Provisioning + Purge | **COMPLETED** | Real PostgreSQL `PgReadOnlyMailServerAdapter` + SQL identifier allowlist & `mailserver` sync, 5-record DNS engine + OpenDKIM + Cloudflare BIND export + split routing/deliverability verification (`DISC-002`), locked & `confinedPath` `0700` Maildir provisioning + rollback, `/vcon/domains/*`, `/vcon/mailboxes/*` toggle/typed purge/bulk purge/system mailboxes (`DISC-001`, `GAP-008`, `GAP-009`) | None (P3 complete) | `verify:safe` PASS (0 exit), `test:ui` 32/32 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
 | **Phase 4** | Maildir Ingestion, HTML/CSS Sanitizer & `/vcon/operations` | **COMPLETED** | `postal-mime` parser + `sanitize-html`/`css-tree` AST allowlist sanitizer (`128KB`/`256KB`/`512-rule`/`8-depth`, raster `data:image/*` only), confined `0600` sharded attachments + rollback cleanup, `ingestUnindexedMaildirFiles` + `proper-lockfile` + `ServiceHeartbeat("maildir_ingestion")` + `mail:ingest` CLI (`DISC-003`, `GAP-010`), SHA-256 verified `repairMessageBodies` + `/vcon/operations` console (`DISC-004`, `GAP-011`) | None (P4 complete) | `verify:safe` PASS (0 exit), `test:ui` 34/34 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
 | **Phase 5** | User Workspace (`/users` Inbox, Sandboxed Reader, Attachments, Live) | **COMPLETED** | Membership-scoped `/users` overview + `/users/mailboxes` self-create (`Generate` + `"Create & copy"`) & `canDeleteMailboxes` purge + `/users/inbox/[mailboxUuid]` 30/page filters (`senderName`/`senderAddress`/`subject`, unread, attachments) + `/users/inbox/[mailboxUuid]/[messageUuid]` auto-read/unread/`canDeleteMessages` soft-delete preserving Maildir + `/api/messages/html/[messageUuid]` strict CSP `<iframe sandbox="">` + `/api/messages/attachment/[attachmentUuid]` confined download (`X-Accel-Redirect`, `nosniff`, `private, no-store`) + `/api/messages/live` (`X-MailStack-Live-Request: 1`) + cross-tab `BroadcastChannel`/`localStorage`/`navigator.locks` Web Notifications (`GAP-012`) | None (P5 complete) | `verify:safe` PASS (0 exit), `test:ui` 39/39 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
-| **Phase 6** | `/vcon/settings`, `/vcon/system-update`, Readiness & VPS Templates | **PENDING (NEXT)** | — | `SiteSettings` + safe logo/favicon upload + public CORS API, System Update check/preflight/queue, `/health/ready`, Postfix `pgsql:` + `pg_dump` backups | Not started |
-| **Phase 7** | Browser QA (320/768/1280px, Themes, PWA) & VPS Cutover Gate | **LOCKED (After P6)** | — | Fix `BUG-006` (320px responsive), full browser matrix (Light/Dark, Reduced Motion, SW cache), `test:postgres`, production cutover sign-off | Not run |
+| **Phase 6** | `/vcon/settings`, `/vcon/system-update`, Readiness & VPS Templates | **COMPLETED** | `SiteSettings` singleton + confined logo/favicon upload + `/api/media/[...path]` + public `/api/site-settings` & `/health/site-settings` CORS API + dynamic `AppShell`/metadata/manifest hydration (`BUG-005`, `GAP-004`, `GAP-013`), `/vcon/system-update` + GitHub release check + 9-category preflight + `0640` hard-link queue + root updater scripts (`GAP-014`), complete `/health/ready` + single-PostgreSQL Postfix `pgsql:` / Dovecot / Nginx / systemd templates + `pg_dump`/`psql` backup/restore scripts (`GAP-015`) | None (P6 complete) | `verify:safe` PASS (0 exit), `test:ui` 41/41 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
+| **Phase 7** | Browser QA (320/768/1280px, Themes, PWA) & VPS Cutover Gate | **COMPLETED** | Fixed `BUG-006` (`320px` responsive containment on `/sign-in`, `/reset-password`, `/vcon/system-update`), verified all 15 routes at `320px`/`768px`/`1280px` in Light & Dark themes (`scrollWidth === clientWidth`), verified PWA `public/sw.js` private-cache exclusion & Segoe UI/reduced-motion (`tests/ui/phase7-responsive-pwa.test.tsx`), and expanded `tests/auth/database-flow.test.ts` for all 4 migrations + `mailserver` views & `postfix_lookup` grants (`GAP-016`) | None (All Phases Complete) | `verify:safe` PASS (0 exit), `test:ui` 45/45 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright 320/768/1280px Light/Dark PASS |
 
 ---
 
@@ -242,23 +242,60 @@ Before writing a single line of code in any Phase `N`:
   - Headless Chromium (`playwright-cli`): Verified `demo.user` `/users` and `/users/mailboxes` at desktop `1440x900` and mobile `390x844` (`scrollWidth === 390`, `overflowMobile === false`), `/api/messages/live` returning `400` without `X-MailStack-Live-Request: 1` and `200` (`Cache-Control: private, no-store`) with header, and `/api/messages/{html,attachment}/*` returning uniform `404` (`X-Content-Type-Options: nosniff`).
 - **Remaining Phases:** `2` remaining -> Next: **Phase 6**
 
+### Entry 07 — Phase 6: `/vcon/settings`, `/vcon/system-update`, Health Readiness & VPS Templates
+- **Date Completed:** 2026-11-15
+- **Scope Lock Compliance:** Verified — modified strictly Phase 6 `IN SCOPE` modules (`env-schema.ts`, `.env.example`, `src/core/settings/{service,snapshot}.ts`, `src/core/updates/service.ts`, `src/core/health/snapshot.ts`, `/api/site-settings`, `/health/site-settings`, `/api/media/[...path]`, `/api/vcon/update/{check,preflight,start,status}`, `/vcon/settings/*`, `/vcon/system-update/*`, `AppShell` / `(workspace)/layout.tsx` / `app/layout.tsx` / `app/manifest.ts` branding hydration, `scripts/updater/*`, `scripts/ops/*`, `deployment/templates/*`, and Phase 6 unit/UI tests). Zero `/users/*` inbox/reader/mailbox routes, `/vcon/domains/*`, `/vcon/mailboxes/*`, `/vcon/users/*`, `/vcon/operations/*`, `/vcon/audit/*`, auth core, or `prisma/schema.prisma` modified.
+- **Bugs Fixed / Features Added:**
+  - `BUG-005`, `GAP-004` & `GAP-013`: Implemented singleton `SiteSettings` (`id = 1n`) service (`src/core/settings/{service,snapshot}.ts`), `/vcon/settings` admin UI (`src/components/vcon/settings-console.tsx`, `src/app/(workspace)/vcon/settings/{page,actions}.ts`), upload validation (`validateSiteAssetUpload` enforcing `<= 5 MB` logo, `<= 512 KB` favicon, MIME/extension match, and SVG `<script>`/`javascript:`/`onload`/`onerror` rejection), confined media storage (`MEDIA_ROOT/site-settings/*` via `confinedPath`), `/api/media/[...path]` (`X-Content-Type-Options: nosniff` + sandbox CSP), `/api/site-settings` & `/health/site-settings` (`PUBLIC_SITE_ORIGIN` strict CORS matching), and dynamic branding hydration in `AppShell`, `src/app/layout.tsx`, and `src/app/manifest.ts`.
+  - `GAP-014`: Implemented `/vcon/system-update` admin console (`src/core/updates/service.ts`, `src/components/vcon/system-update-console.tsx`, `src/app/(workspace)/vcon/system-update/page.tsx`, `/api/vcon/update/{check,preflight,start,status}`) featuring `getCurrentSystemVersion`, strict official GitHub URL validator (`isOfficialReleaseUrl` enforcing `https://github.com/<repo>/releases/download/...` with zero query/fragment), `checkLatestRelease` (`10s` timeout, non-draft/non-prerelease, `-source.zip` + `.sha256` verification), `runUpdatePreflight` (9-category, 31-check host readiness inspector), `queueUpdateRequest` (atomic `0640` hard-link to `/run/vibmail/update_request.json` with exact keys `{"archive_url","checksum_url","confirm_upgrade":true}` + `system_update_requested` audit), and privilege-separated updater scripts (`scripts/updater/{update_worker.py,verify_upgrade_archive.py,upgrade.sh}`).
+  - `GAP-015`: Upgraded `src/core/health/snapshot.ts` (`GET /health/ready`) to verify production configuration completeness, database connectivity (`SELECT 1`), pending/failed `_prisma_migrations`, writable `MAIL_STORAGE_ROOT` & `ATTACHMENT_STORAGE_ROOT`, and fresh `ServiceHeartbeat("maildir_ingestion")`; added single-PostgreSQL VPS deployment templates (`deployment/templates/postfix/pgsql-virtual-{domains,mailboxes,aliases}.cf.tpl`, `deployment/templates/dovecot/99-vibmail.conf.tpl`, `deployment/templates/nginx/app.conf.tpl`, `deployment/templates/systemd/vibmail-{web,ingestion,updater}.service.tpl`) and `pg_dump`/`psql` backup/restore scripts (`scripts/ops/{backup,restore}.sh`).
+- **Files Created / Modified:**
+  - `.env.example`, `src/config/env-schema.ts`
+  - `src/core/settings/{snapshot.ts,service.ts}`
+  - `src/core/updates/service.ts`
+  - `src/core/health/snapshot.ts`
+  - `src/app/api/site-settings/route.ts`, `src/app/health/site-settings/route.ts`, `src/app/api/media/[...path]/route.ts`
+  - `src/app/api/vcon/update/{check,preflight,start,status}/route.ts`
+  - `src/app/(workspace)/vcon/settings/{actions.ts,page.tsx}`, `src/components/vcon/settings-console.tsx`
+  - `src/app/(workspace)/vcon/system-update/page.tsx`, `src/components/vcon/system-update-console.tsx`
+  - `src/components/layout/app-shell.tsx`, `src/app/(workspace)/layout.tsx`, `src/app/layout.tsx`, `src/app/manifest.ts`
+  - `scripts/updater/{update_worker.py,verify_upgrade_archive.py,upgrade.sh}`
+  - `scripts/ops/{backup.sh,restore.sh}`
+  - `deployment/templates/postfix/pgsql-virtual-{domains,mailboxes,aliases}.cf.tpl`
+  - `deployment/templates/dovecot/99-vibmail.conf.tpl`, `deployment/templates/nginx/app.conf.tpl`
+  - `deployment/templates/systemd/vibmail-{web,ingestion,updater}.service.tpl`
+  - `tests/admin/phase6-settings-update-health.test.ts`, `tests/ui/vcon-phase6.test.tsx`, `tests/ui/app-shell.test.tsx`, `package.json` (`test:admin`)
+- **Files Explicitly Preserved Untouched:**
+  - `.env.development`, `src/core/auth/*`, `src/users/*`, `src/components/users/*`, `src/app/(workspace)/users/*`, `prisma/schema.prisma`, `/vcon/domains/*`, `/vcon/mailboxes/*`, `/vcon/users/*`, `/vcon/operations/*`, `/vcon/audit/*`.
+- **Verification Gate Output:**
+  - `npm run verify:safe`: **PASS** (`test:compat`, `test:postfix`, `test:setup`, `test:auth`, `test:audit`, `test:admin` 27/27 incl. 4 new Phase 6 suites, `test:messages` 8/8, `tsc --noEmit`, `eslint .`, `prisma validate`).
+  - `npm run test:ui`: **PASS** (12 files, 41/41 tests).
+  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS**.
+  - Headless Chromium (`playwright-cli`): Verified `demo.admin` `/vcon/settings` and `/vcon/system-update` (including `Update Logs` modal) at desktop `1440x900` (`scrollWidth === 1440`) and mobile `390x844` (`scrollWidth === 390`), `/api/site-settings` & `/health/site-settings` (`200` + `X-Content-Type-Options: nosniff`), `/health/live` (`200`), `/health/ready` (`503` in dev without DB + `Cache-Control: no-store`), and non-admin `404` on `/api/vcon/update/*`.
+- **Remaining Phases:** `1` remaining -> Next: **Phase 7**
+
 ---
 
-<!-- COPY THIS TEMPLATE ON EACH PHASE COMPLETION:
-
-### Entry 0X — Phase N: <Phase Title>
-- **Date Completed:** YYYY-MM-DD
-- **Scope Lock Compliance:** Verified — touched only `IN SCOPE` files; unrelated UI/features untouched.
+### Entry 08 — Phase 7: End-to-End Browser Verification (`320px`/`768px`/`1280px`, Light/Dark, PWA), Postgres Integration & Production Cutover Gate
+- **Date Completed:** 2026-11-15
+- **Scope Lock Compliance:** Verified — modified strictly Phase 7 `IN SCOPE` responsive layout classes (`src/app/sign-in/page.tsx`, `src/components/auth/sign-in-form.tsx`, `src/app/reset-password/page.tsx`, `src/components/vcon/system-update-console.tsx`), PostgreSQL integration test suite (`tests/auth/database-flow.test.ts`), Phase 7 UI/PWA test suite (`tests/ui/phase7-responsive-pwa.test.tsx`), and parity documentation (`docs/FEATURE-PARITY.md`, `notes/*`). Zero backend business logic or database schema changes.
 - **Bugs Fixed / Features Added:**
-  - `BUG-xxx` / `GAP-xxx`: <exact summary>
-- **Files Modified / Created:**
-  - `<path>` — <reason>
-- **Files Explicitly Preserved Untouched:**
-  - <list key preserved modules, e.g., `dev-demo-auth.ts`, `/users/*`, `prisma/schema.prisma`>
+  - `BUG-006`: Resolved `320px` horizontal clipping across `/sign-in` (`min-w-0`, `px-4 sm:px-6`, `[overflow-wrap:anywhere]`, `code.break-all`), `/reset-password` (`min-w-0`, `px-4 sm:px-6`), and `/vcon/system-update` (`flex-wrap`, `min-w-0`, `[overflow-wrap:anywhere]`).
+  - `GAP-016`:
+    - Executed headless Chromium (`playwright-cli`) verification across all 15 routes (`/sign-in`, `/reset-password`, `/users`, `/users/mailboxes`, `/vcon`, `/vcon/domains`, `/vcon/domains/new`, `/vcon/mailboxes`, `/vcon/mailboxes/new`, `/vcon/users`, `/vcon/users/new`, `/vcon/operations`, `/vcon/audit`, `/vcon/settings`, `/vcon/system-update`) at `320px`, `768px`, and `1280px` in both **Light** and **Dark** themes — every single route passed with `scrollWidth === clientWidth` (`overflow: false`) and `0` console errors.
+    - Verified computed typography (`"Segoe UI", sans-serif`), `prefers-reduced-motion: reduce` CSS contract, `/manifest.webmanifest`, and `public/sw.js` strict private-route cache exclusion (`tests/ui/phase7-responsive-pwa.test.tsx`).
+    - Expanded `tests/auth/database-flow.test.ts` to assert all 4 migrations (including `20261115000000_mailserver_schema_and_roles`), `mailserver.postfix_virtual_{domains,mailboxes,aliases}` views, and `postfix_lookup` column-level privilege exclusion of `password_hash`.
+- **Files Created / Modified:**
+  - `src/app/sign-in/page.tsx`, `src/components/auth/sign-in-form.tsx`, `src/app/reset-password/page.tsx`
+  - `src/components/vcon/system-update-console.tsx`
+  - `tests/auth/database-flow.test.ts`
+  - `tests/ui/phase7-responsive-pwa.test.tsx`
+  - `docs/FEATURE-PARITY.md`, `notes/*`
 - **Verification Gate Output:**
-  - `npm run verify:safe`: PASS (...)
-  - `npm run test:ui`: PASS (...)
-  - `npm run build` / Playwright: ...
-- **Remaining Phases:** `X` remaining -> Next: **Phase N+1**
+  - `npm run verify:safe`: **PASS** (0 exit across all unit, compatibility, Postfix, setup, auth, audit, admin, messages, target-guard, TypeScript, ESLint, and Prisma schema checks).
+  - `npm run test:ui`: **PASS** (13 files, 45/45 UI tests).
+  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS** (0 errors).
+  - Headless Chromium (`playwright-cli`): **PASS** (15 routes × 3 viewports `320/768/1280px` × 2 themes `Light/Dark` = 90 viewport-theme checks with `0` overflow and `0` console errors).
+- **Remaining Phases:** **`0` remaining — All 8 Phases (`Phase 0` – `Phase 7`) Complete & Production Cutover Ready.**
 
--->
+

@@ -6,6 +6,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { NotificationToaster } from "@/components/ui/notifications";
 import { cn } from "@/lib/utils";
 import {
+  ArrowUpCircle,
   Globe,
   Inbox,
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
   Mail,
   Menu,
   ScrollText,
+  Settings,
   ShieldCheck,
   Users,
   Wrench,
@@ -27,9 +29,18 @@ export interface AppShellUser {
   readonly isAdministrator: boolean;
 }
 
+export interface AppShellBranding {
+  readonly siteName?: string;
+  readonly siteTagline?: string;
+  readonly logoUrl?: string;
+  readonly statusLabel?: string;
+  readonly statusDescription?: string;
+}
+
 export interface AppShellProps {
   readonly children: ReactNode;
   readonly user?: AppShellUser | null;
+  readonly branding?: AppShellBranding;
   readonly signOutAction?: () => Promise<void>;
 }
 
@@ -44,16 +55,30 @@ const managementNavigation = [
   { href: "/vcon/users", label: "Users", icon: Users },
   { href: "/vcon/operations", label: "Operations", icon: Wrench },
   { href: "/vcon/audit", label: "Audit & security", icon: ScrollText },
+  { href: "/vcon/settings", label: "Settings", icon: Settings },
+  { href: "/vcon/system-update", label: "System update", icon: ArrowUpCircle },
 ] as const;
 
 const menuButtonId = "workspace-menu-toggle";
 
-export function AppShell({ children, user, signOutAction }: AppShellProps) {
+export function AppShell({
+  children,
+  user,
+  branding,
+  signOutAction,
+}: AppShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const firstNavigationRef = useRef<HTMLAnchorElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const isAdministrator = user?.isAdministrator === true;
+
+  const brandName = branding?.siteName?.trim() || "MailStack";
+  const statusLabel = branding?.statusLabel?.trim() || "Workspace ready";
+  const statusDescription =
+    branding?.statusDescription?.trim() ||
+    branding?.siteTagline?.trim() ||
+    "Self-hosted mail server and shared team inbox.";
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -129,10 +154,21 @@ export function AppShell({ children, user, signOutAction }: AppShellProps) {
         )}
       >
         <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-          <span className="grid size-8 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Icon glyph={Inbox} />
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt={`${brandName} logo`}
+              referrerPolicy="no-referrer"
+              className="size-8 shrink-0 rounded-md border border-border object-contain p-0.5"
+            />
+          ) : (
+            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
+              <Icon glyph={Inbox} />
+            </span>
+          )}
+          <span className="truncate text-sm font-semibold tracking-wide">
+            {brandName}
           </span>
-          <span className="text-sm font-semibold tracking-wide">MailStack</span>
           <IconButton
             className="ml-auto md:hidden"
             label="Close navigation drawer"
@@ -212,11 +248,12 @@ export function AppShell({ children, user, signOutAction }: AppShellProps) {
               </span>
             </div>
           ) : null}
-          <div className="flex items-center gap-2 text-xs text-sidebar-muted">
-            <span className="size-2 rounded-full bg-warning" aria-hidden="true" />
-            Foundation mode
+          <div className="text-xs font-medium text-sidebar-foreground">
+            {statusLabel}
           </div>
-          <p className="mt-2 text-xs leading-5 text-sidebar-muted">Mail services are not connected.</p>
+          <p className="mt-1 text-xs leading-5 text-sidebar-muted">
+            {statusDescription}
+          </p>
         </div>
       </aside>
 
@@ -234,7 +271,9 @@ export function AppShell({ children, user, signOutAction }: AppShellProps) {
           </IconButton>
           <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
             <Icon glyph={LayoutDashboard} />
-            <span className="truncate">{pathname.startsWith("/vcon") ? "Admin" : "Workspace"}</span>
+            <span className="truncate">
+              {pathname.startsWith("/vcon") ? "Admin" : "Workspace"}
+            </span>
           </div>
           <div className="ml-auto flex items-center gap-2">
             {user ? (
@@ -242,14 +281,16 @@ export function AppShell({ children, user, signOutAction }: AppShellProps) {
                 {user.username}
               </span>
             ) : (
-              <span className="hidden text-xs text-muted-foreground sm:inline">Local foundation</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                Local foundation
+              </span>
             )}
             <ThemeToggle />
             {signOutAction ? (
               <form action={signOutAction}>
                 <button
                   type="submit"
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted whitespace-nowrap shrink-0"
                 >
                   <Icon glyph={LogOut} />
                   <span className="hidden sm:inline">Sign out</span>

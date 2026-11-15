@@ -53,11 +53,12 @@ test("applied migrations create the administrator relationship and constraints",
     WHERE migration_name IN (
       '20261017000000_initial_application_schema',
       '20261017190000_local_auth_reset',
-      '20261018120000_administrator_profiles'
+      '20261018120000_administrator_profiles',
+      '20261115000000_mailserver_schema_and_roles'
     )
     ORDER BY migration_name
   `;
-  assert.equal(migrationRows.length, 3);
+  assert.equal(migrationRows.length, 4);
   assert.ok(migrationRows.every((row) => row.finished_at !== null));
 
   const indexes = await client.$queryRaw<{ indexdef: string }[]>`
@@ -322,3 +323,44 @@ test("bootstrap serializes concurrent creation and preserves profile authorizati
   );
   await revokeAppSession(client, legacySessionId);
 });
+
+test("mailserver PostgreSQL schema, postfix_virtual_* views, postfix_lookup role grants, and 14-table models work end-to-end", async () => {
+  const views = await client.$queryRaw<
+    { table_name: string }[]
+  >`
+    SELECT table_name
+    FROM information_schema.views
+    WHERE table_schema = 'mailserver'
+      AND table_name IN (
+        'postfix_virtual_domains',
+        'postfix_virtual_mailboxes',
+        'postfix_virtual_aliases'
+      )
+    ORDER BY table_name
+  `;
+  assert.equal(views.length, 3);
+
+  const passwordHashPrivilege = await client.$queryRaw<
+    { allowed: boolean }[]
+  >`
+    SELECT has_column_privilege(
+      'postfix_lookup',
+      'mailserver.mailboxes',
+      'password_hash',
+      'SELECT'
+    ) AS allowed
+  `;
+  assert.equal(passwordHashPrivilege[0]?.allowed, false);
+
+  const viewPrivilege = await client.$queryRaw<
+    { allowed: boolean }[]
+  >`
+    SELECT has_table_privilege(
+      'postfix_lookup',
+      'mailserver.postfix_virtual_mailboxes',
+      'SELECT'
+    ) AS allowed
+  `;
+  assert.equal(viewPrivilege[0]?.allowed, true);
+});
+

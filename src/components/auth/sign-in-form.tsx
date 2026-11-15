@@ -176,11 +176,12 @@ export function SignInForm({
                 key={account.username}
                 className="flex flex-wrap items-center justify-between gap-2"
               >
-                <span>
+                <span className="min-w-0 [overflow-wrap:anywhere]">
                   <span className="font-medium text-foreground">
                     {account.username}
                   </span>{" "}
-                  / <code>{account.password}</code> ({account.roleLabel})
+                  / <code className="break-all">{account.password}</code> (
+                  {account.roleLabel})
                 </span>
                 <button
                   type="button"

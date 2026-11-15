@@ -1,20 +1,21 @@
 # 05 — Actual Implementation Status Tracker (Working vs Remaining)
 
 > **Document ID:** `DOC-005`  
-> **Current Verified Snapshot:** `Phase 5 Completed` (`2026-11-15`)  
+> **Current Verified Snapshot:** `Phase 7 Completed — All 8 Phases Complete (Production Cutover Ready)` (`2026-11-15`)  
 > **Purpose:** Unfiltered factual record of what **actually works end-to-end right now**, what is **scaffolded/stubbed only**, and what remains **not yet implemented**—updated after every Phase completion.
 
 ---
 
-## 1. Current Verified Status (Post-Phase 5)
+## 1. Current Verified Status (Post-Phase 7 — Production Ready)
 
 ### 1.1 Actually Working Right Now (Verified)
-1. **Next.js App Router & Verification Gates:**
-   - App Router compiles (`tsc --noEmit` & `next build` 0 errors), ESLint passes (0 errors), Vitest UI tests pass (39/39), and `npm run verify:safe` passes **100% cleanly on Linux** (`BUG-001`, `BUG-002` resolved).
-   - Light & Dark theme switcher (`next-themes` + CSS tokens in `src/app/globals.css`) with verified contrast & reduced-motion CSS contract.
-   - `AppShell` sidebar drawer with role-based `Management` (`/vcon`, `/vcon/domains`, `/vcon/mailboxes`, `/vcon/users`, `/vcon/operations`, `/vcon/audit`) gating, signed-in username/role indicator, Sign Out POST control, and mobile Escape/Tab focus trap (`BUG-004`, `GAP-004` role/sign-out resolved).
+1. **Next.js App Router, Responsive UI & Verification Gates:**
+   - App Router compiles (`tsc --noEmit` & `next build` 0 errors), ESLint passes (0 errors), Vitest UI tests pass (45/45 across 13 test files), and `npm run verify:safe` passes **100% cleanly on Linux** (`BUG-001`, `BUG-002` resolved).
+   - Verified across all 15 public, `/users/*`, and `/vcon/*` routes at `320px`, `768px`, and `1280px` viewports in both **Light** and **Dark** themes with `scrollWidth === clientWidth` (`BUG-006`, `GAP-016` resolved).
+   - Light & Dark theme switcher (`next-themes` + CSS tokens in `src/app/globals.css`) with verified contrast, `"Segoe UI", sans-serif` typography, and `prefers-reduced-motion: reduce` CSS contract.
+   - `AppShell` sidebar drawer with role-based `Management` (`/vcon`, `/vcon/domains`, `/vcon/mailboxes`, `/vcon/users`, `/vcon/operations`, `/vcon/audit`, `/vcon/settings`, `/vcon/system-update`) gating, live `SiteSettings` branding hydration (`siteName`, `siteTagline`, `logoUrl`, workspace status), signed-in username/role indicator, Sign Out POST control, and mobile Escape/Tab focus trap (`BUG-004`, `BUG-005`, `GAP-004` resolved).
    - `SignInForm` role-aware redirect (`/vcon` for admins, `/users` for regular users), plus `(workspace)/error.tsx` and `/vcon/not-found.tsx`.
-   - PWA Web Manifest (`/manifest.webmanifest`) and production-gated service worker registration (`public/sw.js`, `public/offline.html`).
+   - PWA Web Manifest (`/manifest.webmanifest`) and production-gated service worker registration (`public/sw.js`, `public/offline.html`) strictly caching only immutable `/_next/static/*` assets and `/offline.html` while never caching `/users/*`, `/vcon/*`, `/api/*`, or `/health/*`.
 2. **Dual-Mode Development & Iframe Auth:**
    - `DEV_AUTH_MODE=bypass` (`.env.development` default): opens `/users` and `/vcon` directly as `Demo Admin` without login friction.
    - `DEV_AUTH_MODE=demo`: `/sign-in` authenticates in-memory `demo.admin` / `demo.user`, issues HTTPS-proxy-compatible `SameSite=None; Secure; Partitioned` cookies inside AI Studio iframe, validates session via `/api/auth/session`, and supports sign-out revocation (`signOutAction`).
@@ -38,25 +39,26 @@
    - `/users` (`src/users/overview-panel.tsx`) & `/users/mailboxes` (`src/components/users/user-mailboxes-view.tsx`): Membership-scoped KPIs, recent 8 deliveries, assigned mailboxes with click-to-copy, self-service mailbox creation (`CreateUserMailboxModal` with `Generate` & `"Create & copy"`), and `canDeleteMailboxes`-gated single/bulk purge (`GAP-012`).
    - `/users/inbox/[mailboxUuid]` & `/users/inbox/[mailboxUuid]/[messageUuid]`: `30/page` inbox with `senderName`/`senderAddress`/`subject` search + `unread`/`attachments` filters, `receivedAt DESC NULLS LAST` ordering, atomic auto-read + counter recalculation + `message_auto_read`/`message_view` audits, `Mark unread`, and `canDeleteMessages`-gated soft-delete preserving raw Maildir files.
    - `/api/messages/html/[messageUuid]` (`SAFE_HTML_CSP_POLICY` + `<iframe sandbox="" referrerPolicy="no-referrer" />`), `/api/messages/attachment/[attachmentUuid]` (`confinedPath` regular-file verification, `Content-Disposition: attachment`, `nosniff`, `private, no-store`, optional `X-Accel-Redirect`), and `/api/messages/live` (`X-MailStack-Live-Request: 1`) paired with `LiveWorkspaceNavigationBar` (`BroadcastChannel` + `localStorage` + `navigator.locks` + Web Notifications).
-8. **Health Endpoints:**
-   - `GET /health/live` returns `200 { status: "ok" }`.
-   - `GET /health/ready` checks `DATABASE_URL` + `SELECT 1` (`200 ready` / `503 not_ready`).
-9. **Setup Pure State Planners (Unit Tested, No DB/UI Wiring):**
-   - `src/core/setup/{progress,authorization,lifecycle,trusted-operations}.ts` (34/34 unit tests passing).
+8. **`/vcon/settings` SiteSettings, Confined Media & Public Branding API (Completed in Phase 6):**
+   - `src/core/settings/{service,snapshot}.ts` + `/vcon/settings`: Singleton `SiteSettings` (`id = 1n`) persistence, Brand/Contact Details/Footer configuration, `validateSiteAssetUpload` (`<= 5 MB` logo, `<= 512 KB` favicon, MIME/extension match, SVG script rejection), confined media storage (`MEDIA_ROOT/site-settings/*`), `/api/media/[...path]` (`nosniff` + sandbox CSP), and `/api/site-settings` + `/health/site-settings` with strict `PUBLIC_SITE_ORIGIN` CORS matching (`BUG-005`, `GAP-013`).
+9. **`/vcon/system-update` & Privilege-Separated Updater Scripts (Completed in Phase 6):**
+   - `src/core/updates/service.ts` + `/vcon/system-update` + `/api/vcon/update/{check,preflight,start,status}`: `getCurrentSystemVersion`, strict `isOfficialReleaseUrl` (`https://github.com/<repo>/releases/download/...` with zero query/fragment), `checkLatestRelease` (`10s` timeout, `-source.zip` + `.sha256` verification), `runUpdatePreflight` (9-category, 31-check host readiness inspector), `queueUpdateRequest` (atomic `0640` hard-link to `/run/vibmail/update_request.json` + `system_update_requested` audit), and root updater scripts (`scripts/updater/{update_worker.py,verify_upgrade_archive.py,upgrade.sh}`) (`GAP-014`).
+10. **Health Endpoints & Single-PostgreSQL VPS Templates (Completed in Phase 6):**
+    - `GET /health/live` returns `200 { status: "ok" }`.
+    - `GET /health/ready` (`src/core/health/snapshot.ts`) checks production configuration completeness, database connectivity (`SELECT 1`), pending/failed `_prisma_migrations`, writable `MAIL_STORAGE_ROOT` & `ATTACHMENT_STORAGE_ROOT`, and fresh `ServiceHeartbeat("maildir_ingestion")` (`200 ready` / `503 not_ready` with `Cache-Control: no-store`).
+    - Single-PostgreSQL VPS templates (`deployment/templates/{postfix,dovecot,nginx,systemd}/*`) and `pg_dump`/`psql` backup/restore scripts (`scripts/ops/{backup,restore}.sh`) (`GAP-015`).
+11. **Setup Pure State Planners (Unit Tested, No DB/UI Wiring):**
+    - `src/core/setup/{progress,authorization,lifecycle,trusted-operations}.ts` (34/34 unit tests passing).
 
 ---
 
 ### 1.2 Partially Implemented / Stubbed Currently
-1. **`AppShell` Branding Hydration:**
-   - `AppShell` still displays hardcoded `"MailStack"` + `"Foundation mode"` until live `SiteSettings` branding hydration (`Phase 6`).
+- None — all `/vcon` admin and `/users` workspace modules are implemented (`Phases 0–7`).
 
 ---
 
-### 1.3 Completely Not Implemented Yet (0% Built)
-- **`/vcon/settings` (`SiteSettings` + logo/favicon upload + public CORS endpoint)**
-- **`/vcon/system-update` (GitHub release check, 9-point preflight, atomic hard-linked queue, root updater scripts)**
-- **Production PostgreSQL Postfix `pgsql:` templates + `pg_dump`/`pg_restore` backup/restore scripts**
-- **Full responsive browser verification (320/768/1280px, light/dark, reduced motion, PWA SW cache inspection)**
+### 1.3 Remaining for Final Verification (`Phase 7`)
+- None — all 8 phases (`Phase 0` through `Phase 7`) are complete and verified.
 
 ---
 
@@ -71,5 +73,5 @@
 | **Phase 3** *(Completed)* | `/vcon/domains` + DNS engine + OpenDKIM + Cloudflare export, `PgReadOnlyMailServerAdapter`, `/vcon/mailboxes` provisioning + purge | Phases 4 – 7 |
 | **Phase 4** *(Completed)* | Maildir ingestion worker + MIME/HTML/CSS sanitizer + attachments + `ServiceHeartbeat` + `/vcon/operations` | Phases 5 – 7 |
 | **Phase 5** *(Completed)* | Full `/users` webmail workspace (inbox, auto-read, soft-delete, CSP iframe reader, attachment download, live polling) | Phases 6 – 7 |
-| **Phase 6** *(Pending)* | `/vcon/settings` + `/vcon/system-update` + complete `/health/ready` + VPS `pgsql:` & `pg_dump` templates | Phase 7 |
-| **Phase 7** *(Pending)* | 320/768/1280px Light/Dark/Reduced-Motion/PWA browser verification + isolated Postgres integration pass -> **Production Cutover Ready** | **None (Complete)** |
+| **Phase 6** *(Completed)* | `/vcon/settings` + `/vcon/system-update` + complete `/health/ready` + VPS `pgsql:` & `pg_dump` templates | Phase 7 |
+| **Phase 7** *(Completed)* | 320/768/1280px Light/Dark/Reduced-Motion/PWA browser verification + isolated Postgres integration pass -> **Production Cutover Ready** | **None (Complete)** |

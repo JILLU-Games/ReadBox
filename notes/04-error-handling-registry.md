@@ -69,21 +69,21 @@ Map Prisma error codes (`PrismaClientKnownRequestError`) cleanly inside service 
    - Disappeared Maildir file mid-scan (`ENOENT`) -> returns `"skipped_missing"` without failing batch.
    - Body repair SHA-256 mismatch (`diskSha256 !== message.sourceSha256`) -> throws `BodyRepairError("source_mismatch")`, **aborting repair for that message** and requiring `confirmRepair: true` for mutating batches.
 
-### B.5 File Uploads (`SiteSettings`) & Protected Downloads (`Phases 5–6`)
-1. **SiteSettings Uploads (`/vcon/settings`):**
-   - Reject files > `5 MB` (logo) or > `512 KB` (favicon), invalid extension/MIME mismatch, or empty payload with clear field-level validation message.
-   - Serve uploaded media through confined route with `X-Content-Type-Options: nosniff` and safe CSP headers.
+### B.5 File Uploads (`SiteSettings`) & Protected Downloads (`Phases 5–6 — Implemented`)
+1. **SiteSettings Uploads (`/vcon/settings` — Implemented in Phase 6):**
+   - Reject files > `5 MB` (logo) or > `512 KB` (favicon), invalid extension/MIME mismatch, SVG lacking `<svg` root or containing `<script>`/`javascript:`/`onload`/`onerror`, or empty payload with clear field-level validation message (`validateSiteAssetUpload` in `src/core/settings/service.ts`).
+   - Serve uploaded media through confined route (`/api/media/[...path]`) with `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox`.
 2. **Attachment Download (`/api/messages/attachment/[attachmentUuid]` — Implemented in Phase 5):**
    - Unassigned user / deleted mailbox / deleted message / missing file on disk / symlink escape / `PathConfinementError` -> uniform HTTP `404` (`X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`) without exposing `ATTACHMENT_STORAGE_ROOT` path (`getAttachmentForUserDownload` in `src/core/messages/service.ts`).
 
-### B.6 System Update & External Network Errors (`Phase 6`)
-1. **GitHub Release Check (`GET /api/vcon/update/check`):**
-   - Handle `fetch` `AbortSignal.timeout(10_000)`, HTTP `403`/`429` rate limit, invalid JSON, or missing `-source.zip`/`.sha256` assets -> return typed `{ ok: false, code: "UPSTREAM_UNAVAILABLE" | "NO_COMPATIBLE_RELEASE" }`.
-2. **Update Start (`POST /api/vcon/update/start`):**
-   - Non-official GitHub URL / query/fragment present -> `400 Bad Request`.
-   - Already running/queued (`EEXIST` on `link` or lock active) -> `409 Conflict`.
+### B.6 System Update & External Network Errors (`Phase 6 — Implemented`)
+1. **GitHub Release Check (`GET /api/vcon/update/check` — Implemented in Phase 6):**
+   - Handle `fetch` `AbortSignal.timeout(10_000)`, HTTP `403`/`429` rate limit, invalid JSON, or missing `-source.zip`/`.sha256` assets -> return typed `{ ok: false, code: "UPSTREAM_UNAVAILABLE" | "NO_COMPATIBLE_RELEASE" }` (`checkLatestRelease` in `src/core/updates/service.ts`).
+2. **Update Start (`POST /api/vcon/update/start` — Implemented in Phase 6):**
+   - Non-official GitHub URL / query/fragment present (`!isOfficialReleaseUrl`) -> `400 Bad Request`.
+   - Already running/queued (`EEXIST` on `link` or active job) -> `409 Conflict`.
    - Preflight failed -> `503 Service Unavailable`.
-3. **Root Updater Worker (`update_worker.py` / `upgrade.sh`):**
+3. **Root Updater Worker (`scripts/updater/update_worker.py` / `verify_upgrade_archive.py` / `upgrade.sh` — Implemented in Phase 6):**
    - SHA-256 mismatch, zip traversal (`..` / symlink), wrong owner/mode (`!= vmail` or group/world writable), or unacknowledged schema migration (`--allow-migrations`) -> abort upgrade cleanly, write failed status to `/run/vibmail/update_status.json`, and run rollback if code already swapped.
 
 ### B.7 Next.js App Router UI Error Boundaries (`All UI Phases`)
