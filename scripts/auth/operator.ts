@@ -1,5 +1,6 @@
 import { env } from "@/config/env";
 import { bootstrapInitialAccount } from "@/core/auth/operator-bootstrap";
+import { getOperatorEnvironmentError } from "@/core/auth/operator-environment";
 import { issuePasswordResetToken } from "@/core/auth/password-reset";
 import { getPrismaClient } from "@/core/database/client";
 import { stderr, stdin, stdout } from "node:process";
@@ -15,21 +16,12 @@ const accountDetailsSchema = z.object({
 });
 
 function assertLocalOperatorEnvironment(): void {
-  if (env.nodeEnv !== "development" || !env.databaseUrl) {
-    throw new Error("Local development configuration required");
-  }
-
-  const databaseUrl = new URL(env.databaseUrl);
-  if (
-    !["postgres:", "postgresql:"].includes(databaseUrl.protocol) ||
-    !["127.0.0.1", "localhost", "[::1]"].includes(databaseUrl.hostname)
-  ) {
-    throw new Error("Loopback PostgreSQL is required");
-  }
-
-  if (!stdin.isTTY || !stdout.isTTY) {
-    throw new Error("An interactive local terminal is required");
-  }
+  const error = getOperatorEnvironmentError({
+    nodeEnv: env.nodeEnv,
+    databaseUrl: env.databaseUrl,
+    interactive: stdin.isTTY === true && stdout.isTTY === true,
+  });
+  if (error) throw new Error(error);
 }
 
 function displayResetToken(token: string): void {

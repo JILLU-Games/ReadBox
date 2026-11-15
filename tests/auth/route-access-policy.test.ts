@@ -4,14 +4,16 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { test } from "node:test";
 
-const regularUser = { isStaff: false, isSuperuser: false };
-const staffUser = { isStaff: true, isSuperuser: false };
-const superuser = { isStaff: false, isSuperuser: true };
+const regularUser = { isAdministrator: false };
+const administrator = { isAdministrator: true };
 
 test("workspace access redirects when unauthenticated or auth is disabled", () => {
   assert.equal(decideWorkspaceRouteAccess(true, null), "sign-in");
   assert.equal(decideWorkspaceRouteAccess(false, regularUser), "sign-in");
-  assert.equal(decideWorkspaceRouteAccess(false, staffUser, true), "sign-in");
+  assert.equal(
+    decideWorkspaceRouteAccess(false, administrator, true),
+    "sign-in",
+  );
 });
 
 test("regular active users may access user routes but not admin routes", () => {
@@ -22,9 +24,8 @@ test("regular active users may access user routes but not admin routes", () => {
   );
 });
 
-test("staff and superusers may access admin routes", () => {
-  assert.equal(decideWorkspaceRouteAccess(true, staffUser, true), "allow");
-  assert.equal(decideWorkspaceRouteAccess(true, superuser, true), "allow");
+test("only a profile-backed administrator may access admin routes", () => {
+  assert.equal(decideWorkspaceRouteAccess(true, administrator, true), "allow");
 });
 
 test("public sign-in, reset, auth, and health routes stay outside workspace guard", () => {

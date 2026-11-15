@@ -1,6 +1,5 @@
 export interface RouteUserRole {
-  isStaff: boolean;
-  isSuperuser: boolean;
+  isAdministrator: boolean;
 }
 
 export type RouteAccessDecision = "allow" | "sign-in" | "not-found";
@@ -11,6 +10,6 @@ export function decideWorkspaceRouteAccess(
   adminOnly = false,
 ): RouteAccessDecision {
   if (!authEnabled || !user) return "sign-in";
-  if (adminOnly && !user.isStaff && !user.isSuperuser) return "not-found";
+  if (adminOnly && !user.isAdministrator) return "not-found";
   return "allow";
 }

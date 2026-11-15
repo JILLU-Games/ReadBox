@@ -28,9 +28,22 @@ model User {
   auditEvents       AuditLog[]
   sessions          AppSession[]
   passwordResetToken PasswordResetToken?
+  administratorProfile AdministratorProfile?
 
   @@index([username])
   @@map("users")
+}
+
+model AdministratorProfile {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @unique @map("user_id")
+  isSuperuser Boolean  @default(false) @map("is_superuser")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("administrator_profiles")
 }
 
 model LoginAttempt {

@@ -8,6 +8,7 @@ import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
   RESET_TOKEN_TTL_MS,
+  passwordConfirmationMatches,
 } from "@/core/auth/password-policy";
 import type { PrismaClient } from "@prisma/client";
 import "server-only";
@@ -57,7 +58,7 @@ export async function completePasswordReset(
   if (
     !isOpaqueToken(token) ||
     !parsedPassword.success ||
-    newPassword !== confirmation
+    !passwordConfirmationMatches(newPassword, confirmation)
   ) {
     return false;
   }

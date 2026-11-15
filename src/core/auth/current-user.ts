@@ -32,14 +32,20 @@ export async function getCurrentUser() {
         lastName: true,
         email: true,
         isActive: true,
-        isStaff: true,
-        isSuperuser: true,
         passwordResetRequired: true,
+        administratorProfile: {
+          select: { isSuperuser: true },
+        },
       },
     });
 
     if (!user?.isActive || user.passwordResetRequired) return null;
-    return user;
+    const { administratorProfile, ...identity } = user;
+    return {
+      ...identity,
+      isAdministrator: administratorProfile !== null,
+      isSuperuser: administratorProfile?.isSuperuser === true,
+    };
   } catch {
     logger.error("auth_current_user_lookup_failed");
     return null;
@@ -54,7 +60,7 @@ export async function requireCurrentUser() {
 
 export async function requireStaffUser() {
   const user = await requireCurrentUser();
-  if (!user.isStaff) throw new AuthorizationDeniedError();
+  if (!user.isAdministrator) throw new AuthorizationDeniedError();
   return user;
 }
 

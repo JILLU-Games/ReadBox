@@ -1,6 +1,7 @@
 import { env } from "@/config/env";
 import { authorizeCredentials } from "@/core/auth/credentials";
 import { SESSION_MAX_AGE_SECONDS } from "@/core/auth/password-policy";
+import { getAuthRuntimeConfigurationError } from "@/core/auth/runtime-policy";
 import {
   getActiveAppSession,
   registerAppSession,
@@ -13,19 +14,13 @@ import Credentials from "next-auth/providers/credentials";
 import { randomBytes } from "node:crypto";
 import "server-only";
 
-if (
-  env.authEnabled &&
-  env.nodeEnv !== "development" &&
-  env.nodeEnv !== "test"
-) {
-  throw new Error(
-    "This authentication foundation is restricted to local development",
-  );
-}
-
-if (env.authEnabled && !env.authSecret) {
-  throw new Error("AUTH_SECRET is required when authentication is enabled");
-}
+const authRuntimeConfigurationError = getAuthRuntimeConfigurationError({
+  nodeEnv: env.nodeEnv,
+  authEnabled: env.authEnabled,
+  hasAuthSecret: Boolean(env.authSecret),
+});
+if (authRuntimeConfigurationError)
+  throw new Error(authRuntimeConfigurationError);
 
 const authSecret = env.authSecret ?? randomBytes(32).toString("base64url");
 
@@ -107,7 +102,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       token.sub = currentUser.id.toString();
       token.username = currentUser.username;
-      token.isStaff = currentUser.isStaff;
+      token.isAdministrator = currentUser.isAdministrator;
       token.isSuperuser = currentUser.isSuperuser;
       return token;
     },
@@ -119,7 +114,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.sub;
       session.user.username = token.username;
       session.user.name = typeof token.name === "string" ? token.name : null;
-      session.user.isStaff = token.isStaff === true;
+      session.user.isAdministrator = token.isAdministrator === true;
       session.user.isSuperuser = token.isSuperuser === true;
       if (typeof token.email === "string") session.user.email = token.email;
       return session;

@@ -58,9 +58,10 @@ export async function getActiveAppSession(
           lastName: true,
           email: true,
           isActive: true,
-          isStaff: true,
-          isSuperuser: true,
           passwordResetRequired: true,
+          administratorProfile: {
+            select: { isSuperuser: true },
+          },
         },
       },
     },
@@ -76,7 +77,12 @@ export async function getActiveAppSession(
     return null;
   }
 
-  return registryEntry.user;
+  const { administratorProfile, ...user } = registryEntry.user;
+  return {
+    ...user,
+    isAdministrator: administratorProfile !== null,
+    isSuperuser: administratorProfile?.isSuperuser === true,
+  };
 }
 
 export async function revokeAppSession(

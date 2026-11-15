@@ -5,7 +5,7 @@ interface TestUser {
   id: string;
   isActive: boolean;
   passwordResetRequired: boolean;
-  isStaff: boolean;
+  isAdministrator: boolean;
   isSuperuser: boolean;
 }
 
@@ -76,7 +76,7 @@ function makeUser(overrides: Partial<TestUser> = {}): TestUser {
     id: "synthetic-user-id",
     isActive: true,
     passwordResetRequired: false,
-    isStaff: false,
+    isAdministrator: false,
     isSuperuser: false,
     ...overrides,
   };
@@ -111,10 +111,10 @@ test("anonymous and inactive users are redirected from workspace routes", async 
   await assertRedirect(routeGuards.requireWorkspaceUser);
 });
 
-test("regular users cannot access admin routes even with client-supplied admin fields", async () => {
+test("regular users cannot access admin routes when legacy flags are client-supplied", async () => {
   testEnvironment.authEnabled = true;
   serverUser = makeUser();
-  const clientSuppliedAdmin = makeUser({ isStaff: true, isSuperuser: true });
+  const clientSuppliedAdmin = { isAdministrator: true, isSuperuser: true };
 
   await assert.rejects(
     Reflect.apply(routeGuards.requireAdminUser, undefined, [
@@ -124,18 +124,15 @@ test("regular users cannot access admin routes even with client-supplied admin f
   );
 });
 
-test("staff users and superusers can access admin routes", async () => {
+test("profile-backed application administrators may access admin routes", async () => {
   testEnvironment.authEnabled = true;
-  serverUser = makeUser({ isStaff: true });
-  assert.strictEqual(await routeGuards.requireAdminUser(), serverUser);
-
-  serverUser = makeUser({ isSuperuser: true });
+  serverUser = makeUser({ isAdministrator: true });
   assert.strictEqual(await routeGuards.requireAdminUser(), serverUser);
 });
 
 test("auth-disabled mode denies protected routes without trusting an available identity", async () => {
   testEnvironment.authEnabled = false;
-  serverUser = makeUser({ isStaff: true, isSuperuser: true });
+  serverUser = makeUser({ isAdministrator: true, isSuperuser: true });
   currentUserCalls = 0;
 
   await assertRedirect(routeGuards.requireWorkspaceUser);

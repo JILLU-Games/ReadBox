@@ -26,11 +26,16 @@ The default installation owns and isolates its supported, version-pinned service
 
 ### First-run setup
 
-1. An operator opens the local installation setup experience. Until setup is complete, only explicitly allowed setup operations are available; normal workspace and admin routes remain protected.
-2. The operator supplies required environment settings and intended PostgreSQL database name, role name, and credentials. Privileged bootstrap secrets stay server-side and are never sent to the browser.
-3. The operator requests database creation. A trusted backend reports bounded progress and sanitized errors, verifies connectivity, database/schema readiness and least-privilege application access, and never declares success based only on command completion.
-4. The operator supplies initial administrator email, username, password, and confirmation. Both client and server validate inputs. Creation is serialized, one-time, retry-safe, and verified before setup is marked complete. Success offers sign-in.
-5. Interrupted setup can resume or recover without duplicate administrators, leaking secrets, or weakening access controls.
+**Proposed compact flow: four steps; DESIGNED — NOT IMPLEMENTED.**
+
+The historical Phase 6.3 three-step proposal is superseded as the current UX proposal only; it remains historical evidence, not an approved flow. The preliminary preferences in [Installer Architecture](INSTALLER-ARCHITECTURE.md) are **PROPOSED — NOT APPROVED** and do not authorize implementation or deployment.
+
+1. **System readiness:** read-only prerequisite inventory and verification of a reachable PostgreSQL database/schema and least-privilege application access. Whether the wizard creates the database remains unresolved; current design assumes operator provisioning until approved otherwise.
+2. **Initial administrator:** operator-controlled bootstrap using the existing profile-backed identity model, followed by required password reset and verified sign-in. The current CLI is development-only; no public registration or anonymous privilege-grant endpoint is permitted.
+3. **Domain and mail configuration:** validate provider-neutral settings and use only an approved secret-reference/store contract. Configuration validity does not imply service health or delivery readiness.
+4. **Verification and completion:** independently verify required database/schema/admin postconditions and approved service/delivery checks. Never report completion from submitted settings, process exit, or a running container alone.
+
+The local installer authority is separate from application-admin identity. Any host mutation requires the separately approved OS-authenticated installer-agent and browser handoff; until then the UI must remain read-only for host operations and report a safe blocked state. Interrupted work must resume through durable idempotency and verified recovery, never duplicate administrators or weaken authorization.
 
 Setup cannot be exposed as an unprotected arbitrary-operation API. Define its pre-authentication boundary and recovery mechanism before adding routes.
 
@@ -55,8 +60,10 @@ Back up PostgreSQL and the corresponding persistent mail storage with a document
 - The application uses Next.js, Prisma, `@prisma/adapter-pg`, and a PostgreSQL `DATABASE_URL`.
 - `compose.yaml` defines a PostgreSQL 16.14 Alpine development service with a persistent named volume and loopback port binding. Its configured database is `mailstack_dev`; it is forbidden to access, reset, migrate, or modify it.
 - `AUTH_ENABLED` defaults to false. Protected workspace routes redirect to sign-in when auth is disabled. Auth-enabled mode is restricted to development/test in `src/auth.ts`.
-- The application has credentials authentication, JWT sessions, a Prisma-backed revocable `AppSession`, and password hashing. `getCurrentUser()` reloads active/reset state from Prisma; admin guards require staff or superuser.
-- `bootstrapInitialAccount()` can create one reset-required synthetic administrator under a PostgreSQL transaction lock. The operator CLI requires local development, loopback PostgreSQL, and an interactive terminal; it displays a one-time reset token. This is not a web setup wizard or PostgreSQL service initializer.
+- The application has credentials authentication, JWT sessions, a Prisma-backed revocable `AppSession`, and password hashing. `getCurrentUser()` reloads active/reset state and `AdministratorProfile` from Prisma; admin guards require profile-backed administrator membership. Legacy `User.isStaff`/`isSuperuser` flags do not grant access.
+- `bootstrapInitialAccount()` can create one reset-required application administrator, its `AdministratorProfile`, and a one-time password-reset token in one PostgreSQL transaction under an advisory lock. The operator CLI requires local development, loopback PostgreSQL, and an interactive terminal; this is not a web setup wizard or PostgreSQL service initializer and does not establish host/installer authority.
+- The local operator CLI rejects `mailstack_dev`, production mode, non-PostgreSQL/remote hosts, and non-interactive execution. A TTY is only a local execution guard, not proof of OS identity or host-level installer authority.
+- The administrator-profile migration is additive and was applied twice successfully to a fresh disposable PostgreSQL target in Phase 6.4; all three real integration tests passed. The tmpfs container was removed afterward, and no development/production database was queried, so existing database applied state remains unknown.
 - The Prisma schema includes `Domain`, `Mailbox`, memberships, messages, and attachment metadata. `maildirRelativePath` has no verified root, owner, or delivery mapping.
 - The Postfix adapter is generic and mock-only. No production Postfix/Dovecot adapter or mail provisioning implementation is established.
 - Domain/mailbox/storage/delivery modules and persistent workers are incomplete or absent.
@@ -64,7 +71,11 @@ Back up PostgreSQL and the corresponding persistent mail storage with a document
 
 ## Roadmap and Dependencies
 
-The default ordered roadmap is Phase 5 installer architecture/setup foundation; Phase 6 PostgreSQL initialization and initial administrator; Phase 7 read-only server scanner; Phase 8 isolated mail-service provisioning; Phase 9 domain/mailbox/routing/storage; Phase 10 backup, restore, recovery, and production readiness. Each phase has explicit gates in [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md). Mail-host evidence and a safe setup trust boundary block dependent operations.
+The ordered roadmap is Phase 5 installer architecture/setup foundation; Phase 6 PostgreSQL initialization and initial administrator; Phase 7 read-only scanner and security prerequisites; Phase 8 gated Guided Setup security foundation, followed only later by separately gated isolated mail-service provisioning; Phase 9 domain/mailbox/routing/storage; Phase 10 backup, restore, recovery, and production readiness. Phase 8 does not itself authorize mail provisioning. The stage gates for design, approved development, isolated testing, security/recovery sign-off, and separately approved VPS deployment are in [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md). ReadBox is not ready for real-VPS installation or production validation.
+
+## Test Readiness
+
+The default `npm.cmd test` workflow is database-independent. `npm.cmd run verify:safe` adds no-emit TypeScript, lint, and Prisma validation without starting a build. PostgreSQL integration is a separate, explicit workflow using the opt-in `postgres-test` Compose profile, a dedicated ignored `.env.test.local`, loopback-only port, tmpfs storage, container identity checks, and an empty-database check before migration. Never use the `mailstack_dev` fallback or production databases. Current integration implementation and limitations are tracked in [Prisma test workflow](../prisma/README.md#test-workflow). Phase 6.4 migration and runtime results are historical evidence for the disposable target that was removed; they do not establish current service availability or any other database's state. Reruns require a newly verified disposable target.
 
 ## Acceptance Criteria
 

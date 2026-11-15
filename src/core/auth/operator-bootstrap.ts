@@ -4,6 +4,14 @@ import { RESET_TOKEN_TTL_MS } from "@/core/auth/password-policy";
 import type { PrismaClient } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import "server-only";
+import { z } from "zod";
+
+const initialAccountInputSchema = z.object({
+  username: z.string().trim().min(1).max(150),
+  firstName: z.string().trim().max(150),
+  lastName: z.string().trim().max(150),
+  email: z.string().trim().max(254),
+});
 
 export interface InitialAccountInput {
   username: string;
@@ -16,7 +24,10 @@ export async function bootstrapInitialAccount(
   prisma: PrismaClient,
   input: InitialAccountInput,
 ): Promise<{ userId: string; resetToken: string } | null> {
-  const username = input.username.trim().toLowerCase();
+  const parsedInput = initialAccountInputSchema.safeParse(input);
+  if (!parsedInput.success) throw new Error("Invalid initial account details");
+
+  const username = parsedInput.data.username.toLowerCase();
   const passwordHash = await hashPassword(
     randomBytes(32).toString("base64url"),
   );
@@ -34,16 +45,18 @@ export async function bootstrapInitialAccount(
     const user = await transaction.user.create({
       data: {
         username,
-        firstName: input.firstName.trim(),
-        lastName: input.lastName.trim(),
-        email: input.email.trim().toLowerCase(),
+        firstName: parsedInput.data.firstName,
+        lastName: parsedInput.data.lastName,
+        email: parsedInput.data.email.toLowerCase(),
         passwordHash,
         passwordResetRequired: true,
         isActive: true,
-        isStaff: true,
-        isSuperuser: true,
       },
       select: { id: true },
+    });
+
+    await transaction.administratorProfile.create({
+      data: { userId: user.id, isSuperuser: true },
     });
 
     await transaction.passwordResetToken.create({

@@ -55,9 +55,10 @@ export async function authorizeCredentials(
           lastName: true,
           email: true,
           isActive: true,
-          isStaff: true,
-          isSuperuser: true,
           passwordResetRequired: true,
+          administratorProfile: {
+            select: { isSuperuser: true },
+          },
         },
       });
 
@@ -86,8 +87,8 @@ export async function authorizeCredentials(
         username: account.username,
         name: [account.firstName, account.lastName].filter(Boolean).join(" "),
         email: account.email || null,
-        isStaff: account.isStaff,
-        isSuperuser: account.isSuperuser,
+        isAdministrator: account.administratorProfile !== null,
+        isSuperuser: account.administratorProfile?.isSuperuser === true,
       };
     });
   } catch {

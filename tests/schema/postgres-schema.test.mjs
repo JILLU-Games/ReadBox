@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,13 @@ const initialMigration = readFileSync(
   ),
   "utf8",
 );
+const administratorMigration = readFileSync(
+  resolve(
+    workspaceRoot,
+    "prisma/migrations/20261018120000_administrator_profiles/migration.sql",
+  ),
+  "utf8",
+);
 const migrationLock = readFileSync(
   resolve(workspaceRoot, "prisma/migrations/migration_lock.toml"),
   "utf8",
@@ -24,6 +31,7 @@ const migrationLock = readFileSync(
 test("Prisma models the verified app entities and excludes infrastructure databases", () => {
   for (const model of [
     "User",
+    "AdministratorProfile",
     "LoginAttempt",
     "UserAccessPolicy",
     "AppSession",
@@ -67,6 +75,46 @@ test("schema defines stable identifiers, relationships, deletion actions, and so
   assert.match(prismaSchema, /tokenHash String\s+@unique/);
   assert.match(initialMigration, /CREATE TABLE "app_sessions"/);
   assert.match(initialMigration, /django sessions are invalidated/i);
+});
+
+test("administrator profile is a unique linked identity with no automatic promotion", () => {
+  assert.match(prismaSchema, /administratorProfile\s+AdministratorProfile\?/);
+  assert.match(prismaSchema, /model AdministratorProfile\s*\{/);
+  assert.match(prismaSchema, /userId\s+BigInt\s+@unique @map\("user_id"\)/);
+  assert.match(
+    prismaSchema,
+    /isSuperuser Boolean\s+@default\(false\).*@map\("is_superuser"\)/,
+  );
+  assert.match(
+    prismaSchema,
+    /user User @relation\(fields: \[userId\], references: \[id\], onDelete: Cascade\)/,
+  );
+  assert.match(
+    administratorMigration,
+    /CREATE UNIQUE INDEX "administrator_profiles_user_id_key"/,
+  );
+  assert.match(
+    administratorMigration,
+    /"is_superuser" BOOLEAN NOT NULL DEFAULT false/,
+  );
+  assert.match(administratorMigration, /ON DELETE CASCADE ON UPDATE CASCADE/);
+  assert.doesNotMatch(administratorMigration, /INSERT\s+INTO/i);
+  assert.doesNotMatch(
+    administratorMigration,
+    /\b(?:DROP\s+(?:TABLE|SCHEMA)|TRUNCATE|DELETE\s+FROM|UPDATE\s+\w+\s+SET)\b/i,
+  );
+
+  const migrationDirectories = readdirSync(
+    resolve(workspaceRoot, "prisma/migrations"),
+    { withFileTypes: true },
+  )
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  assert.equal(
+    migrationDirectories.at(-1),
+    "20261018120000_administrator_profiles",
+  );
 });
 
 test("migration preserves source foreign-key delete actions and supporting indexes", () => {

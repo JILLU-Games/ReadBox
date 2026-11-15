@@ -10,7 +10,15 @@ import test from "node:test";
 test("setup milestones advance only in order", () => {
   let progress = INITIAL_SETUP_PROGRESS;
 
-  assert.equal(completeSetupStep(progress, "database-created"), null);
+  assert.deepEqual(SETUP_STEPS, [
+    "environment-validated",
+    "database-availability-verified",
+    "database-verified",
+    "schema-verified",
+    "administrator-created",
+    "completion-verified",
+  ]);
+  assert.equal(completeSetupStep(progress, "database-verified"), null);
 
   for (const step of SETUP_STEPS) {
     const nextProgress = completeSetupStep(progress, step);
@@ -45,12 +53,21 @@ test("setup cannot complete before final verification", () => {
 });
 
 test("malformed progress values fail closed", () => {
+  assert.equal(completeSetupStep(null, "environment-validated"), null);
+  assert.equal(completeSetupStep(undefined, "environment-validated"), null);
+  assert.equal(completeSetupStep("invalid", "environment-validated"), null);
+  assert.equal(isSetupComplete(null), false);
+  assert.equal(isSetupComplete(undefined), false);
+  assert.equal(isSetupComplete("invalid"), false);
   assert.equal(
     completeSetupStep({ completedSteps: -1 }, "environment-validated"),
     null,
   );
   assert.equal(
-    completeSetupStep({ completedSteps: 1.5 }, "database-requested"),
+    completeSetupStep(
+      { completedSteps: 1.5 },
+      "database-availability-verified",
+    ),
     null,
   );
   assert.equal(

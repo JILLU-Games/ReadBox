@@ -1,12 +1,17 @@
 import { authorizeCredentials } from "@/core/auth/credentials";
 import { createOpaqueToken, hashOpaqueToken } from "@/core/auth/opaque-token";
 import { bootstrapInitialAccount } from "@/core/auth/operator-bootstrap";
+import { getOperatorEnvironmentError } from "@/core/auth/operator-environment";
 import { hashPassword } from "@/core/auth/password";
-import { LOGIN_FAILURE_LIMIT } from "@/core/auth/password-policy";
+import {
+  LOGIN_FAILURE_LIMIT,
+  passwordConfirmationMatches,
+} from "@/core/auth/password-policy";
 import {
   completePasswordReset,
   issuePasswordResetToken,
 } from "@/core/auth/password-reset";
+import { getAuthRuntimeConfigurationError } from "@/core/auth/runtime-policy";
 import {
   getActiveAppSession,
   registerAppSession,
@@ -29,6 +34,19 @@ interface SyntheticUser {
   isSuperuser: boolean;
 }
 
+test("password confirmation accepts only identical string values", () => {
+  assert.equal(
+    passwordConfirmationMatches("synthetic-password", "synthetic-password"),
+    true,
+  );
+  assert.equal(
+    passwordConfirmationMatches("synthetic-password", "different-password"),
+    false,
+  );
+  assert.equal(passwordConfirmationMatches("synthetic-password", null), false);
+  assert.equal(passwordConfirmationMatches(undefined, undefined), false);
+});
+
 interface SyntheticLoginAttempt {
   usernameNormalized: string;
   ipAddress: null;
@@ -48,14 +66,22 @@ interface SyntheticAppSession {
   expiresAt: Date;
 }
 
+interface SyntheticAdministratorProfile {
+  id: bigint;
+  userId: bigint;
+  isSuperuser: boolean;
+}
+
 function makeSyntheticPrisma(initialUser?: SyntheticUser) {
   const state = {
     users: initialUser ? [initialUser] : ([] as SyntheticUser[]),
     attempts: [] as SyntheticLoginAttempt[],
     resetTokens: [] as SyntheticResetToken[],
     sessions: [] as SyntheticAppSession[],
+    administratorProfiles: [] as SyntheticAdministratorProfile[],
     passwordHashReads: 0,
     nextId: initialUser ? initialUser.id + BigInt(1) : BigInt(1),
+    nextAdministratorProfileId: BigInt(1),
   };
   const client: Record<string, unknown> = {};
   const whereMatchesToken = (
@@ -90,19 +116,33 @@ function makeSyntheticPrisma(initialUser?: SyntheticUser) {
   client.user = {
     count: async () => state.users.length,
     create: async (args: {
-      data: Omit<SyntheticUser, "id">;
+      data: Omit<SyntheticUser, "id" | "isStaff" | "isSuperuser"> &
+        Partial<Pick<SyntheticUser, "isStaff" | "isSuperuser">>;
       select?: Record<string, boolean>;
     }) => {
-      const user = { ...args.data, id: state.nextId++ };
+      const user = {
+        isStaff: false,
+        isSuperuser: false,
+        ...args.data,
+        id: state.nextId++,
+      };
       state.users.push(user);
       return args.select?.id ? { id: user.id } : user;
     },
     findFirst: async (args: { where: { username?: { equals?: string } } }) => {
       const username = args.where.username?.equals?.toLowerCase();
-      return (
-        state.users.find((user) => user.username.toLowerCase() === username) ??
-        null
-      );
+      const user =
+        state.users.find(
+          (candidate) => candidate.username.toLowerCase() === username,
+        ) ?? null;
+      if (!user) return null;
+      return {
+        ...user,
+        administratorProfile:
+          state.administratorProfiles.find(
+            (profile) => profile.userId === user.id,
+          ) ?? null,
+      };
     },
     findUnique: async (args: {
       where: { id?: bigint };
@@ -173,6 +213,19 @@ function makeSyntheticPrisma(initialUser?: SyntheticUser) {
       return { count: matches.length };
     },
   };
+  client.administratorProfile = {
+    create: async (args: {
+      data: { userId: bigint; isSuperuser?: boolean };
+    }) => {
+      const profile = {
+        id: state.nextAdministratorProfileId++,
+        userId: args.data.userId,
+        isSuperuser: args.data.isSuperuser ?? false,
+      };
+      state.administratorProfiles.push(profile);
+      return profile;
+    },
+  };
   client.appSession = {
     create: async (args: { data: SyntheticAppSession }) => {
       state.sessions.push(args.data);
@@ -186,7 +239,16 @@ function makeSyntheticPrisma(initialUser?: SyntheticUser) {
         (candidate) => candidate.id === row?.userId,
       );
       if (!row || !user) return null;
-      return { ...row, user };
+      return {
+        ...row,
+        user: {
+          ...user,
+          administratorProfile:
+            state.administratorProfiles.find(
+              (profile) => profile.userId === user.id,
+            ) ?? null,
+        },
+      };
     },
     deleteMany: async (args: {
       where: { userId?: bigint; tokenHash?: string };
@@ -218,6 +280,70 @@ function resetRequiredUser(): SyntheticUser {
     isSuperuser: true,
   };
 }
+
+test("production authentication remains disabled and requires a secret when enabled", () => {
+  assert.equal(
+    getAuthRuntimeConfigurationError({
+      nodeEnv: "production",
+      authEnabled: true,
+      hasAuthSecret: true,
+    }),
+    "This authentication foundation is restricted to local development",
+  );
+  assert.equal(
+    getAuthRuntimeConfigurationError({
+      nodeEnv: "development",
+      authEnabled: true,
+      hasAuthSecret: false,
+    }),
+    "AUTH_SECRET is required when authentication is enabled",
+  );
+  assert.equal(
+    getAuthRuntimeConfigurationError({
+      nodeEnv: "production",
+      authEnabled: false,
+      hasAuthSecret: false,
+    }),
+    null,
+  );
+});
+
+test("operator bootstrap rejects unsafe local execution contexts", () => {
+  const safeConfiguration = {
+    nodeEnv: "development",
+    databaseUrl:
+      "postgresql://operator:synthetic@127.0.0.1:55432/readbox_auth_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    interactive: true,
+  };
+
+  assert.equal(getOperatorEnvironmentError(safeConfiguration), null);
+  assert.equal(
+    getOperatorEnvironmentError({
+      ...safeConfiguration,
+      databaseUrl:
+        "postgresql://operator:synthetic@127.0.0.1:5432/mailstack_dev",
+    }),
+    "A permitted local database is required",
+  );
+  assert.equal(
+    getOperatorEnvironmentError({ ...safeConfiguration, interactive: false }),
+    "An interactive local terminal is required",
+  );
+  assert.equal(
+    getOperatorEnvironmentError({
+      ...safeConfiguration,
+      nodeEnv: "production",
+    }),
+    "Local development configuration required",
+  );
+  assert.equal(
+    getOperatorEnvironmentError({
+      ...safeConfiguration,
+      databaseUrl: "postgresql://operator:synthetic@db.example.invalid/test",
+    }),
+    "Loopback PostgreSQL is required",
+  );
+});
 
 test("forced reset enables only the newly-set synthetic password", async () => {
   const { prisma, state } = makeSyntheticPrisma(resetRequiredUser());
@@ -272,6 +398,7 @@ test("forced reset enables only the newly-set synthetic password", async () => {
     password: "synthetic-new-password-1",
   });
   assert.equal(authenticated?.id, "41");
+  assert.equal(authenticated?.isAdministrator, false);
   assert.equal(authenticated && "passwordHash" in authenticated, false);
   assert.equal(
     await authorizeCredentials(prisma, {
@@ -293,7 +420,7 @@ test("session registry rejects malformed, expired, and revoked sessions", async 
   const user = resetRequiredUser();
   user.passwordResetRequired = false;
   user.passwordHash = await hashPassword("synthetic-session-test-password");
-  const { prisma } = makeSyntheticPrisma(user);
+  const { prisma, state } = makeSyntheticPrisma(user);
   const sessionId = createOpaqueToken();
 
   assert.equal(await getActiveAppSession(prisma, "41", "not-a-token"), null);
@@ -318,7 +445,24 @@ test("session registry rejects malformed, expired, and revoked sessions", async 
     ),
     true,
   );
-  assert.ok(await getActiveAppSession(prisma, "41", activeSessionId));
+  assert.equal(
+    (await getActiveAppSession(prisma, "41", activeSessionId))?.isAdministrator,
+    false,
+  );
+  state.administratorProfiles.push({
+    id: BigInt(1),
+    userId: user.id,
+    isSuperuser: true,
+  });
+  assert.equal(
+    (await getActiveAppSession(prisma, "41", activeSessionId))?.isSuperuser,
+    true,
+  );
+  state.administratorProfiles = [];
+  assert.equal(
+    (await getActiveAppSession(prisma, "41", activeSessionId))?.isAdministrator,
+    false,
+  );
   await revokeAppSession(prisma, activeSessionId);
   assert.equal(await getActiveAppSession(prisma, "41", activeSessionId), null);
 });
@@ -362,7 +506,11 @@ test("initial bootstrap creates only one reset-required synthetic admin", async 
   assert.ok(created);
   assert.equal(state.users.length, 1);
   assert.equal(state.users[0]!.passwordResetRequired, true);
-  assert.equal(state.users[0]!.isSuperuser, true);
+  assert.equal(state.users[0]!.isStaff, false);
+  assert.equal(state.users[0]!.isSuperuser, false);
+  assert.deepEqual(state.administratorProfiles, [
+    { id: BigInt(1), userId: state.users[0]!.id, isSuperuser: true },
+  ]);
   assert.equal(
     state.resetTokens[0]?.tokenHash,
     hashOpaqueToken(created.resetToken),
@@ -374,4 +522,47 @@ test("initial bootstrap creates only one reset-required synthetic admin", async 
     }),
     null,
   );
+});
+
+test("initial bootstrap rejects invalid input before creating any records", async () => {
+  const { prisma, state } = makeSyntheticPrisma();
+
+  await assert.rejects(
+    bootstrapInitialAccount(prisma, {
+      username: "   ",
+      firstName: "Synthetic",
+      lastName: "Invalid",
+      email: "synthetic-invalid@example.invalid",
+    }),
+    { message: "Invalid initial account details" },
+  );
+  assert.equal(state.users.length, 0);
+  assert.equal(state.administratorProfiles.length, 0);
+  assert.equal(state.resetTokens.length, 0);
+});
+
+test("legacy User role flags do not grant admin; profile membership does", async () => {
+  const user = resetRequiredUser();
+  user.passwordResetRequired = false;
+  user.passwordHash = await hashPassword("synthetic-profile-admin-password");
+  const { prisma, state } = makeSyntheticPrisma(user);
+
+  const legacyFlagsOnly = await authorizeCredentials(prisma, {
+    username: user.username,
+    password: "synthetic-profile-admin-password",
+  });
+  assert.equal(legacyFlagsOnly?.isAdministrator, false);
+  assert.equal(legacyFlagsOnly?.isSuperuser, false);
+
+  state.administratorProfiles.push({
+    id: BigInt(1),
+    userId: user.id,
+    isSuperuser: false,
+  });
+  const profileAdmin = await authorizeCredentials(prisma, {
+    username: user.username,
+    password: "synthetic-profile-admin-password",
+  });
+  assert.equal(profileAdmin?.isAdministrator, true);
+  assert.equal(profileAdmin?.isSuperuser, false);
 });

@@ -4,7 +4,7 @@
 
 ## How to Use This Checklist
 
-This checklist is based on inspected source in `reference/MailStack/`, not only its prose feature matrix. Every unchecked item is required before declaring parity. “Current behavior” wins over a feature label when they differ; unresolved differences are called out below. No application implementation has started.
+This checklist is based on inspected source in `reference/MailStack/`, not only its prose feature matrix. Every unchecked item is required before declaring parity. “Current behavior” wins over a feature label when they differ; unresolved differences are called out below. ReadBox has a replacement foundation, but feature parity remains incomplete.
 
 ## Accounts, Authentication, and Authorization
 
@@ -82,7 +82,11 @@ Two implementation details need explicit acceptance tests rather than relying on
 - [ ] Add app manifest, installability metadata/icons and service-worker lifecycle. Service worker may cache versioned public/static resources only; authenticated pages, messages, attachments and API responses must remain network-only/no-store.
 - [ ] Test at 320, 768 and 1280 CSS-pixel viewport widths, keyboard navigation, focus visibility, contrast in both themes, install prompt eligibility and cache exclusions.
 
-These are explicit target requirements, not existing webmail features. Current app foundation CSS uses Inter/system stacks and no app manifest/service-worker registration was found. The static public site uses Inter and has its own manifest; do not confuse that manifest with the authenticated app.
+**Current partial evidence:** [AppShell](../src/components/layout/app-shell.tsx) exposes the open mobile navigation drawer as a named modal, contains keyboard focus, and resets drawer/focus state across the 48rem breakpoint. [Its UI test](../tests/ui/app-shell.test.tsx) covers focus entry, Escape/close restoration, Tab/Shift+Tab boundary cycling, and simulated breakpoint changes. [Theme token tests](../tests/ui/theme-contrast.test.tsx) verify small muted text meets 4.5:1 contrast on the tested light/dark surfaces. [The reduced-motion test](../tests/ui/reduced-motion.test.tsx) verifies the CSS contract under `prefers-reduced-motion: reduce`; it does not verify browser rendering or live preference changes. [The theme-toggle test](../tests/ui/theme-toggle.test.tsx) verifies keyboard activation in both directions.
+
+**Latest browser QA — 2026-10-19 (historical evidence; not rerun for this update):** Chrome headless captured `/sign-in` at 320px, 768px, and 1280px. **Failed:** content clips horizontally at 320px. **Partially verified:** the 768px and 1280px sign-in captures appeared contained; the protected workspace and reset-password page were not checked. An isolated Chrome fixture with the repository CSS verified the `reduce` media query and computed overrides, not app-level rendering. `/manifest.webmanifest` returned HTTP 200. Production service-worker registration and PWA installability remain unverified. The 320px issue and pending browser checks are not parity passes.
+
+These are explicit target requirements, not existing webmail features. The current app has a Segoe UI/system fallback, an authenticated-app manifest, production-only service-worker registration, and a worker that limits caching to offline fallback and immutable same-origin static assets. Latest reported automated totals were 87/87 component-independent tests and 21/21 UI tests; focused reduced-motion, manifest, and service-worker tests passed 7/7. Component/static tests cover manifest icons, registration conditions, worker lifecycle, cache exclusions, muted-text contrast tokens, keyboard theme-toggle activation, and the reduced-motion CSS contract. Real-browser viewport acceptance is incomplete, light-theme appearance is unverified, and app-level reduced-motion rendering, production service-worker registration, installability, and supported-platform font fallback remain pending. The static public site has its own manifest; do not confuse that manifest with the authenticated app.
 
 ## Existing Route/Endpoint Inventory
 

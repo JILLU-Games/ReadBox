@@ -1,7 +1,6 @@
 export const SETUP_STEPS = [
   "environment-validated",
-  "database-requested",
-  "database-created",
+  "database-availability-verified",
   "database-verified",
   "schema-verified",
   "administrator-created",
@@ -18,29 +17,35 @@ export const INITIAL_SETUP_PROGRESS: SetupProgress = Object.freeze({
   completedSteps: 0,
 });
 
+function isSetupProgress(value: unknown): value is SetupProgress {
+  if (typeof value !== "object" || value === null) return false;
+
+  const completedSteps = (value as { readonly completedSteps?: unknown })
+    .completedSteps;
+  return (
+    Number.isSafeInteger(completedSteps) &&
+    (completedSteps as number) >= 0 &&
+    (completedSteps as number) <= SETUP_STEPS.length
+  );
+}
+
 export function completeSetupStep(
-  progress: SetupProgress,
+  progressValue: unknown,
   step: SetupStep,
 ): SetupProgress | null {
-  if (
-    !Number.isSafeInteger(progress.completedSteps) ||
-    progress.completedSteps < 0 ||
-    progress.completedSteps > SETUP_STEPS.length
-  ) {
-    return null;
-  }
+  if (!isSetupProgress(progressValue)) return null;
 
   const stepIndex = SETUP_STEPS.indexOf(step);
   if (stepIndex < 0) return null;
-  if (stepIndex < progress.completedSteps) return progress;
-  if (stepIndex !== progress.completedSteps) return null;
+  if (stepIndex < progressValue.completedSteps) return progressValue;
+  if (stepIndex !== progressValue.completedSteps) return null;
 
-  return { completedSteps: progress.completedSteps + 1 };
+  return { completedSteps: progressValue.completedSteps + 1 };
 }
 
-export function isSetupComplete(progress: SetupProgress): boolean {
+export function isSetupComplete(progressValue: unknown): boolean {
   return (
-    Number.isSafeInteger(progress.completedSteps) &&
-    progress.completedSteps === SETUP_STEPS.length
+    isSetupProgress(progressValue) &&
+    progressValue.completedSteps === SETUP_STEPS.length
   );
 }

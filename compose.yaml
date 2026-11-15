@@ -16,6 +16,25 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+  postgres-test:
+    image: postgres:16.14-alpine
+    profiles: ["integration"]
+    environment:
+      POSTGRES_DB: ${AUTH_TEST_DATABASE_NAME:?Set AUTH_TEST_DATABASE_NAME in .env.test.local}
+      POSTGRES_USER: readbox_test
+      POSTGRES_PASSWORD: ${AUTH_TEST_POSTGRES_PASSWORD:?Set AUTH_TEST_POSTGRES_PASSWORD in .env.test.local}
+    ports:
+      - "127.0.0.1:55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data:rw,noexec,nosuid,size=512m
+    labels:
+      com.readbox.integration-test: ephemeral-postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U readbox_test -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
 volumes:
   postgres_data:
