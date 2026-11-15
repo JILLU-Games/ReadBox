@@ -1,22 +1,44 @@
 "use client";
 
+import {
+  AlertBanner,
+  Badge,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  Icon,
+  Label,
+  notify,
+  PageTitle,
+  Panel,
+  PanelBody,
+  PanelHeader,
+  SectionTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui";
 import type {
   PreflightCheckItem,
   UpdatePreflightResult,
   UpdateStatusPayload,
 } from "@/core/updates/service";
 import {
-  AlertTriangle,
   Check,
   CheckCircle2,
   Download,
   RefreshCw,
   Terminal,
-  X,
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 export interface SystemUpdateConsoleProps {
   readonly currentVersion: string;
@@ -180,7 +202,7 @@ export function SystemUpdateConsole({
         setAvailabilityLabel("Unavailable");
         setLastCheckedLabel("Failed");
         if (showModalFeedback) {
-          toast.error(msg);
+          notify.error(msg);
         }
       } finally {
         setIsCheckingRelease(false);
@@ -215,12 +237,12 @@ export function SystemUpdateConsole({
             "success",
             "Update complete. Application services restarted cleanly.",
           );
-          toast.success("System update completed.");
+          notify.success("System update completed.");
         } else if (data.step === "error" || data.progress === -1) {
           setIsPolling(false);
           setErrorMessage(data.message || "Update failed.");
           appendLog("error", `Update failed: ${data.message}`);
-          toast.error(data.message || "System update failed.");
+          notify.error(data.message || "System update failed.");
         }
       } catch {
         // Keep polling on transient network blip during service restart
@@ -232,7 +254,7 @@ export function SystemUpdateConsole({
 
   async function handleStartUpdate() {
     if (!doubleConfirmChecked) {
-      toast.error("Please confirm the pre-upgrade backup and maintenance check.");
+      notify.error("Please confirm the pre-upgrade backup and maintenance check.");
       return;
     }
 
@@ -241,7 +263,7 @@ export function SystemUpdateConsole({
       setErrorMessage(
         "Update preflight is blocked. Resolve the reported condition and try again.",
       );
-      toast.error("Update preflight is blocked.");
+      notify.error("Update preflight is blocked.");
       return;
     }
 
@@ -269,7 +291,7 @@ export function SystemUpdateConsole({
         }
         const msg = data.error || "Failed to start system update.";
         setErrorMessage(msg);
-        toast.error(msg);
+        notify.error(msg);
         return;
       }
 
@@ -284,12 +306,12 @@ export function SystemUpdateConsole({
         progress: 0,
       });
       setIsPolling(true);
-      toast.success("Update request queued for root updater worker.");
+      notify.success("Update request queued for root updater worker.");
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to start system update.";
       setErrorMessage(msg);
-      toast.error(msg);
+      notify.error(msg);
     } finally {
       setIsStartingUpdate(false);
     }
@@ -309,220 +331,184 @@ export function SystemUpdateConsole({
   const passedCount = preflight.checks.filter((c) => c.passed).length;
 
   return (
-    <section className="space-y-6" aria-labelledby="system-update-title">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            Release & Privilege-Separated Upgrade Console
-          </p>
-          <h1
-            id="system-update-title"
-            className="text-xl font-semibold tracking-tight text-foreground"
-          >
-            System Update
-          </h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Verify signed GitHub releases, inspect 9-point host preflight
-            readiness, and queue atomic root-worker upgrades.
-          </p>
-        </div>
+    <section className="space-y-3" aria-labelledby="system-update-title">
+      <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
+        <PageTitle id="system-update-title">System Update</PageTitle>
         <div className="flex flex-wrap items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setShowLogModal(true)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted whitespace-nowrap shrink-0"
           >
-            <Terminal className="size-3.5" aria-hidden="true" />
-            <span>Update Logs</span>
-          </button>
-          <button
+            <Icon glyph={Terminal} />
+            Update Logs
+          </Button>
+          <Button
             type="button"
             id="btn-check-update"
             disabled={isCheckingRelease}
             onClick={() => void performReleaseCheck(true)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap shrink-0"
           >
-            <RefreshCw
-              className={`size-3.5 ${isCheckingRelease ? "animate-spin" : ""}`}
-              aria-hidden="true"
+            <Icon
+              glyph={RefreshCw}
+              className={isCheckingRelease ? "animate-spin" : undefined}
             />
-            <span>
-              {isCheckingRelease ? "Checking..." : "Check for Updates"}
-            </span>
-          </button>
+            {isCheckingRelease ? "Checking..." : "Check for Updates"}
+          </Button>
         </div>
       </div>
 
-      {/* Top 2-Column Grid: Current Installation & Latest Release */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Current Installation Card */}
-        <div className="min-w-0 rounded-md border border-border bg-card p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-4">
-            <h2 className="text-sm font-semibold text-foreground">
-              Current Installation
-            </h2>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Panel className="min-w-0">
+          <PanelHeader>
+            <SectionTitle>Current Installation</SectionTitle>
             <span className="font-mono text-xs text-muted-foreground">
               {githubRepo}
             </span>
-          </div>
+          </PanelHeader>
+          <PanelBody className="space-y-2.5">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="border border-border bg-background p-2.5">
+                <span className="block text-[11px] text-muted-foreground">
+                  Current Version
+                </span>
+                <strong
+                  id="current-version"
+                  className="mt-1 block font-mono text-sm font-medium tabular-nums text-foreground"
+                >
+                  {currentVersion}
+                </strong>
+              </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded border border-border bg-background p-3">
-              <span className="block text-[11px] text-muted-foreground">
-                Current Version
-              </span>
-              <strong
-                id="current-version"
-                className="mt-1 block font-mono text-sm font-semibold tabular-nums text-foreground"
-              >
-                {currentVersion}
-              </strong>
+              <div className="border border-border bg-background p-2.5">
+                <span className="block text-[11px] text-muted-foreground">
+                  Update Channel
+                </span>
+                <strong className="mt-1 block text-sm font-medium text-foreground">
+                  Stable
+                </strong>
+              </div>
+
+              <div className="border border-border bg-background p-2.5">
+                <span className="block text-[11px] text-muted-foreground">
+                  Update System
+                </span>
+                <strong className="mt-1 block text-sm font-medium text-foreground">
+                  Signed / Resumable
+                </strong>
+              </div>
+
+              <div className="border border-border bg-background p-2.5">
+                <span className="block text-[11px] text-muted-foreground">
+                  Status
+                </span>
+                <strong
+                  id="last-checked"
+                  className="mt-1 block font-mono text-sm font-medium tabular-nums text-foreground"
+                >
+                  {lastCheckedLabel}
+                </strong>
+              </div>
             </div>
 
-            <div className="rounded border border-border bg-background p-3">
-              <span className="block text-[11px] text-muted-foreground">
-                Update Channel
-              </span>
-              <strong className="mt-1 block text-sm font-semibold text-foreground">
-                Stable
-              </strong>
+            <div className="border border-border bg-background px-2.5 py-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+              <span>Handoff Queue:</span>{" "}
+              <code className="font-mono text-foreground">
+                {runtimeDir}/update_request.json
+              </code>{" "}
+              <span>·</span> <span>Mode 0640 hard-link</span>
             </div>
+          </PanelBody>
+        </Panel>
 
-            <div className="rounded border border-border bg-background p-3">
-              <span className="block text-[11px] text-muted-foreground">
-                Update System
-              </span>
-              <strong className="mt-1 block text-sm font-semibold text-foreground">
-                Signed / Resumable
-              </strong>
-            </div>
-
-            <div className="rounded border border-border bg-background p-3">
-              <span className="block text-[11px] text-muted-foreground">
-                Status
-              </span>
-              <strong
-                id="last-checked"
-                className="mt-1 block font-mono text-sm font-semibold tabular-nums text-foreground"
-              >
-                {lastCheckedLabel}
-              </strong>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded border border-border bg-background px-3 py-2.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-            <span>Handoff Queue:</span>{" "}
-            <code className="font-mono text-foreground">
-              {runtimeDir}/update_request.json
-            </code>{" "}
-            <span>·</span> <span>Mode 0640 hard-link</span>
-          </div>
-        </div>
-
-        {/* Latest Release Card */}
-        <div className="min-w-0 rounded-md border border-border bg-card p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-4">
-            <h2 className="text-sm font-semibold text-foreground">
-              Latest Release
-            </h2>
-            <span
+        <Panel className="min-w-0">
+          <PanelHeader>
+            <SectionTitle>Latest Release</SectionTitle>
+            <Badge
               id="update-availability-badge"
-              className="text-xs font-medium text-muted-foreground"
+              variant={
+                updateAvailable
+                  ? "default"
+                  : availabilityLabel === "Up to date"
+                    ? "success"
+                    : "outline"
+              }
             >
               {availabilityLabel}
-            </span>
-          </div>
+            </Badge>
+          </PanelHeader>
+          <PanelBody className="space-y-2.5">
+            <div className="flex items-center justify-between border border-border bg-background px-2.5 py-2 text-xs">
+              <span className="text-muted-foreground">Version</span>
+              <div className="flex items-center gap-2 font-mono tabular-nums">
+                <strong id="latest-version" className="font-medium text-foreground">
+                  {latestVersion}
+                </strong>
+                {publishedAt ? (
+                  <>
+                    <span aria-hidden="true" className="text-muted-foreground">
+                      ·
+                    </span>
+                    <span className="text-muted-foreground">
+                      {publishedAt.slice(0, 10)}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            </div>
 
-          <div className="flex items-center justify-between rounded border border-border bg-background px-3 py-2.5 text-xs">
-            <span className="text-muted-foreground">Version</span>
-            <div className="flex items-center gap-2 font-mono tabular-nums">
-              <strong id="latest-version" className="text-foreground">
-                {latestVersion}
-              </strong>
-              {publishedAt ? (
-                <>
-                  <span aria-hidden="true" className="text-muted-foreground">
-                    ·
-                  </span>
-                  <span className="text-muted-foreground">
-                    {publishedAt.slice(0, 10)}
-                  </span>
-                </>
+            <pre
+              id="release-notes"
+              className="max-h-36 overflow-y-auto whitespace-pre-wrap border border-border bg-background p-2.5 font-mono text-xs leading-relaxed text-foreground"
+            >
+              {releaseNotes}
+            </pre>
+
+            {errorMessage ? (
+              <AlertBanner id="update-error" variant="error">
+                {errorMessage}
+              </AlertBanner>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isCheckingRelease}
+                onClick={() => void performReleaseCheck(false)}
+              >
+                <Icon
+                  glyph={RefreshCw}
+                  className={isCheckingRelease ? "animate-spin" : undefined}
+                />
+                Refresh Release Metadata
+              </Button>
+
+              {updateAvailable ? (
+                <Button
+                  type="button"
+                  id="btn-start-update"
+                  size="sm"
+                  disabled={!canInstallUpdate}
+                  onClick={() => {
+                    setDoubleConfirmChecked(false);
+                    setShowConfirmModal(true);
+                  }}
+                >
+                  <Icon glyph={Download} />
+                  Install Update
+                </Button>
               ) : null}
             </div>
-          </div>
-
-          <pre
-            id="release-notes"
-            className="mt-3 max-h-36 overflow-y-auto whitespace-pre-wrap rounded border border-border bg-background p-3 font-mono text-xs leading-relaxed text-foreground"
-          >
-            {releaseNotes}
-          </pre>
-
-          {errorMessage ? (
-            <div
-              id="update-error"
-              role="alert"
-              className="mt-3 flex items-start gap-2 rounded border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
-            >
-              <AlertTriangle
-                className="mt-0.5 size-4 shrink-0"
-                aria-hidden="true"
-              />
-              <span>{errorMessage}</span>
-            </div>
-          ) : null}
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={isCheckingRelease}
-              onClick={() => void performReleaseCheck(false)}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50 whitespace-nowrap shrink-0"
-            >
-              <RefreshCw
-                className={`size-3.5 ${isCheckingRelease ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
-              <span>Refresh Release Metadata</span>
-            </button>
-
-            {updateAvailable ? (
-              <button
-                type="button"
-                id="btn-start-update"
-                disabled={!canInstallUpdate}
-                onClick={() => {
-                  setDoubleConfirmChecked(false);
-                  setShowConfirmModal(true);
-                }}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap shrink-0"
-              >
-                <Download className="size-3.5" aria-hidden="true" />
-                <span>Install Update</span>
-              </button>
-            ) : null}
-          </div>
-        </div>
+          </PanelBody>
+        </Panel>
       </div>
 
-      {/* Installation State & 9-Category Preflight Checklist */}
-      <div className="min-w-0 rounded-md border border-border bg-card p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-foreground">
-              Installation State & Host Preflight
-            </h2>
-            <p
-              id="preflight-results"
-              className="mt-0.5 text-xs text-muted-foreground [overflow-wrap:anywhere]"
-            >
-              {preflight.status === "ready"
-                ? "Ready: the root updater worker and required runtime checks passed."
-                : `Blocked: ${preflight.message || "Manual action is required before installation."}`}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
+      <Panel className="min-w-0">
+        <PanelHeader>
+          <SectionTitle>Installation State &amp; Host Preflight</SectionTitle>
+          <div className="flex flex-wrap items-center gap-2.5">
             <span
               id="preflight-summary"
               className="font-mono text-xs font-medium tabular-nums text-foreground"
@@ -533,292 +519,242 @@ export function SystemUpdateConsole({
                   ? `Ready (${passedCount}/${preflight.checks.length})`
                   : `Blocked (${passedCount}/${preflight.checks.length} passed)`}
             </span>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               disabled={isCheckingPreflight}
               onClick={() => void refreshPreflight()}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50 whitespace-nowrap shrink-0"
             >
-              <RefreshCw
-                className={`size-3.5 ${isCheckingPreflight ? "animate-spin" : ""}`}
-                aria-hidden="true"
+              <Icon
+                glyph={RefreshCw}
+                className={isCheckingPreflight ? "animate-spin" : undefined}
               />
-              <span>Recheck Preflight</span>
-            </button>
+              Recheck Preflight
+            </Button>
           </div>
-        </div>
-
-        {/* Active Job Progress Bar */}
-        {isPolling || (status.step && status.step !== "idle") ? (
-          <div
-            id="active-job-panel"
-            className="mt-4 rounded border border-border bg-background p-4"
+        </PanelHeader>
+        <PanelBody className="space-y-3">
+          <p
+            id="preflight-results"
+            className="text-xs text-muted-foreground [overflow-wrap:anywhere]"
           >
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Active Job</span>
-              <strong
-                id="active-job-id"
-                className="font-mono text-foreground"
-              >
-                System Upgrade ({status.step})
-              </strong>
-            </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded bg-muted">
-              <div
-                id="progress-bar"
-                className="h-full bg-primary transition-all"
-                style={{
-                  width: `${Math.max(0, Math.min(100, status.progress))}%`,
-                }}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between font-mono text-xs tabular-nums text-muted-foreground">
-              <span id="active-job-stage">{status.message}</span>
-              <span id="active-job-percent">
-                {Math.max(0, status.progress)}%
-              </span>
-            </div>
-          </div>
-        ) : null}
+            {preflight.status === "ready"
+              ? "Ready: the root updater worker and required runtime checks passed."
+              : `Blocked: ${preflight.message || "Manual action is required before installation."}`}
+          </p>
 
-        {/* Preflight Check Table */}
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <th className="py-2 pr-4 font-medium">State</th>
-                <th className="py-2 pr-4 font-medium">Check</th>
-                <th className="py-2 font-medium">Target / Detail</th>
-              </tr>
-            </thead>
-            <tbody id="preflight-checks" className="divide-y divide-border">
+          {isPolling || (status.step && status.step !== "idle") ? (
+            <div
+              id="active-job-panel"
+              className="border border-border bg-background p-3"
+            >
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Active Job</span>
+                <strong
+                  id="active-job-id"
+                  className="font-mono font-medium text-foreground"
+                >
+                  System Upgrade ({status.step})
+                </strong>
+              </div>
+              <div className="mt-2 h-2 w-full overflow-hidden bg-muted">
+                <div
+                  id="progress-bar"
+                  className="h-full bg-primary transition-all"
+                  style={{
+                    width: `${Math.max(0, Math.min(100, status.progress))}%`,
+                  }}
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-between font-mono text-xs tabular-nums text-muted-foreground">
+                <span id="active-job-stage">{status.message}</span>
+                <span id="active-job-percent">
+                  {Math.max(0, status.progress)}%
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>State</TableHead>
+                <TableHead>Check</TableHead>
+                <TableHead>Target / Detail</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody id="preflight-checks">
               {preflight.checks.map((item: PreflightCheckItem) => (
-                <tr key={item.name} className="hover:bg-muted/40">
-                  <td className="py-2 pr-4 font-medium whitespace-nowrap">
+                <TableRow key={item.name}>
+                  <TableCell className="whitespace-nowrap font-medium">
                     {item.passed ? (
-                      <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-                        <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                      <span className="inline-flex items-center gap-1.5 text-success">
+                        <Icon glyph={CheckCircle2} />
                         <span>Pass</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-                        <XCircle className="size-3.5" aria-hidden="true" />
+                      <span className="inline-flex items-center gap-1.5 text-warning">
+                        <Icon glyph={XCircle} />
                         <span>Blocked</span>
                       </span>
                     )}
-                  </td>
-                  <td className="py-2 pr-4 font-medium text-foreground">
+                  </TableCell>
+                  <TableCell className="font-medium text-foreground">
                     {item.name}
-                  </td>
-                  <td className="py-2 font-mono text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground">
                     {item.detail}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </TableBody>
+          </Table>
+        </PanelBody>
+      </Panel>
 
-      {/* Update Available / Double Confirmation Modal */}
-      {showConfirmModal ? (
-        <div
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent
           id="modal-update-available"
-          role="dialog"
-          aria-modal="true"
           aria-labelledby="modal-update-available-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="max-w-md"
         >
-          <div className="w-full max-w-md rounded-md border border-border bg-card p-5 shadow-lg">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3
-                id="modal-update-available-title"
-                className="text-sm font-semibold text-foreground"
-              >
-                Confirm System Update
-              </h3>
-              <button
-                type="button"
-                aria-label="Close confirmation dialog"
-                onClick={() => setShowConfirmModal(false)}
-                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            </div>
+          <DialogTitle id="modal-update-available-title">
+            Confirm System Update
+          </DialogTitle>
+          <DialogDescription>
+            Version{" "}
+            <strong
+              id="modal-latest-version"
+              className="font-mono text-foreground"
+            >
+              {latestVersion}
+            </strong>{" "}
+            is available. The privileged root updater worker will verify the
+            SHA-256 checksum, create a full pre-upgrade backup, and restart
+            web/ingestion workers while keeping Postfix and Dovecot active.
+          </DialogDescription>
 
-            <div className="mt-4 space-y-3 text-xs text-muted-foreground">
-              <p>
-                Version{" "}
-                <strong
-                  id="modal-latest-version"
-                  className="font-mono text-foreground"
-                >
-                  {latestVersion}
-                </strong>{" "}
-                is available. The privileged root updater worker will verify the
-                SHA-256 checksum, create a full pre-upgrade backup, and restart
-                web/ingestion workers while keeping Postfix and Dovecot active.
-              </p>
+          <Label className="flex cursor-pointer items-start gap-2 border border-border bg-background p-2.5 font-normal text-foreground">
+            <Checkbox
+              checked={doubleConfirmChecked}
+              onChange={(e) => setDoubleConfirmChecked(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              I confirm that preflight checks are reviewed and authorize queuing
+              the signed upgrade request.
+            </span>
+          </Label>
 
-              <label className="flex items-start gap-2 rounded border border-border bg-background p-3 text-foreground">
-                <input
-                  type="checkbox"
-                  checked={doubleConfirmChecked}
-                  onChange={(e) => setDoubleConfirmChecked(e.target.checked)}
-                  className="mt-0.5 rounded border-border"
-                />
-                <span>
-                  I confirm that preflight checks are reviewed and authorize
-                  queuing the signed upgrade request.
-                </span>
-              </label>
-            </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              id="btn-update-cancel"
+              variant="outline"
+              onClick={() => setShowConfirmModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              id="btn-update-confirm"
+              disabled={!doubleConfirmChecked || !canInstallUpdate}
+              onClick={() => void handleStartUpdate()}
+            >
+              <Icon glyph={Check} />
+              Install Update
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                id="btn-update-cancel"
-                onClick={() => setShowConfirmModal(false)}
-                className="inline-flex min-h-9 items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted whitespace-nowrap shrink-0"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                id="btn-update-confirm"
-                disabled={!doubleConfirmChecked || !canInstallUpdate}
-                onClick={() => void handleStartUpdate()}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap shrink-0"
-              >
-                <Check className="size-3.5" aria-hidden="true" />
-                <span>Install Update</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Up to Date Modal */}
-      {showUpToDateModal ? (
-        <div
+      <Dialog open={showUpToDateModal} onOpenChange={setShowUpToDateModal}>
+        <DialogContent
           id="modal-up-to-date"
-          role="dialog"
-          aria-modal="true"
           aria-labelledby="modal-up-to-date-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="max-w-sm text-center"
         >
-          <div className="w-full max-w-sm rounded-md border border-border bg-card p-5 text-center shadow-lg">
-            <div className="mx-auto flex size-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Check className="size-4" aria-hidden="true" />
-            </div>
-            <h3
-              id="modal-up-to-date-title"
-              className="mt-3 text-sm font-semibold text-foreground"
-            >
-              System is Up to Date
-            </h3>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              You are already running the latest version (
-              <span id="modal-current-version" className="font-mono">
-                {currentVersion}
-              </span>
-              ).
-            </p>
-            <div className="mt-4 flex justify-center">
-              <button
-                type="button"
-                id="btn-up-to-date-ok"
-                onClick={() => setShowUpToDateModal(false)}
-                className="inline-flex min-h-9 items-center rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 whitespace-nowrap shrink-0"
-              >
-                OK
-              </button>
-            </div>
+          <div className="mx-auto flex size-9 items-center justify-center border border-success/40 bg-success-bg text-success">
+            <Icon glyph={Check} className="size-4" />
           </div>
-        </div>
-      ) : null}
+          <DialogTitle id="modal-up-to-date-title" className="pr-0">
+            System is Up to Date
+          </DialogTitle>
+          <DialogDescription>
+            You are already running the latest version (
+            <span id="modal-current-version" className="font-mono">
+              {currentVersion}
+            </span>
+            ).
+          </DialogDescription>
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              id="btn-up-to-date-ok"
+              onClick={() => setShowUpToDateModal(false)}
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Terminal Log Stream Modal */}
-      {showLogModal ? (
-        <div
+      <Dialog open={showLogModal} onOpenChange={setShowLogModal}>
+        <DialogContent
           id="licora-update-log-modal"
-          role="dialog"
-          aria-modal="true"
           aria-labelledby="licora-update-log-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="max-w-2xl"
         >
-          <div className="w-full max-w-2xl rounded-md border border-border bg-card p-5 shadow-lg">
-            <header className="flex items-center justify-between border-b border-border pb-3">
-              <div>
-                <h2
-                  id="licora-update-log-title"
-                  className="text-sm font-semibold text-foreground"
-                >
-                  System Update Stream
-                </h2>
-                <p
-                  id="update-log-description"
-                  className="text-xs text-muted-foreground"
-                >
-                  Verified root updater worker event stream
-                </p>
-              </div>
-              <button
-                type="button"
-                id="log-close"
-                aria-label="Close update logs"
-                onClick={() => setShowLogModal(false)}
-                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            </header>
-
-            <div
-              id="update-log-viewport"
-              role="log"
-              aria-label="Update terminal log stream"
-              className="mt-3 max-h-64 min-h-40 overflow-y-auto rounded border border-border bg-background p-3 font-mono text-xs"
-            >
-              {logs.length === 0 ? (
-                <div
-                  id="update-log-empty"
-                  className="text-muted-foreground"
-                >
-                  Waiting for updater events... (Current step: {status.step} —{" "}
-                  {status.message})
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {logs.map((entry) => (
-                    <div
-                      key={entry.id}
-                      data-level={entry.level}
-                      className="flex items-start gap-2"
-                    >
-                      <span className="shrink-0 tabular-nums text-muted-foreground">
-                        {entry.time}
-                      </span>
-                      <span className="shrink-0 uppercase text-foreground">
-                        [{entry.level}]
-                      </span>
-                      <span className="text-foreground">{entry.message}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <footer className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span id="update-log-stage" className="font-mono">
-                Stage: {status.step}
-              </span>
-              <span>Closing this window does not cancel the update</span>
-            </footer>
+          <div>
+            <DialogTitle id="licora-update-log-title">
+              System Update Stream
+            </DialogTitle>
+            <DialogDescription id="update-log-description" className="mt-0.5">
+              Verified root updater worker event stream
+            </DialogDescription>
           </div>
-        </div>
-      ) : null}
+
+          <div
+            id="update-log-viewport"
+            role="log"
+            aria-label="Update terminal log stream"
+            className="max-h-64 min-h-40 overflow-y-auto border border-border bg-background p-3 font-mono text-xs"
+          >
+            {logs.length === 0 ? (
+              <div id="update-log-empty" className="text-muted-foreground">
+                Waiting for updater events... (Current step: {status.step} —{" "}
+                {status.message})
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {logs.map((entry) => (
+                  <div
+                    key={entry.id}
+                    data-level={entry.level}
+                    className="flex items-start gap-2"
+                  >
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {entry.time}
+                    </span>
+                    <span className="shrink-0 uppercase text-foreground">
+                      [{entry.level}]
+                    </span>
+                    <span className="text-foreground">{entry.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span id="update-log-stage" className="font-mono">
+              Stage: {status.step}
+            </span>
+            <span>Closing this window does not cancel the update</span>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

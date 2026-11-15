@@ -34,6 +34,7 @@ import { claimMessageNotification } from "@/components/users/live-mail-notifier"
 import { MailboxInboxView } from "@/components/users/mailbox-inbox-view";
 import { MessageReaderView } from "@/components/users/message-reader-view";
 import { UserMailboxesView } from "@/components/users/user-mailboxes-view";
+import { UsersWorkspaceShell } from "@/components/users/users-workspace-shell";
 import { UserOverview } from "@/users/overview-panel";
 
 describe("Phase 5 — User Workspace UI components", () => {
@@ -146,6 +147,87 @@ describe("Phase 5 — User Workspace UI components", () => {
     expect(
       screen.getByRole("dialog", { name: /Create mailbox/i }),
     ).toBeInTheDocument();
+  });
+
+  it("renders singular '1 message' label and mounts only one Create mailbox modal inside UsersWorkspaceShell", async () => {
+    const user = userEvent.setup();
+    const createAction = vi.fn(async () => ({
+      ok: true as const,
+      data: {
+        uuid: "11111111-2222-4333-8444-555555555555",
+        emailAddress: "single@mailstack.local",
+        localPart: "single",
+      },
+    }));
+
+    const singleMailbox = {
+      id: "10",
+      uuid: "11111111-2222-4333-8444-555555555555",
+      localPart: "single",
+      emailAddress: "single@mailstack.local",
+      domainUuid: "99999999-0000-4000-8000-000000000001",
+      domainName: "mailstack.local",
+      status: "active",
+      totalMessages: "1",
+      unreadMessages: "1",
+      lastReceivedAt: "2026-11-15T10:00:00.000Z",
+      createdAt: "2026-11-10T00:00:00.000Z",
+    };
+
+    render(
+      <UsersWorkspaceShell
+        mailboxes={[singleMailbox]}
+        domains={[
+          {
+            id: "1",
+            uuid: "99999999-0000-4000-8000-000000000001",
+            name: "mailstack.local",
+            isDefault: true,
+          },
+        ]}
+        databaseConfigured={true}
+        createMailboxAction={createAction}
+      >
+        <UserOverview
+          username="demo.user"
+          createMailboxAction={createAction}
+          snapshot={{
+            databaseConfigured: true,
+            totalMailboxes: 1,
+            activeMailboxes: 1,
+            disabledMailboxes: 0,
+            totalMessages: 1,
+            totalUnread: 1,
+            lastReceivedAt: "2026-11-15T10:00:00.000Z",
+            recentMessages: [],
+            recentMailboxes: [singleMailbox],
+            availableDomains: [
+              {
+                id: "1",
+                uuid: "99999999-0000-4000-8000-000000000001",
+                name: "mailstack.local",
+                isDefault: true,
+              },
+            ],
+            capabilities: {
+              canDeleteMessages: false,
+              canDeleteMailboxes: false,
+            },
+          }}
+        />
+      </UsersWorkspaceShell>,
+    );
+
+    expect(screen.getByText(/1 message/i)).toBeInTheDocument();
+    expect(screen.queryByText(/1 messages/i)).not.toBeInTheDocument();
+
+    const createButtons = screen.getAllByRole("button", {
+      name: /Create mailbox/i,
+    });
+    await user.click(createButtons[1] ?? createButtons[0]);
+    expect(
+      screen.getAllByRole("dialog", { name: /Create mailbox/i }),
+    ).toHaveLength(1);
   });
 
   it("gates Delete controls in UserMailboxesView by canDeleteMailboxes policy", () => {

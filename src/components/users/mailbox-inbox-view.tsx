@@ -1,19 +1,33 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { notify } from "@/components/ui/notifications";
+import {
+  Badge,
+  Button,
+  CopyButton,
+  Icon,
+  Input,
+  Label,
+  Select,
+} from "@/components/ui";
 import { LiveWorkspaceNavigationBar } from "@/components/users/live-mail-notifier";
+import { MessageReaderView } from "@/components/users/message-reader-view";
+import {
+  buildInboxUrl,
+  buildMessageUrl,
+  formatMessageByteSize,
+  formatShortInboxDate,
+} from "@/components/users/user-workspace-helpers";
 import type {
   LiveUpdatePayload,
+  MessageActionResult,
   UserInboxListResult,
+  UserMessageDetail,
 } from "@/core/messages/service";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
-  Clock,
-  Copy,
   Mail,
+  MailOpen,
   Paperclip,
   RotateCcw,
   Search,
@@ -21,19 +35,29 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+export { formatMessageByteSize };
+
 export interface MailboxInboxViewProps {
   readonly inboxResult: UserInboxListResult;
+  readonly activeMessage?: UserMessageDetail | null;
+  readonly markUnreadAction?: (input: {
+    readonly mailboxUuid: string;
+    readonly messageUuid: string;
+  }) => Promise<MessageActionResult<{ uuid: string; isRead: boolean }>>;
+  readonly deleteMessageAction?: (input: {
+    readonly mailboxUuid: string;
+    readonly messageUuid: string;
+  }) => Promise<MessageActionResult<{ uuid: string }>>;
 }
 
-export function formatMessageByteSize(bytes: number): string {
-  const value = Math.max(0, Number(bytes) || 0);
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-export function MailboxInboxView({ inboxResult }: MailboxInboxViewProps) {
+export function MailboxInboxView({
+  inboxResult,
+  activeMessage = null,
+  markUnreadAction,
+  deleteMessageAction,
+}: MailboxInboxViewProps) {
   const { mailbox } = inboxResult;
+  const [readerExpanded, setReaderExpanded] = useState(false);
   const [liveCounts, setLiveCounts] = useState<{
     totalMessages: number;
     unreadMessages: number;
@@ -55,288 +79,324 @@ export function MailboxInboxView({ inboxResult }: MailboxInboxViewProps) {
     }
   }
 
-  async function handleCopyEmail(emailAddress: string) {
-    try {
-      await navigator.clipboard?.writeText(emailAddress);
-      notify.success(`Copied ${emailAddress}`);
-    } catch {
-      notify.error("Unable to copy address.");
-    }
-  }
+  const filterParams = {
+    q: inboxResult.query,
+    read: inboxResult.readFilter,
+    attachments: inboxResult.attachmentFilter,
+    page: inboxResult.page,
+  };
 
   const hasFilters =
     inboxResult.query.length > 0 ||
     inboxResult.readFilter !== "all" ||
     inboxResult.attachmentFilter !== "all";
 
+  const hasActiveReader = Boolean(
+    activeMessage && markUnreadAction && deleteMessageAction,
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <LiveWorkspaceNavigationBar
         visibleMailboxUuids={[mailbox.uuid]}
         pollingEnabled={true}
         onLivePayload={handleLivePayload}
       />
 
-      <section
-        aria-labelledby="mailbox-inbox-title"
-        className="rounded-lg border border-border bg-card p-6"
+      <div
+        className={cn(
+          "border border-border bg-card",
+          !readerExpanded && "xl:grid xl:grid-cols-[minmax(360px,42%)_1fr]",
+        )}
       >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <Link
-              href="/users/mailboxes"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Icon glyph={ArrowLeft} className="size-3.5" />
-              All mailboxes
-            </Link>
+        <section
+          aria-labelledby="mailbox-inbox-title"
+          className={cn(
+            "flex flex-col border-border",
+            !readerExpanded && "xl:border-r",
+            hasActiveReader && (readerExpanded ? "hidden" : "hidden xl:flex"),
+          )}
+        >
+          <div className="border-b border-border px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Link
+                href="/users/mailboxes"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Icon glyph={ArrowLeft} className="size-3" />
+                All mailboxes
+              </Link>
+              <div className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground">
+                <span>
+                  <strong
+                    data-testid="inbox-total-count"
+                    className="font-mono font-medium text-foreground"
+                  >
+                    {liveCounts.totalMessages}
+                  </strong>{" "}
+                  total
+                </span>
+                <span>·</span>
+                <span>
+                  <strong
+                    data-testid="inbox-unread-count"
+                    className="font-mono font-semibold text-primary"
+                  >
+                    {liveCounts.unreadMessages}
+                  </strong>{" "}
+                  unread
+                </span>
+              </div>
+            </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <h1
                 id="mailbox-inbox-title"
-                className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
+                className="text-sm font-medium text-foreground"
               >
-                <button
-                  type="button"
-                  onClick={() => handleCopyEmail(mailbox.emailAddress)}
-                  className="inline-flex max-w-full items-center gap-2 break-all text-left font-mono hover:text-primary"
+                <CopyButton
+                  value={mailbox.emailAddress}
                   title="Copy email address"
+                  successMessage={`Copied ${mailbox.emailAddress}`}
+                  errorMessage="Unable to copy address."
+                  className="max-w-full break-all text-left font-mono text-sm"
                 >
                   <span>{mailbox.emailAddress}</span>
-                  <Icon glyph={Copy} className="size-4 shrink-0" />
-                </button>
+                </CopyButton>
               </h1>
-              <span
-                className={cn(
-                  "inline-flex rounded px-2 py-0.5 text-xs font-medium capitalize",
-                  liveCounts.status === "active"
-                    ? "bg-success/15 text-success"
-                    : "bg-muted text-muted-foreground",
-                )}
+              <Badge
+                variant={liveCounts.status === "active" ? "success" : "default"}
               >
                 {liveCounts.status}
-              </span>
+              </Badge>
             </div>
 
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              <span data-testid="inbox-total-count" className="font-mono font-medium text-foreground">
-                {liveCounts.totalMessages}
-              </span>{" "}
-              messages ·{" "}
-              <span data-testid="inbox-unread-count" className="font-mono font-semibold text-primary">
-                {liveCounts.unreadMessages}
-              </span>{" "}
-              unread
-            </p>
-          </div>
-        </div>
+            <form
+              method="get"
+              action={`/users/inbox/${mailbox.uuid}`}
+              role="search"
+              className="mt-2.5 flex flex-wrap items-center gap-1.5"
+            >
+              <div className="min-w-40 flex-1">
+                <Label htmlFor="inbox-search-q" className="sr-only">
+                  Search sender or subject
+                </Label>
+                <Input
+                  id="inbox-search-q"
+                  name="q"
+                  defaultValue={inboxResult.query}
+                  placeholder="Search sender or subject"
+                  autoComplete="off"
+                />
+              </div>
 
-        <form
-          method="get"
-          action={`/users/inbox/${mailbox.uuid}`}
-          role="search"
-          className="mt-5 flex flex-wrap items-center gap-2.5"
-        >
-          <div className="min-w-56 flex-1">
-            <label htmlFor="inbox-search-q" className="sr-only">
-              Search sender or subject
-            </label>
-            <input
-              id="inbox-search-q"
-              name="q"
-              defaultValue={inboxResult.query}
-              placeholder="Search sender name, address, or subject"
-              autoComplete="off"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              <div>
+                <Label htmlFor="inbox-read-filter" className="sr-only">
+                  Read state
+                </Label>
+                <Select
+                  id="inbox-read-filter"
+                  name="read"
+                  aria-label="Read state"
+                  defaultValue={
+                    inboxResult.readFilter === "all"
+                      ? ""
+                      : inboxResult.readFilter
+                  }
+                >
+                  <option value="">All</option>
+                  <option value="unread">Unread</option>
+                  <option value="read">Read</option>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="inbox-attachment-filter" className="sr-only">
+                  Attachment filter
+                </Label>
+                <Select
+                  id="inbox-attachment-filter"
+                  name="attachments"
+                  aria-label="Attachment filter"
+                  defaultValue={
+                    inboxResult.attachmentFilter === "all"
+                      ? ""
+                      : inboxResult.attachmentFilter
+                  }
+                >
+                  <option value="">Any attachment</option>
+                  <option value="yes">Has attachment</option>
+                  <option value="no">No attachment</option>
+                </Select>
+              </div>
+
+              <Button type="submit" variant="secondary">
+                <Icon glyph={Search} />
+                Filter
+              </Button>
+
+              {hasFilters ? (
+                <Button asChild variant="outline">
+                  <Link href={`/users/inbox/${mailbox.uuid}`}>
+                    <Icon glyph={RotateCcw} className="size-3" />
+                    Reset
+                  </Link>
+                </Button>
+              ) : null}
+            </form>
+          </div>
+
+          <div
+            aria-label="Inbox message list"
+            className="flex-1 divide-y divide-border overflow-y-auto xl:max-h-[calc(100dvh-16rem)]"
+          >
+            {inboxResult.items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-12 text-center">
+                <Icon glyph={Mail} className="size-6 text-muted-foreground" />
+                <p className="text-xs font-medium text-foreground">
+                  No messages match this view.
+                </p>
+              </div>
+            ) : (
+              inboxResult.items.map((item) => {
+                const isSelected = activeMessage?.uuid === item.uuid;
+                const href = buildMessageUrl(mailbox.uuid, item.uuid, filterParams);
+                return (
+                  <Link
+                    key={item.uuid}
+                    href={href}
+                    data-message-uuid={item.uuid}
+                    aria-current={isSelected ? "true" : undefined}
+                    className={cn(
+                      "flex items-start justify-between gap-2.5 px-3 py-2 transition-colors hover:bg-muted",
+                      !item.isRead && "bg-accent/40",
+                      isSelected && "bg-accent text-accent-foreground",
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-2">
+                      <span
+                        className={cn(
+                          "mt-1.5 size-1.5 shrink-0",
+                          item.isRead ? "bg-transparent" : "bg-primary",
+                        )}
+                        aria-label={item.isRead ? "Read" : "Unread"}
+                        title={item.isRead ? "Read" : "Unread"}
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={cn(
+                              "truncate text-xs text-foreground",
+                              !item.isRead ? "font-semibold" : "font-medium",
+                            )}
+                          >
+                            {item.senderName ||
+                              item.senderAddress ||
+                              "Unknown sender"}
+                          </span>
+                          <time
+                            dateTime={item.receivedAt ?? undefined}
+                            className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground"
+                          >
+                            {formatShortInboxDate(item.receivedAt, "—")}
+                          </time>
+                        </div>
+
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "truncate text-xs text-foreground",
+                              !item.isRead ? "font-semibold" : "font-normal",
+                            )}
+                          >
+                            {item.subject || "(No subject)"}
+                          </span>
+                          {item.hasAttachments ? (
+                            <Icon
+                              glyph={Paperclip}
+                              className="size-3 shrink-0 text-muted-foreground"
+                            />
+                          ) : null}
+                        </div>
+
+                        <div className="mt-0.5 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                          <span className="truncate">
+                            {item.preview || item.senderAddress}
+                          </span>
+                          <span className="shrink-0 font-mono tabular-nums">
+                            {formatMessageByteSize(item.sizeBytes)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+
+          {inboxResult.totalPages > 1 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+              <span className="tabular-nums">
+                Page {inboxResult.page} / {inboxResult.totalPages} (
+                {inboxResult.totalCount})
+              </span>
+              <div className="flex items-center gap-1.5">
+                {inboxResult.page > 1 ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link
+                      href={buildInboxUrl(mailbox.uuid, {
+                        ...filterParams,
+                        page: inboxResult.page - 1,
+                      })}
+                    >
+                      Previous
+                    </Link>
+                  </Button>
+                ) : null}
+                {inboxResult.page < inboxResult.totalPages ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link
+                      href={buildInboxUrl(mailbox.uuid, {
+                        ...filterParams,
+                        page: inboxResult.page + 1,
+                      })}
+                    >
+                      Next
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        {hasActiveReader && activeMessage && markUnreadAction && deleteMessageAction ? (
+          <div className="min-w-0">
+            <MessageReaderView
+              message={activeMessage}
+              markUnreadAction={markUnreadAction}
+              deleteMessageAction={deleteMessageAction}
+              filterParams={filterParams}
+              embedded={true}
+              expanded={readerExpanded}
+              onToggleExpanded={() => setReaderExpanded((prev) => !prev)}
             />
           </div>
-
-          <div>
-            <label htmlFor="inbox-read-filter" className="sr-only">
-              Read state
-            </label>
-            <select
-              id="inbox-read-filter"
-              name="read"
-              aria-label="Read state"
-              defaultValue={
-                inboxResult.readFilter === "all" ? "" : inboxResult.readFilter
-              }
-              className="flex h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-            >
-              <option value="">All messages</option>
-              <option value="unread">Unread</option>
-              <option value="read">Read</option>
-            </select>
+        ) : (
+          <div className="hidden min-h-[420px] flex-col items-center justify-center gap-1.5 bg-background p-6 text-center xl:flex">
+            <Icon glyph={MailOpen} className="size-7 text-muted-foreground" />
+            <p className="text-xs font-medium text-foreground">
+              Select a message to read
+            </p>
+            <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              {liveCounts.unreadMessages} unread · {liveCounts.totalMessages}{" "}
+              total
+            </p>
           </div>
-
-          <div>
-            <label htmlFor="inbox-attachment-filter" className="sr-only">
-              Attachment filter
-            </label>
-            <select
-              id="inbox-attachment-filter"
-              name="attachments"
-              aria-label="Attachment filter"
-              defaultValue={
-                inboxResult.attachmentFilter === "all"
-                  ? ""
-                  : inboxResult.attachmentFilter
-              }
-              className="flex h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-            >
-              <option value="">Any attachment</option>
-              <option value="yes">Has attachment</option>
-              <option value="no">No attachment</option>
-            </select>
-          </div>
-
-          <Button type="submit" variant="secondary">
-            <Icon glyph={Search} />
-            Filter
-          </Button>
-
-          {hasFilters ? (
-            <Link
-              href={`/users/inbox/${mailbox.uuid}`}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <Icon glyph={RotateCcw} className="size-3.5" />
-              Reset
-            </Link>
-          ) : null}
-        </form>
-      </section>
-
-      <section
-        aria-label="Inbox message list"
-        className="overflow-hidden rounded-lg border border-border bg-card"
-      >
-        <div className="divide-y divide-border">
-          {inboxResult.items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
-              <Icon glyph={Mail} className="size-8 text-muted-foreground/50" />
-              <p className="text-sm font-medium text-foreground">
-                No messages match this view.
-              </p>
-              <p className="max-w-md text-xs text-muted-foreground">
-                Incoming messages delivered to{" "}
-                <span className="font-mono text-foreground">
-                  {mailbox.emailAddress}
-                </span>{" "}
-                will appear here automatically once indexed.
-              </p>
-            </div>
-          ) : (
-            inboxResult.items.map((item) => (
-              <Link
-                key={item.uuid}
-                href={`/users/inbox/${mailbox.uuid}/${item.uuid}`}
-                data-message-uuid={item.uuid}
-                className={cn(
-                  "flex flex-col gap-2 px-5 py-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-                  !item.isRead && "bg-primary/5",
-                )}
-              >
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <span
-                    className={cn(
-                      "mt-1.5 size-2.5 shrink-0 rounded-full",
-                      item.isRead ? "bg-border" : "bg-primary",
-                    )}
-                    aria-label={item.isRead ? "Read" : "Unread"}
-                    title={item.isRead ? "Read" : "Unread"}
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          "truncate text-sm text-foreground",
-                          !item.isRead ? "font-semibold" : "font-medium",
-                        )}
-                      >
-                        {item.senderName ||
-                          item.senderAddress ||
-                          "Unknown sender"}
-                      </span>
-                      {item.senderAddress && item.senderName ? (
-                        <span className="truncate font-mono text-xs text-muted-foreground">
-                          &lt;{item.senderAddress}&gt;
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-0.5 flex flex-wrap items-baseline gap-1.5">
-                      <span
-                        className={cn(
-                          "text-sm text-foreground",
-                          !item.isRead ? "font-semibold" : "font-normal",
-                        )}
-                      >
-                        {item.subject || "(No subject)"}
-                      </span>
-                      {item.preview ? (
-                        <span className="line-clamp-1 text-xs text-muted-foreground">
-                          — {item.preview}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {item.hasAttachments ? (
-                        <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-medium text-foreground">
-                          <Icon glyph={Paperclip} className="size-3" />
-                          Attachment
-                        </span>
-                      ) : null}
-                      <span className="font-mono">
-                        {formatMessageByteSize(item.sizeBytes)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-1.5 pl-5 text-xs text-muted-foreground sm:pl-0">
-                  <Icon glyph={Clock} className="size-3.5" />
-                  <time dateTime={item.receivedAt ?? undefined}>
-                    {item.receivedAt
-                      ? item.receivedAt.slice(0, 16).replace("T", " ")
-                      : "Unknown date"}
-                  </time>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-
-        {inboxResult.totalPages > 1 ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-muted-foreground">
-            <span>
-              Page {inboxResult.page} of {inboxResult.totalPages} (
-              {inboxResult.totalCount} messages)
-            </span>
-            <div className="flex items-center gap-2">
-              {inboxResult.page > 1 ? (
-                <Link
-                  href={`/users/inbox/${mailbox.uuid}?page=${inboxResult.page - 1}&q=${encodeURIComponent(inboxResult.query)}&read=${inboxResult.readFilter === "all" ? "" : inboxResult.readFilter}&attachments=${inboxResult.attachmentFilter === "all" ? "" : inboxResult.attachmentFilter}`}
-                  className="inline-flex min-h-8 items-center rounded-md border border-border bg-background px-3 font-medium text-foreground hover:bg-muted"
-                >
-                  Previous
-                </Link>
-              ) : null}
-              {inboxResult.page < inboxResult.totalPages ? (
-                <Link
-                  href={`/users/inbox/${mailbox.uuid}?page=${inboxResult.page + 1}&q=${encodeURIComponent(inboxResult.query)}&read=${inboxResult.readFilter === "all" ? "" : inboxResult.readFilter}&attachments=${inboxResult.attachmentFilter === "all" ? "" : inboxResult.attachmentFilter}`}
-                  className="inline-flex min-h-8 items-center rounded-md border border-border bg-background px-3 font-medium text-foreground hover:bg-muted"
-                >
-                  Next
-                </Link>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </section>
+        )}
+      </div>
     </div>
   );
 }

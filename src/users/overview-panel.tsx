@@ -1,10 +1,25 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { notify } from "@/components/ui/notifications";
+import {
+  AlertBanner,
+  Badge,
+  Button,
+  CopyButton,
+  Icon,
+  PageTitle,
+  Panel,
+  PanelHeader,
+  SectionTitle,
+} from "@/components/ui";
 import { CreateUserMailboxModal } from "@/components/users/create-user-mailbox-modal";
-import { LiveWorkspaceNavigationBar } from "@/components/users/live-mail-notifier";
+import {
+  LiveWorkspaceNavigationBar,
+  useUsersLiveUpdates,
+} from "@/components/users/live-mail-notifier";
+import {
+  formatCompactTimestamp,
+  formatShortInboxDate,
+} from "@/components/users/user-workspace-helpers";
 import type { MailboxActionResult } from "@/core/mailboxes/service";
 import type {
   LiveUpdatePayload,
@@ -13,15 +28,10 @@ import type {
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
-  Clock,
-  Copy,
-  Database,
-  Inbox,
   Mail,
   MailOpen,
   Paperclip,
   Plus,
-  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -59,27 +69,15 @@ const DEFAULT_SNAPSHOT: UserWorkspaceOverviewSnapshot = {
   },
 };
 
-function formatDateTime(value: string | null): string {
-  if (!value) return "No email yet";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "No email yet";
-  return date.toISOString().replace("T", " ").slice(0, 16) + " UTC";
-}
-
 export function UserOverview({
   snapshot = DEFAULT_SNAPSHOT,
-  username,
-  isAdministrator = false,
   createMailboxAction,
 }: UserOverviewProps) {
-  const [liveSummary, setLiveSummary] = useState<{
-    totalMailboxes: number;
-    activeMailboxes: number;
-    disabledMailboxes: number;
-    totalMessages: number;
-    totalUnread: number;
-    lastReceivedAt: string | null;
-  }>({
+  const liveContext = useUsersLiveUpdates();
+  const usesShellModal = Boolean(
+    liveContext.active && liveContext.openCreateMailboxModal,
+  );
+  const [liveSummary, setLiveSummary] = useState({
     totalMailboxes: snapshot.totalMailboxes,
     activeMailboxes: snapshot.activeMailboxes,
     disabledMailboxes: snapshot.disabledMailboxes,
@@ -100,175 +98,127 @@ export function UserOverview({
     });
   }
 
-  async function handleCopyEmail(emailAddress: string) {
-    try {
-      await navigator.clipboard?.writeText(emailAddress);
-      notify.success(`Copied ${emailAddress}`);
-    } catch {
-      notify.error("Unable to copy address.");
-    }
-  }
-
   const visibleMailboxUuids = snapshot.recentMailboxes.map((m) => m.uuid);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <LiveWorkspaceNavigationBar
         visibleMailboxUuids={visibleMailboxUuids}
         pollingEnabled={snapshot.databaseConfigured}
         onLivePayload={handleLivePayload}
       />
 
-      <section className="rounded-lg border border-border bg-card p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Icon glyph={Inbox} />
-              <span>User Workspace</span>
-              {username ? (
-                <span className="rounded bg-muted px-2 py-0.5 font-mono text-foreground">
-                  {username}
-                </span>
-              ) : null}
-              {isAdministrator ? (
-                <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-primary">
-                  <Icon glyph={ShieldCheck} className="size-3" />
-                  Administrator scope
-                </span>
-              ) : null}
-            </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-              Inbox & Mailbox Workspace
-            </h1>
-            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Monitor assigned receive-only mailboxes, inspect sanitized HTML
-              and plain-text messages, download confined attachments, and
-              receive live delivery updates.
-            </p>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
+        <PageTitle>Inbox &amp; Mailbox Workspace</PageTitle>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/users/mailboxes"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-muted"
-            >
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="secondary">
+            <Link href="/users/mailboxes">
               <Icon glyph={Mail} />
               My mailboxes
             </Link>
-            {createMailboxAction ? (
-              <Button
-                type="button"
-                onClick={() => setCreateOpen(true)}
-                disabled={!snapshot.databaseConfigured}
-              >
-                <Icon glyph={Plus} />
-                Create mailbox
-              </Button>
-            ) : null}
-          </div>
+          </Button>
+          {createMailboxAction ? (
+            <Button
+              type="button"
+              onClick={() =>
+                usesShellModal
+                  ? liveContext.openCreateMailboxModal?.()
+                  : setCreateOpen(true)
+              }
+              disabled={!snapshot.databaseConfigured}
+            >
+              <Icon glyph={Plus} />
+              Create mailbox
+            </Button>
+          ) : null}
         </div>
+      </div>
 
-        {!snapshot.databaseConfigured ? (
-          <div className="mt-4 flex items-center gap-2.5 rounded-md border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-xs text-foreground">
-            <Icon glyph={Database} className="text-warning" />
-            <span>
-              Database connection is not configured in this preview environment.
-              Showing zero-state workspace telemetry.
-            </span>
-          </div>
-        ) : null}
-      </section>
+      {!snapshot.databaseConfigured ? (
+        <AlertBanner variant="warning">
+          Database connection is not configured.
+        </AlertBanner>
+      ) : null}
 
       <section
         aria-label="Workspace mailbox and message summary"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6"
+        className="grid grid-cols-2 border border-border bg-card sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-border"
       >
-        <article className="rounded-lg border border-border bg-card p-4">
-          <span className="text-xs font-medium text-muted-foreground">
-            Total mailboxes
-          </span>
+        <div className="px-3 py-2">
+          <span className="text-[11px] text-muted-foreground">Mailboxes</span>
           <p
             data-testid="summary-total-mailboxes"
-            className="mt-2 text-2xl font-semibold tracking-tight text-foreground"
+            className="mt-0.5 text-lg font-medium tabular-nums text-foreground"
           >
             {liveSummary.totalMailboxes}
           </p>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-4">
-          <span className="text-xs font-medium text-muted-foreground">
-            Active
-          </span>
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-[11px] text-muted-foreground">Active</span>
           <p
             data-testid="summary-active-mailboxes"
-            className="mt-2 text-2xl font-semibold tracking-tight text-success"
+            className="mt-0.5 text-lg font-medium tabular-nums text-success"
           >
             {liveSummary.activeMailboxes}
           </p>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-4">
-          <span className="text-xs font-medium text-muted-foreground">
-            Disabled
-          </span>
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-[11px] text-muted-foreground">Disabled</span>
           <p
             data-testid="summary-disabled-mailboxes"
-            className="mt-2 text-2xl font-semibold tracking-tight text-muted-foreground"
+            className="mt-0.5 text-lg font-medium tabular-nums text-muted-foreground"
           >
             {liveSummary.disabledMailboxes}
           </p>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-4">
-          <span className="text-xs font-medium text-muted-foreground">
-            Received emails
-          </span>
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-[11px] text-muted-foreground">Messages</span>
           <p
             data-testid="summary-total-messages"
-            className="mt-2 text-2xl font-semibold tracking-tight text-foreground"
+            className="mt-0.5 text-lg font-medium tabular-nums text-foreground"
           >
             {liveSummary.totalMessages}
           </p>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-4">
-          <span className="text-xs font-medium text-muted-foreground">
-            Unread
-          </span>
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-[11px] text-muted-foreground">Unread</span>
           <p
             data-testid="summary-total-unread"
-            className="mt-2 text-2xl font-semibold tracking-tight text-primary"
+            className="mt-0.5 text-lg font-medium tabular-nums text-primary"
           >
             {liveSummary.totalUnread}
           </p>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-4">
-          <span className="text-xs font-medium text-muted-foreground">
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-[11px] text-muted-foreground">
             Last received
           </span>
           <p
             data-testid="summary-last-received"
-            className="mt-2 truncate font-mono text-xs font-medium text-foreground"
+            className="mt-1 truncate font-mono text-xs tabular-nums text-foreground"
           >
-            {formatDateTime(liveSummary.lastReceivedAt)}
+            {formatCompactTimestamp(liveSummary.lastReceivedAt, "No email yet")}
           </p>
-        </article>
+        </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border border-border bg-card">
-          <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
-            <div className="flex items-center gap-2">
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Panel>
+          <PanelHeader>
+            <div className="flex items-center gap-1.5">
               <Icon glyph={MailOpen} className="text-muted-foreground" />
-              <h2 className="text-sm font-semibold text-foreground">
-                Recently received
-              </h2>
+              <SectionTitle>Recently received</SectionTitle>
             </div>
-            <span className="text-xs text-muted-foreground">
-              Latest {snapshot.recentMessages.length}
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              {snapshot.recentMessages.length}
             </span>
-          </div>
+          </PanelHeader>
 
           <div className="divide-y divide-border">
             {snapshot.recentMessages.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                No messages have been indexed for your assigned mailboxes yet.
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                No messages received yet.
               </div>
             ) : (
               snapshot.recentMessages.map((msg) => (
@@ -276,133 +226,121 @@ export function UserOverview({
                   key={msg.uuid}
                   href={`/users/inbox/${msg.mailboxUuid}/${msg.uuid}`}
                   className={cn(
-                    "flex items-start justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-muted/50",
-                    !msg.isRead && "bg-primary/5",
+                    "flex items-start justify-between gap-3 px-3 py-2 transition-colors hover:bg-muted",
+                    !msg.isRead && "bg-accent/50",
                   )}
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      {!msg.isRead ? (
+                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                    <span
+                      className={cn(
+                        "mt-1.5 size-1.5 shrink-0",
+                        msg.isRead ? "bg-transparent" : "bg-primary",
+                      )}
+                      aria-label={msg.isRead ? "Read" : "Unread"}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
                         <span
-                          className="size-2 shrink-0 rounded-full bg-primary"
-                          aria-label="Unread message"
-                        />
-                      ) : null}
-                      <span
-                        className={cn(
-                          "truncate text-sm text-foreground",
-                          !msg.isRead ? "font-semibold" : "font-medium",
-                        )}
-                      >
-                        {msg.subject || "(No subject)"}
-                      </span>
-                      {msg.hasAttachments ? (
-                        <Icon
-                          glyph={Paperclip}
-                          className="size-3.5 shrink-0 text-muted-foreground"
-                        />
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {msg.senderAddress || msg.senderName || "Unknown sender"}{" "}
-                      ·{" "}
-                      <span className="font-mono text-foreground/80">
-                        {msg.mailboxEmail}
-                      </span>
-                    </p>
-                    {msg.preview ? (
-                      <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                        {msg.preview}
+                          className={cn(
+                            "truncate text-xs text-foreground",
+                            !msg.isRead ? "font-semibold" : "font-normal",
+                          )}
+                        >
+                          {msg.subject || "(No subject)"}
+                        </span>
+                        {msg.hasAttachments ? (
+                          <Icon
+                            glyph={Paperclip}
+                            className="size-3 shrink-0 text-muted-foreground"
+                          />
+                        ) : null}
+                      </div>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {msg.senderAddress || msg.senderName || "Unknown"} ·{" "}
+                        <span className="font-mono">{msg.mailboxEmail}</span>
                       </p>
-                    ) : null}
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                    <Icon glyph={Clock} className="size-3" />
-                    <span>
-                      {msg.receivedAt
-                        ? msg.receivedAt.slice(0, 16).replace("T", " ")
-                        : "Unknown"}
-                    </span>
-                  </div>
+                  <time className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                    {formatShortInboxDate(msg.receivedAt, "—")}
+                  </time>
                 </Link>
               ))
             )}
           </div>
-        </section>
+        </Panel>
 
-        <section className="rounded-lg border border-border bg-card">
-          <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
-            <div className="flex items-center gap-2">
+        <Panel>
+          <PanelHeader>
+            <div className="flex items-center gap-1.5">
               <Icon glyph={Mail} className="text-muted-foreground" />
-              <h2 className="text-sm font-semibold text-foreground">
-                Assigned mailboxes
-              </h2>
+              <SectionTitle>Assigned mailboxes</SectionTitle>
             </div>
             <Link
               href="/users/mailboxes"
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
               View all
-              <Icon glyph={ArrowRight} className="size-3.5" />
+              <Icon glyph={ArrowRight} className="size-3" />
             </Link>
-          </div>
+          </PanelHeader>
 
           <div className="divide-y divide-border">
             {snapshot.recentMailboxes.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                No mailboxes are assigned to your workspace yet.
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                No mailboxes assigned yet.
               </div>
             ) : (
-              snapshot.recentMailboxes.map((mailbox) => (
-                <div
-                  key={mailbox.uuid}
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyEmail(mailbox.emailAddress)}
-                        className="inline-flex max-w-full items-center gap-1.5 truncate font-mono text-sm font-medium text-foreground hover:text-primary"
-                        title="Copy email address"
-                      >
-                        <span className="truncate">{mailbox.emailAddress}</span>
-                        <Icon glyph={Copy} className="size-3.5 shrink-0" />
-                      </button>
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-[11px] font-medium capitalize",
-                          mailbox.status === "active"
-                            ? "bg-success/15 text-success"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {mailbox.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      <span>{mailbox.totalMessages} messages</span> ·{" "}
-                      <span className="font-medium text-foreground">
-                        {mailbox.unreadMessages} unread
-                      </span>
-                    </p>
-                  </div>
-
-                  <Link
-                    href={`/users/inbox/${mailbox.uuid}`}
-                    className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              snapshot.recentMailboxes.map((mailbox) => {
+                const totalNum = Number(mailbox.totalMessages) || 0;
+                return (
+                  <div
+                    key={mailbox.uuid}
+                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
                   >
-                    Open inbox
-                    <Icon glyph={ArrowRight} className="size-3.5" />
-                  </Link>
-                </div>
-              ))
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CopyButton
+                          value={mailbox.emailAddress}
+                          title="Copy email address"
+                          successMessage={`Copied ${mailbox.emailAddress}`}
+                          errorMessage="Unable to copy address."
+                          className="max-w-full font-mono"
+                        >
+                          <span className="truncate">{mailbox.emailAddress}</span>
+                        </CopyButton>
+                        <Badge
+                          variant={
+                            mailbox.status === "active" ? "success" : "default"
+                          }
+                        >
+                          {mailbox.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                        {mailbox.totalMessages}{" "}
+                        {totalNum === 1 ? "message" : "messages"} ·{" "}
+                        <span className="font-medium text-foreground">
+                          {mailbox.unreadMessages} unread
+                        </span>
+                      </p>
+                    </div>
+
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/users/inbox/${mailbox.uuid}`}>
+                        Open inbox
+                        <Icon glyph={ArrowRight} className="size-3" />
+                      </Link>
+                    </Button>
+                  </div>
+                );
+              })
             )}
           </div>
-        </section>
+        </Panel>
       </div>
 
-      {createMailboxAction ? (
+      {createMailboxAction && !usesShellModal ? (
         <CreateUserMailboxModal
           open={createOpen}
           onClose={() => setCreateOpen(false)}

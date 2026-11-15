@@ -4,6 +4,36 @@ import { z } from "zod";
 const emptyToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
 
+const normalizeLogLevel = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return undefined;
+  if (trimmed === "warning") return "warn";
+  if (
+    trimmed === "debug" ||
+    trimmed === "info" ||
+    trimmed === "warn" ||
+    trimmed === "error"
+  ) {
+    return trimmed;
+  }
+  return "info";
+};
+
+const normalizeDevAuthRole = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return undefined;
+  if (trimmed === "user" || trimmed === "admin") return trimmed;
+  return "admin";
+};
+
+const normalizeLowercaseEmpty = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim().toLowerCase();
+  return trimmed === "" ? undefined : trimmed;
+};
+
 const databaseUrlSchema = z
   .string()
   .url()
@@ -16,28 +46,44 @@ const databaseUrlSchema = z
 
 const environmentSchema = z
   .object({
-    NODE_ENV: z
-      .enum(["development", "test", "production"])
-      .default("development"),
+    NODE_ENV: z.preprocess(
+      emptyToUndefined,
+      z.enum(["development", "test", "production"]).default("development"),
+    ),
     DATABASE_URL: z.preprocess(emptyToUndefined, databaseUrlSchema.optional()),
-    AUTH_ENABLED: z
-      .enum(["true", "false"])
-      .default("false")
-      .transform((value) => value === "true"),
+    AUTH_ENABLED: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(["true", "false"])
+        .default("false")
+        .transform((value) => value === "true"),
+    ),
     AUTH_SECRET: z.preprocess(
       emptyToUndefined,
       z.string().min(32).optional(),
     ),
-    AUTH_TRUST_HOST: z
-      .enum(["true", "false"])
-      .default("false")
-      .transform((value) => value === "true"),
-    TRUST_PROXY_HEADERS: z
-      .enum(["true", "false"])
-      .default("false")
-      .transform((value) => value === "true"),
-    DEV_AUTH_MODE: z.enum(["off", "bypass", "demo"]).default("off"),
-    DEV_AUTH_ROLE: z.enum(["user", "admin"]).default("admin"),
+    AUTH_TRUST_HOST: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(["true", "false"])
+        .default("false")
+        .transform((value) => value === "true"),
+    ),
+    TRUST_PROXY_HEADERS: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(["true", "false"])
+        .default("false")
+        .transform((value) => value === "true"),
+    ),
+    DEV_AUTH_MODE: z.preprocess(
+      normalizeLowercaseEmpty,
+      z.enum(["off", "bypass", "demo"]).default("off"),
+    ),
+    DEV_AUTH_ROLE: z.preprocess(
+      normalizeDevAuthRole,
+      z.enum(["user", "admin"]).default("admin"),
+    ),
     LOGIN_FAILURE_LIMIT: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1).max(100).default(5),
@@ -50,7 +96,10 @@ const environmentSchema = z
       emptyToUndefined,
       z.coerce.number().int().min(60).max(86_400).default(900),
     ),
-    LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+    LOG_LEVEL: z.preprocess(
+      normalizeLogLevel,
+      z.enum(["debug", "info", "warn", "error"]).default("info"),
+    ),
     MAIL_DOMAIN: z.preprocess(
       emptyToUndefined,
       z

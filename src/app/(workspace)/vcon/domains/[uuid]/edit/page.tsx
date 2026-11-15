@@ -4,6 +4,7 @@ import {
   setDefaultDomainAction,
   updateDomainStatusAction,
 } from "@/app/(workspace)/vcon/domains/actions";
+import { AlertBanner } from "@/components/ui";
 import { DomainForm } from "@/components/vcon/domain-form";
 import { env } from "@/config/env";
 import { requireAdminUser } from "@/core/auth/route-guards";
@@ -54,12 +55,9 @@ export default async function AdminEditDomainPage({
 
   if (loadFailed) {
     return (
-      <section
-        className="rounded-lg border border-destructive/40 bg-destructive-bg p-4 text-sm text-destructive-muted"
-        role="alert"
-      >
+      <AlertBanner variant="error">
         Unable to load this domain record from PostgreSQL right now.
-      </section>
+      </AlertBanner>
     );
   }
 

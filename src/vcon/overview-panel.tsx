@@ -1,12 +1,20 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { CopyMailboxButton } from "@/components/vcon/copy-mailbox-button";
+import {
+  AlertBanner,
+  Badge,
+  Button,
+  CopyButton,
+  Icon,
+  PageTitle,
+  Panel,
+  PanelHeader,
+  SectionTitle,
+} from "@/components/ui";
 import type {
   AdminOverviewData,
   OverviewHealthItem,
   OverviewHealthState,
 } from "@/core/admin/overview";
+import { cn } from "@/lib/utils";
 import { ScrollText, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 
@@ -41,15 +49,15 @@ function HealthStatusCard({
   readonly subtitle: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
-      <div className="flex min-w-0 items-center gap-3">
+    <div className="flex items-center justify-between gap-3 border border-border bg-card px-3 py-2.5">
+      <div className="flex min-w-0 items-center gap-2.5">
         <span
-          className={`size-2.5 shrink-0 rounded-full ${healthDotClass(item.state)}`}
+          className={cn("size-2 shrink-0", healthDotClass(item.state))}
           aria-hidden="true"
         />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">{item.label}</p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="text-xs font-medium text-foreground">{item.label}</p>
+          <p className="truncate text-[11px] text-muted-foreground">
             {item.meta
               ? `Last seen ${formatTimestamp(item.meta, "Never")}`
               : subtitle}
@@ -80,15 +88,10 @@ export function AdminOverview({
   ] as const;
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Admin panel
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">System overview</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
+        <PageTitle>System overview</PageTitle>
+        <div className="flex flex-wrap items-center gap-1.5">
           <Button asChild size="sm">
             <Link href="/vcon/users/new">
               <Icon glyph={UserPlus} />
@@ -111,54 +114,36 @@ export function AdminOverview({
       </header>
 
       {!data.databaseConfigured ? (
-        <section
-          className="rounded-lg border border-border bg-card p-4"
-          role="status"
+        <AlertBanner
+          variant="warning"
+          title="Database not configured in this local environment"
+          action={<Badge variant="warning">Local dev mode</Badge>}
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2 rounded-full bg-warning"
-                aria-hidden="true"
-              />
-              <h2 className="text-sm font-semibold">
-                Database not configured in this local environment
-              </h2>
-            </div>
-            <Badge variant="warning">Local dev mode</Badge>
-          </div>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Live PostgreSQL counters, user directories, and audit logs activate
-            automatically once DATABASE_URL is configured.
-          </p>
-        </section>
+          Live PostgreSQL counters, user directories, and audit logs activate
+          automatically once DATABASE_URL is configured.
+        </AlertBanner>
       ) : !data.databaseConnected ? (
-        <section
-          className="rounded-lg border border-destructive/40 bg-destructive-bg p-4 text-destructive-muted"
-          role="alert"
+        <AlertBanner
+          variant="error"
+          title="Database temporarily unavailable"
         >
-          <h2 className="text-sm font-semibold">Database temporarily unavailable</h2>
-          <p className="mt-1 text-xs">
-            Live metrics could not be loaded from PostgreSQL. Verify database
-            connectivity and refresh.
-          </p>
-        </section>
+          Live metrics could not be loaded from PostgreSQL. Verify database
+          connectivity and refresh.
+        </AlertBanner>
       ) : null}
 
-      <section aria-label="System KPIs" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <section
+        aria-label="System KPIs"
+        className="grid grid-cols-2 border border-border bg-card sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-border"
+      >
         {kpiCards.map((card) => (
-          <article
-            key={card.label}
-            className="rounded-lg border border-border bg-card p-4"
-          >
-            <p className="text-xs font-medium text-muted-foreground">
-              {card.label}
-            </p>
+          <article key={card.label} className="px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">{card.label}</p>
             <p
               className={
                 "small" in card && card.small
-                  ? "mt-2 text-sm font-semibold tabular-nums text-foreground"
-                  : "mt-1.5 text-2xl font-semibold tabular-nums text-foreground"
+                  ? "mt-1 truncate font-mono text-xs font-medium tabular-nums text-foreground"
+                  : "mt-0.5 text-lg font-medium tabular-nums text-foreground"
               }
             >
               {card.value}
@@ -185,32 +170,32 @@ export function AdminOverview({
         />
       </section>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <section className="rounded-lg border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">Recently received</h2>
-            <span className="text-xs text-muted-foreground">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Panel>
+          <PanelHeader>
+            <SectionTitle>Recently received</SectionTitle>
+            <span className="text-[11px] text-muted-foreground">
               Latest 8 deliveries
             </span>
-          </div>
+          </PanelHeader>
           <div className="divide-y divide-border">
             {data.recentMessages.length > 0 ? (
               data.recentMessages.map((message) => (
                 <div
                   key={message.uuid}
-                  className="flex items-start justify-between gap-3 px-4 py-3"
+                  className="flex items-start justify-between gap-3 px-3 py-2"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
+                    <p className="truncate text-xs font-medium text-foreground">
                       {message.subject || "(No subject)"}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                       {message.senderAddress || "Unknown sender"} ·{" "}
-                      {message.mailboxEmail}
+                      <span className="font-mono">{message.mailboxEmail}</span>
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <time className="text-xs text-muted-foreground">
+                    <time className="font-mono text-[11px] tabular-nums text-muted-foreground">
                       {formatTimestamp(message.receivedAt, "Unknown date")}
                     </time>
                     {!message.isRead ? (
@@ -220,49 +205,62 @@ export function AdminOverview({
                 </div>
               ))
             ) : (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              <p className="px-3 py-6 text-center text-xs text-muted-foreground">
                 No messages have been indexed.
               </p>
             )}
           </div>
-        </section>
+        </Panel>
 
-        <section className="rounded-lg border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">Recently created mailboxes</h2>
-            <span className="text-xs text-muted-foreground">
+        <Panel>
+          <PanelHeader>
+            <SectionTitle>Recently created mailboxes</SectionTitle>
+            <span className="text-[11px] text-muted-foreground">
               Click address to copy
             </span>
-          </div>
+          </PanelHeader>
           <div className="divide-y divide-border">
             {data.recentMailboxes.length > 0 ? (
-              data.recentMailboxes.map((mailbox) => (
-                <div
-                  key={mailbox.uuid}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <CopyMailboxButton emailAddress={mailbox.emailAddress} />
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {mailbox.totalMessages} messages
-                    </p>
-                  </div>
-                  <Badge
-                    variant={
-                      mailbox.status === "active" ? "success" : "warning"
-                    }
+              data.recentMailboxes.map((mailbox) => {
+                const msgCount = Number(mailbox.totalMessages) || 0;
+                return (
+                  <div
+                    key={mailbox.uuid}
+                    className="flex items-center justify-between gap-3 px-3 py-2"
                   >
-                    {mailbox.status === "active" ? "Active" : "Disabled"}
-                  </Badge>
-                </div>
-              ))
+                    <div className="min-w-0">
+                      <CopyButton
+                        value={mailbox.emailAddress}
+                        label={`Copy ${mailbox.emailAddress}`}
+                        title={`Copy ${mailbox.emailAddress}`}
+                        successMessage={`Copied ${mailbox.emailAddress}`}
+                        errorMessage="Could not copy mailbox address."
+                        className="max-w-full font-mono"
+                      >
+                        <span className="truncate">{mailbox.emailAddress}</span>
+                      </CopyButton>
+                      <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                        {mailbox.totalMessages}{" "}
+                        {msgCount === 1 ? "message" : "messages"}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        mailbox.status === "active" ? "success" : "warning"
+                      }
+                    >
+                      {mailbox.status === "active" ? "Active" : "Disabled"}
+                    </Badge>
+                  </div>
+                );
+              })
             ) : (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              <p className="px-3 py-6 text-center text-xs text-muted-foreground">
                 No mailboxes created yet.
               </p>
             )}
           </div>
-        </section>
+        </Panel>
       </div>
     </div>
   );

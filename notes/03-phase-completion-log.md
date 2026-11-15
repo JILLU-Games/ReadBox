@@ -1,317 +1,118 @@
-# 03 — Update Phase Completion Log (Strict Change Ledger)
+# 03 — Phase Completion Logbook
 
-> **Document ID:** `DOC-003`  
-> **Purpose:** Single source of truth tracking completed vs remaining phases, exact features/bugfixes delivered per phase, exact **Scope Lock** boundaries preserved (other features/UI left untouched), and verification evidence.  
-> **Workflow Rule:** Update this file **immediately** at the end of every phase before moving to the next phase.
-
----
-
-## 1. Live Progress Summary
-
-- **Baseline Tag:** `BASELINE-2026-11-15` (Frozen)
-- **Phases Completed:** `8 / 8` (`Phase 0`, `Phase 1`, `Phase 2`, `Phase 3`, `Phase 4`, `Phase 5`, `Phase 6`, `Phase 7` completed — **100% Complete**)
-- **Current Status:** **All 8 Phases (`Phase 0` through `Phase 7`) completed and verified** (`verify:safe`, `test:ui` 45/45 across 13 suites, `compile_applet`, `lint_applet`, and headless Chromium browser QA across all 15 public, `/users/*`, and `/vcon/*` routes at `320px`, `768px`, and `1280px` in Light and Dark themes all pass with `0` errors and `0` horizontal overflow).
-- **Next Authorized Phase:** **None — All Planned Phases Completed (Production Cutover Ready)**
+This logbook tracks exact execution state across all 6 phases.  
+**Rule:** Update this file immediately after completing and verifying each phase. Never skip a phase or modify out-of-scope files.
 
 ---
 
-## 2. Master Phase Status Board
+## Overall Progress Snapshot
 
-| Phase | Name | Status | Features Added / BugFixes Completed | Remaining Next Scope | Verification Status |
-|---|---|---|---|---|---|
-| **Baseline** | `BASELINE-2026-11-15` | **FROZEN** | Dual-mode dev auth (`bypass`/`demo`), HTTPS iframe cookies, Prisma 14-table schema, setup pure planners, UI shell tokens | All `Phase 0..7` items | Superseded by Phase 0 |
-| **Phase 0** | Baseline BugFixes & Auth Lockout Hardening | **COMPLETED** | Fixed `BUG-001` (`postgres-target.test.ts` Linux paths), `BUG-002` (`dual-mode-env.test.ts` in `test:auth:core`), `BUG-003` (trusted-proxy `extractClientIp`, per-IP + username burst lockout, `max(window, lockout)*8` pruning, failure clear, `User.lastLogin`) | None (P0 complete) | `verify:safe` PASS (0 exit), `test:ui` 21/21 PASS, `compile_applet` PASS, `lint_applet` PASS |
-| **Phase 1** | Single-PostgreSQL `mailserver` Schema, Audit Core & Role-Aware Shell | **COMPLETED** | `mailserver` schema migration + `postfix_lookup` grants (`GAP-001`), `recordAudit()` w/ secret redaction + auth wiring (`GAP-002`, `BUG-003`), `UserAccessPolicy` & strict `AdministratorProfile` helper (`GAP-003`, `BUG-007`), role-aware `AppShell` + Sign Out + `/vcon` redirect (`BUG-004`, `GAP-004`) | None (P1 complete) | `verify:safe` PASS (0 exit), `test:ui` 23/23 PASS, `compile_applet` PASS, `lint_applet` PASS |
-| **Phase 2** | `/vcon` Overview, User Management & Audit/Security UI | **COMPLETED** | `/vcon` KPIs + health strip (`GAP-005`), `/vcon/users/*` CRUD + generators + `"Create & copy"` + guards (`GAP-006`), `/vcon/audit` viewer (`GAP-007`, `DISC-004`), `(workspace)/error.tsx` & `/vcon/not-found.tsx` | None (P2 complete) | `verify:safe` PASS (0 exit), `test:ui` 27/27 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
-| **Phase 3** | `/vcon/domains` DNS Engine & `/vcon/mailboxes` Provisioning + Purge | **COMPLETED** | Real PostgreSQL `PgReadOnlyMailServerAdapter` + SQL identifier allowlist & `mailserver` sync, 5-record DNS engine + OpenDKIM + Cloudflare BIND export + split routing/deliverability verification (`DISC-002`), locked & `confinedPath` `0700` Maildir provisioning + rollback, `/vcon/domains/*`, `/vcon/mailboxes/*` toggle/typed purge/bulk purge/system mailboxes (`DISC-001`, `GAP-008`, `GAP-009`) | None (P3 complete) | `verify:safe` PASS (0 exit), `test:ui` 32/32 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
-| **Phase 4** | Maildir Ingestion, HTML/CSS Sanitizer & `/vcon/operations` | **COMPLETED** | `postal-mime` parser + `sanitize-html`/`css-tree` AST allowlist sanitizer (`128KB`/`256KB`/`512-rule`/`8-depth`, raster `data:image/*` only), confined `0600` sharded attachments + rollback cleanup, `ingestUnindexedMaildirFiles` + `proper-lockfile` + `ServiceHeartbeat("maildir_ingestion")` + `mail:ingest` CLI (`DISC-003`, `GAP-010`), SHA-256 verified `repairMessageBodies` + `/vcon/operations` console (`DISC-004`, `GAP-011`) | None (P4 complete) | `verify:safe` PASS (0 exit), `test:ui` 34/34 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
-| **Phase 5** | User Workspace (`/users` Inbox, Sandboxed Reader, Attachments, Live) | **COMPLETED** | Membership-scoped `/users` overview + `/users/mailboxes` self-create (`Generate` + `"Create & copy"`) & `canDeleteMailboxes` purge + `/users/inbox/[mailboxUuid]` 30/page filters (`senderName`/`senderAddress`/`subject`, unread, attachments) + `/users/inbox/[mailboxUuid]/[messageUuid]` auto-read/unread/`canDeleteMessages` soft-delete preserving Maildir + `/api/messages/html/[messageUuid]` strict CSP `<iframe sandbox="">` + `/api/messages/attachment/[attachmentUuid]` confined download (`X-Accel-Redirect`, `nosniff`, `private, no-store`) + `/api/messages/live` (`X-MailStack-Live-Request: 1`) + cross-tab `BroadcastChannel`/`localStorage`/`navigator.locks` Web Notifications (`GAP-012`) | None (P5 complete) | `verify:safe` PASS (0 exit), `test:ui` 39/39 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
-| **Phase 6** | `/vcon/settings`, `/vcon/system-update`, Readiness & VPS Templates | **COMPLETED** | `SiteSettings` singleton + confined logo/favicon upload + `/api/media/[...path]` + public `/api/site-settings` & `/health/site-settings` CORS API + dynamic `AppShell`/metadata/manifest hydration (`BUG-005`, `GAP-004`, `GAP-013`), `/vcon/system-update` + GitHub release check + 9-category preflight + `0640` hard-link queue + root updater scripts (`GAP-014`), complete `/health/ready` + single-PostgreSQL Postfix `pgsql:` / Dovecot / Nginx / systemd templates + `pg_dump`/`psql` backup/restore scripts (`GAP-015`) | None (P6 complete) | `verify:safe` PASS (0 exit), `test:ui` 41/41 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright PASS |
-| **Phase 7** | Browser QA (320/768/1280px, Themes, PWA) & VPS Cutover Gate | **COMPLETED** | Fixed `BUG-006` (`320px` responsive containment on `/sign-in`, `/reset-password`, `/vcon/system-update`), verified all 15 routes at `320px`/`768px`/`1280px` in Light & Dark themes (`scrollWidth === clientWidth`), verified PWA `public/sw.js` private-cache exclusion & Segoe UI/reduced-motion (`tests/ui/phase7-responsive-pwa.test.tsx`), and expanded `tests/auth/database-flow.test.ts` for all 4 migrations + `mailserver` views & `postfix_lookup` grants (`GAP-016`) | None (All Phases Complete) | `verify:safe` PASS (0 exit), `test:ui` 45/45 PASS, `compile_applet` PASS, `lint_applet` PASS, Playwright 320/768/1280px Light/Dark PASS |
+- **Current Baseline State:** `Phase-04` Complete & Scope-Verified (`2026-11-15`)
+- **Phases Completed:** `4 / 6` (`Phase-01`, `Phase-02`, `Phase-03`, `Phase-04`)
+- **Phases Remaining:** `2` (`Phase-05`, `Phase-06`)
+- **Next Active Phase:** **Phase-05** — Auth Pages (`/sign-in` & `/reset-password`) Unification (awaiting user approval command)
 
 ---
 
-## 3. Non-Regression Scope-Lock Protocol (Mandatory Per Phase)
+## Phase Tracker Matrix
 
-Before writing a single line of code in any Phase `N`:
-1. Confirm Phase `N - 1` is marked **COMPLETED** in Section 2 & Section 4 below.
-2. Inspect ONLY files listed under `IN SCOPE` in `notes/02-phase-roadmap-and-scope-locks.md` for Phase `N`.
-3. Explicitly verify **zero unintended diffs** in out-of-scope modules:
-   - Never break existing `.env.development` (`DEV_AUTH_MODE=bypass|demo`) behavior during production upgrades.
-   - Never alter PostgreSQL-only `AGENTS.md` architecture.
-   - Never touch unrelated `/users` UI during `/vcon` phases (Phases 2–4), and never touch `/vcon` admin UI during `/users` Phase 5.
-4. After passing Phase `N`'s Verification Gate, append an entry under Section 4 and update `notes/05-actual-implementation-status.md`.
-
----
-
-## 4. Detailed Phase Execution Log Entries
-
-### Entry 00 — Baseline Freeze (`BASELINE-2026-11-15`)
-- **Date:** 2026-11-15
-- **Scope Executed:** Documentation & audit only (`notes/*` created; zero application source/schema modifications).
-- **Features Added / Updated:** None (code frozen at baseline).
-- **Pre-Existing Baseline Findings Recorded:**
-  - `BUG-001` identified in `tests/auth/postgres-target.test.ts:27` (Windows `\\compose.yaml` path fails Linux `verify:safe`).
-  - `BUG-002` identified in `package.json` (`dual-mode-env.test.ts` not wired into `test:auth:core`).
-  - `BUG-003..007` and `GAP-001..016` documented in `notes/01-production-readiness-audit-and-bugs.md`.
-- **Untouched Verification:** All existing `/src/`, `/prisma/`, `/package.json`, `/public/`, `/scripts/`, `/tests/` files left 100% untouched.
-- **Next Step:** Execute **Phase 0** upon user authorization.
+| Phase | Title | Scope Status | Completion Status | Target Bugs | Verified By |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Phase-01** | Global CSS Tokens, Theme Sync & Shared `ui/*` | Locked (`globals.css`, `layout.tsx`, `manifest.ts`, `ui/*`, `app-shell.tsx`) | **COMPLETED** | `BUG-04`, `BUG-05` | `typecheck`, `lint`, `build`, `test:ui` (`53/53`), Playwright (`Light`/`Dark`) |
+| **Phase-02** | `/users/*` Functional, Security & UI Bugs | Locked (`components/users/*`, `src/users/*`, `messages/service.ts`, `demo-workspace.ts`, `api/messages/*`) | **COMPLETED** | `BUG-01`, `BUG-02`, `BUG-03`, `BUG-08`, `BUG-09` | `test:messages` (`9/9`), `test:ui` (`54/54`), `typecheck`, `lint`, `build`, Playwright (`1440px` + `390px` Light/Dark) |
+| **Phase-03** | `/vcon/*` Core System Consoles & Error Routes | Locked (`settings-console.tsx`, `system-update-console.tsx`, `error.tsx`, `not-found.tsx`, `global-error.tsx`, `vcon/overview-panel.tsx`) | **COMPLETED** | `BUG-06`, `BUG-07` (part 1) | `test:admin` (`31/31`), `test:ui` (`56/56`), `typecheck`, `lint`, `build`, Playwright (`1440px` + `390px` Light/Dark) |
+| **Phase-04** | `/vcon/*` Directories, Forms & Notifications | Locked (`domains*`, `mailboxes*`, `users*`, `operations*`, `audit*`, `vcon/**/page.tsx`) | **COMPLETED** | `BUG-07` (part 2) | `test:admin` (`31/31`), `test:ui` (`56/56`), `typecheck`, `lint`, `build`, Playwright (`1440px` + `390px` Light/Dark) |
+| **Phase-05** | Auth Pages (`/sign-in` & `/reset-password`) | Locked (`sign-in/*`, `reset-password/*`, `components/auth/*`) | **PENDING** | `BUG-10` | — |
+| **Phase-06** | Public Site (`/`, `/contact`, `/privacy`) & Final Gate | Locked (`page.tsx`, `contact/page.tsx`, `privacy/page.tsx`, `components/public/*`) | **PENDING** | `BUG-11` | — |
 
 ---
 
-### Entry 01 — Phase 0: Baseline BugFixes & Auth Lockout Hardening
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified strictly `Phase 0 IN SCOPE` files (plus `.env.example` & `src/core/auth/password-policy.ts` to declare new env vars/constants cleanly); zero UI components, `/users`, `/vcon`, `AppShell`, `SignInForm`, `dev-demo-auth.ts`, or `prisma/schema.prisma` modified.
-- **Bugs Fixed / Features Added:**
-  - `BUG-001`: Replaced hardcoded Windows `\\compose.yaml` & `\\compose.override.yaml` paths in `tests/auth/postgres-target.test.ts` with cross-platform `node:path` `join()`.
-  - `BUG-002`: Added `tests/auth/dual-mode-env.test.ts` to `package.json` `test:auth:core` so dual-mode/proxy/cookie/IP-extraction checks run automatically in `npm run test:auth` and `npm run verify:safe`.
-  - `BUG-003`: Added `TRUST_PROXY_HEADERS`, `LOGIN_FAILURE_LIMIT`, `LOGIN_FAILURE_WINDOW_SECONDS`, `LOGIN_LOCKOUT_SECONDS` env settings (`.env.example`, `src/config/env-schema.ts`); added `extractClientIp()` in `src/core/auth/proxy-request.ts` (`node:net` `isIP()` validated); upgraded `authorizeCredentials()` in `src/core/auth/credentials.ts` and `src/auth.ts` for per-(username, clientIp) advisory locking, burst-window failure counting + `LOGIN_LOCKOUT_SECONDS` lock expiry, `max(window, lockout) * 8` pruning, clearing prior failures on success, and `User.lastLogin` updates. *(Note: centralized `AuditLog` event writing remains scheduled for Phase 1 `GAP-002`.)*
-- **Files Modified:**
-  - `tests/auth/postgres-target.test.ts` — cross-platform path join fix (`BUG-001`).
-  - `package.json` — wired `tests/auth/dual-mode-env.test.ts` into `test:auth:core` (`BUG-002`).
-  - `.env.example` & `src/config/env-schema.ts` — added & validated `TRUST_PROXY_HEADERS`, `LOGIN_FAILURE_LIMIT`, `LOGIN_FAILURE_WINDOW_SECONDS`, `LOGIN_LOCKOUT_SECONDS`.
-  - `src/core/auth/password-policy.ts` — exported `LOGIN_LOCKOUT_MS`.
-  - `src/core/auth/proxy-request.ts` — added `extractClientIp()` with IPv4/IPv6 port stripping and `isIP()` validation.
-  - `src/core/auth/credentials.ts` & `src/auth.ts` — wired IP-isolated lockout, stale attempt pruning, failure clearing, and `lastLogin` updates.
-  - `tests/auth/auth-flow.test.ts` & `tests/auth/dual-mode-env.test.ts` — added unit coverage for IP lockout, `lockoutMs > failureWindowMs` expiry, pruning, failure reset, `lastLogin`, `extractClientIp`, and lockout env parsing.
-- **Files Explicitly Preserved Untouched:**
-  - `src/core/auth/dev-demo-auth.ts`, `.env.development`, `src/components/auth/sign-in-form.tsx`, `src/components/layout/app-shell.tsx`, `src/users/*`, `src/vcon/*`, `prisma/schema.prisma`, `prisma/migrations/*`.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (`test:compat`, `test:postfix`, `test:setup`, `test:auth:core` 26/26, `test:auth:guards` 5/5, `test:auth:target-guard` 6/6, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (7 files, 21/21 tests).
-  - `compile_applet` (`next build`): **PASS**.
-  - `lint_applet` (`eslint .`): **PASS**.
-- **Remaining Phases:** `7` remaining -> Next: **Phase 1**
+## Phase Execution & Logging Protocol
+
+After each phase finishes, append a dated entry below using this exact schema:
+1. **Completed Phase & Scope Verification:** Confirm only Scope-Locked files were modified; list exact files changed.
+2. **Added / Updated Features & Bug Fixes:** List exact fixes delivered in the phase.
+3. **Verification Results:** Exact pass/fail outputs of `typecheck`, `lint`, targeted unit/UI tests, and runtime/browser checks.
+4. **Regressions / Remaining Phases:** Confirm untouched modules remain clean and specify the next locked phase.
 
 ---
 
-### Entry 02 — Phase 1: Single-PostgreSQL `mailserver` Schema, Audit Core & Role-Aware Shell
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified strictly `Phase 1 IN SCOPE` files (`mailserver` migration + ledger tests, `audit/*`, `accounts/policy.ts`, auth audit hooks, `AppShell`, `(workspace)/layout.tsx`, `SignInForm`, and unit/UI tests). Note: only `/vcon` is added inside `AppShell` `Management` navigation in Phase 1 so there are zero broken 404 sub-links before Phases 2–6 create those sub-pages; `test:audit` was added to `package.json` `test:unit` so `verify:safe` runs it automatically.
-- **Bugs Fixed / Features Added:**
-  - `GAP-001`: Added single-PostgreSQL migration `prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql` defining `"mailserver"` schema (`mail_domains`, `mailboxes`, `mail_aliases`), 3 `security_invoker = true` views (`postfix_virtual_domains`, `postfix_virtual_mailboxes`, `postfix_virtual_aliases`), and column-scoped least-privilege grants for `"postfix_lookup"` (never exposing `password_hash`). Updated `tests/schema/postgres-schema.test.mjs` and `scripts/testing/postgres-target.ts`.
-  - `GAP-002` & `BUG-003` completion: Added `src/core/audit/{types.ts,record.ts}` (`recordAudit`, `recordAppAudit`, `sanitizeAuditDetails`) with recursive secret redaction, BigInt/Date normalization, field truncation, and `TRUST_PROXY_HEADERS` IP validation; wired `login_success`, `login_failure` (including `lockout`), and `logout` audits into `src/core/auth/credentials.ts`, `src/auth.ts`, and `src/app/sign-in/actions.ts`.
-  - `GAP-003` & `BUG-007`: Added `src/core/accounts/policy.ts` (`isAccountAdministrator`, `getAccountRoleFlags`, `ensureUserAccessPolicy`, `getUserAccessCapabilities`) strictly backed by `AdministratorProfile` (ignoring legacy `User.isStaff` / `User.isSuperuser`), and wired `getAccountRoleFlags` into `credentials.ts` and `current-user.ts`.
-  - `BUG-004` & `GAP-004`: Updated `src/components/auth/sign-in-form.tsx` to redirect administrators to `/vcon` and regular users to `/users`; updated `src/app/(workspace)/layout.tsx` & `src/components/layout/app-shell.tsx` to gate `Management` (`/vcon`) navigation strictly on server-verified `isAdministrator`, show signed-in username/role, and render a working `Sign out` POST form when not in dev bypass mode.
-- **Files Created / Modified:**
-  - `prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql`
-  - `tests/schema/postgres-schema.test.mjs` & `scripts/testing/postgres-target.ts`
-  - `src/core/audit/types.ts` & `src/core/audit/record.ts`
-  - `src/core/accounts/policy.ts`
-  - `src/core/auth/credentials.ts`, `src/auth.ts`, `src/core/auth/current-user.ts`, `src/app/sign-in/actions.ts`
-  - `src/components/auth/sign-in-form.tsx`, `src/components/layout/app-shell.tsx`, `src/app/(workspace)/layout.tsx`
-  - `tests/audit/record-and-policy.test.ts`, `tests/ui/app-shell.test.tsx`, `package.json` (`test:audit`)
-- **Files Explicitly Preserved Untouched:**
-  - `.env.development`, `src/core/auth/dev-demo-auth.ts`, `src/users/*`, `src/vcon/*`, `prisma/schema.prisma`, domain/mailbox/ingestion/settings/update modules.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (`test:compat`, `test:postfix`, `test:setup`, `test:auth:core` 26/26, `test:auth:guards` 5/5, `test:audit` 4/4, `test:auth:target-guard` 6/6, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (7 files, 23/23 tests).
-  - `compile_applet` (`next build`): **PASS**.
-  - `lint_applet` (`eslint .`): **PASS**.
-- **Remaining Phases:** `6` remaining -> Next: **Phase 2**
+## Completed Phase Log Entries
 
----
+### `[Phase-04] 2026-11-15 — /vcon/* Directories, Forms & Notifications Unification`
+- **Scope Verification:** Strict Phase-04 Scope Lock respected (`0` files modified outside `/vcon/*` domains, mailboxes, users, operations, audit components/pages).
+  - Modified: `src/components/vcon/domains-directory.tsx`, `src/components/vcon/dns-records-panel.tsx`, `src/components/vcon/domain-form.tsx`, `src/app/(workspace)/vcon/domains/[uuid]/edit/page.tsx`, `src/components/vcon/mailboxes-directory.tsx`, `src/components/vcon/mailbox-form.tsx`, `src/components/vcon/mailbox-purge-confirm.tsx`, `src/app/(workspace)/vcon/mailboxes/[uuid]/delete/page.tsx`, `src/components/vcon/users-directory.tsx`, `src/components/vcon/user-form.tsx`, `src/app/(workspace)/vcon/users/[id]/edit/page.tsx`, `src/components/vcon/operations-console.tsx`, `src/components/vcon/audit-console.tsx`.
+  - Deleted: `src/components/vcon/copy-mailbox-button.tsx` (`0` remaining references; replaced by global `<CopyButton>`).
+- **Completed Updates & Fixes:**
+  - `BUG-07` (part 2) & `ERR-04`: Eliminated all double `<Table>` `rounded-lg` wrappers in `domains-directory.tsx`, `dns-records-panel.tsx`, and `mailboxes-directory.tsx`; replaced all `rounded-md`/`rounded-lg` sections and raw status/error divs across all 13 Phase-04 files with `<Panel>`, `<PanelHeader>`, `<PanelBody>`, and `<AlertBanner>` (`variant="warning" role="status"` / `variant="error"`).
+  - Unified all `<select>`, `<label>`, and checkbox controls onto `@/components/ui` `<Select>`, `<Label>`, and `<Checkbox>`, standardized titles/sections onto `<PageTitle>` & `<SectionTitle>`, removed `"ADMIN PANEL"` / `"DOMAINS"` / `"MAILBOXES"` / `"USER MANAGEMENT"` kickers and subtitle intro noise, and removed `font-bold`/`font-semibold` overrides.
+  - `ERR-05` & `ERR-07`: Replaced all direct `sonner` imports across `/vcon/*` (`domains-directory.tsx`, `dns-records-panel.tsx`, `domain-form.tsx`, `mailboxes-directory.tsx`, `mailbox-form.tsx`, `mailbox-purge-confirm.tsx`, `users-directory.tsx`, `user-form.tsx`, `operations-console.tsx`) with `notify` from `@/components/ui` and ensured action/clipboard `catch` blocks surface exact error notifications + alerts cleanly.
+- **Verification Results:**
+  - `npm run typecheck`: Passed (`0` errors).
+  - `npm run test:ui` (`vitest`): **15/15 files, 56/56 tests passed**.
+  - `npm run test:admin`: **28 subtests / 31 assertions passed (`0` failed)**.
+  - `npm run lint` (`eslint .`): Passed (`0` errors, `0` warnings).
+  - `npm run build` (`compile_applet`): Passed.
+  - Post-patch static grep audit across all 13 remaining Phase-04 files: `STATIC_AUDIT_CLEAN` (`0` `"sonner"` imports, `0` non-zero `rounded*`, `0` `shadow-*`, `0` `font-bold`/`font-semibold`, `0` raw `<select`/`<textarea`/`<table`/`<label`/`type="checkbox"`, `0` `copy-mailbox-button` references).
+  - Playwright Chromium live check (`demo.admin`, `1440x900` Light/Dark + `390x844` Mobile across `/vcon/domains`, `/vcon/domains/new` + `Preview DNS`, `/vcon/mailboxes`, `/vcon/mailboxes/new` + `Generate`, `/vcon/users`, `/vcon/users/new` Dark Mode + `Generate` + `Auto-generate`, `/vcon/operations`, `/vcon/audit`): `0` console errors, `0` page errors, `0` failed network requests, `0` non-zero border-radius elements across all routes, and `overflowX: false` (`1440 === 1440`, `390 === 390`).
+- **Remaining Phases:** `2` (`Phase-05`, `Phase-06`). Next: `Phase-05`.
 
-### Entry 03 — Phase 2: `/vcon` Overview Telemetry, User Management (`/vcon/users`) & Audit UI (`/vcon/audit`)
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified only Phase 2 `IN SCOPE` modules (`env-schema.ts`/`.env.example` for optional `MAIL_STORAGE_ROOT` & `INGESTION_STALE_AFTER_SECONDS`, `admin/overview.ts`, `accounts/credentials-generator.ts`, `accounts/users.ts`, `audit/queries.ts`, `/vcon` overview UI, `/vcon/users/*`, `/vcon/audit`, `AppShell` Phase 2 links, `(workspace)/error.tsx`, `vcon/not-found.tsx`, `package.json` `test:admin`, and Phase 2 unit/UI tests). Password generator produces 16-char complex passwords to honor existing `MIN_PASSWORD_LENGTH = 15` without weakening security policy.
-- **Bugs Fixed / Features Added:**
-  - `GAP-005`: Implemented `src/core/admin/overview.ts` (`getAdminOverviewData`, `evaluateIngestionHeartbeat`, `defaultCheckStorageAccess`) and replaced `/vcon` static `"Foundation"` card with live KPIs (total/active/disabled mailboxes, received emails, unread, last received), 3-card System Health strip (DB `SELECT 1`, `ServiceHeartbeat("maildir_ingestion")`, `MAIL_STORAGE_ROOT` RWX probe), recent 8 deliveries, and recent 8 mailboxes with click-to-copy client button (`CopyMailboxButton`).
-  - `GAP-006`: Implemented `src/core/accounts/users.ts`, `src/core/accounts/credentials-generator.ts`, `src/app/(workspace)/vcon/users/actions.ts`, `UserForm`, `UsersDirectory`, and `/vcon/users`, `/vcon/users/new`, `/vcon/users/[id]/edit` routes featuring: case-insensitive search + 25/page pagination; non-admin user creation (`isStaff=false, isSuperuser=false, passwordResetRequired=false`) with Argon2id, `UserAccessPolicy`, and `MailboxMembership`; username & >=16-char CSPRNG password generators + eye toggle + searchable mailbox picker + `"Create & copy"` one-time modal; edit diff audits (`user_updated`, `user_activated`/`user_deactivated`, `user_delete_permissions_changed`, `mailbox_assignment_added`/`removed`); strict `AdministratorProfile` edit/delete block, self-delete block, last-active-admin guard, and mailbox/message/audit preservation on user delete.
-  - `GAP-007` & `DISC-004` (`/vcon/audit` portion): Implemented `src/core/audit/queries.ts` (`listAuditLogs`, `listLoginSecurityMonitor`, `getAuditMonitorBundle`) and `/vcon/audit` displaying active IP + normalized-username lockouts, recent `LoginAttempt` outcomes, and filtered/paginated `AuditLog` entries with read-time redaction.
-  - Added `(workspace)/error.tsx` & `vcon/not-found.tsx`, plus `/vcon/users` and `/vcon/audit` links in `AppShell` (`Management` nav gated on `isAdministrator`, exact active match on `/vcon`).
-- **Files Created / Modified:**
-  - `.env.example`, `src/config/env-schema.ts`
-  - `src/core/admin/overview.ts`
-  - `src/core/accounts/credentials-generator.ts`, `src/core/accounts/users.ts`
-  - `src/core/audit/queries.ts`
-  - `src/components/layout/app-shell.tsx`
-  - `src/components/vcon/{copy-mailbox-button.tsx,user-form.tsx,users-directory.tsx,audit-console.tsx}`
-  - `src/vcon/overview-panel.tsx`, `src/app/(workspace)/vcon/page.tsx`
-  - `src/app/(workspace)/vcon/users/{page.tsx,actions.ts,new/page.tsx,[id]/edit/page.tsx}`
-  - `src/app/(workspace)/vcon/audit/page.tsx`
-  - `src/app/(workspace)/error.tsx`, `src/app/(workspace)/vcon/not-found.tsx`
-  - `tests/admin/phase2-vcon.test.ts`, `tests/ui/vcon-phase2.test.tsx`, `tests/ui/app-shell.test.tsx`, `package.json` (`test:admin`)
-- **Files Explicitly Preserved Untouched:**
-  - `.env.development`, `src/core/auth/*` (except read-only imports), `src/users/*`, `prisma/schema.prisma`, domain/DNS, mailbox provisioning, ingestion worker, settings, and system-update modules.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (incl. 7/7 new `test:admin` tests, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (8 files, 27/27 tests).
-  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS**.
-  - Playwright headless Chromium: verified `demo.admin` `/vcon`, `/vcon/users`, `/vcon/users/new` (username/password generators), `/vcon/audit` (`320px` overflow = `false`), and `demo.user` `/vcon` non-enumerating `404` RBAC check.
-- **Remaining Phases:** `5` remaining -> Next: **Phase 3**
+### `[Phase-03] 2026-11-15 — /vcon/* Core System Consoles & Error Routes`
+- **Scope Verification:** Strict Phase-03 Scope Lock respected (`0` files modified outside `settings-console.tsx`, `system-update-console.tsx`, `vcon/overview-panel.tsx`, workspace/root error & not-found routes, and Phase-03 UI tests).
+  - Modified: `src/components/vcon/settings-console.tsx`, `src/components/vcon/system-update-console.tsx`, `src/vcon/overview-panel.tsx`, `src/app/(workspace)/error.tsx`, `src/app/(workspace)/vcon/not-found.tsx`, `tests/ui/vcon-phase2.test.tsx`, `tests/ui/vcon-phase6.test.tsx`.
+  - Created: `src/app/global-error.tsx`, `src/app/not-found.tsx`.
+- **Completed Updates & Fixes:**
+  - `BUG-06` & `BUG-07` (part 1) — `settings-console.tsx`: Migrated completely onto `@/components/ui` (`AlertBanner`, `Button`, `Checkbox`, `FormField`, `Icon`, `Input`, `Label`, `notify`, `PageTitle`, `Panel`, `PanelBody`, `PanelHeader`, `SectionTitle`, `Textarea`); removed `30` `rounded*`, hardcoded `emerald-*` colors, direct `sonner` toast import, and `"System Configuration"` / intro noise; added `try/catch` save error handling (`ERR-07`); stripped unselected empty `logo`/`favicon` entries from `FormData` before `onSaveSettings` so saving settings without re-uploading brand files no longer throws `"Logo file cannot be empty."`.
+  - `BUG-06` & `BUG-07` (part 1) — `system-update-console.tsx`: Migrated completely onto `@/components/ui` (`AlertBanner`, `Badge`, `Button`, `Checkbox`, `Dialog`, `DialogContent`, `DialogDescription`, `DialogFooter`, `DialogTitle`, `Icon`, `Label`, `notify`, `PageTitle`, `Panel`, `PanelBody`, `PanelHeader`, `SectionTitle`, `Table*`); removed `30` `rounded*`, `3` custom `bg-black/60` + `shadow-lg` modals, raw `<table>`, `emerald-*`/`amber-*` hardcoded colors (`text-success`/`text-warning`), direct `sonner` toast import, and intro noise while preserving all element IDs and double-confirmation workflow.
+  - `BUG-07` (part 1) — `src/vcon/overview-panel.tsx`: Replaced `rounded-lg` cards/KPIs/links & `rounded-full` health dots with `<Panel>`, `<PanelHeader>`, `<SectionTitle>`, `<PageTitle>`, `<AlertBanner>`, square `0rem` status dots (`size-2`), and shared `<CopyButton>` (with unique `Copy <email>` label), fixed `"1 message"` singular/plural grammar, and removed `"ADMIN PANEL"` uppercase kicker noise.
+  - `ERR-02` & Error Routes: Migrated `src/app/(workspace)/error.tsx` and `src/app/(workspace)/vcon/not-found.tsx` to `0rem` `<Panel>`, `<PageTitle>`, and `<Button>`; created global `src/app/global-error.tsx` (`"use client"` importing `./globals.css`) and `src/app/not-found.tsx` matching `0rem` design tokens.
+- **Verification Results:**
+  - `npm run typecheck`: Passed (`0` errors).
+  - `npm run test:ui` (`vitest`): **15/15 files, 56/56 tests passed** (added singular `"1 message"` check, `SettingsConsole` error banner + omitted empty file assertions, and `SystemUpdateConsole` Radix Dialog tests).
+  - `npm run test:admin`: **28 subtests / 31 assertions passed (`0` failed)**.
+  - `npm run lint` (`eslint .`): Passed (`0` errors, `0` warnings).
+  - `npm run build` (`compile_applet`): Passed.
+  - Post-patch static grep audit across all 7 Phase-03 files: `0` direct `"sonner"` imports, `bg-black/60`, `shadow-*`, `rounded-(sm|md|lg|xl|2xl|full)`, `emerald-*`, `amber-*`, `font-bold`, or raw `<select`/`<textarea`/`<table`/`<label`/`type="checkbox"` (only `file:rounded-none` on the two upload inputs).
+  - Playwright Chromium live check (`demo.admin`, `1440x900` Light/Dark + `390x844` Mobile): `/vcon`, `/vcon/settings`, `/vcon/system-update` (`Update Logs` Dialog), and `/nonexistent-route-check-404` render cleanly with `0` console errors, `0` page errors, `0` broken images, `0` non-zero border-radius violations, `overflowX: false` (`390 === 390`), and clicking `Save Changes` in `/vcon/settings` saves cleanly (`"Settings saved successfully."`).
+- **Remaining Phases:** `3` (`Phase-04` → `Phase-06`). Next: `Phase-04`.
 
----
+### `[Phase-02] 2026-11-15 — /users/* Functional, Security & UI Bugs`
+- **Scope Verification:** Strict Phase-02 Scope Lock respected (`0` files modified outside `/users/*`, `core/messages/*`, `api/messages/*`, and Phase-02 tests).
+  - Modified: `src/core/messages/service.ts`, `src/core/messages/demo-workspace.ts`, `src/app/api/messages/html/[messageUuid]/route.ts`, `src/app/api/messages/live/route.ts`, `src/app/api/messages/attachment/[attachmentUuid]/route.ts`, `src/components/users/live-mail-notifier.tsx`, `src/components/users/users-workspace-shell.tsx`, `src/components/users/create-user-mailbox-modal.tsx`, `src/components/users/user-mailboxes-view.tsx`, `src/components/users/mailbox-inbox-view.tsx`, `src/components/users/message-reader-view.tsx`, `src/users/overview-panel.tsx`, `tests/messages/phase5-users-workspace.test.ts`, `tests/ui/users-phase5.test.tsx`.
+- **Completed Updates & Fixes:**
+  - `BUG-01`: Added theme-aware sanitized HTML document support (`?theme=dark|light` + `@media (prefers-color-scheme: dark)` + `#151e26`/`#e3ebf0`), removed inline white/dark styles from demo email HTML strings, and replaced `bg-white` iframe/container in `message-reader-view.tsx` with `bg-card` + hydration-safe `useSyncExternalStore` theme sync.
+  - `BUG-02`: Removed deprecated `navigate-to 'none'` directive from `SAFE_HTML_CSP_POLICY` in `src/core/messages/service.ts` (`0` CSP console errors).
+  - `BUG-03`: Fixed `canDeleteMailboxes: isAdministrator || true` to `isAdministrator` in `src/core/messages/demo-workspace.ts` so `demo.user` no longer sees Delete/Bulk-Delete controls.
+  - `BUG-08` & `ui/*` unification: Deduplicated `CreateUserMailboxModal` via shared `UsersLiveContext.openCreateMailboxModal` when mounted inside `UsersWorkspaceShell`; fixed an infinite `useEffect` re-render loop in `LiveWorkspaceNavigationBar` by stabilizing `onLivePayload` via `useRef`; replaced raw `<input>`, `<select>`, `<label>`, `<button>`, warning/error divs, and inline `<Link>` button styles across `/users/*` with global `Input`, `Select`, `Label`, `Button`, `IconButton`, `Checkbox`, `CopyButton`, and `AlertBanner`; fixed `"1 message"` singular/plural grammar in `overview-panel.tsx`.
+  - `BUG-09` (`ERR-01`, `ERR-03`, `ERR-06`): Replaced silent `catch {} -> 200 EMPTY_LIVE_PAYLOAD` in `/api/messages/live/route.ts` with `logger.error` + `503` JSON error and surfaced `Live sync paused` status in `live-mail-notifier.tsx` & `users-workspace-shell.tsx` after repeated poll failures; added `logger.error` in `/api/messages/html/[messageUuid]` & `/api/messages/attachment/[attachmentUuid]` catch blocks while maintaining uniform `404` responses.
+- **Verification Results:**
+  - `npm run test:messages`: **9/9 tests passed**.
+  - `npm run test:ui` (`vitest`): **15/15 files, 54/54 tests passed** (including singular `"1 message"`, single-modal delegation, and `ui-primitives`).
+  - `npm run typecheck`: Passed (`0` errors).
+  - `npm run lint` (`eslint .`): Passed (`0` errors, `0` warnings).
+  - `npm run build` (`compile_applet`): Passed.
+  - Post-patch static grep audit across `src/components/users`, `src/users`, `src/core/messages`, `src/app/api/messages`: `ZERO_MATCHES` for raw `<input`/`<select`/`<textarea`/`<label`, `bg-white`, `navigate-to`, `rounded-*`, `shadow-*`, `font-bold`, and `isAdministrator || true`.
+  - Playwright Chromium live check (`demo.user`, `1440x900` Light/Dark + `390x844` Mobile): `0` console errors, `0` failed requests, single `Create mailbox` dialog (`1`), `0` delete buttons on `/users/mailboxes`, Dark HTML iframe renders `#151e26` surface cleanly, and `mobileOverflow: false` (`390 === 390`).
+- **Remaining Phases:** `4` (`Phase-03` → `Phase-06`). Next: `Phase-03`.
 
-### Entry 04 — Phase 3: `/vcon/domains` DNS Engine, PostgreSQL Mailserver Adapter & `/vcon/mailboxes` Provisioning + Purge
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified strictly Phase 3 `IN SCOPE` config, mailserver adapter, DNS, domain/mailbox service & route files, plus minimal `AppShell` `managementNavigation` links (`Domains`, `Mailboxes`) and exported `getAuthorizedAdminUser()` helper in `src/core/auth/route-guards.ts` for `/api/vcon/domains/*` fail-closed 404 auth. Zero Phase 4–7 modules (MIME ingestion parser, HTML/CSS sanitizer, `/users` workspace reader, `/vcon/settings`, `/vcon/system-update`) or `prisma/schema.prisma` touched.
-- **Bugs Fixed / Features Added:**
-  - `GAP-008` & `DISC-002`: Implemented `/vcon/domains`, `/vcon/domains/new`, `/vcon/domains/[uuid]/edit`, `/api/vcon/domains/dns-preview`, and `/api/vcon/domains/[uuid]/dns-status`, backed by pure 5-record DNS builder + Cloudflare BIND zone exporter (`src/core/dns/records.ts`), OpenDKIM `mail.txt` reader (`src/core/dns/opendkim.ts`), Node `dns/promises` timeout-guarded resolver separating required routing (`MX` + `A/AAAA`) from deliverability (`SPF`, `DKIM`, `DMARC`) (`src/core/dns/resolver.ts`), and domain service enforcing `dnsConfirmed`, immutable names, fail-closed auto-disable on routing failure without auto-enabling on pass, atomic `isDefault` switching, and `isDefault`/`MAIL_DOMAIN`/mailbox delete guards (`src/core/domains/service.ts`).
-  - `GAP-009` & `DISC-001`: Implemented real single-PostgreSQL adapter `src/core/mailserver/pg-adapter.ts` (`PgReadOnlyMailServerAdapter` + `mailserver.*` domain/mailbox sync + strict `^[a-z0-9_]+$` SQL identifier quoting + `!READBOX-READ-ONLY!...` password hashes), mailbox validators & symlink/traversal-safe `confinedPath` (`src/core/mailboxes/{validators,paths}.ts`), cross-process `proper-lockfile` locking + `0700` Maildir tree creation + rollback strictly removing newly created dirs while preserving pre-existing trees (`src/core/mailboxes/provisioning.ts`), and admin mailbox service/UI (`/vcon/mailboxes`, `/new`, `/[uuid]/delete`) supporting Generate local-part, live user filter, `"Create & copy"`, enable/disable toggle, typed-email single purge, bulk purge confirmation, and `postmaster`/`abuse` system mailbox creation (`src/core/mailboxes/service.ts`).
-- **Packages Added:**
-  - `proper-lockfile`, `@types/proper-lockfile` (`package.json` via `install_applet_package`).
-- **Files Created / Modified:**
-  - `.env.example`, `src/config/env-schema.ts`
-  - `src/core/auth/route-guards.ts` (`getAuthorizedAdminUser`)
-  - `src/core/mailserver/pg-adapter.ts`
-  - `src/core/dns/{opendkim.ts,records.ts,resolver.ts}`
-  - `src/core/domains/service.ts`
-  - `src/core/mailboxes/{validators.ts,paths.ts,provisioning.ts,service.ts}`
-  - `src/components/layout/app-shell.tsx` (`Domains` + `Mailboxes` links under `Management`)
-  - `src/components/vcon/{dns-records-panel.tsx,domains-directory.tsx,domain-form.tsx,mailboxes-directory.tsx,mailbox-form.tsx,mailbox-purge-confirm.tsx}`
-  - `src/app/api/vcon/domains/dns-preview/route.ts`, `src/app/api/vcon/domains/[uuid]/dns-status/route.ts`
-  - `src/app/(workspace)/vcon/domains/{actions.ts,page.tsx,new/page.tsx,[uuid]/edit/page.tsx}`
-  - `src/app/(workspace)/vcon/mailboxes/{actions.ts,page.tsx,new/page.tsx,[uuid]/delete/page.tsx}`
-  - `tests/admin/phase3-domains-mailboxes.test.ts`, `tests/ui/app-shell.test.tsx`, `tests/ui/vcon-phase3.test.tsx`, `package.json` (`test:admin`)
-- **Files Explicitly Preserved Untouched:**
-  - `.env.development`, `src/core/auth/dev-demo-auth.ts`, `src/core/auth/credentials.ts`, `src/users/*`, `prisma/schema.prisma`, `/vcon/users/*`, `/vcon/audit`, ingestion/sanitizer/settings/system-update modules.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (`test:compat`, `test:postfix`, `test:setup`, `test:auth`, `test:audit`, `test:admin` 13/13 incl. 6 new Phase 3 suites, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (9 files, 32/32 tests).
-  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS**.
-  - Headless Chromium (`playwright-cli`): Verified `demo.admin` `/vcon/domains`, `/vcon/domains/new` (`Preview DNS` generating 5 records + Cloudflare export with clean `[overflow-wrap:anywhere]` table wrapping), `/vcon/mailboxes`, `/vcon/mailboxes/new` (`Generate` producing `quinn.miller11`), mobile `390x844` zero horizontal overflow (`scrollWidth === 390`), and `demo.user` non-enumerating HTTP `404` on `/vcon/domains` and `/api/vcon/domains/dns-preview`.
-- **Remaining Phases:** `4` remaining -> Next: **Phase 4**
+### `[Phase-01] 2026-11-15 — Global CSS Tokens, Theme Sync & Shared ui/* Primitives`
+- **Scope Verification:** Strict Phase-01 Scope Lock respected (`0` files modified outside allowlist).
+  - Modified: `src/app/globals.css`, `src/app/layout.tsx`, `src/app/manifest.ts`, `src/components/ui/label.tsx`, `src/components/ui/index.ts`, `src/components/layout/app-shell.tsx`, `tests/ui/installability-manifest.test.tsx`.
+  - Created: `src/components/ui/alert-banner.tsx`, `src/components/ui/checkbox.tsx`, `src/components/ui/copy-button.tsx`, `tests/ui/ui-primitives.test.tsx`.
+- **Completed Updates & Fixes:**
+  - `BUG-04`: Synced `layout.tsx` (`#f6f8fa` / `#10171d`) and `manifest.ts` (`#f6f8fa` / `#2558bf`) with `globals.css`; aliased `--input`, `--ring`, and `--sidebar-active*` cleanly in `globals.css` (`:root` + `.dark`).
+  - `BUG-05`: Standardized `Label` to `text-xs font-medium text-foreground`; added shared `<AlertBanner>`, `<Checkbox>`, and `<CopyButton>` exported from `@/components/ui`; replaced raw `<button>` Sign out in `app-shell.tsx` with `<Button variant="outline" size="default">`.
+- **Verification Results:**
+  - `npm run typecheck`: Passed.
+  - `npm run lint` (`eslint .`): Passed (`0` errors/warnings).
+  - `npm run build` (`compile_applet`): Passed.
+  - `npm run test:ui` (`vitest`): **15/15 files, 53/53 tests passed** (including `tests/ui/ui-primitives.test.tsx` & `tests/ui/installability-manifest.test.tsx`).
+  - Post-patch CSS grep audit on `src/components/ui` + `src/components/layout`: `0` non-zero `rounded-*`, `0` `shadow-*`, `0` `font-bold`.
+  - Playwright Chromium (`1440x900`) live check on `/users` (Light) & `/vcon` (Dark): `0` failed requests, sharp `0rem` Sign out button & consistent background/accent tokens confirmed visually.
+- **Remaining Phases:** `5` (`Phase-02` → `Phase-06`). Next: `Phase-02`.
 
----
-
-### Entry 05 — Phase 4: Maildir Ingestion Worker, HTML/CSS Sanitizer & `/vcon/operations`
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified strictly Phase 4 `IN SCOPE` packages, env schema, ingestion/repair/operations core modules, worker & CLI script, `/vcon/operations` page/actions/component, `AppShell` (`Operations` nav link under `Management`), and unit/UI test suites. Zero Phase 5–7 modules (`/users/*` inbox/reader UI, `/vcon/settings`, `/vcon/system-update`), `/vcon/domains/*`, `/vcon/mailboxes/*`, `/vcon/users/*`, auth core, or `prisma/schema.prisma` modified.
-- **Bugs Fixed / Features Added:**
-  - `GAP-010` & `DISC-003`: Implemented deterministic Maildir ingestion pipeline (`src/core/ingestion/{sanitizer,parser,attachments,counters,service}.ts`, `src/workers/ingestion.ts`, `scripts/mail/ingest.ts`) featuring:
-    - AST-based HTML/CSS allowlist sanitizer (`sanitize-html` + `css-tree`) enforcing `SAFE_HTML_TAGS`, `DROP_CONTENT_TAGS`, raster-only `data:image/{png,jpeg,gif,webp};base64,` (blocking remote `http(s)` trackers, `cid:`, and `data:image/svg+xml`), `rel="nofollow noopener noreferrer" target="_blank"`, `CSS_ALLOWED_PROPERTIES`, `CSS_ALLOWED_FUNCTIONS`, `@media (all|screen)` dimension/orientation allowlist, and strict `CssBudget` (`128KB` block input, `256KB` total retained, `512` rules, `8` nesting depth) blocking `url()`, `var()`, `--*`, `expression()`, `@import`, and `</style`.
-    - `postal-mime` email parser extracting headers, bodies, and bounded attachments (`MAX_ATTACHMENTS_PER_MESSAGE`) while isolating empty/malformed MIME inputs without throwing.
-    - Confined `0600` sharded attachment storage (`{xx}/{32hex}.bin`) inside `ATTACHMENT_STORAGE_ROOT` with extension-aware safe MIME detection and compensating file removal on DB rollback.
-    - Read-only `Maildir/new` & `cur` scanning (`resolveMaildirSourceKey`, `iterMaildirFiles`), idempotent `(mailboxId, sourceFileKey)` deduplication, streaming SHA-256 oversized message handling (`parseStatus = "oversized"`), per-file error isolation with `ingestion_error` audit logging, cross-process `proper-lockfile` locking (`INGESTION_LOCK_FILE`), and `ServiceHeartbeat("maildir_ingestion")` updates (`running` -> `healthy`/`degraded`).
-  - `GAP-011` & `DISC-004` (`/vcon/operations` portion): Implemented `src/core/ingestion/repair.ts`, `src/core/operations/service.ts`, `src/components/vcon/operations-console.tsx`, and `src/app/(workspace)/vcon/operations/{page,actions}.ts` providing admin diagnostics and interactive maintenance tools:
-    1) Verify Postfix PostgreSQL contract (`verifyMailserverContract`)
-    2) Synchronize `mailserver.mailboxes` into app schema (`dryRun` + `strict` rollback parity)
-    3) Provision / verify confined `0700` Maildir trees (`createMaildirTree`)
-    4) Rebuild unindexed Maildir messages (`dryRun` scan + execute)
-    5) Recalculate mailbox message/unread counters (`recalculateAllMailboxCounters`)
-    6) Non-destructive SHA-256 verified message body repair (`repairMessageBodies` with `confirmRepair` checkbox & `1..5000` batch limit) — with **zero** message bodies exposed in UI or DTOs.
-- **Packages Added:**
-  - `postal-mime`, `sanitize-html`, `@types/sanitize-html`, `css-tree`, `@types/css-tree` (`package.json` via single batched `install_applet_package`).
-- **Files Created / Modified:**
-  - `.env.example`, `src/config/env-schema.ts`
-  - `src/core/ingestion/{sanitizer.ts,parser.ts,attachments.ts,counters.ts,service.ts,repair.ts}`
-  - `src/core/operations/service.ts`
-  - `src/workers/ingestion.ts`, `scripts/mail/ingest.ts`
-  - `src/components/layout/app-shell.tsx` (`Operations` link under `Management`)
-  - `src/components/vcon/operations-console.tsx`
-  - `src/app/(workspace)/vcon/operations/{actions.ts,page.tsx}`
-  - `tests/admin/phase4-ingestion-operations.test.ts`, `tests/ui/app-shell.test.tsx`, `tests/ui/vcon-phase4.test.tsx`, `package.json` (`test:admin`, `mail:ingest`)
-- **Files Explicitly Preserved Untouched:**
-  - `.env.development`, `src/core/auth/*`, `src/users/*`, `prisma/schema.prisma`, `/vcon/domains/*`, `/vcon/mailboxes/*`, `/vcon/users/*`, `/vcon/audit/*`, settings/system-update modules.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (`test:compat`, `test:postfix`, `test:setup`, `test:auth`, `test:audit`, `test:admin` 23/23 incl. 10 new Phase 4 suites, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (10 files, 34/34 tests).
-  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS**.
-  - Headless Chromium (`playwright-cli`): Verified `demo.admin` `/vcon/operations` at desktop `1440x900` (`scrollWidth === 1440`) and mobile `390x844` (`scrollWidth === 390`, `overflowX === false`), plus `demo.user` non-enumerating HTTP `404` on `/vcon/operations` and hidden `Operations` sidebar link.
-- **Remaining Phases:** `3` remaining -> Next: **Phase 5**
-
----
-
-### Entry 06 — Phase 5: User Workspace (`/users` Inbox, Sandboxed Reader, Attachments, Live Polling)
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified strictly Phase 5 `IN SCOPE` modules (`src/core/messages/service.ts`, `src/core/auth/route-guards.ts` `getAuthorizedWorkspaceUser`, `/users` overview & sub-routes, `/api/messages/{html/[messageUuid],attachment/[attachmentUuid],live}`, `/src/components/users/*`, `package.json` `test:messages`, and Phase 5 unit/UI tests). Zero `/vcon/*` admin panels, `AppShell` sidebar links, `/sign-in` auth core, or `prisma/schema.prisma` modified.
-- **Bugs Fixed / Features Added:**
-  - `GAP-012`: Replaced `/users` static placeholder with full MailStack User Workspace:
-    - `src/core/messages/service.ts`: Membership-scoped queries (`MailboxMembership` for regular users, all non-deleted mailboxes for administrators), `getUserWorkspaceOverview`, `listUserMailboxes`, `createUserSelfMailbox` (auto-assigning `MailboxMembership` to creating non-admin user), `canDeleteMailboxes`-gated `deleteUserMailbox` & `bulkDeleteUserMailboxes`, `listMailboxMessagesForUser` (`30/page` pagination, `receivedAt DESC NULLS LAST`, case-insensitive search across `senderName`/`senderAddress`/`subject`, `unread` and `attachments` filters, `inbox_access` audit), `getMessageDetailForUser` (atomic auto-read + `recalculateMailboxCounters` + `message_auto_read` & `message_view` audits), `markMessageUnreadForUser` (`message_mark_unread` audit), `softDeleteMessageForUser` (`canDeleteMessages` policy check, `deletedAt`/`deletedById` DB update, counter sync, `message_deleted` audit with `source_preserved: true`, leaving Maildir source files untouched), `getSanitizedMessageHtmlForUser` (`SAFE_HTML_CSP_POLICY`), `getAttachmentForUserDownload` (`confinedPath` regular-file verification, uniform 404 on traversal/symlink/non-member, `attachment_download` audit), and bounded `pollLiveMessagesForUser` (`X-MailStack-Live-Request: 1`, never leaking message bodies).
-    - API routes: `/api/messages/html/[messageUuid]` (`default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; navigate-to 'none'`, `nosniff`, `no-referrer`, `private, no-store`), `/api/messages/attachment/[attachmentUuid]` (`Content-Disposition: attachment`, `nosniff`, `private, no-store`, optional `X-Accel-Redirect`), and `/api/messages/live` (`X-MailStack-Live-Request: 1`, `private, no-store`).
-    - Client UI: `LiveWorkspaceNavigationBar` (`BroadcastChannel`, `localStorage`, `navigator.locks` cross-tab notification deduplication + Web `Notification` API toggle), `UserOverview`, `CreateUserMailboxModal` (`Generate` + `"Create & copy"`), `UserMailboxesView`, `MailboxInboxView`, and `MessageReaderView` (`<iframe sandbox="" referrerPolicy="no-referrer" />`, HTML/Plain-text toggle, attachment download cards, `Mark unread`, and `canDeleteMessages`-gated delete modal).
-- **Files Created / Modified:**
-  - `src/core/auth/route-guards.ts` (`getAuthorizedWorkspaceUser`)
-  - `src/core/messages/service.ts`
-  - `src/app/api/messages/html/[messageUuid]/route.ts`
-  - `src/app/api/messages/attachment/[attachmentUuid]/route.ts`
-  - `src/app/api/messages/live/route.ts`
-  - `src/components/users/{live-mail-notifier.tsx,create-user-mailbox-modal.tsx,user-mailboxes-view.tsx,mailbox-inbox-view.tsx,message-reader-view.tsx}`
-  - `src/users/overview-panel.tsx`, `src/app/(workspace)/users/page.tsx`
-  - `src/app/(workspace)/users/mailboxes/{actions.ts,page.tsx}`
-  - `src/app/(workspace)/users/inbox/[mailboxUuid]/page.tsx`
-  - `src/app/(workspace)/users/inbox/[mailboxUuid]/[messageUuid]/{actions.ts,page.tsx}`
-  - `tests/messages/phase5-users-workspace.test.ts`, `tests/ui/users-phase5.test.tsx`, `package.json` (`test:messages`)
-- **Files Explicitly Preserved Untouched:**
-  - `.env.development`, `src/core/auth/{credentials,dev-demo-auth}.ts`, `src/components/layout/app-shell.tsx`, `src/vcon/*`, `src/components/vcon/*`, `src/app/(workspace)/vcon/*`, `prisma/schema.prisma`.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (`test:compat`, `test:postfix`, `test:setup`, `test:auth`, `test:audit`, `test:admin` 23/23, `test:messages` 8/8, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (11 files, 39/39 tests).
-  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS**.
-  - Headless Chromium (`playwright-cli`): Verified `demo.user` `/users` and `/users/mailboxes` at desktop `1440x900` and mobile `390x844` (`scrollWidth === 390`, `overflowMobile === false`), `/api/messages/live` returning `400` without `X-MailStack-Live-Request: 1` and `200` (`Cache-Control: private, no-store`) with header, and `/api/messages/{html,attachment}/*` returning uniform `404` (`X-Content-Type-Options: nosniff`).
-- **Remaining Phases:** `2` remaining -> Next: **Phase 6**
-
-### Entry 07 — Phase 6: `/vcon/settings`, `/vcon/system-update`, Health Readiness & VPS Templates
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified strictly Phase 6 `IN SCOPE` modules (`env-schema.ts`, `.env.example`, `src/core/settings/{service,snapshot}.ts`, `src/core/updates/service.ts`, `src/core/health/snapshot.ts`, `/api/site-settings`, `/health/site-settings`, `/api/media/[...path]`, `/api/vcon/update/{check,preflight,start,status}`, `/vcon/settings/*`, `/vcon/system-update/*`, `AppShell` / `(workspace)/layout.tsx` / `app/layout.tsx` / `app/manifest.ts` branding hydration, `scripts/updater/*`, `scripts/ops/*`, `deployment/templates/*`, and Phase 6 unit/UI tests). Zero `/users/*` inbox/reader/mailbox routes, `/vcon/domains/*`, `/vcon/mailboxes/*`, `/vcon/users/*`, `/vcon/operations/*`, `/vcon/audit/*`, auth core, or `prisma/schema.prisma` modified.
-- **Bugs Fixed / Features Added:**
-  - `BUG-005`, `GAP-004` & `GAP-013`: Implemented singleton `SiteSettings` (`id = 1n`) service (`src/core/settings/{service,snapshot}.ts`), `/vcon/settings` admin UI (`src/components/vcon/settings-console.tsx`, `src/app/(workspace)/vcon/settings/{page,actions}.ts`), upload validation (`validateSiteAssetUpload` enforcing `<= 5 MB` logo, `<= 512 KB` favicon, MIME/extension match, and SVG `<script>`/`javascript:`/`onload`/`onerror` rejection), confined media storage (`MEDIA_ROOT/site-settings/*` via `confinedPath`), `/api/media/[...path]` (`X-Content-Type-Options: nosniff` + sandbox CSP), `/api/site-settings` & `/health/site-settings` (`PUBLIC_SITE_ORIGIN` strict CORS matching), and dynamic branding hydration in `AppShell`, `src/app/layout.tsx`, and `src/app/manifest.ts`.
-  - `GAP-014`: Implemented `/vcon/system-update` admin console (`src/core/updates/service.ts`, `src/components/vcon/system-update-console.tsx`, `src/app/(workspace)/vcon/system-update/page.tsx`, `/api/vcon/update/{check,preflight,start,status}`) featuring `getCurrentSystemVersion`, strict official GitHub URL validator (`isOfficialReleaseUrl` enforcing `https://github.com/<repo>/releases/download/...` with zero query/fragment), `checkLatestRelease` (`10s` timeout, non-draft/non-prerelease, `-source.zip` + `.sha256` verification), `runUpdatePreflight` (9-category, 31-check host readiness inspector), `queueUpdateRequest` (atomic `0640` hard-link to `/run/vibmail/update_request.json` with exact keys `{"archive_url","checksum_url","confirm_upgrade":true}` + `system_update_requested` audit), and privilege-separated updater scripts (`scripts/updater/{update_worker.py,verify_upgrade_archive.py,upgrade.sh}`).
-  - `GAP-015`: Upgraded `src/core/health/snapshot.ts` (`GET /health/ready`) to verify production configuration completeness, database connectivity (`SELECT 1`), pending/failed `_prisma_migrations`, writable `MAIL_STORAGE_ROOT` & `ATTACHMENT_STORAGE_ROOT`, and fresh `ServiceHeartbeat("maildir_ingestion")`; added single-PostgreSQL VPS deployment templates (`deployment/templates/postfix/pgsql-virtual-{domains,mailboxes,aliases}.cf.tpl`, `deployment/templates/dovecot/99-vibmail.conf.tpl`, `deployment/templates/nginx/app.conf.tpl`, `deployment/templates/systemd/vibmail-{web,ingestion,updater}.service.tpl`) and `pg_dump`/`psql` backup/restore scripts (`scripts/ops/{backup,restore}.sh`).
-- **Files Created / Modified:**
-  - `.env.example`, `src/config/env-schema.ts`
-  - `src/core/settings/{snapshot.ts,service.ts}`
-  - `src/core/updates/service.ts`
-  - `src/core/health/snapshot.ts`
-  - `src/app/api/site-settings/route.ts`, `src/app/health/site-settings/route.ts`, `src/app/api/media/[...path]/route.ts`
-  - `src/app/api/vcon/update/{check,preflight,start,status}/route.ts`
-  - `src/app/(workspace)/vcon/settings/{actions.ts,page.tsx}`, `src/components/vcon/settings-console.tsx`
-  - `src/app/(workspace)/vcon/system-update/page.tsx`, `src/components/vcon/system-update-console.tsx`
-  - `src/components/layout/app-shell.tsx`, `src/app/(workspace)/layout.tsx`, `src/app/layout.tsx`, `src/app/manifest.ts`
-  - `scripts/updater/{update_worker.py,verify_upgrade_archive.py,upgrade.sh}`
-  - `scripts/ops/{backup.sh,restore.sh}`
-  - `deployment/templates/postfix/pgsql-virtual-{domains,mailboxes,aliases}.cf.tpl`
-  - `deployment/templates/dovecot/99-vibmail.conf.tpl`, `deployment/templates/nginx/app.conf.tpl`
-  - `deployment/templates/systemd/vibmail-{web,ingestion,updater}.service.tpl`
-  - `tests/admin/phase6-settings-update-health.test.ts`, `tests/ui/vcon-phase6.test.tsx`, `tests/ui/app-shell.test.tsx`, `package.json` (`test:admin`)
-- **Files Explicitly Preserved Untouched:**
-  - `.env.development`, `src/core/auth/*`, `src/users/*`, `src/components/users/*`, `src/app/(workspace)/users/*`, `prisma/schema.prisma`, `/vcon/domains/*`, `/vcon/mailboxes/*`, `/vcon/users/*`, `/vcon/operations/*`, `/vcon/audit/*`.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (`test:compat`, `test:postfix`, `test:setup`, `test:auth`, `test:audit`, `test:admin` 27/27 incl. 4 new Phase 6 suites, `test:messages` 8/8, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (12 files, 41/41 tests).
-  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS**.
-  - Headless Chromium (`playwright-cli`): Verified `demo.admin` `/vcon/settings` and `/vcon/system-update` (including `Update Logs` modal) at desktop `1440x900` (`scrollWidth === 1440`) and mobile `390x844` (`scrollWidth === 390`), `/api/site-settings` & `/health/site-settings` (`200` + `X-Content-Type-Options: nosniff`), `/health/live` (`200`), `/health/ready` (`503` in dev without DB + `Cache-Control: no-store`), and non-admin `404` on `/api/vcon/update/*`.
-- **Remaining Phases:** `1` remaining -> Next: **Phase 7**
-
----
-
-### Entry 08 — Phase 7: End-to-End Browser Verification (`320px`/`768px`/`1280px`, Light/Dark, PWA), Postgres Integration & Production Cutover Gate
-- **Date Completed:** 2026-11-15
-- **Scope Lock Compliance:** Verified — modified strictly Phase 7 `IN SCOPE` responsive layout classes (`src/app/sign-in/page.tsx`, `src/components/auth/sign-in-form.tsx`, `src/app/reset-password/page.tsx`, `src/components/vcon/system-update-console.tsx`), PostgreSQL integration test suite (`tests/auth/database-flow.test.ts`), Phase 7 UI/PWA test suite (`tests/ui/phase7-responsive-pwa.test.tsx`), and parity documentation (`docs/FEATURE-PARITY.md`, `notes/*`). Zero backend business logic or database schema changes.
-- **Bugs Fixed / Features Added:**
-  - `BUG-006`: Resolved `320px` horizontal clipping across `/sign-in` (`min-w-0`, `px-4 sm:px-6`, `[overflow-wrap:anywhere]`, `code.break-all`), `/reset-password` (`min-w-0`, `px-4 sm:px-6`), and `/vcon/system-update` (`flex-wrap`, `min-w-0`, `[overflow-wrap:anywhere]`).
-  - `GAP-016`:
-    - Executed headless Chromium (`playwright-cli`) verification across all 15 routes (`/sign-in`, `/reset-password`, `/users`, `/users/mailboxes`, `/vcon`, `/vcon/domains`, `/vcon/domains/new`, `/vcon/mailboxes`, `/vcon/mailboxes/new`, `/vcon/users`, `/vcon/users/new`, `/vcon/operations`, `/vcon/audit`, `/vcon/settings`, `/vcon/system-update`) at `320px`, `768px`, and `1280px` in both **Light** and **Dark** themes — every single route passed with `scrollWidth === clientWidth` (`overflow: false`) and `0` console errors.
-    - Verified computed typography (`"Segoe UI", sans-serif`), `prefers-reduced-motion: reduce` CSS contract, `/manifest.webmanifest`, and `public/sw.js` strict private-route cache exclusion (`tests/ui/phase7-responsive-pwa.test.tsx`).
-    - Expanded `tests/auth/database-flow.test.ts` to assert all 4 migrations (including `20261115000000_mailserver_schema_and_roles`), `mailserver.postfix_virtual_{domains,mailboxes,aliases}` views, and `postfix_lookup` column-level privilege exclusion of `password_hash`.
-- **Files Created / Modified:**
-  - `src/app/sign-in/page.tsx`, `src/components/auth/sign-in-form.tsx`, `src/app/reset-password/page.tsx`
-  - `src/components/vcon/system-update-console.tsx`
-  - `tests/auth/database-flow.test.ts`
-  - `tests/ui/phase7-responsive-pwa.test.tsx`
-  - `docs/FEATURE-PARITY.md`, `notes/*`
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (0 exit across all unit, compatibility, Postfix, setup, auth, audit, admin, messages, target-guard, TypeScript, ESLint, and Prisma schema checks).
-  - `npm run test:ui`: **PASS** (13 files, 45/45 UI tests).
-  - `compile_applet` (`next build`) & `lint_applet` (`eslint .`): **PASS** (0 errors).
-  - Headless Chromium (`playwright-cli`): **PASS** (15 routes × 3 viewports `320/768/1280px` × 2 themes `Light/Dark` = 90 viewport-theme checks with `0` overflow and `0` console errors).
-- **Remaining Phases:** **`0` remaining — All 8 Phases (`Phase 0` – `Phase 7`) Complete & Production Cutover Ready.**
-
----
-
-### Entry 09 — Public Website (`/`, `/contact`, `/privacy`), Contact Service (`/api/contact/*`), and SEO Routes (`/robots.txt`, `/sitemap.xml`)
-- **Date Completed:** 2026-11-15
-- **Scope & Reference:** Ported `/reference/MailStack/public-site` into the Next.js 16 App Router root domain (`/`, `/contact`, `/privacy`) with a compact, user-friendly, productive, and SEO-optimized design while preserving `/sign-in`, `/reset-password`, `/users/*`, and `/vcon/*` intact and adhering strictly to `/AGENTS.md` (single PostgreSQL database + in-memory rate-limiting/CSRF tracking — zero SQLite).
-- **Features Added:**
-  - **Public Landing Page (`/src/app/page.tsx`):** Replaced root redirect (`/users` -> `/sign-in`) with a compact, high-craft public landing page featuring a live Business Inbox preview card, 4-pillar trust strip, 3 service tiers (`Personal Private Mailbox`, `Team Mailbox Access`, `Business Mailbox Operations` linking to `/contact?service=personal|team|business`), 4 platform feature cards, 3-step onboarding workflow, Security by Design section, 4 use cases, interactive 5-item FAQ accordion, and bottom CTA banner.
-  - **Public Contact & Onboarding Page (`/src/app/contact/page.tsx` & `/src/components/public/contact-inquiry-form.tsx`):** Interactive inquiry form with `?service=` query prefill, live `0 / 2000` character counter, CSRF token handshake (`GET /api/contact/csrf` -> `POST /api/contact`), honeypot + 2.5s timing guard, and dynamic `SiteSettings` contact details (`supportEmail`, `contactPhone`, `officeAddress`).
-  - **Public Privacy Notice Page (`/src/app/privacy/page.tsx`):** All 8 privacy sections (`Overview`, `Information We Collect`, `How Information Is Used`, `Security and Access Controls`, `Data Retention`, `Sharing and Third Parties`, `Your Choices`, `Contact`) hydrated with dynamic `SiteSettings`.
-  - **Public Contact Service & API Routes (`/src/core/contact/service.ts`, `/src/app/api/contact/{csrf,health}/route.ts`, `/src/app/api/contact/route.ts`):** Stateless HMAC + single-use session-bound CSRF token verification, field & spam validation, IP/email rate limiting (`5/IP/15m`, `20/IP/day`, `3/email/hr` with `Retry-After`), and PostgreSQL `public_contact_submitted` audit logging via `recordAudit`.
-  - **SEO & Structured Data (`/src/app/robots.ts`, `/src/app/sitemap.ts`):** Canonical URLs, OpenGraph, Twitter cards, Schema.org `@graph` JSON-LD (`Organization`, `Service`, `WebApplication`, `FAQPage`), `/robots.txt`, and `/sitemap.xml`.
-- **Verification Gate Output:**
-  - `npm run verify:safe`: **PASS** (`test:admin` 31/31 incl. 4 new contact service tests, `tsc --noEmit`, `eslint .`, `prisma validate`).
-  - `npm run test:ui`: **PASS** (14 files, 49/49 UI tests).
-  - `compile_applet` & `lint_applet`: **PASS**.
-  - Headless Chromium (`playwright-cli`): Verified `/`, `/contact?service=team`, `/privacy`, `/robots.txt`, `/sitemap.xml`, and end-to-end `POST /api/contact` (`201 Created`) at `320px`, `768px`, and `1280px` in Light and Dark themes (`overflow: false`, `0` console errors).
-  - **Prisma Fallback & Cooldown Fix (`site_settings_load_fallback`):** Added a 30-second connection cooldown to `getSiteSettings()` so unreachable loopback databases in preview/dev mode don't trigger repeated connection attempts or flood logs with warnings, updated fallback logging to `logger.debug`, and added `upsert` support to `createMockPrismaClient()`.
+### `[Baseline Freeze] 2026-11-15 — Pre-Fix Audit & Notes Lock`
+- **Completed:** Full source-level forensic audit completed; `/notes/` documentation initialized (`00` through `06`).
+- **Source Code Modified:** None (`0` files edited in `src/`).
+- **Remaining Phases:** `6` (`Phase-01` → `Phase-06`).
+- **Next Phase:** `Phase-01` (Global CSS Tokens, Theme Sync & Shared `ui/*` Primitives) upon explicit user go-ahead.

@@ -3,78 +3,79 @@
 
 :root {
   color-scheme: light;
-  --background: #f3f6f8;
-  --foreground: #172733;
+  --background: #f6f8fa;
+  --foreground: #1b2733;
   --card: #ffffff;
-  --card-foreground: #172733;
+  --card-foreground: #1b2733;
   --popover: #ffffff;
-  --popover-foreground: #172733;
-  --primary: #2457c5;
+  --popover-foreground: #1b2733;
+  --primary: #2558bf;
   --primary-foreground: #ffffff;
-  --secondary: #e8eef2;
-  --secondary-foreground: #2c424f;
-  --muted: #edf1f4;
-  --muted-foreground: #5c6f7a;
-  --accent: #d9f2ec;
-  --accent-foreground: #14594c;
-  --destructive: #b93838;
+  --secondary: #eef2f5;
+  --secondary-foreground: #243542;
+  --muted: #f0f3f6;
+  --muted-foreground: #5c6c7a;
+  --accent: #eaf0fb;
+  --accent-foreground: #1b4396;
+  --destructive: #b43c3c;
   --destructive-foreground: #ffffff;
-  --destructive-bg: #fde8e8;
-  --destructive-muted: #8f2929;
-  --success: #18785f;
-  --success-bg: #d9f2ec;
-  --success-foreground: #14594c;
-  --warning: #99610d;
-  --warning-bg: #fff1cf;
-  --warning-foreground: #754b0a;
-  --overlay: rgb(16 26 34 / 48%);
-  --border: #d9e1e6;
-  --input: #cbd6dd;
-  --ring: #7698e3;
+  --destructive-bg: #fbeaea;
+  --destructive-muted: #8c2b2b;
+  --success: #1b6e57;
+  --success-bg: #e6f4ef;
+  --success-foreground: #165946;
+  --warning: #8f5c14;
+  --warning-bg: #fbf2de;
+  --warning-foreground: #6e460d;
+  --overlay: rgb(16 24 32 / 42%);
+  --border: #dce3e8;
+  --input: var(--border);
+  --ring: var(--primary);
   --sidebar: #ffffff;
-  --sidebar-foreground: #263a46;
-  --sidebar-muted: #647783;
-  --sidebar-active: #e8efff;
-  --sidebar-active-foreground: #204caa;
-  --radius: 0.5rem;
-  --font-segoe: "Segoe UI", sans-serif;
+  --sidebar-foreground: #1f2e3b;
+  --sidebar-muted: #5c6c7a;
+  --sidebar-active: var(--accent);
+  --sidebar-active-foreground: var(--accent-foreground);
+  --radius: 0rem;
+  --font-segoe: "Segoe UI", "Segoe UI Web", system-ui, -apple-system, "Helvetica Neue", sans-serif;
 }
 
 .dark {
   color-scheme: dark;
-  --background: #111a21;
-  --foreground: #e4edf1;
-  --card: #18242d;
-  --card-foreground: #e4edf1;
-  --popover: #1b2933;
-  --popover-foreground: #e4edf1;
-  --primary: #83a8ff;
-  --primary-foreground: #14294f;
-  --secondary: #263640;
-  --secondary-foreground: #d6e3e8;
-  --muted: #202e37;
-  --muted-foreground: #a2b2bb;
-  --accent: #183f39;
-  --accent-foreground: #a4e5d4;
-  --destructive: #ff9292;
-  --destructive-foreground: #351616;
-  --destructive-bg: #472626;
-  --destructive-muted: #ffbcbc;
-  --success: #78d3b5;
-  --success-bg: #183f39;
-  --success-foreground: #a4e5d4;
-  --warning: #f0c477;
-  --warning-bg: #46361e;
-  --warning-foreground: #f0c477;
-  --overlay: rgb(0 0 0 / 60%);
-  --border: #34444f;
-  --input: #445661;
-  --ring: #789cf2;
-  --sidebar: #15212a;
-  --sidebar-foreground: #d9e5ea;
-  --sidebar-muted: #9aabb4;
-  --sidebar-active: #223752;
-  --sidebar-active-foreground: #b6ccff;
+  --background: #10171d;
+  --foreground: #e3ebf0;
+  --card: #151e26;
+  --card-foreground: #e3ebf0;
+  --popover: #18232c;
+  --popover-foreground: #e3ebf0;
+  --primary: #6b96f2;
+  --primary-foreground: #0f1b33;
+  --secondary: #1d2832;
+  --secondary-foreground: #d2dde4;
+  --muted: #19242d;
+  --muted-foreground: #96a6b3;
+  --accent: #1d2c42;
+  --accent-foreground: #c4d7ff;
+  --destructive: #eb8c8c;
+  --destructive-foreground: #2c1212;
+  --destructive-bg: #3b2020;
+  --destructive-muted: #f3b0b0;
+  --success: #70c7a8;
+  --success-bg: #17332b;
+  --success-foreground: #a5e0ca;
+  --warning: #dfb66e;
+  --warning-bg: #362a16;
+  --warning-foreground: #dfb66e;
+  --overlay: rgb(0 0 0 / 56%);
+  --border: #283540;
+  --input: var(--border);
+  --ring: var(--primary);
+  --sidebar: #131c23;
+  --sidebar-foreground: #d9e3ea;
+  --sidebar-muted: #8fa0ad;
+  --sidebar-active: var(--accent);
+  --sidebar-active-foreground: var(--accent-foreground);
+  --radius: 0rem;
 }
 
 @theme inline {
@@ -112,9 +113,9 @@
   --color-sidebar-active: var(--sidebar-active);
   --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --font-sans: var(--font-segoe);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
 }
 
 * {
@@ -130,8 +131,9 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: "Segoe UI", sans-serif;
-  font-size: 14px;
+  font-family: var(--font-segoe);
+  font-size: 13px;
+  font-weight: 400;
   line-height: 1.45;
   text-rendering: optimizeLegibility;
 }
@@ -153,8 +155,8 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ring);
+  outline-offset: 1px;
 }
 
 @media (prefers-reduced-motion: reduce) {

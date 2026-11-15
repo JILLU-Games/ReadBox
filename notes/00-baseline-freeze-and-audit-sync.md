@@ -1,86 +1,66 @@
-# 00 — Baseline Freeze & Forensic Audit Synchronization
+# 00 — Baseline Freeze & Forensic Audit Sync
 
-> **Freeze Date:** 2026-11-15  
-> **Project:** ReadBox (`mailstack@0.1.0`)  
-> **Purpose:** Freeze the exact current codebase state as **Baseline v0 (`BASELINE-2026-11-15`)**, record verified test/build health, and synchronize it with the `reference/MailStack` v1.3.5.5 forensic audit (`notes/vcon-admin-forensic-audit.md`) before any update or bug-fix implementation begins.
-
----
-
-## 1. Frozen Stack & Runtime Configuration
-
-- **Framework:** Next.js `16.4.2` (App Router + Turbopack CSS rule), React `19.3.0`, TypeScript `5.x` (`Node >= 22.12.0`).
-- **ORM & Database:** Prisma `7.10.1` + `@prisma/adapter-pg` + `pg` (`PostgreSQL` only per `AGENTS.md`).
-- **Auth & Security:** `next-auth@5.0.0-beta.32` (JWT strategy + DB-backed `AppSession` or dev in-memory demo session), `@node-rs/argon2`, `zod@4.6.7`.
-- **UI & Styling:** Tailwind CSS v4 (`@import "tailwindcss";`, `@custom-variant dark`), `@radix-ui/react-dialog`, `@radix-ui/react-label`, `@radix-ui/react-slot`, `lucide-react`, `next-themes`, `sonner`.
-- **Testing & QA Tooling:** `node --test` (`tsx`), `vitest@5.0.5` + `@testing-library/react` + `jsdom`, `eslint@9`, `tsc --noEmit`, `prisma validate`.
+**Freeze Timestamp:** `2026-11-15T14:01:02-08:00`  
+**Project:** ReadBox / MailStack (`mailstack@0.1.0`, Next.js `16.4.2`, React `19.3.0`, Prisma `7.10.1`, Tailwind CSS v4)  
+**Baseline Mode:** Pre-Fix Documentation Freeze (No source edits performed since forensic audit)
 
 ---
 
-## 2. Frozen File Inventory (`BASELINE-2026-11-15`)
+## 1. Baseline Identity & Technical Stack Snapshot
 
-- **Root & Config:** `.env.example`, `.env.development`, `AGENTS.md`, `README.md`, `components.json`, `compose.yaml`, `eslint.config.mjs`, `next.config.ts`, `package.json`, `prisma.config.ts`, `tsconfig.json`, `vitest.config.mts`.
-- **Database (`prisma/`):**
-  - `schema.prisma` (14 models: `User`, `AdministratorProfile`, `LoginAttempt`, `UserAccessPolicy`, `AppSession`, `PasswordResetToken`, `Domain`, `Mailbox`, `MailboxMembership`, `Message`, `Attachment`, `AuditLog`, `ServiceHeartbeat`, `SiteSettings`)
-  - 3 PostgreSQL migrations (`20261017000000_initial_application_schema`, `20261017190000_local_auth_reset`, `20261018120000_administrator_profiles`)
-- **App Routes (`src/app/`):**
-  - Public/System: `/`, `/sign-in` (`page.tsx`, `actions.ts`), `/reset-password` (`page.tsx`, `actions.ts`), `/api/auth/[...nextauth]/route.ts`, `/health/live/route.ts`, `/health/ready/route.ts`, `/manifest.ts`
-  - Protected `(workspace)/layout.tsx`: `/users` (`page.tsx`), `/vcon` (`page.tsx`)
-- **Feature Panels & Shared UI (`src/`):**
-  - `src/users/overview-panel.tsx` (static Foundation placeholder)
-  - `src/vcon/overview-panel.tsx` (static Foundation placeholder)
-  - `src/components/layout/{app-shell.tsx,theme-toggle.tsx}`
-  - `src/components/auth/{sign-in-form.tsx,password-reset-form.tsx}`
-  - `src/components/providers/{theme-provider.tsx,service-worker-registration.tsx}`
-  - `src/components/ui/{badge,button,dialog,form-field,icon,icon-button,input,label,notifications,table,textarea}.tsx`
-- **Core Backend (`src/config/`, `src/core/`):**
-  - `src/config/{env.ts,env-schema.ts}`
-  - `src/core/auth/*` (`auth-secret.ts`, `credentials.ts`, `current-user.ts`, `dev-demo-auth.ts`, `opaque-token.ts`, `operator-bootstrap.ts`, `operator-environment.ts`, `password-policy.ts`, `password-reset.ts`, `password.ts`, `proxy-request.ts`, `route-access-policy.ts`, `route-guards.ts`, `runtime-policy.ts`, `session-registry.ts`, `sign-in-result.ts`)
-  - `src/core/database/client.ts`
-  - `src/core/health/snapshot.ts`
-  - `src/core/postfix/{read-adapter.ts,mock-read-adapter.ts}`
-  - `src/core/server/logger.ts`
-  - `src/core/setup/{authorization.ts,lifecycle.ts,progress.ts,trusted-operations.ts}`
-- **Scripts & Public PWA:** `scripts/auth/operator.ts`, `scripts/testing/{postgres-integration.ts,postgres-target.ts,verify-safe.mjs}`, `public/{offline.html,sw.js,icons/*}`.
-- **Tests (`tests/`):** `tests/auth/*` (7 files), `tests/compatibility/*` (2 files), `tests/postfix/read-adapter.test.ts`, `tests/schema/postgres-schema.test.mjs`, `tests/setup/*` (4 files), `tests/ui/*` (7 test files + `setup.ts`).
+| Component | Verified Value in Workspace | Source Proof |
+| :--- | :--- | :--- |
+| Framework | Next.js `16.4.2` App Router, React `19.3.0`, TypeScript `5.x` | `package.json:53,59,88` |
+| Styling | Tailwind CSS `4.0.0` (`@tailwindcss/turbopack`), CSS custom properties | `package.json:69,86`, `src/app/globals.css:1-85` |
+| Database / ORM | Single PostgreSQL database via Prisma `7.10.1` + `@prisma/adapter-pg` | `package.json:41-42`, `prisma/schema.prisma`, `AGENTS.md` |
+| Auth & Session | `next-auth@5.0.0-beta.32` (Credentials) + `@node-rs/argon2` + opaque tokens + Dev Demo/Bypass modes | `package.json:40,54`, `src/core/auth/*` |
+| Email Parsing & Sanitization | `postal-mime@4.2.1` + `sanitize-html@2.18.2` + `css-tree@3.2.1` | `package.json:48,51,57,61` |
+| Notifications | `sonner@2.0.8` (wrapped by `src/components/ui/notifications.tsx`, bypassed in `/vcon`) | `package.json:63`, `src/components/ui/notifications.tsx` |
+| Test Tooling | `node --test` (unit/integration) + `vitest@5.0.5` + Testing Library (`tests/ui/*`) | `package.json:14-38,70-73,90` |
 
 ---
 
-## 3. Baseline Verification Snapshot (Executed 2026-11-15)
+## 2. Frozen Design & Architecture Contract (Authoritative Rules)
 
-Exact check results recorded before any code changes:
+All upcoming bug-fix and unification phases (`Phase-01` through `Phase-06`) MUST obey these baseline rules:
 
-| Check / Command | Baseline Result | Notes |
-|---|---|---|
-| `npm run test:compat` | **PASS (22 / 22)** | Compatibility, service worker, PostgreSQL schema static tests pass. |
-| `npm run test:postfix` | **PASS (5 / 5)** | Mock `ReadOnlyMailServerAdapter` unit tests pass. |
-| `npm run test:setup` | **PASS (34 / 34)** | Setup progress, authorization, lifecycle, trusted-operations pass. |
-| `npm run test:auth` | **PASS (22 / 22)** | `test:auth:core` (17/17) + `test:auth:guards` (5/5) pass. |
-| `node --import tsx --test tests/auth/dual-mode-env.test.ts` | **PASS (6 / 6)** | Dev bypass/demo, proxy origin/HTTPS cookie policy tests pass (currently **not** in `test:auth:core`!). |
-| `npm run test:auth:target-guard` | **FAIL (5 / 6 pass, 1 fail)** | Test #6 fails on Linux (`tests/auth/postgres-target.test.ts:27` uses hardcoded `\\compose.yaml` Windows separator). |
-| `npm run verify:safe` | **FAIL (exit 1)** | Fails at `test:auth:target-guard` step above. |
-| `npx tsc --noEmit` | **PASS (0 errors)** | Clean TypeScript check across app and tests. |
-| `npm run lint` | **PASS (0 errors)** | Clean ESLint check. |
-| `npm run db:validate` | **PASS** | `prisma validate` confirms `prisma/schema.prisma` is valid. |
-| `npm run test:ui` (`vitest`) | **PASS (7 files, 21 / 21)** | UI component & contrast/a11y/PWA manifest/SW registration tests pass. |
-| Live PostgreSQL Integration (`test:postgres`) | **NOT RUN (Blocked)** | Requires `.env.test.local` + running `postgres-test` Docker Compose profile. |
-
----
-
-## 4. Development Auth Baseline Mode (Preserved During Updates)
-
-ReadBox baseline includes dual-mode development ergonomics while remaining fail-closed in production:
-- `.env.development` sets `DEV_AUTH_MODE=bypass` and `DEV_AUTH_ROLE=admin` for fast local UI inspection of `/users` and `/vcon`.
-- `DEV_AUTH_MODE=demo` enables `/sign-in` against in-memory `DEV_DEMO_ACCOUNTS` (`demo.admin` / `demo.user`) with AI Studio iframe-compatible cookie settings (`SameSite=None; Secure; Partitioned` over HTTPS dev proxy).
-- `parseEnvironment()` (`src/config/env-schema.ts`) **forcibly clamps `devAuthMode` to `"off"` when `NODE_ENV=production`**, and `getAuthRuntimeConfigurationError()` rejects non-`off` dev modes in production.
-- **Freeze Rule:** All future update phases MUST keep `DEV_AUTH_MODE=bypass|demo|off` functional for local/AI Studio preview while implementing production PostgreSQL behavior for `NODE_ENV=production` (or `DEV_AUTH_MODE=off`).
+1. **Zero Radius / Zero Shadow / Zero Glow:**
+   - `--radius: 0rem` globally (`src/app/globals.css:39,78`).
+   - No `rounded`, `rounded-sm/md/lg/xl/full`, no `shadow-xs/sm/md/lg`, no `bg-gradient-to-*`, no `backdrop-blur`.
+2. **Smooth Soft Typography (No Heavy Bold):**
+   - Font stack strictly `--font-segoe`: `"Segoe UI", "Segoe UI Web", system-ui, -apple-system, "Helvetica Neue", sans-serif`.
+   - Avoid `font-bold` / `font-extrabold`; keep compact hierarchy (`12px` controls, `13px` body, `font-medium` / `font-semibold` sparingly).
+3. **Minimal Color Discipline & Dual Theme Parity:**
+   - Both `.light` (`:root`) and `.dark` supported with identical layout/sizing (only colors swap).
+   - Eliminate hardcoded Tailwind color palettes (`emerald-*`, `amber-*`, `bg-black/60`, `bg-white` in dark mode) in favor of semantic tokens in `src/app/globals.css`.
+   - Enforce 1 subtle border token and clean 2-accent token system across light/dark themes.
+4. **Component-Only Global UI Architecture (`AGENTS.md` Rule):**
+   - Every page, modal, card/panel, button, link-button, input, select, textarea, checkbox, table, alert banner, copy button, icon, and toast notification MUST consume shared primitives from `src/components/ui/*` and `src/components/layout/*`.
+   - Zero page-local hardcoded widget styles or duplicate UI helpers.
+5. **No Extra Noise Text:**
+   - Remove redundant uppercase kickers (`Admin panel`, `System Configuration`) and multi-sentence intro subtitles that bloat compact UI headers.
+6. **Clean Route Persistence & Scope Safety:**
+   - Every workspace/admin page preserves its own unique URL on reload/refresh (`/users`, `/users/mailboxes`, `/users/inbox/[mailboxUuid]`, `/vcon/*`).
+   - Database policy locked to a single PostgreSQL database; do not alter `prisma/schema.prisma` during UI/bugfix phases unless explicitly required.
 
 ---
 
-## 5. Synchronization Between Baseline & Forensic Audit (`notes/vcon-admin-forensic-audit.md`)
+## 3. Baseline vs Forensic Audit Sync Matrix
 
-Comparing current ReadBox baseline against `reference/MailStack` v1.3.5.5 confirms:
-1. **Schema Parity Ready, Mailserver Schema Missing:** All 14 application models already match MailStack's data domain inside PostgreSQL (`prisma/schema.prisma`), plus `AdministratorProfile` and `AppSession`. Only the isolated `mailserver` schema + `postfix_lookup` role for Postfix views remains uncreated.
-2. **Auth Foundation Ahead in Security, Behind in Lockout/Audit:** ReadBox already has Argon2id, `AppSession` DB revocation, and `AdministratorProfile` (`notFound()` guard on `/vcon`), which improves upon Django `is_staff` leaks. However, `credentials.ts` currently hardcodes `ipAddress: null` on `LoginAttempt` (no per-IP throttling), lacks old-attempt pruning, does not update `User.lastLogin`, and has no `AuditLog` writer.
-3. **UI Shells Are Static Stubs:** Both `/users` and `/vcon` currently show `"Foundation"` badges and `"Services not connected"` placeholders; `AppShell` exposes `/vcon` link in the sidebar to everyone instead of filtering by `isAdministrator`.
-4. **Pure Setup Contracts Exist Without Persistence/Workers:** `src/core/setup/*` defines strict authorization & revisioned lifecycle contracts, and `src/core/postfix/read-adapter.ts` defines lookup ports, waiting for real PostgreSQL adapters and workers.
-5. **Decision Locked:** No feature implementation starts until Phases `0..7` in `notes/02-phase-roadmap-and-scope-locks.md` are reviewed and approved step-by-step under strict scope locks.
+The current frozen codebase contains **4 disconnected UI layers** verified by line-by-line inspection and quantitative scanning:
+
+| Layer / Route Group | Current State at Freeze | `@/components/ui` Adoption | Key Verified Violations |
+| :--- | :--- | :--- | :--- |
+| **Global Foundation** (`globals.css`, `layout.tsx`, `manifest.ts`, `ui/*`, `app-shell.tsx`) | Partially standardized | Base layer | Hex color mismatch (`#f3f6f8`/`#2457c5` vs `#f6f8fa`/`#2558bf`), `ui/label.tsx` `text-sm` vs `text-xs`, missing global `AlertBanner` / `CopyButton` / `Checkbox`, raw `<button>`/`<img>` in `app-shell.tsx` |
+| **User Workspace** (`/users/*`, `components/users/*`, `src/users/*`) | Cleanest layer (`0` radius/shadow violations) | ~90% | `bg-white` iframe breaking Dark mode, CSP `navigate-to 'none'` console error, raw controls in `create-user-mailbox-modal.tsx`, inline `<Link>` buttons, duplicate modals/copy buttons, `"1 messages"` grammar, `demo-workspace.ts` `isAdministrator \|\| true` |
+| **Admin Console** (`/vcon/*`, `components/vcon/*`, `src/vcon/*`, `error.tsx`, `not-found.tsx`) | Legacy mixed layer | ~45% (`settings-console.tsx` & `system-update-console.tsx` at `0%`) | `145` non-zero `rounded*`, `3` `shadow-lg`, `emerald-*`/`amber-*` hardcoded colors, `bg-black/60` custom modals, double `<Table>` border wrapper, raw `<select>`, `11` files bypassing `notify` via `sonner` |
+| **Auth Pages** (`/sign-in`, `/reset-password`) | Ununified legacy layer | `0%` | `15` `rounded-md`, `min-h-11`, `text-sm`, raw `<input>`/`<button>`, hardcoded `"ReadBox"` branding, no `ThemeToggle` |
+| **Public Site** (`/`, `/contact`, `/privacy`, `components/public/*`) | Detached marketing layer | `0%` | `66` `rounded*`, `6` `shadow-*`, `31` `font-bold`, `bg-gradient-to-b`, `backdrop-blur`, raw form inputs/buttons/select/textarea, raw `<img>` |
+
+---
+
+## 4. Freeze Verification Rule
+
+Before starting `Phase-01`:
+- Baseline source files in `src/` remain untouched.
+- Any modification made during `Phase-01` through `Phase-06` MUST be bounded by the active phase's **Scope Lock** in `notes/02-phase-roadmap-and-scope-locks.md` and recorded immediately upon completion in `notes/03-phase-completion-log.md`.

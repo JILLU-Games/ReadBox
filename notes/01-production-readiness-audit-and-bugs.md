@@ -1,71 +1,88 @@
-# 01 — Production Readiness Forensic Audit & Bug/Gap Registry
+# 01 — Production-Readiness Forensic Audit & Exact Bug Inventory
 
-> **Document ID:** `DOC-001`  
-> **Baseline Reference:** `BASELINE-2026-11-15` (`notes/00-baseline-freeze-and-audit-sync.md`)  
-> **Parity Reference:** `reference/MailStack` v1.3.5.5 (`notes/vcon-admin-forensic-audit.md`)  
-> **Rule:** Every bug, security gap, contract discrepancy, and missing production feature is assigned a stable ID and mapped to exactly one **Scope-Locked Phase** in `notes/02-phase-roadmap-and-scope-locks.md`.
+**Source Verification:** 100% verified directly against `src/` files (zero assumptions, exact paths & line numbers).  
+**Total UI Files Scanned:** All files under `src/app`, `src/components`, `src/users`, `src/vcon`, plus supporting backend files in `src/core/messages/*` and `src/app/api/messages/*`.
 
 ---
 
-## 1. Confirmed Bugs & Regressions in Current Baseline (`BUG-*`)
+## 1. Quantitative Violation Summary (Frozen Baseline)
 
-| ID | Severity | Location (`File : Symbol / Line`) | Forensic Root Cause | Target Phase |
-|---|---|---|---|---|
-| **BUG-001** | **High** (Resolved in Phase 0) | `tests/auth/postgres-target.test.ts:28,157` | Hardcoded Windows path separator `` `${process.cwd()}\\compose.yaml` `` in mock evidence caused Linux `verify:safe` to fail (`exit 1`). **[RESOLVED in Phase 0 via `node:path` `join()`.]** | **Phase 0 (Done)** |
-| **BUG-002** | **Medium** (Resolved in Phase 0) | `package.json` (`test:auth:core`) | `tests/auth/dual-mode-env.test.ts` (now 8 tests covering iframe cookies, proxy URL normalization, `DEV_AUTH_MODE=bypass/demo`, `extractClientIp`, lockout env defaults) was not wired into `test:auth:core` or `verify:safe`. **[RESOLVED in Phase 0.]** | **Phase 0 (Done)** |
-| **BUG-003** | **High** (Resolved in Phase 0 & Phase 1) | `src/core/auth/credentials.ts`, `src/core/auth/proxy-request.ts`, `src/auth.ts`, `src/config/env-schema.ts`, `src/core/audit/record.ts`, `src/app/sign-in/actions.ts` | `LoginAttempt` hardcoded `ipAddress: null`, ignored reverse-proxy IP, never pruned stale rows, never updated `User.lastLogin`, and lacked `AuditLog` persistence. **[RESOLVED: Phase 0 IP/lockout/pruning/`lastLogin` + Phase 1 `recordAudit()` wiring for `login_success`, `login_failure`, and `logout`.]** | **Phase 0 & 1 (Done)** |
-| **BUG-004** | **Medium** (Resolved in Phase 1) | `src/components/auth/sign-in-form.tsx`, `src/components/layout/app-shell.tsx`, `src/app/(workspace)/layout.tsx` | Post-login redirect hardcoded `/users` even for admins, and `AppShell` showed `"Admin panel"` link to regular non-admin users. **[RESOLVED in Phase 1: admins redirect to `/vcon`, non-admins see only `/users`, and Sign Out button added.]** | **Phase 1 (Done)** |
-| **BUG-005** | **Medium** (Resolved in Phase 6) | `src/app/layout.tsx`, `src/app/manifest.ts`, `src/components/layout/app-shell.tsx`, `src/app/(workspace)/layout.tsx` | Hardcoded `"MailStack"`, `"Foundation mode"`, and `"Mail services are not connected"` replaced with dynamic `SiteSettings` branding (`getSiteSettings()` + `getCachedSiteSettingsSnapshot()`) and live workspace status. **[RESOLVED in Phase 6.]** | **Phase 6 (Done)** |
-| **BUG-006** | **Medium** (Resolved in Phase 7) | `docs/FEATURE-PARITY.md:87`, `src/app/sign-in/page.tsx`, `src/components/auth/sign-in-form.tsx`, `src/app/reset-password/page.tsx`, `src/components/vcon/system-update-console.tsx` | Documented 320px viewport horizontal clipping on `/sign-in`, `/reset-password`, and `/vcon/system-update` fixed via `min-w-0`, `flex-wrap`, and `[overflow-wrap:anywhere]`/`break-all`; verified across all 15 public/user/admin routes at `320px`, `768px`, and `1280px` in Light and Dark themes (`scrollWidth === clientWidth`, `overflow: false`). **[RESOLVED in Phase 7.]** | **Phase 7 (Done)** |
-| **BUG-007** | **Low/Medium** (Resolved in Phase 1) | `src/core/accounts/policy.ts`, `src/core/auth/credentials.ts`, `src/core/auth/current-user.ts` | Centralized `isAccountAdministrator()` & `getAccountRoleFlags()` helpers strictly read `AdministratorProfile` and ignore legacy `User.isStaff` / `User.isSuperuser` booleans (`tests/audit/record-and-policy.test.ts` verified). | **Phase 1 (Done)** |
+| Metric | Total Count | Breakdown by Layer |
+| :--- | :---: | :--- |
+| Non-`rounded-none` (`rounded`, `rounded-md`, `rounded-lg`, `rounded-full`) | **~226** | `/vcon` & `error.tsx`: **145**, Public: **66**, Auth: **15**, `/users`: **0** |
+| Non-zero `shadow-*` (`shadow-xs`, `shadow-sm`, `shadow-lg`) | **9** | `src/app/page.tsx`: **4**, `system-update-console.tsx`: **3**, `public-site-header.tsx`: **1**, `contact-inquiry-form.tsx`: **1** |
+| Heavy `font-bold` / `font-extrabold` | **31** | `src/app/page.tsx`: **14**, `src/app/privacy/page.tsx`: **9**, `src/app/contact/page.tsx`: **6**, `public-site-header.tsx`: **1**, `public-site-footer.tsx`: **1** |
+| Direct `toast` from `"sonner"` (bypassing `notify`) | **11 files** | All 11 interactive `/src/components/vcon/*.tsx` consoles/directories/forms |
+| Modules with `0%` `@/components/ui` adoption | **13 files** | `settings-console.tsx`, `system-update-console.tsx`, `sign-in/page.tsx`, `sign-in-form.tsx`, `reset-password/page.tsx`, `password-reset-form.tsx`, `page.tsx`, `contact/page.tsx`, `privacy/page.tsx`, `public-site-header.tsx`, `public-site-footer.tsx`, `contact-inquiry-form.tsx`, `public-faq-accordion.tsx` |
 
 ---
 
-## 2. Reference App Discrepancies Resolved Before Implementation (`DISC-*`)
+## 2. Exact Verified Bug Catalog (Grouped by Severity & Area)
 
-Forensic inspection of `reference/MailStack` uncovered 4 discrepancies between prose/labels and actual runtime code. These rules are **locked** so ReadBox does not implement conflicting behavior:
+### BUG-01 (High — Functional / UX Dark Mode): HTML Email Iframe Hardcoded `bg-white`
+- **Files:** `src/components/users/message-reader-view.tsx:356-366`, `src/core/messages/demo-workspace.ts:155,215,262`
+- **Cause:** Container `<div>` and `<iframe sandbox="" ...>` hardcode `bg-white`, and demo HTML bodies hardcode `color:#1b2733;background:#ffffff`. In Dark theme, emails render as a harsh white block.
+- **Required Fix:** Use theme-aware surface (`bg-card`) + proper dark/light readable styling strategy for HTML email preview container and demo HTML payload.
 
-| ID | Discrepancy in `reference/MailStack` | Locked ReadBox Decision | Target Phase |
-|---|---|---|---|
-| **DISC-001** | `soft_delete_mailbox()` and `Status.DELETED` exist in `mailboxes/services.py`, **but no web route calls them**; both single delete and bulk delete execute permanent `purge_mailbox()`. | Keep permanent **`purgeMailbox()`** as the default `/vcon/mailboxes` delete path (requiring exact typed `emailAddress` confirmation on single delete and explicit multi-item confirmation modal on bulk purge). Do **not** silently convert delete to soft-delete. **[RESOLVED in Phase 3.]** | **Phase 3 (Done)** |
-| **DISC-002** | `verify_domain()` (`POST /domains/<uuid>/check/`) **only** validates `MX == MAIL_HOSTNAME` + `A/AAAA` resolution for `MAIL_HOSTNAME` (and auto-disables on failure without auto-enabling on success), whereas `verify_dns_records()` (`GET /domains/<uuid>/dns-status/`) checks all 5 records (`MX`, `A/AAAA`, `SPF`, `DKIM`, `DMARC`). | Expose both clearly in `/vcon/domains`: **Routing Verification (Required for Activation: MX + A/AAAA)** vs **Deliverability Checks (SPF + DKIM + DMARC)**. Preserve fail-closed auto-disable on routing failure and explicit admin toggle to enable. **[RESOLVED in Phase 3.]** | **Phase 3 (Done)** |
-| **DISC-003** | `rebuild_mail_index` passes `--rebuild-missing` to `ingest_maildir`, but `ingest_all()` already scans every unindexed file regardless of that flag. | Implement deterministic unindexed Maildir reconciliation cleanly in `src/core/ingestion/service.ts` (`ingestUnindexedMaildirFiles`) without misleading no-op branches. **[RESOLVED in Phase 4.]** | **Phase 4 (Done)** |
-| **DISC-004** | `reference/MailStack` has `AuditLog` and `LoginAttempt` models plus `admin.py`, **but `/admin/` was never mounted in `config/urls.py`**, leaving zero web UI for audit logs or security lockouts. | Add first-class **`/vcon/audit`** (AuditLog + LoginAttempt monitor — **RESOLVED in Phase 2**) and **`/vcon/operations`** (replaces SSH-only repair/sync/counter CLIs — **RESOLVED in Phase 4**) inside `/vcon`. | **Phase 2 & 4 (Done)** |
+### BUG-02 (High — Runtime Browser Error): Unrecognized CSP Directive `'navigate-to'`
+- **Files:** `src/core/messages/service.ts:38`, consumed by `src/app/api/messages/html/[messageUuid]/route.ts:69`
+- **Cause:** `SAFE_HTML_CSP_POLICY` appends `"navigate-to 'none'"`, triggering browser console `[ERROR] Unrecognized Content-Security-Policy directive 'navigate-to'` on every HTML email iframe load (note: `sandbox=""` already blocks frame navigation, and valid directives `base-uri 'none'` + `form-action 'none'` are already set).
+- **Required Fix:** Remove invalid `"navigate-to 'none'"` directive while preserving `sandbox=""` and valid strict CSP directives; update corresponding unit test assertions if present.
 
----
+### BUG-03 (High — Demo Auth / RBAC Integrity): `canDeleteMailboxes` Always `true` in Demo Mode
+- **Files:** `src/core/messages/demo-workspace.ts:355,413`
+- **Cause:** `canDeleteMailboxes: isAdministrator || true` short-circuits to `true` even when signed in as non-admin `demo-user`, masking permission-denied states and showing destructive buttons unconditionally.
+- **Required Fix:** Replace `isAdministrator || true` with `isAdministrator` (or explicit demo role policy).
 
-## 3. Production Readiness Gaps (`GAP-*`) & Exact Target Phases
+### BUG-04 (High — Architectural Drift): Global CSS Token Bloat & Hex Mismatch
+- **Files:** `src/app/globals.css:4-79`, `src/app/layout.tsx:31-36`, `src/app/manifest.ts:16-17`
+- **Cause:**
+  - `layout.tsx:33-34` sets `#f3f6f8` / `#111a21` and `manifest.ts:16-17` sets `#f3f6f8` / `#2457c5`, mismatching `globals.css:6,12,45` (`#f6f8fa`, `#2558bf`, `#10171d`).
+  - `globals.css` defines 15+ color tokens and redundant `--input` identical to `--border` (`lines 31-32,70-71`) instead of clean `1 border + 2 accent` token discipline.
+- **Required Fix:** Align hex tokens identically across `globals.css`, `layout.tsx`, and `manifest.ts`; consolidate redundant tokens cleanly while maintaining accessible light/dark contrast tests (`tests/ui/theme-contrast.test.tsx`).
 
-### 3.1 Security, Audit & Database Foundation
-- **GAP-001 (`Phase 1 — RESOLVED`):** PostgreSQL `mailserver` schema migration (`20261115000000_mailserver_schema_and_roles`) added with `mail_domains`, `mailboxes`, `mail_aliases`, 3 `security_invoker` `postfix_virtual_*` views, and least-privilege `postfix_lookup` grants excluding `password_hash`.
-- **GAP-002 (`Phase 1 — RESOLVED`):** `src/core/audit/record.ts` (`recordAudit`, `recordAppAudit`) implements recursive secret redaction, BigInt/Date normalization, field truncation, and trusted-proxy IP extraction (`TRUST_PROXY_HEADERS`).
-- **GAP-003 (`Phase 1 — RESOLVED`):** `src/core/accounts/policy.ts` (`ensureUserAccessPolicy`, `getUserAccessCapabilities`, `isAccountAdministrator`) added and unit tested.
-- **GAP-004 (`Phase 1 & 6 — RESOLVED`):** `AppShell` receives server-resolved `isAdministrator` + `username` + `signOutAction` (Phase 1) and live `SiteSettings` branding + workspace status hydration (`src/app/(workspace)/layout.tsx` & `src/app/layout.tsx` in Phase 6).
+### BUG-05 (Medium-High — UI Primitive Gap): Missing Global Primitives & `Label` Size Mismatch
+- **Files:** `src/components/ui/label.tsx:6`, `src/components/ui/index.ts`, `src/components/layout/app-shell.tsx:135,154,281-287`
+- **Cause:**
+  - `Label` uses `text-sm font-medium` (14px), conflicting with `13px` body and `12px` (`text-xs`) `Input`/`Select`/`Button`.
+  - No global `AlertBanner` (error/success/warning boxes copy-pasted across 15+ files), no global `CopyButton` (duplicated across 5 files), no global `Checkbox` / `FormSelect` unification, and `app-shell.tsx` uses raw `<button>` for Sign out (`lines 281-287`), raw mobile overlay `<button>` (`line 135`), and raw `<img>` (`line 154`).
+- **Required Fix:** Standardize `Label` to `text-xs`, add reusable `AlertBanner`, `CopyButton`, `Checkbox`, and `SectionHeader`/`PageHeader` primitives to `src/components/ui/`, and refactor `app-shell.tsx` to use `<Button>` / global tokens.
 
-### 3.2 `/vcon` Admin Console Features
-- **GAP-005 (`Phase 2 — RESOLVED`):** `/vcon` (`src/core/admin/overview.ts` + `src/vcon/overview-panel.tsx`) now renders live KPIs (`totalMailboxes`, `activeMailboxes`, `disabledMailboxes`, `totalMessages`, `totalUnread`, `lastReceivedAt`), System Health strip (`Database`, `ServiceHeartbeat("maildir_ingestion")` freshness, `MAIL_STORAGE_ROOT` RWX check), recent 8 deliveries, and recent 8 mailboxes with click-to-copy button (plus clean non-crashing dev fallback).
-- **GAP-006 (`Phase 2 — RESOLVED`):** `/vcon/users` (`list`, case-insensitive search `q`, 25/page pagination, `create` w/ `first.lastNN` username generator + >=16-char CSPRNG password generator honoring `MIN_PASSWORD_LENGTH=15` + `"Create & copy"` one-time modal + searchable mailbox picker, `edit` w/ diff audits + `AdministratorProfile` edit block, `delete` w/ admin-delete/self-delete/last-active-admin guards & mailbox/message preservation) implemented in `src/core/accounts/users.ts`, `credentials-generator.ts`, `actions.ts`, and `src/app/(workspace)/vcon/users/*`.
-- **GAP-007 (`Phase 2 — RESOLVED`):** `/vcon/audit` (`src/core/audit/queries.ts`, `src/components/vcon/audit-console.tsx`, `src/app/(workspace)/vcon/audit/page.tsx`) provides filtered/paginated `AuditLog` inspection with recursive secret redaction alongside active `LoginAttempt` IP/username lockouts.
-- **GAP-008 (`Phase 3 — RESOLVED`):** Implemented `/vcon/domains` CRUD (`/vcon/domains`, `/new`, `/[uuid]/edit`), 5-record DNS preview/status engine (`MX`, `A/AAAA`, `SPF`, `OpenDKIM`, `DMARC`), Cloudflare BIND export, immutable domain names, fail-closed auto-disable on routing failure without auto-enable, atomic default switch, safe delete guards, and `mailserver.mail_domains` sync (`src/core/dns/*`, `src/core/domains/service.ts`, `/api/vcon/domains/*`).
-- **GAP-009 (`Phase 3 — RESOLVED`):** Implemented `/vcon/mailboxes` admin directory + provisioning + purge (`/vcon/mailboxes`, `/new`, `/[uuid]/delete`), real PostgreSQL `mailserver` adapter (`PgReadOnlyMailServerAdapter` + write/sync helpers), `RESERVED_LOCAL_PARTS`, symlink/traversal-safe `confinedPath`, cross-process `proper-lockfile` locking, `0700` `{domain}/{local_part}/Maildir/{new,cur,tmp}` creation, `!READBOX-READ-ONLY!...` hash, compensating rollback preserving pre-existing trees, active toggle, typed-email single purge, bulk purge, and `postmaster`/`abuse` creator (`src/core/mailboxes/*`, `src/core/mailserver/pg-adapter.ts`).
+### BUG-06 (High — Admin `/vcon` Bypass): `settings-console.tsx` & `system-update-console.tsx` Completely Bypass `ui/*`
+- **Files:** `src/components/vcon/settings-console.tsx` (`0` `ui/*` imports), `src/components/vcon/system-update-console.tsx` (`0` `ui/*` imports)
+- **Cause:**
+  - Both files hardcode raw `<button>`, `<input>`, `<textarea>`, `<table>`, `rounded-md`, `emerald-*`/`amber-*` colors, `sonner` `toast`, and extra subtitle/kicker noise (`settings-console.tsx:115,124-127`, `system-update-console.tsx:315-317,324-327`).
+  - `system-update-console.tsx:624-821` implements 3 custom modals with `bg-black/60` and `shadow-lg` instead of `@/components/ui/dialog`.
+- **Required Fix:** Rewrite both UI trees onto global `Button`, `Input`, `Textarea`, `Table`, `Dialog`, `Panel`, `AlertBanner`, `notify`, and CSS tokens with zero `rounded-*`/`shadow-*`/hardcoded Tailwind colors.
 
-### 3.3 Maildir Ingestion, Operations & `/users` Workspace
-- **GAP-010 (`Phase 4 — RESOLVED`):** Implemented Node Maildir ingestion pipeline (`src/core/ingestion/{sanitizer,parser,attachments,counters,service}.ts`, `src/workers/ingestion.ts`, `scripts/mail/ingest.ts`) featuring read-only `Maildir/new` & `cur` scans, `(mailboxId, sourceFileKey)` idempotency, `postal-mime` parser, `sanitize-html` + `css-tree` AST allowlist sanitizer (`128KB`/`256KB`/`512-rule`/`8-depth` budgets, raster `data:image/*` only), confined `0600` sharded attachments in `ATTACHMENT_STORAGE_ROOT` with rollback cleanup, oversized streaming SHA-256 skip, per-file error isolation, cross-process `proper-lockfile` lock, and `ServiceHeartbeat("maildir_ingestion")` updates.
-- **GAP-011 (`Phase 4 — RESOLVED`):** Implemented `/vcon/operations` diagnostics console (`src/core/operations/service.ts`, `src/components/vcon/operations-console.tsx`, `src/app/(workspace)/vcon/operations/{page,actions}.ts`, `src/core/ingestion/repair.ts`) providing Postfix contract verification, dry-run/strict `mailserver` synchronization, missing Maildir provisioning, unindexed Maildir index rebuild, mailbox counter recalculation, and SHA-256 verified message body repair with confirmation guard and zero message-body exposure.
-- **GAP-012 (`Phase 5 — RESOLVED`):** Implemented full `/users` workspace (`src/core/messages/service.ts`, `src/users/overview-panel.tsx`, `src/components/users/{live-mail-notifier,create-user-mailbox-modal,user-mailboxes-view,mailbox-inbox-view,message-reader-view}.tsx`, `/users`, `/users/mailboxes`, `/users/inbox/[mailboxUuid]`, `/users/inbox/[mailboxUuid]/[messageUuid]`, `/api/messages/{html/[messageUuid],attachment/[attachmentUuid],live}`) featuring membership-scoped KPIs, self-service mailbox creation (`Create & copy` + `Generate`), `canDeleteMailboxes`-gated single/bulk purge, 30/page inbox with `senderName`/`senderAddress`/`subject` search + unread/attachment filters, message reader with auto-read + counter sync + `markMessageUnread` + `canDeleteMessages` soft-delete preserving Maildir source, strict CSP `<iframe sandbox="">` HTML reader endpoint, `confinedPath` regular-file attachment download (`Content-Disposition: attachment`, `nosniff`, `private, no-store`, optional `X-Accel-Redirect`), and bounded `X-MailStack-Live-Request: 1` cursor polling + cross-tab `BroadcastChannel`/`localStorage`/`navigator.locks` Web Notifications.
+### BUG-07 (Medium-High — Admin `/vcon` Mixed Controls & Double Table Border): Directories & Forms
+- **Files:**
+  - Double `<Table>` border + `rounded-lg`: `src/components/vcon/domains-directory.tsx:226`, `src/components/vcon/mailboxes-directory.tsx:359`, `src/components/vcon/dns-records-panel.tsx:108` (wrapping `ui/table.tsx:6` which already draws border + card surface).
+  - Raw `<select>` (`h-10`/`h-9 rounded-md text-sm`): `domain-form.tsx:484`, `mailbox-form.tsx:189`, `mailboxes-directory.tsx:283,298,602,623`, `operations-console.tsx:283`, `audit-console.tsx:219`.
+  - Direct `sonner` `toast`: All 11 interactive `/src/components/vcon/*.tsx` files (`audit-console.tsx`, `copy-mailbox-button.tsx`, `domain-form.tsx`, `domains-directory.tsx`, `mailbox-form.tsx`, `mailbox-purge-confirm.tsx`, `mailboxes-directory.tsx`, `operations-console.tsx`, `settings-console.tsx`, `system-update-console.tsx`, `user-form.tsx`, `users-directory.tsx`).
+  - Inline `rounded-lg`/`rounded-md` panels/cards & `sonner` / noise text: `(workspace)/error.tsx:16,20`, `(workspace)/vcon/not-found.tsx:6-7`, `vcon/domains/[uuid]/edit/page.tsx:58`, `vcon/mailboxes/[uuid]/delete/page.tsx:26,48`, `vcon/users/[id]/edit/page.tsx:26,53`, `src/vcon/overview-panel.tsx`, `user-form.tsx:234-238`, `operations-console.tsx:154-158`.
+- **Required Fix:** Remove duplicate `<Table>` wrappers, migrate all raw `<select>`/`<input>`/`<textarea>`/`<button>` to `@/components/ui`, switch all 11 files from `sonner` to `notify`, remove `rounded-*` & extra subtitle/kicker noise.
 
-### 3.4 Settings, System Updates, Health & Production VPS Cutover
-- **GAP-013 (`Phase 6 — RESOLVED`):** Implemented `/vcon/settings` admin form (`src/core/settings/{service,snapshot}.ts`, `src/components/vcon/settings-console.tsx`, `src/app/(workspace)/vcon/settings/{page,actions}.ts`), confined `MEDIA_ROOT/site-settings/` logo (`<= 5 MB`) & favicon (`<= 512 KB`) uploads with MIME/extension + SVG script validation, confined media delivery (`/api/media/[...path]` with `nosniff` + sandbox CSP), and public `/api/site-settings` + `/health/site-settings` endpoints with strict `PUBLIC_SITE_ORIGIN` CORS matching.
-- **GAP-014 (`Phase 6 — RESOLVED`):** Implemented `/vcon/system-update` console (`src/core/updates/service.ts`, `src/components/vcon/system-update-console.tsx`, `/api/vcon/update/{check,preflight,start,status}`), strict official GitHub release URL validator (`https://github.com/<repo>/releases/download/...` with zero query/fragment), 9-category (31-check) OS preflight inspector, atomic `0640` hard-linked `update_request.json` handoff, and privilege-separated root updater scripts (`scripts/updater/{update_worker.py,verify_upgrade_archive.py,upgrade.sh}`).
-- **GAP-015 (`Phase 6 — RESOLVED`):** Upgraded `src/core/health/snapshot.ts` (`GET /health/ready`) to verify mandatory production configuration, database connectivity (`SELECT 1`), pending/failed `_prisma_migrations`, writable `MAIL_STORAGE_ROOT` & `ATTACHMENT_STORAGE_ROOT`, and fresh `ServiceHeartbeat("maildir_ingestion")`; added single-PostgreSQL VPS deployment templates (`deployment/templates/{postfix,dovecot,nginx,systemd}/*`) and `pg_dump`/`psql` backup/restore scripts (`scripts/ops/{backup,restore}.sh`).
-- **GAP-016 (`Phase 7 — RESOLVED`):** Completed automated and headless Chromium (`playwright-cli`) verification across `320px`/`768px`/`1280px` viewports in both Light and Dark themes across all 15 routes (`scrollWidth === clientWidth`), Segoe UI typography & reduced-motion CSS contract, PWA service-worker private-cache exclusion proof (`tests/ui/phase7-responsive-pwa.test.tsx`), and expanded PostgreSQL `mailserver` schema/views/`postfix_lookup` integration tests (`tests/auth/database-flow.test.ts`).
+### BUG-08 (Medium — `/users/*` Raw Controls, Duplicate Modal & Grammar):
+- **Files:**
+  - `src/components/users/create-user-mailbox-modal.tsx:149,161,174,188,203,221` (raw `<label>`, 3 raw `<button>`, raw `<input>`, raw `<select>` + `domainUuid` initial `useState` won't sync if `domains` prop changes)
+  - `src/users/overview-panel.tsx:343` & `src/components/users/user-mailboxes-view.tsx:472` (mount a duplicate `<CreateUserMailboxModal>` alongside `UsersWorkspaceShell`)
+  - Hardcoded `<Link>` button styles instead of `<Button asChild>`: `src/users/overview-panel.tsx:119,328`, `src/components/users/user-mailboxes-view.tsx:274,405,445,457`, `src/components/users/mailbox-inbox-view.tsx:242,351,362`, `src/components/users/message-reader-view.tsx:416` (`<a>`)
+  - Raw checkboxes & copy buttons: `user-mailboxes-view.tsx:288,362,374`, `mailbox-inbox-view.tsx:160`, `message-reader-view.tsx:221`, `overview-panel.tsx:303`
+  - Pluralization bug: `src/users/overview-panel.tsx:321` renders `"1 messages"`.
+- **Required Fix:** Replace raw controls with `ui/*` primitives (`Button`, `Input`, `Select`, `Label`, `Checkbox`, `CopyButton`), deduplicate modal/copy state cleanly, fix `"1 message"` vs `"N messages"`, sync `selectedDomain` state cleanly.
 
----
+### BUG-09 (Medium — Silent Live Polling Swallows Errors + Missing Root Error Pages):
+- **Files:** `src/app/api/messages/live/route.ts:107-113`, `src/app/api/messages/html/[messageUuid]/route.ts:75`, missing `src/app/global-error.tsx` & `src/app/not-found.tsx`
+- **Cause:** Live polling DB error silently returns HTTP `200 EMPTY_LIVE_PAYLOAD` instead of signaling degraded live status cleanly; root app lacks `global-error.tsx` and `not-found.tsx`.
+- **Required Fix:** Handle live polling failure explicitly with safe degraded/error state without breaking offline/demo flows; add compact `src/app/not-found.tsx` & `src/app/global-error.tsx` using global UI styles.
 
-## 4. Critical Security Invariants (Non-Negotiable Across Every Phase)
+### BUG-10 (Medium — Auth Pages Ununified): `/sign-in` & `/reset-password`
+- **Files:** `src/app/sign-in/page.tsx:25-84`, `src/components/auth/sign-in-form.tsx:98-197`, `src/app/reset-password/page.tsx:12-21`, `src/components/auth/password-reset-form.tsx:41-107`
+- **Cause:** `0%` `@/components/ui` usage; `rounded-md`, `min-h-11`, `text-sm`, raw inputs/buttons, hardcoded `"ReadBox"` text (mismatching dynamic `settings.siteName`), no `ThemeToggle`.
+- **Required Fix:** Refactor Auth pages onto `Panel`, `Input`, `Button`, `Label`, `AlertBanner`, `ThemeToggle`, dynamic site name, and `0rem` compact tokens.
 
-1. **Zero Second Database:** Never add MariaDB, MySQL, or SQLite for ReadBox/mailserver data (`AGENTS.md`).
-2. **Non-Enumerating Access:** Non-admins requesting `/vcon/*` or `/api/vcon/*` must receive 404 (`notFound()`), and non-members requesting `/users` mailbox/message/attachment UUIDs must receive 404 without storage-path disclosure.
-3. **No Arbitrary Shell / SQL Identifiers:** Never concatenate user input into shell commands or SQL identifiers (`^[a-z0-9_]+$` allowlist + Prisma parameterized queries only).
-4. **No Inline XSS / Remote Tracking:** Message HTML must pass allowlist sanitization + CSS AST property/budget filtering and render inside `sandbox=""` iframe with `default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; navigate-to 'none'`.
-5. **Dual-Mode Auth Isolation:** Production (`NODE_ENV=production`) must always enforce `devAuthMode = "off"`, `AUTH_SECRET` (>=32 chars), PostgreSQL `DATABASE_URL`, and `Secure`/`HttpOnly`/`SameSite=Lax` cookies; `bypass`/`demo` exist exclusively for `NODE_ENV=development`.
+### BUG-11 (Medium — Public Site Ununified): `/`, `/contact`, `/privacy`
+- **Files:** `src/app/page.tsx`, `src/app/contact/page.tsx`, `src/app/privacy/page.tsx`, `src/components/public/public-site-header.tsx`, `src/components/public/public-site-footer.tsx`, `src/components/public/contact-inquiry-form.tsx`, `src/components/public/public-faq-accordion.tsx`
+- **Cause:** `0%` `@/components/ui`; `66` `rounded*`, `6` `shadow-*`, `31` `font-bold`, `bg-gradient-to-b`, `backdrop-blur`, raw `<input>`/`<select>`/`<textarea>`/`<button>`, raw `<img>`.
+- **Required Fix:** Unify public header, footer, hero, cards, FAQ, and contact form onto the exact global `0rem` / zero-shadow / soft-font / `ui/*` design system without adding UI noise.

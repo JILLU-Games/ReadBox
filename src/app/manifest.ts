@@ -13,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description,
     start_url: "/users",
     display: "standalone",
-    background_color: "#f3f6f8",
-    theme_color: "#2457c5",
+    background_color: "#f6f8fa",
+    theme_color: "#2558bf",
     icons: [
       {
         src: "/icons/mailstack-192.png",

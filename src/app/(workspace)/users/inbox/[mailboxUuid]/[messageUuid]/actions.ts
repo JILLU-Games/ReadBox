@@ -4,6 +4,11 @@ import { env } from "@/config/env";
 import { requireWorkspaceUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
 import {
+  isDemoPreviewWorkspaceActive,
+  markDemoMessageUnread,
+  softDeleteDemoMessage,
+} from "@/core/messages/demo-workspace";
+import {
   markMessageUnreadForUser,
   softDeleteMessageForUser,
   type MessageActionResult,
@@ -11,12 +16,29 @@ import {
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
+function revalidateMailboxPaths(mailboxUuid: string) {
+  revalidatePath("/users", "layout");
+  revalidatePath("/users");
+  revalidatePath("/users/mailboxes");
+  revalidatePath(`/users/inbox/${mailboxUuid}`);
+}
+
 export async function markMessageUnreadAction(input: {
   readonly mailboxUuid: string;
   readonly messageUuid: string;
 }): Promise<MessageActionResult<{ uuid: string; isRead: boolean }>> {
   const user = await requireWorkspaceUser();
   if (!env.databaseUrl) {
+    if (isDemoPreviewWorkspaceActive()) {
+      const demoResult = markDemoMessageUnread(
+        input.mailboxUuid,
+        input.messageUuid,
+      );
+      if (demoResult.ok) {
+        revalidateMailboxPaths(input.mailboxUuid);
+      }
+      return demoResult;
+    }
     return {
       ok: false,
       code: "unavailable",
@@ -46,8 +68,7 @@ export async function markMessageUnreadAction(input: {
   );
 
   if (result.ok) {
-    revalidatePath("/users");
-    revalidatePath(`/users/inbox/${input.mailboxUuid}`);
+    revalidateMailboxPaths(input.mailboxUuid);
   }
 
   return result;
@@ -59,6 +80,16 @@ export async function softDeleteMessageAction(input: {
 }): Promise<MessageActionResult<{ uuid: string }>> {
   const user = await requireWorkspaceUser();
   if (!env.databaseUrl) {
+    if (isDemoPreviewWorkspaceActive()) {
+      const demoResult = softDeleteDemoMessage(
+        input.mailboxUuid,
+        input.messageUuid,
+      );
+      if (demoResult.ok) {
+        revalidateMailboxPaths(input.mailboxUuid);
+      }
+      return demoResult;
+    }
     return {
       ok: false,
       code: "unavailable",
@@ -88,8 +119,7 @@ export async function softDeleteMessageAction(input: {
   );
 
   if (result.ok) {
-    revalidatePath("/users");
-    revalidatePath(`/users/inbox/${input.mailboxUuid}`);
+    revalidateMailboxPaths(input.mailboxUuid);
   }
 
   return result;

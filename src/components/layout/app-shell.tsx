@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { IconButton } from "@/components/ui/icon-button";
 import { NotificationToaster } from "@/components/ui/notifications";
@@ -75,10 +76,6 @@ export function AppShell({
 
   const brandName = branding?.siteName?.trim() || "MailStack";
   const statusLabel = branding?.statusLabel?.trim() || "Workspace ready";
-  const statusDescription =
-    branding?.statusDescription?.trim() ||
-    branding?.siteTagline?.trim() ||
-    "Self-hosted mail server and shared team inbox.";
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -149,24 +146,24 @@ export function AppShell({
         aria-modal={mobileOpen ? true : undefined}
         aria-label={mobileOpen ? "Workspace navigation" : undefined}
         className={cn(
-          "invisible fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-transform md:visible md:translate-x-0",
+          "invisible fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-transform md:visible md:translate-x-0",
           mobileOpen ? "visible translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-border px-5">
+        <div className="flex h-12 items-center gap-2.5 border-b border-border px-3">
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt={`${brandName} logo`}
               referrerPolicy="no-referrer"
-              className="size-8 shrink-0 rounded-md border border-border object-contain p-0.5"
+              className="size-7 shrink-0 rounded-none border border-border object-contain p-0.5"
             />
           ) : (
-            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
+            <span className="grid size-7 shrink-0 place-items-center rounded-none bg-primary text-primary-foreground">
               <Icon glyph={Inbox} />
             </span>
           )}
-          <span className="truncate text-sm font-semibold tracking-wide">
+          <span className="truncate text-xs font-semibold text-foreground">
             {brandName}
           </span>
           <IconButton
@@ -177,10 +174,11 @@ export function AppShell({
             <X aria-hidden="true" />
           </IconButton>
         </div>
-        <div className="px-4 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
+
+        <div className="px-3 pb-1.5 pt-3 text-[11px] font-medium text-sidebar-muted">
           Workspaces
         </div>
-        <nav aria-label="Workspace navigation" className="space-y-1 px-3">
+        <nav aria-label="Workspace navigation" className="space-y-0.5 px-2">
           {workspaceNavigation.map(({ href, label, icon: NavigationIcon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -191,7 +189,7 @@ export function AppShell({
                 aria-current={active ? "page" : undefined}
                 onClick={closeMobileNavigation}
                 className={cn(
-                  "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                  "flex min-h-9 items-center gap-2.5 rounded-none px-2.5 text-xs font-medium transition-colors",
                   active
                     ? "bg-sidebar-active text-sidebar-active-foreground"
                     : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
@@ -203,12 +201,13 @@ export function AppShell({
             );
           })}
         </nav>
+
         {isAdministrator ? (
           <>
-            <div className="px-4 pb-2 pt-6 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
+            <div className="px-3 pb-1.5 pt-4 text-[11px] font-medium text-sidebar-muted">
               Management
             </div>
-            <nav aria-label="Management navigation" className="space-y-1 px-3">
+            <nav aria-label="Management navigation" className="space-y-0.5 px-2">
               {managementNavigation.map(
                 ({ href, label, icon: NavigationIcon }) => {
                   const active =
@@ -222,7 +221,7 @@ export function AppShell({
                       aria-current={active ? "page" : undefined}
                       onClick={closeMobileNavigation}
                       className={cn(
-                        "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                        "flex min-h-9 items-center gap-2.5 rounded-none px-2.5 text-xs font-medium transition-colors",
                         active
                           ? "bg-sidebar-active text-sidebar-active-foreground"
                           : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
@@ -237,28 +236,24 @@ export function AppShell({
             </nav>
           </>
         ) : null}
-        <div className="mt-auto border-t border-border p-4">
+
+        <div className="mt-auto border-t border-border px-3 py-2.5">
           {user ? (
-            <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
               <span className="truncate font-medium text-sidebar-foreground">
                 {user.username}
               </span>
-              <span className="shrink-0 text-sidebar-muted">
+              <span className="shrink-0 text-[11px] text-sidebar-muted">
                 {isAdministrator ? "Admin" : "User"}
               </span>
             </div>
           ) : null}
-          <div className="text-xs font-medium text-sidebar-foreground">
-            {statusLabel}
-          </div>
-          <p className="mt-1 text-xs leading-5 text-sidebar-muted">
-            {statusDescription}
-          </p>
+          <div className="text-[11px] text-sidebar-muted">{statusLabel}</div>
         </div>
       </aside>
 
-      <div className="min-h-dvh md:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur md:px-7">
+      <div className="min-h-dvh md:pl-56">
+        <header className="sticky top-0 z-30 flex h-12 items-center gap-2.5 border-b border-border bg-card px-3 md:px-4">
           <IconButton
             id={menuButtonId}
             className="md:hidden"
@@ -269,9 +264,9 @@ export function AppShell({
           >
             <Menu aria-hidden="true" />
           </IconButton>
-          <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
             <Icon glyph={LayoutDashboard} />
-            <span className="truncate">
+            <span className="truncate font-medium text-foreground">
               {pathname.startsWith("/vcon") ? "Admin" : "Workspace"}
             </span>
           </div>
@@ -280,26 +275,19 @@ export function AppShell({
               <span className="hidden max-w-40 truncate text-xs text-muted-foreground sm:inline">
                 {user.username}
               </span>
-            ) : (
-              <span className="hidden text-xs text-muted-foreground sm:inline">
-                Local foundation
-              </span>
-            )}
+            ) : null}
             <ThemeToggle />
             {signOutAction ? (
               <form action={signOutAction}>
-                <button
-                  type="submit"
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted whitespace-nowrap shrink-0"
-                >
+                <Button type="submit" variant="outline" size="default">
                   <Icon glyph={LogOut} />
                   <span className="hidden sm:inline">Sign out</span>
-                </button>
+                </Button>
               </form>
             ) : null}
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1440px] p-4 md:p-7">{children}</main>
+        <main className="mx-auto w-full max-w-[1440px] p-3 md:p-4">{children}</main>
       </div>
       <NotificationToaster />
     </div>

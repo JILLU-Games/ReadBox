@@ -1,25 +1,29 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
+  AlertBanner,
+  Badge,
+  Button,
+  Checkbox,
+  CopyButton,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
-import {
+  Icon,
+  Input,
+  Label,
+  notify,
+  PageTitle,
+  Select,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { CopyMailboxButton } from "@/components/vcon/copy-mailbox-button";
+} from "@/components/ui";
 import type {
   AdminMailboxListItem,
   AdminMailboxListResult,
@@ -31,7 +35,6 @@ import { MailPlus, Search, ShieldAlert, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 
 function formatShortDate(iso: string | null, fallback: string): string {
   if (!iso) return fallback;
@@ -142,16 +145,16 @@ export function MailboxesDirectory({
       const targetActive = mailbox.status !== "active";
       const result = await onToggleActive(mailbox.uuid, targetActive);
       if (!result.ok) {
-        toast.error(result.error);
+        notify.error(result.error);
         return;
       }
-      toast.success(
+      notify.success(
         result.message ??
           (targetActive ? "Mailbox enabled." : "Mailbox disabled."),
       );
       router.refresh();
     } catch {
-      toast.error("Unable to update mailbox status right now.");
+      notify.error("Unable to update mailbox status right now.");
     } finally {
       setTogglingUuid(null);
     }
@@ -166,10 +169,10 @@ export function MailboxesDirectory({
         true,
       );
       if (!result.ok) {
-        toast.error(result.error);
+        notify.error(result.error);
         return;
       }
-      toast.success(
+      notify.success(
         result.message ??
           `${result.data.purgedCount} mailbox(es) permanently deleted.`,
       );
@@ -178,7 +181,7 @@ export function MailboxesDirectory({
       setBulkDialogOpen(false);
       router.refresh();
     } catch {
-      toast.error("Unable to purge selected mailboxes right now.");
+      notify.error("Unable to purge selected mailboxes right now.");
     } finally {
       setBulkPending(false);
     }
@@ -194,10 +197,10 @@ export function MailboxesDirectory({
         confirm: true,
       });
       if (!result.ok) {
-        toast.error(result.error);
+        notify.error(result.error);
         return;
       }
-      toast.success(
+      notify.success(
         result.message ??
           `System mailbox ${result.data.emailAddress} created.`,
       );
@@ -205,21 +208,16 @@ export function MailboxesDirectory({
       setSystemDialogOpen(false);
       router.refresh();
     } catch {
-      toast.error("Unable to provision system mailbox right now.");
+      notify.error("Unable to provision system mailbox right now.");
     } finally {
       setSystemPending(false);
     }
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Admin panel
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">Mailbox administration</h1>
-        </div>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <PageTitle>Mailbox administration</PageTitle>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
@@ -244,20 +242,14 @@ export function MailboxesDirectory({
       </header>
 
       {!databaseConfigured ? (
-        <section
-          className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"
-          role="status"
-        >
-          Database is not configured in this local environment. Mailboxes
-          stored in PostgreSQL will appear here once DATABASE_URL is set.
-        </section>
+        <AlertBanner variant="warning" role="status">
+          Database is not configured in this local environment. Mailboxes stored
+          in PostgreSQL will appear here once DATABASE_URL is set.
+        </AlertBanner>
       ) : !databaseConnected ? (
-        <section
-          className="rounded-lg border border-destructive/40 bg-destructive-bg p-4 text-sm text-destructive-muted"
-          role="alert"
-        >
+        <AlertBanner variant="error">
           Unable to load mailboxes from PostgreSQL right now.
-        </section>
+        </AlertBanner>
       ) : null}
 
       <form
@@ -266,9 +258,9 @@ export function MailboxesDirectory({
         className="flex flex-wrap items-center gap-2"
       >
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
-          <label htmlFor="mailboxes-search-input" className="sr-only">
+          <Label htmlFor="mailboxes-search-input" className="sr-only">
             Search mailboxes
-          </label>
+          </Label>
           <Input
             id="mailboxes-search-input"
             name="q"
@@ -277,29 +269,27 @@ export function MailboxesDirectory({
           />
         </div>
         <div>
-          <label htmlFor="mailboxes-status-filter" className="sr-only">
+          <Label htmlFor="mailboxes-status-filter" className="sr-only">
             Filter by status
-          </label>
-          <select
+          </Label>
+          <Select
             id="mailboxes-status-filter"
             name="status"
             defaultValue={list.statusFilter}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="disabled">Disabled</option>
-          </select>
+          </Select>
         </div>
         <div>
-          <label htmlFor="mailboxes-domain-filter" className="sr-only">
+          <Label htmlFor="mailboxes-domain-filter" className="sr-only">
             Filter by domain
-          </label>
-          <select
+          </Label>
+          <Select
             id="mailboxes-domain-filter"
             name="domain"
             defaultValue={list.domainUuidFilter}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">All domains</option>
             {list.availableDomains.map((domain) => (
@@ -307,7 +297,7 @@ export function MailboxesDirectory({
                 {domain.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <Button type="submit" size="sm" variant="outline">
           <Icon glyph={Search} />
@@ -323,172 +313,174 @@ export function MailboxesDirectory({
       </form>
 
       {selectedItems.length > 0 ? (
-        <section
-          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive-bg px-4 py-3 text-sm"
+        <AlertBanner
+          variant="error"
           aria-label="Bulk mailbox actions"
+          action={
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedUuids([])}
+              >
+                Clear selection
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  setBulkConfirmed(false);
+                  setBulkDialogOpen(true);
+                }}
+              >
+                <Icon glyph={Trash2} />
+                <span>Purge selected</span>
+              </Button>
+            </div>
+          }
         >
-          <span className="font-medium text-destructive-muted">
+          <span className="font-medium">
             {selectedItems.length} mailbox
             {selectedItems.length === 1 ? "" : "es"} selected
           </span>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setSelectedUuids([])}
-            >
-              Clear selection
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="destructive"
-              onClick={() => {
-                setBulkConfirmed(false);
-                setBulkDialogOpen(true);
-              }}
-            >
-              <Icon glyph={Trash2} />
-              <span>Purge selected</span>
-            </Button>
-          </div>
-        </section>
+        </AlertBanner>
       ) : null}
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                id="mailboxes-select-all"
+                checked={allOnPageSelected}
+                aria-label="Select all mailboxes on page"
+                onChange={toggleAllOnPage}
+              />
+            </TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Messages</TableHead>
+            <TableHead>Assigned users</TableHead>
+            <TableHead>Last delivery</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {list.items.length === 0 ? (
             <TableRow>
-              <TableHead className="w-10">
-                <input
-                  id="mailboxes-select-all"
-                  type="checkbox"
-                  checked={allOnPageSelected}
-                  aria-label="Select all mailboxes on page"
-                  onChange={toggleAllOnPage}
-                  className="size-4 rounded border-input accent-primary"
-                />
-              </TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Messages</TableHead>
-              <TableHead>Assigned users</TableHead>
-              <TableHead>Last delivery</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableCell
+                colSpan={7}
+                className="py-8 text-center text-xs text-muted-foreground"
+              >
+                {list.query ||
+                list.statusFilter !== "all" ||
+                list.domainUuidFilter
+                  ? "No mailboxes match the current filter."
+                  : "No mailboxes provisioned yet."}
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {list.items.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-8 text-center text-sm text-muted-foreground"
-                >
-                  {list.query ||
-                  list.statusFilter !== "all" ||
-                  list.domainUuidFilter
-                    ? "No mailboxes match the current filter."
-                    : "No mailboxes provisioned yet."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              list.items.map((mailbox) => {
-                const isSelected = selectedUuids.includes(mailbox.uuid);
-                const isToggling = togglingUuid === mailbox.uuid;
-                const checkboxId = `mailbox-select-${mailbox.uuid}`;
+          ) : (
+            list.items.map((mailbox) => {
+              const isSelected = selectedUuids.includes(mailbox.uuid);
+              const isToggling = togglingUuid === mailbox.uuid;
+              const checkboxId = `mailbox-select-${mailbox.uuid}`;
 
-                return (
-                  <TableRow key={mailbox.uuid}>
-                    <TableCell>
-                      <input
-                        id={checkboxId}
-                        type="checkbox"
-                        checked={isSelected}
-                        aria-label={`Select ${mailbox.emailAddress}`}
-                        onChange={() => toggleRowSelection(mailbox.uuid)}
-                        className="size-4 rounded border-input accent-primary"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <CopyMailboxButton emailAddress={mailbox.emailAddress} />
-                      </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {mailbox.domainName}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          mailbox.status === "active" ? "success" : "warning"
-                        }
+              return (
+                <TableRow key={mailbox.uuid}>
+                  <TableCell>
+                    <Checkbox
+                      id={checkboxId}
+                      checked={isSelected}
+                      aria-label={`Select ${mailbox.emailAddress}`}
+                      onChange={() => toggleRowSelection(mailbox.uuid)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <CopyButton
+                        value={mailbox.emailAddress}
+                        label={`Copy ${mailbox.emailAddress}`}
+                        successMessage={`Copied ${mailbox.emailAddress}`}
+                        errorMessage="Clipboard unavailable — select and copy manually."
+                        className="font-mono"
                       >
-                        {mailbox.status === "active" ? "Active" : "Disabled"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">
-                        {mailbox.totalMessages}
-                      </span>{" "}
+                        <span className="truncate">{mailbox.emailAddress}</span>
+                      </CopyButton>
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {mailbox.domainName}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        mailbox.status === "active" ? "success" : "warning"
+                      }
+                    >
+                      {mailbox.status === "active" ? "Active" : "Disabled"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    <span className="font-medium">{mailbox.totalMessages}</span>{" "}
+                    <span className="text-xs text-muted-foreground">
+                      ({mailbox.unreadMessages} unread)
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {mailbox.assignedUserCount === 0 ? (
                       <span className="text-xs text-muted-foreground">
-                        ({mailbox.unreadMessages} unread)
+                        Unassigned
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      {mailbox.assignedUserCount === 0 ? (
-                        <span className="text-xs text-muted-foreground">
-                          Unassigned
-                        </span>
-                      ) : (
-                        <span className="text-xs text-foreground">
-                          {mailbox.assignedUsernames.slice(0, 2).join(", ")}
-                          {mailbox.assignedUserCount > 2
-                            ? ` +${mailbox.assignedUserCount - 2}`
-                            : ""}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatShortDate(mailbox.lastReceivedAt, "Never")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={isToggling}
-                          aria-label={`${mailbox.status === "active" ? "Disable" : "Enable"} ${mailbox.emailAddress}`}
-                          onClick={() => void handleToggle(mailbox)}
+                    ) : (
+                      <span className="text-xs text-foreground">
+                        {mailbox.assignedUsernames.slice(0, 2).join(", ")}
+                        {mailbox.assignedUserCount > 2
+                          ? ` +${mailbox.assignedUserCount - 2}`
+                          : ""}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatShortDate(mailbox.lastReceivedAt, "Never")}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isToggling}
+                        aria-label={`${mailbox.status === "active" ? "Disable" : "Enable"} ${mailbox.emailAddress}`}
+                        onClick={() => void handleToggle(mailbox)}
+                      >
+                        {mailbox.status === "active" ? "Disable" : "Enable"}
+                      </Button>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link
+                          href={`/vcon/mailboxes/${mailbox.uuid}/delete`}
+                          aria-label={`Purge ${mailbox.emailAddress}`}
                         >
-                          {mailbox.status === "active" ? "Disable" : "Enable"}
-                        </Button>
-                        <Button asChild size="sm" variant="ghost">
-                          <Link
-                            href={`/vcon/mailboxes/${mailbox.uuid}/delete`}
-                            aria-label={`Purge ${mailbox.emailAddress}`}
-                          >
-                            <Icon glyph={Trash2} />
-                            <span>Purge</span>
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                          <Icon glyph={Trash2} />
+                          <span>Purge</span>
+                        </Link>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
 
       {list.totalPages > 1 ? (
         <nav
           aria-label="Mailboxes pagination"
-          className="flex flex-wrap items-center justify-between gap-3 text-sm"
+          className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
         >
-          <span className="text-muted-foreground">
+          <span>
             Page {list.page} of {list.totalPages} ({list.totalCount} mailboxes)
           </span>
           <div className="flex items-center gap-2">
@@ -537,30 +529,30 @@ export function MailboxesDirectory({
             mailserver routing table, stored attachments, and on-disk Maildir
             directories.
           </DialogDescription>
-          <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-border bg-muted/40 p-3 font-mono text-xs">
+          <ul className="max-h-40 space-y-1 overflow-y-auto border border-border bg-muted/40 p-2.5 font-mono text-xs">
             {selectedItems.map((item) => (
               <li key={item.uuid}>{item.emailAddress}</li>
             ))}
           </ul>
-          <div className="flex items-start gap-2.5">
-            <input
+          <div className="flex items-start gap-2">
+            <Checkbox
               id="bulk-purge-confirm-checkbox"
-              type="checkbox"
               checked={bulkConfirmed}
               onChange={(event) => setBulkConfirmed(event.target.checked)}
-              className="mt-0.5 size-4 rounded border-input accent-destructive"
+              className="mt-0.5 accent-destructive"
             />
-            <label
+            <Label
               htmlFor="bulk-purge-confirm-checkbox"
-              className="text-xs font-medium text-foreground"
+              className="cursor-pointer font-normal"
             >
               I confirm permanent deletion of these {selectedItems.length}{" "}
               mailbox{selectedItems.length === 1 ? "" : "es"}.
-            </label>
+            </Label>
           </div>
           <DialogFooter>
             <Button
               type="button"
+              size="sm"
               variant="outline"
               disabled={bulkPending}
               onClick={() => setBulkDialogOpen(false)}
@@ -569,6 +561,7 @@ export function MailboxesDirectory({
             </Button>
             <Button
               type="button"
+              size="sm"
               variant="destructive"
               disabled={bulkPending || !bulkConfirmed}
               onClick={() => void handleConfirmBulkPurge()}
@@ -591,15 +584,10 @@ export function MailboxesDirectory({
             Create an RFC-required system address (postmaster or abuse) on an
             active, DNS-verified domain.
           </DialogDescription>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="grid gap-1.5">
-              <label
-                htmlFor="system-local-part"
-                className="text-sm font-medium text-foreground"
-              >
-                Reserved address
-              </label>
-              <select
+              <Label htmlFor="system-local-part">Reserved address</Label>
+              <Select
                 id="system-local-part"
                 value={systemLocalPart}
                 onChange={(event) =>
@@ -607,24 +595,19 @@ export function MailboxesDirectory({
                     event.target.value === "abuse" ? "abuse" : "postmaster",
                   )
                 }
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                className="w-full"
               >
                 <option value="postmaster">postmaster</option>
                 <option value="abuse">abuse</option>
-              </select>
+              </Select>
             </div>
             <div className="grid gap-1.5">
-              <label
-                htmlFor="system-domain-select"
-                className="text-sm font-medium text-foreground"
-              >
-                Target domain
-              </label>
-              <select
+              <Label htmlFor="system-domain-select">Target domain</Label>
+              <Select
                 id="system-domain-select"
                 value={systemDomainUuid}
                 onChange={(event) => setSystemDomainUuid(event.target.value)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                className="w-full"
               >
                 {verifiedDomains.map((domain) => (
                   <option key={domain.uuid} value={domain.uuid}>
@@ -632,28 +615,28 @@ export function MailboxesDirectory({
                     {domain.isDefault ? " (Default)" : ""}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="flex items-start gap-2.5">
-              <input
+            <div className="flex items-start gap-2">
+              <Checkbox
                 id="system-mailbox-confirm"
-                type="checkbox"
                 checked={systemConfirmed}
                 onChange={(event) => setSystemConfirmed(event.target.checked)}
-                className="mt-0.5 size-4 rounded border-input accent-primary"
+                className="mt-0.5"
               />
-              <label
+              <Label
                 htmlFor="system-mailbox-confirm"
-                className="text-xs font-medium text-foreground"
+                className="cursor-pointer font-normal"
               >
                 Confirm administrator-approved creation of{" "}
                 <span className="font-mono">{systemLocalPart}</span>.
-              </label>
+              </Label>
             </div>
           </div>
           <DialogFooter>
             <Button
               type="button"
+              size="sm"
               variant="outline"
               disabled={systemPending}
               onClick={() => setSystemDialogOpen(false)}
@@ -662,6 +645,7 @@ export function MailboxesDirectory({
             </Button>
             <Button
               type="button"
+              size="sm"
               disabled={
                 systemPending || !systemConfirmed || verifiedDomains.length === 0
               }

@@ -1,32 +1,35 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { notify } from "@/components/ui/notifications";
+import {
+  AlertBanner,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+  Icon,
+  IconButton,
+  Input,
+  Label,
+  notify,
+  Select,
+} from "@/components/ui";
+import {
+  copyTextWithFallback,
+  generateRandomUsaLocalPart,
+  generateUsaMailboxSuggestions,
+  sanitizeLocalPartInput,
+} from "@/components/users/user-workspace-helpers";
 import type {
   MailboxActionResult,
   MailboxCreationDomainOption,
 } from "@/core/mailboxes/service";
-import { Copy, Plus, Sparkles, X } from "lucide-react";
+import { Copy, Dices, Plus, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-const LOCAL_PART_WORDS = [
-  "inbox",
-  "relay",
-  "desk",
-  "team",
-  "ops",
-  "portal",
-  "notice",
-  "stream",
-] as const;
-
 export function generateRandomMailboxLocalPart(): string {
-  const prefix =
-    LOCAL_PART_WORDS[Math.floor(Math.random() * LOCAL_PART_WORDS.length)] ??
-    "inbox";
-  const token = Math.random().toString(36).slice(2, 7);
-  return `${prefix}.${token}`;
+  return generateRandomUsaLocalPart();
 }
 
 export interface CreateUserMailboxModalProps {
@@ -57,14 +60,22 @@ export function CreateUserMailboxModal({
   createAction,
   onCreated,
 }: CreateUserMailboxModalProps) {
+  const router = useRouter();
   const defaultDomain =
     domains.find((d) => d.isDefault) ?? domains[0] ?? null;
   const [localPart, setLocalPart] = useState("");
   const [domainUuid, setDomainUuid] = useState(defaultDomain?.uuid ?? "");
+  const [suggestions, setSuggestions] = useState<string[]>(() =>
+    generateUsaMailboxSuggestions(3),
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  if (!open) return null;
+  function handleClose() {
+    setErrorMessage(null);
+    setSuggestions(generateUsaMailboxSuggestions(3));
+    onClose();
+  }
 
   const selectedDomain =
     domains.find((d) => d.uuid === domainUuid) ?? defaultDomain;
@@ -74,12 +85,16 @@ export function CreateUserMailboxModal({
     : normalizedPreviewLocal;
 
   function handleGenerate() {
-    setLocalPart(generateRandomMailboxLocalPart());
+    setLocalPart(generateRandomUsaLocalPart());
     setErrorMessage(null);
   }
 
+  function handleRefreshSuggestions() {
+    setSuggestions(generateUsaMailboxSuggestions(3));
+  }
+
   function submitMailbox(copyOnSuccess: boolean) {
-    const trimmed = localPart.trim().toLowerCase();
+    const trimmed = sanitizeLocalPartInput(localPart.trim());
     if (!trimmed) {
       setErrorMessage("Enter a mailbox local part before creating.");
       return;
@@ -98,164 +113,169 @@ export function CreateUserMailboxModal({
         return;
       }
 
-      if (copyOnSuccess && typeof navigator !== "undefined") {
-        try {
-          await navigator.clipboard?.writeText(result.data.emailAddress);
-          notify.success(`Created and copied ${result.data.emailAddress}`);
-        } catch {
-          notify.success(result.message ?? `Created ${result.data.emailAddress}`);
-        }
+      if (copyOnSuccess) {
+        const copied = await copyTextWithFallback(result.data.emailAddress);
+        notify.success(
+          copied
+            ? `Created and copied ${result.data.emailAddress}`
+            : (result.message ?? `Created ${result.data.emailAddress}`),
+        );
       } else {
         notify.success(result.message ?? `Created ${result.data.emailAddress}`);
       }
 
       setLocalPart("");
+      setSuggestions(generateUsaMailboxSuggestions(3));
       onCreated?.(result.data);
+      router.refresh();
       onClose();
     });
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="create-user-mailbox-title"
-    >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-lg">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2
-              id="create-user-mailbox-title"
-              className="text-base font-semibold tracking-tight text-foreground"
-            >
-              Create mailbox
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Provision a receive-only mailbox on an active, DNS-verified domain
-              and assign it to your workspace.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close create mailbox dialog"
-            className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <Icon glyph={X} />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? handleClose() : undefined)}>
+      <DialogContent className="max-w-md">
+        <DialogTitle>Create mailbox</DialogTitle>
 
         {domains.length === 0 ? (
-          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3.5 text-xs text-foreground">
-            No active, DNS-verified domains are currently available. Ask an
-            administrator to verify a domain in{" "}
-            <span className="font-mono">/vcon/domains</span>.
-          </div>
+          <AlertBanner variant="warning">
+            No active, DNS-verified domains are available.
+          </AlertBanner>
         ) : (
-          <div className="mt-4 space-y-4">
+          <form
+            className="space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitMailbox(false);
+            }}
+          >
             <div>
-              <label
-                htmlFor="user-mailbox-domain"
-                className="block text-xs font-medium text-foreground"
-              >
-                Domain
-              </label>
-              <select
-                id="user-mailbox-domain"
-                value={selectedDomain?.uuid ?? ""}
-                onChange={(e) => setDomainUuid(e.target.value)}
-                disabled={isPending}
-                className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-              >
-                {domains.map((domain) => (
-                  <option key={domain.uuid} value={domain.uuid}>
-                    {domain.name}
-                    {domain.isDefault ? " (Default)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor="user-mailbox-local-part">Mailbox address</Label>
 
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <label
-                  htmlFor="user-mailbox-local-part"
-                  className="block text-xs font-medium text-foreground"
-                >
-                  Mailbox local part
-                </label>
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={isPending}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                >
-                  <Icon glyph={Sparkles} className="size-3.5" />
-                  Generate
-                </button>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    Quick:
+                  </span>
+                  {suggestions.map((suggestion) => (
+                    <Button
+                      key={suggestion}
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      disabled={isPending}
+                      onClick={() => {
+                        setLocalPart(suggestion);
+                        setErrorMessage(null);
+                      }}
+                      className="font-mono"
+                    >
+                      {suggestion}
+                    </Button>
+                  ))}
+                  <IconButton
+                    type="button"
+                    disabled={isPending}
+                    onClick={handleRefreshSuggestions}
+                    label="Refresh name suggestions"
+                    title="Shuffle suggestions"
+                    className="size-6 border border-border bg-card"
+                  >
+                    <Icon glyph={RefreshCw} className="size-3" />
+                  </IconButton>
+                </div>
               </div>
-              <input
-                id="user-mailbox-local-part"
-                type="text"
-                value={localPart}
-                onChange={(e) => {
-                  setLocalPart(e.target.value);
-                  setErrorMessage(null);
-                }}
-                placeholder="e.g. logan.rodriguez"
-                autoComplete="off"
-                spellCheck={false}
-                disabled={isPending}
-                className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 font-mono text-sm text-foreground"
-              />
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Address preview:{" "}
-                <span className="font-mono font-medium text-foreground">
-                  {previewAddress}
-                </span>
+
+              <div className="space-y-1.5">
+                <div className="flex items-stretch gap-1.5">
+                  <Input
+                    id="user-mailbox-local-part"
+                    type="text"
+                    value={localPart}
+                    onChange={(e) => {
+                      setLocalPart(sanitizeLocalPartInput(e.target.value));
+                      setErrorMessage(null);
+                    }}
+                    placeholder="e.g. logan.rodriguez"
+                    autoComplete="off"
+                    spellCheck={false}
+                    disabled={isPending}
+                    className="min-w-0 flex-1 font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGenerate}
+                    disabled={isPending}
+                    aria-label="Generate random local part"
+                    title="Generate"
+                  >
+                    <Icon glyph={Dices} className="size-3.5" />
+                    <span className="hidden sm:inline">Generate</span>
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    @
+                  </span>
+                  <Select
+                    id="user-mailbox-domain"
+                    aria-label="Mailbox domain"
+                    value={selectedDomain?.uuid ?? ""}
+                    onChange={(e) => setDomainUuid(e.target.value)}
+                    disabled={isPending}
+                    className="w-full font-mono"
+                  >
+                    {domains.map((domain) => (
+                      <option key={domain.uuid} value={domain.uuid}>
+                        {domain.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
+                {previewAddress}
               </p>
             </div>
 
             {errorMessage ? (
-              <div
-                role="alert"
-                className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-              >
-                {errorMessage}
-              </div>
+              <AlertBanner variant="error">{errorMessage}</AlertBanner>
             ) : null}
 
-            <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+            <DialogFooter className="border-t border-border pt-3 sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                >
+                  <Icon glyph={Plus} />
+                  Create mailbox
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isPending}
+                  onClick={() => submitMailbox(true)}
+                >
+                  <Icon glyph={Copy} />
+                  Create & copy
+                </Button>
+              </div>
               <Button
                 type="button"
-                variant="secondary"
-                onClick={onClose}
+                variant="ghost"
+                onClick={handleClose}
                 disabled={isPending}
               >
                 Cancel
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={isPending}
-                onClick={() => submitMailbox(true)}
-              >
-                <Icon glyph={Copy} />
-                Create & copy
-              </Button>
-              <Button
-                type="button"
-                disabled={isPending}
-                onClick={() => submitMailbox(false)}
-              >
-                <Icon glyph={Plus} />
-                Create mailbox
-              </Button>
-            </div>
-          </div>
+            </DialogFooter>
+          </form>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

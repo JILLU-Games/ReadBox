@@ -2,6 +2,10 @@ import { MailboxInboxView } from "@/components/users/mailbox-inbox-view";
 import { env } from "@/config/env";
 import { requireWorkspaceUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
+import {
+  isDemoPreviewWorkspaceActive,
+  listDemoMailboxMessages,
+} from "@/core/messages/demo-workspace";
 import { listMailboxMessagesForUser } from "@/core/messages/service";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -17,7 +21,8 @@ export default async function UserMailboxInboxPage(props: {
   }>;
 }) {
   const user = await requireWorkspaceUser();
-  if (!env.databaseUrl) {
+  const demoActive = isDemoPreviewWorkspaceActive();
+  if (!env.databaseUrl && !demoActive) {
     notFound();
   }
 
@@ -37,23 +42,30 @@ export default async function UserMailboxInboxPage(props: {
   const readParam =
     searchParams.read ?? (searchParams.unread === "1" ? "unread" : undefined);
 
-  const inboxResult = await listMailboxMessagesForUser(
-    getPrismaClient(),
-    {
-      userId,
-      username: user.username,
-      isAdministrator: user.isAdministrator,
-      headers: reqHeaders,
-      trustProxyHeaders: env.trustProxyHeaders,
-    },
-    mailboxUuid,
-    {
-      query: searchParams.q,
-      read: readParam,
-      attachments: searchParams.attachments,
-      page: Number(searchParams.page) || 1,
-    },
-  );
+  const inboxResult = env.databaseUrl
+    ? await listMailboxMessagesForUser(
+        getPrismaClient(),
+        {
+          userId,
+          username: user.username,
+          isAdministrator: user.isAdministrator,
+          headers: reqHeaders,
+          trustProxyHeaders: env.trustProxyHeaders,
+        },
+        mailboxUuid,
+        {
+          query: searchParams.q,
+          read: readParam,
+          attachments: searchParams.attachments,
+          page: Number(searchParams.page) || 1,
+        },
+      )
+    : listDemoMailboxMessages(mailboxUuid, {
+        query: searchParams.q,
+        read: readParam,
+        attachments: searchParams.attachments,
+        page: Number(searchParams.page) || 1,
+      });
 
   if (!inboxResult) {
     notFound();
