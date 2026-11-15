@@ -2,16 +2,24 @@ import { signOutAction } from "@/app/sign-in/actions";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { env } from "@/config/env";
 import { getCurrentUser } from "@/core/auth/current-user";
+import { DEV_DEMO_ACCOUNTS } from "@/core/auth/dev-demo-auth";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Sign in",
-  referrer: "no-referrer",
+  referrer: "same-origin",
 };
 
 export default async function SignInPage() {
-  const currentUser = env.authEnabled ? await getCurrentUser() : null;
+  const devBypassActive =
+    env.nodeEnv === "development" && env.devAuthMode === "bypass";
+  const devDemoActive =
+    env.nodeEnv === "development" && env.devAuthMode === "demo";
+  const authActive = env.authEnabled || devDemoActive;
+  const currentUser = authActive ? await getCurrentUser() : null;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
@@ -19,7 +27,30 @@ export default async function SignInPage() {
       <p className="mt-2 text-sm text-muted-foreground">
         Use your local ReadBox account.
       </p>
-      {currentUser ? (
+      {devBypassActive ? (
+        <div className="mt-8 space-y-4 rounded-md border border-border bg-card p-4">
+          <p className="text-sm font-medium">
+            Development auth bypass is active ({env.devAuthRole}).
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Protected workspace routes are open locally without signing in.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+              href="/users"
+            >
+              Open user panel
+            </Link>
+            <Link
+              className="inline-flex min-h-10 items-center rounded-md border border-border px-4 text-sm font-medium"
+              href="/vcon"
+            >
+              Open admin panel
+            </Link>
+          </div>
+        </div>
+      ) : currentUser ? (
         <div className="mt-8 space-y-4">
           <p className="text-sm">Signed in as {currentUser.username}.</p>
           <form action={signOutAction}>
@@ -32,7 +63,20 @@ export default async function SignInPage() {
           </form>
         </div>
       ) : (
-        <SignInForm enabled={env.authEnabled} />
+        <>
+          <SignInForm
+            enabled={authActive}
+            demoAccounts={
+              devDemoActive
+                ? DEV_DEMO_ACCOUNTS.map((account) => ({
+                    username: account.username,
+                    password: account.password,
+                    roleLabel: account.isAdministrator ? "Admin" : "User",
+                  }))
+                : undefined
+            }
+          />
+        </>
       )}
       <Link className="mt-6 text-sm underline" href="/reset-password">
         Set a new password with an operator-issued reset token

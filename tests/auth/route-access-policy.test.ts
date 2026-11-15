@@ -28,6 +28,25 @@ test("only a profile-backed administrator may access admin routes", () => {
   assert.equal(decideWorkspaceRouteAccess(true, administrator, true), "allow");
 });
 
+test("dev bypass allows workspace routes only when explicitly active with a user", () => {
+  assert.equal(
+    decideWorkspaceRouteAccess(false, regularUser, false, true),
+    "allow",
+  );
+  assert.equal(
+    decideWorkspaceRouteAccess(false, regularUser, true, true),
+    "not-found",
+  );
+  assert.equal(
+    decideWorkspaceRouteAccess(false, administrator, true, true),
+    "allow",
+  );
+  assert.equal(
+    decideWorkspaceRouteAccess(false, null, false, true),
+    "sign-in",
+  );
+});
+
 test("public sign-in, reset, auth, and health routes stay outside workspace guard", () => {
   const publicRoutes = [
     "src/app/page.tsx",

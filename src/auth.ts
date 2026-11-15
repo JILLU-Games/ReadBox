@@ -1,7 +1,18 @@
 import { env } from "@/config/env";
+import { getAuthSecret } from "@/core/auth/auth-secret";
 import { authorizeCredentials } from "@/core/auth/credentials";
+import {
+  authorizeDevDemoCredentials,
+  getActiveDevDemoSession,
+  registerDevDemoSession,
+  revokeDevDemoSession,
+} from "@/core/auth/dev-demo-auth";
 import { SESSION_MAX_AGE_SECONDS } from "@/core/auth/password-policy";
-import { getAuthRuntimeConfigurationError } from "@/core/auth/runtime-policy";
+import { isHttpsProxyRequest } from "@/core/auth/proxy-request";
+import {
+  getAuthCookiePolicy,
+  getAuthRuntimeConfigurationError,
+} from "@/core/auth/runtime-policy";
 import {
   getActiveAppSession,
   registerAppSession,
@@ -18,49 +29,85 @@ const authRuntimeConfigurationError = getAuthRuntimeConfigurationError({
   nodeEnv: env.nodeEnv,
   authEnabled: env.authEnabled,
   hasAuthSecret: Boolean(env.authSecret),
+  hasDatabaseUrl: Boolean(env.databaseUrl),
+  devAuthMode: env.devAuthMode,
 });
 if (authRuntimeConfigurationError)
   throw new Error(authRuntimeConfigurationError);
 
-const authSecret = env.authSecret ?? randomBytes(32).toString("base64url");
+const devDemoActive =
+  env.nodeEnv === "development" && env.devAuthMode === "demo";
+const credentialsActive = env.authEnabled || devDemoActive;
+const authSecret = getAuthSecret();
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: authSecret,
-  trustHost: env.nodeEnv !== "production",
-  debug: false,
-  session: {
-    strategy: "jwt",
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  },
-  jwt: {
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  },
-  cookies: {
-    sessionToken: {
-      name:
-        env.nodeEnv === "production"
-          ? "__Secure-authjs.session-token"
-          : "authjs.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: env.nodeEnv === "production",
+export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
+  const isHttpsRequest = isHttpsProxyRequest(
+    req?.headers,
+    req?.url,
+    env.nodeEnv,
+  );
+  const cookiePolicy = getAuthCookiePolicy({
+    nodeEnv: env.nodeEnv,
+    isHttpsRequest,
+  });
+
+  return {
+    secret: authSecret,
+    trustHost: env.nodeEnv !== "production" || env.authTrustHost,
+    debug: false,
+    session: {
+      strategy: "jwt",
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    },
+    jwt: {
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    },
+    cookies: {
+      sessionToken: {
+        name: cookiePolicy.sessionCookieName,
+        options: {
+          httpOnly: true,
+          sameSite: cookiePolicy.sameSite,
+          path: "/",
+          secure: cookiePolicy.secure,
+          partitioned: cookiePolicy.partitioned,
+        },
+      },
+      callbackUrl: {
+        name: cookiePolicy.callbackCookieName,
+        options: {
+          httpOnly: true,
+          sameSite: cookiePolicy.sameSite,
+          path: "/",
+          secure: cookiePolicy.secure,
+          partitioned: cookiePolicy.partitioned,
+        },
+      },
+      csrfToken: {
+        name: cookiePolicy.csrfCookieName,
+        options: {
+          httpOnly: true,
+          sameSite: cookiePolicy.sameSite,
+          path: "/",
+          secure: cookiePolicy.secure,
+          partitioned: cookiePolicy.partitioned,
+        },
       },
     },
-  },
-  providers: env.authEnabled
-    ? [
-        Credentials({
-          credentials: {
-            username: { label: "Username", type: "text" },
-            password: { label: "Password", type: "password" },
-          },
-          authorize: (credentials) =>
-            authorizeCredentials(getPrismaClient(), credentials),
-        }),
-      ]
-    : [],
+    providers: credentialsActive
+      ? [
+          Credentials({
+            credentials: {
+              username: { label: "Username", type: "text" },
+              password: { label: "Password", type: "password" },
+            },
+            authorize: (credentials) =>
+              devDemoActive
+                ? authorizeDevDemoCredentials(env.nodeEnv, credentials)
+                : authorizeCredentials(getPrismaClient(), credentials),
+          }),
+        ]
+      : [],
   callbacks: {
     async jwt({ token, user }) {
       if (user && !token.sid && typeof user.id === "string") {
@@ -68,12 +115,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
         let registered = false;
         try {
-          registered = await registerAppSession(
-            getPrismaClient(),
-            user.id,
-            sessionId,
-            expiresAt,
-          );
+          registered = devDemoActive
+            ? registerDevDemoSession(env.nodeEnv, user.id, sessionId)
+            : await registerAppSession(
+                getPrismaClient(),
+                user.id,
+                sessionId,
+                expiresAt,
+              );
         } catch {
           appLogger.error("auth_session_registration_failed");
         }
@@ -89,11 +138,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       let currentUser;
       try {
-        currentUser = await getActiveAppSession(
-          getPrismaClient(),
-          userId,
-          sessionId,
-        );
+        currentUser = devDemoActive
+          ? getActiveDevDemoSession(env.nodeEnv, userId, sessionId)
+          : await getActiveAppSession(getPrismaClient(), userId, sessionId);
       } catch {
         appLogger.error("auth_session_validation_failed");
         return null;
@@ -124,20 +171,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signOut(message) {
       if ("token" in message && typeof message.token?.sid === "string") {
         try {
-          await revokeAppSession(getPrismaClient(), message.token.sid);
+          if (devDemoActive) {
+            revokeDevDemoSession(message.token.sid);
+          } else {
+            await revokeAppSession(getPrismaClient(), message.token.sid);
+          }
         } catch {
           appLogger.error("auth_session_revocation_failed");
         }
       }
     },
   },
-  logger: {
-    error() {
-      appLogger.error("auth_error");
+    logger: {
+      error() {
+        appLogger.error("auth_error");
+      },
+      warn() {
+        appLogger.warn("auth_warning");
+      },
+      debug() {},
     },
-    warn() {
-      appLogger.warn("auth_warning");
-    },
-    debug() {},
-  },
+  };
 });

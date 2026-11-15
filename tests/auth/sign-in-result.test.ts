@@ -1,4 +1,7 @@
-import { isSuccessfulCredentialsSignIn } from "@/core/auth/sign-in-result";
+import {
+  getCredentialsSignInErrorMessage,
+  isSuccessfulCredentialsSignIn,
+} from "@/core/auth/sign-in-result";
 import type { SignInResponse } from "next-auth/react";
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -25,4 +28,38 @@ test("successful Credentials responses are eligible for redirect", () => {
   };
 
   assert.equal(isSuccessfulCredentialsSignIn(result), true);
+});
+
+test("getCredentialsSignInErrorMessage explains CSRF, configuration, empty, and invalid credentials", () => {
+  assert.match(getCredentialsSignInErrorMessage(undefined), /no response|did not receive a response/i);
+  assert.match(
+    getCredentialsSignInErrorMessage({
+      error: "MissingCSRF",
+      code: undefined,
+      status: 200,
+      ok: true,
+      url: null,
+    }),
+    /cookie/i,
+  );
+  assert.match(
+    getCredentialsSignInErrorMessage({
+      error: "Configuration",
+      code: undefined,
+      status: 200,
+      ok: true,
+      url: null,
+    }),
+    /configured/i,
+  );
+  assert.match(
+    getCredentialsSignInErrorMessage({
+      error: "CredentialsSignin",
+      code: "credentials",
+      status: 200,
+      ok: true,
+      url: null,
+    }),
+    /username and password/i,
+  );
 });

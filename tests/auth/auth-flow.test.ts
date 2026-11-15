@@ -281,14 +281,35 @@ function resetRequiredUser(): SyntheticUser {
   };
 }
 
-test("production authentication remains disabled and requires a secret when enabled", () => {
+test("production allows auth only with database and secret and forbids dev auth modes", () => {
   assert.equal(
     getAuthRuntimeConfigurationError({
       nodeEnv: "production",
       authEnabled: true,
       hasAuthSecret: true,
+      hasDatabaseUrl: true,
+      devAuthMode: "off",
     }),
-    "This authentication foundation is restricted to local development",
+    null,
+  );
+  assert.equal(
+    getAuthRuntimeConfigurationError({
+      nodeEnv: "production",
+      authEnabled: true,
+      hasAuthSecret: true,
+      hasDatabaseUrl: false,
+      devAuthMode: "off",
+    }),
+    "DATABASE_URL is required when authentication is enabled in production",
+  );
+  assert.equal(
+    getAuthRuntimeConfigurationError({
+      nodeEnv: "production",
+      authEnabled: false,
+      hasAuthSecret: false,
+      devAuthMode: "bypass",
+    }),
+    "Development authentication modes are forbidden in production",
   );
   assert.equal(
     getAuthRuntimeConfigurationError({

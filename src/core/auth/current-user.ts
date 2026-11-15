@@ -1,4 +1,9 @@
 import { auth } from "@/auth";
+import { env } from "@/config/env";
+import {
+  getDevBypassUser,
+  getDevDemoUserById,
+} from "@/core/auth/dev-demo-auth";
 import { getPrismaClient } from "@/core/database/client";
 import { logger } from "@/core/server/logger";
 import "server-only";
@@ -18,10 +23,18 @@ export class AuthorizationDeniedError extends Error {
 }
 
 export async function getCurrentUser() {
+  if (env.nodeEnv === "development" && env.devAuthMode === "bypass") {
+    return getDevBypassUser(env.devAuthRole);
+  }
+
   try {
     const session = await auth();
     const sessionUserId = session?.user?.id;
     if (!sessionUserId || !/^[1-9]\d*$/.test(sessionUserId)) return null;
+
+    if (env.nodeEnv === "development" && env.devAuthMode === "demo") {
+      return getDevDemoUserById(env.nodeEnv, sessionUserId);
+    }
 
     const user = await getPrismaClient().user.findUnique({
       where: { id: BigInt(sessionUserId) },
