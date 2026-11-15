@@ -32,6 +32,7 @@ interface SyntheticUser {
   isActive: boolean;
   isStaff: boolean;
   isSuperuser: boolean;
+  lastLogin?: Date | null;
 }
 
 test("password confirmation accepts only identical string values", () => {
@@ -49,7 +50,7 @@ test("password confirmation accepts only identical string values", () => {
 
 interface SyntheticLoginAttempt {
   usernameNormalized: string;
-  ipAddress: null;
+  ipAddress: string | null;
   succeeded: boolean;
   createdAt: Date;
 }
@@ -174,23 +175,69 @@ function makeSyntheticPrisma(initialUser?: SyntheticUser) {
     },
   };
   client.loginAttempt = {
-    count: async (args: {
+    findMany: async (args: {
       where: {
         usernameNormalized: string;
+        ipAddress: string | null;
         succeeded: false;
         createdAt: { gte: Date };
       };
     }) =>
-      state.attempts.filter(
-        (attempt) =>
-          attempt.usernameNormalized === args.where.usernameNormalized &&
-          !attempt.succeeded &&
-          attempt.createdAt >= args.where.createdAt.gte,
-      ).length,
-    create: async (args: {
-      data: Omit<SyntheticLoginAttempt, "createdAt">;
+      state.attempts
+        .filter(
+          (attempt) =>
+            attempt.usernameNormalized === args.where.usernameNormalized &&
+            attempt.ipAddress === args.where.ipAddress &&
+            !attempt.succeeded &&
+            attempt.createdAt >= args.where.createdAt.gte,
+        )
+        .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+        .map((attempt) => ({ createdAt: attempt.createdAt })),
+    deleteMany: async (args: {
+      where: {
+        usernameNormalized?: string;
+        ipAddress?: string | null;
+        succeeded?: boolean;
+        createdAt?: { lt: Date };
+      };
     }) => {
-      const attempt = { ...args.data, createdAt: new Date() };
+      const before = state.attempts.length;
+      state.attempts = state.attempts.filter((attempt) => {
+        if (
+          args.where.usernameNormalized !== undefined &&
+          attempt.usernameNormalized !== args.where.usernameNormalized
+        ) {
+          return true;
+        }
+        if (
+          args.where.ipAddress !== undefined &&
+          attempt.ipAddress !== args.where.ipAddress
+        ) {
+          return true;
+        }
+        if (
+          args.where.succeeded !== undefined &&
+          attempt.succeeded !== args.where.succeeded
+        ) {
+          return true;
+        }
+        if (
+          args.where.createdAt?.lt &&
+          !(attempt.createdAt < args.where.createdAt.lt)
+        ) {
+          return true;
+        }
+        return false;
+      });
+      return { count: before - state.attempts.length };
+    },
+    create: async (args: {
+      data: Omit<SyntheticLoginAttempt, "createdAt"> & { createdAt?: Date };
+    }) => {
+      const attempt = {
+        ...args.data,
+        createdAt: args.data.createdAt ?? new Date(),
+      };
       state.attempts.push(attempt);
       return attempt;
     },
@@ -512,6 +559,113 @@ test("login failures are temporarily rate limited", async () => {
     null,
   );
   assert.equal(state.attempts.length, LOGIN_FAILURE_LIMIT);
+});
+
+test("login lockout is isolated per client IP, prunes stale attempts, clears failures, and updates lastLogin", async () => {
+  const user = resetRequiredUser();
+  user.passwordResetRequired = false;
+  user.passwordHash = await hashPassword("synthetic-ip-lockout-password");
+  const { prisma, state } = makeSyntheticPrisma(user);
+
+  const now = new Date("2026-11-15T12:00:00.000Z");
+  state.attempts.push({
+    usernameNormalized: "stale.user",
+    ipAddress: "198.51.100.9",
+    succeeded: false,
+    createdAt: new Date(now.getTime() - 9 * 15 * 60 * 1000),
+  });
+
+  for (let i = 0; i < 3; i += 1) {
+    assert.equal(
+      await authorizeCredentials(
+        prisma,
+        { username: user.username, password: "wrong-password" },
+        {
+          clientIp: "198.51.100.10",
+          failureLimit: 3,
+          failureWindowMs: 60_000,
+          lockoutMs: 120_000,
+          now,
+        },
+      ),
+      null,
+    );
+  }
+
+  assert.equal(
+    state.attempts.some((attempt) => attempt.usernameNormalized === "stale.user"),
+    false,
+  );
+
+  // Blocked on the offending IP within lockout window
+  assert.equal(
+    await authorizeCredentials(
+      prisma,
+      { username: user.username, password: "synthetic-ip-lockout-password" },
+      {
+        clientIp: "198.51.100.10",
+        failureLimit: 3,
+        failureWindowMs: 60_000,
+        lockoutMs: 120_000,
+        now: new Date(now.getTime() + 30_000),
+      },
+    ),
+    null,
+  );
+
+  // Still blocked at +90s when lockoutMs (120s) > failureWindowMs (60s)
+  assert.equal(
+    await authorizeCredentials(
+      prisma,
+      { username: user.username, password: "synthetic-ip-lockout-password" },
+      {
+        clientIp: "198.51.100.10",
+        failureLimit: 3,
+        failureWindowMs: 60_000,
+        lockoutMs: 120_000,
+        now: new Date(now.getTime() + 90_000),
+      },
+    ),
+    null,
+  );
+
+  // Allowed on a different client IP, clears failures for that IP, and updates lastLogin
+  const loginTime = new Date(now.getTime() + 91_000);
+  const authenticatedFromCleanIp = await authorizeCredentials(
+    prisma,
+    { username: user.username, password: "synthetic-ip-lockout-password" },
+    {
+      clientIp: "203.0.113.20",
+      failureLimit: 3,
+      failureWindowMs: 60_000,
+      lockoutMs: 120_000,
+      now: loginTime,
+    },
+  );
+  assert.equal(authenticatedFromCleanIp?.id, user.id.toString());
+  assert.equal(state.users[0]!.lastLogin?.getTime(), loginTime.getTime());
+
+  // Original offending IP unlocks strictly after lockout window elapses and clears prior failures
+  const afterLockout = new Date(now.getTime() + 120_001);
+  const unlocked = await authorizeCredentials(
+    prisma,
+    { username: user.username, password: "synthetic-ip-lockout-password" },
+    {
+      clientIp: "198.51.100.10",
+      failureLimit: 3,
+      failureWindowMs: 60_000,
+      lockoutMs: 120_000,
+      now: afterLockout,
+    },
+  );
+  assert.equal(unlocked?.id, user.id.toString());
+  assert.equal(
+    state.attempts.filter(
+      (attempt) =>
+        attempt.ipAddress === "198.51.100.10" && !attempt.succeeded,
+    ).length,
+    0,
+  );
 });
 
 test("initial bootstrap creates only one reset-required synthetic admin", async () => {

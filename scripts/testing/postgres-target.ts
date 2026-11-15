@@ -320,11 +320,12 @@ async function verifyDatabase(
           WHERE migration_name IN (
             '20261017000000_initial_application_schema',
             '20261017190000_local_auth_reset',
-            '20261018120000_administrator_profiles'
+            '20261018120000_administrator_profiles',
+            '20261115000000_mailserver_schema_and_roles'
           )
         `);
         if (
-          completedMigrations.rows.length !== 3 ||
+          completedMigrations.rows.length !== 4 ||
           completedMigrations.rows.some((migration) => !migration.finished_at)
         ) {
           reject("existing schema is not the complete expected migration set");
@@ -336,21 +337,29 @@ async function verifyDatabase(
         }>(`
           SELECT table_schema, table_name
           FROM information_schema.tables
-          WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+          WHERE table_schema IN ('public', 'mailserver') AND table_type = 'BASE TABLE'
         `);
         if (
           !tables.rows.some(
-            (table) => table.table_name === "_prisma_migrations",
+            (table) =>
+              table.table_schema === "public" &&
+              table.table_name === "_prisma_migrations",
           )
         ) {
           reject("the expected Prisma migration ledger is missing");
         }
 
         for (const table of tables.rows) {
-          if (table.table_name === "_prisma_migrations") continue;
+          if (
+            table.table_schema === "public" &&
+            table.table_name === "_prisma_migrations"
+          ) {
+            continue;
+          }
+          const quotedSchema = table.table_schema.replace(/"/g, '""');
           const quotedTable = table.table_name.replace(/"/g, '""');
           const count = await client.query<{ count: string }>(
-            `SELECT count(*)::text AS count FROM public."${quotedTable}"`,
+            `SELECT count(*)::text AS count FROM "${quotedSchema}"."${quotedTable}"`,
           );
           if (count.rows[0]?.count !== "0") {
             reject("existing test schema contains leftover synthetic records");

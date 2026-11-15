@@ -11,6 +11,7 @@ import {
 } from "@/core/auth/dev-demo-auth";
 import { createOpaqueToken } from "@/core/auth/opaque-token";
 import {
+  extractClientIp,
   isHttpsProxyRequest,
   resolveAuthRequestUrl,
 } from "@/core/auth/proxy-request";
@@ -261,4 +262,55 @@ test("dev demo auth works only in development and tracks session lifecycle", () 
   );
   assert.equal(getDevBypassUser("admin").isAdministrator, true);
   assert.equal(getDevBypassUser("user").isAdministrator, false);
+});
+
+test("extractClientIp honors TRUST_PROXY_HEADERS and rejects invalid forwarding headers", () => {
+  const headers = new Headers({
+    "x-forwarded-for": "203.0.113.45, 10.0.0.2",
+    "x-real-ip": "198.51.100.8",
+  });
+
+  assert.equal(extractClientIp(headers, { trustProxyHeaders: false }), null);
+  assert.equal(
+    extractClientIp(headers, { trustProxyHeaders: true }),
+    "203.0.113.45",
+  );
+  assert.equal(
+    extractClientIp(
+      new Headers({ "x-forwarded-for": "[2001:DB8::1]:4432" }),
+      { trustProxyHeaders: true },
+    ),
+    "2001:db8::1",
+  );
+  assert.equal(
+    extractClientIp(
+      new Headers({
+        "x-forwarded-for": "not-an-ip",
+        "x-real-ip": "198.51.100.8:8080",
+      }),
+      { trustProxyHeaders: true },
+    ),
+    "198.51.100.8",
+  );
+});
+
+test("parseEnvironment provides safe defaults and validates lockout settings", () => {
+  const defaults = parseEnvironment({});
+  assert.equal(defaults.trustProxyHeaders, false);
+  assert.equal(defaults.loginFailureLimit, 5);
+  assert.equal(defaults.loginFailureWindowSeconds, 900);
+  assert.equal(defaults.loginLockoutSeconds, 900);
+
+  const custom = parseEnvironment({
+    TRUST_PROXY_HEADERS: "true",
+    LOGIN_FAILURE_LIMIT: "10",
+    LOGIN_FAILURE_WINDOW_SECONDS: "600",
+    LOGIN_LOCKOUT_SECONDS: "1200",
+  });
+  assert.equal(custom.trustProxyHeaders, true);
+  assert.equal(custom.loginFailureLimit, 10);
+  assert.equal(custom.loginFailureWindowSeconds, 600);
+  assert.equal(custom.loginLockoutSeconds, 1200);
+
+  assert.throws(() => parseEnvironment({ LOGIN_FAILURE_LIMIT: "0" }));
 });

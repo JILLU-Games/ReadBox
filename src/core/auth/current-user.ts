@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { env } from "@/config/env";
+import { getAccountRoleFlags } from "@/core/accounts/policy";
 import {
   getDevBypassUser,
   getDevDemoUserById,
@@ -53,11 +54,13 @@ export async function getCurrentUser() {
     });
 
     if (!user?.isActive || user.passwordResetRequired) return null;
-    const { administratorProfile, ...identity } = user;
+    const roleFlags = getAccountRoleFlags(user);
+    const { administratorProfile: _administratorProfile, ...identity } = user;
+    void _administratorProfile;
     return {
       ...identity,
-      isAdministrator: administratorProfile !== null,
-      isSuperuser: administratorProfile?.isSuperuser === true,
+      isAdministrator: roleFlags.isAdministrator,
+      isSuperuser: roleFlags.isSuperuser,
     };
   } catch {
     logger.error("auth_current_user_lookup_failed");

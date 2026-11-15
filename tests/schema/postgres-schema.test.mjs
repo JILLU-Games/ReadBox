@@ -23,6 +23,13 @@ const administratorMigration = readFileSync(
   ),
   "utf8",
 );
+const mailserverMigration = readFileSync(
+  resolve(
+    workspaceRoot,
+    "prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql",
+  ),
+  "utf8",
+);
 const migrationLock = readFileSync(
   resolve(workspaceRoot, "prisma/migrations/migration_lock.toml"),
   "utf8",
@@ -113,7 +120,7 @@ test("administrator profile is a unique linked identity with no automatic promot
     .sort();
   assert.equal(
     migrationDirectories.at(-1),
-    "20261018120000_administrator_profiles",
+    "20261115000000_mailserver_schema_and_roles",
   );
 });
 
@@ -199,4 +206,40 @@ test("current audit migration is explicitly generated but not applied", () => {
   assert.match(initialMigration, /CREATE TABLE "messages"/);
   assert.match(initialMigration, /CREATE TABLE "attachments"/);
   assert.match(initialMigration, /FOREIGN KEY/);
+});
+
+test("mailserver schema migration stays in the single PostgreSQL database with least-privilege postfix_lookup grants", () => {
+  assert.match(mailserverMigration, /CREATE SCHEMA IF NOT EXISTS "mailserver"/);
+  assert.match(
+    mailserverMigration,
+    /CREATE TABLE IF NOT EXISTS "mailserver"\."mail_domains"/,
+  );
+  assert.match(
+    mailserverMigration,
+    /CREATE TABLE IF NOT EXISTS "mailserver"\."mailboxes"/,
+  );
+  assert.match(
+    mailserverMigration,
+    /CREATE TABLE IF NOT EXISTS "mailserver"\."mail_aliases"/,
+  );
+  assert.match(
+    mailserverMigration,
+    /CREATE OR REPLACE VIEW "mailserver"\."postfix_virtual_domains"[\s\S]*security_invoker = true/,
+  );
+  assert.match(
+    mailserverMigration,
+    /CREATE OR REPLACE VIEW "mailserver"\."postfix_virtual_mailboxes"[\s\S]*security_invoker = true/,
+  );
+  assert.match(
+    mailserverMigration,
+    /CREATE OR REPLACE VIEW "mailserver"\."postfix_virtual_aliases"[\s\S]*security_invoker = true/,
+  );
+  assert.match(
+    mailserverMigration,
+    /GRANT SELECT \("id", "domain_id", "local_part", "email", "maildir", "quota_bytes", "active"\)\s+ON "mailserver"\."mailboxes" TO "postfix_lookup"/,
+  );
+  assert.doesNotMatch(
+    mailserverMigration,
+    /GRANT[^;]*password_hash[^;]*TO "postfix_lookup"/i,
+  );
 });

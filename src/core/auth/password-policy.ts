@@ -11,6 +11,7 @@ export const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
 export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 export const LOGIN_FAILURE_LIMIT = 5;
 export const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+export const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 
 export function passwordConfirmationMatches(
   password: unknown,

@@ -31,7 +31,10 @@ vi.mock("@/components/ui/notifications", () => ({
 
 import { AppShell } from "@/components/layout/app-shell";
 
-describe("AppShell mobile navigation", () => {
+const adminUser = { username: "admin.operator", isAdministrator: true };
+const regularUser = { username: "inbox.user", isAdministrator: false };
+
+describe("AppShell navigation, role gating, and sign-out", () => {
   beforeEach(() => {
     const mediaQuery = {
       matches: false,
@@ -50,8 +53,54 @@ describe("AppShell mobile navigation", () => {
     vi.unstubAllGlobals();
   });
 
+  it("hides admin navigation from non-administrators and omitted user state", () => {
+    render(<AppShell user={regularUser}>Workspace content</AppShell>);
+
+    expect(screen.getByRole("link", { name: "User panel" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Admin panel" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Management navigation" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText("inbox.user").length).toBeGreaterThan(0);
+
+    cleanup();
+    render(<AppShell>Default unprivileged shell</AppShell>);
+    expect(
+      screen.queryByRole("link", { name: "Admin panel" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows management navigation and sign-out control for administrators", () => {
+    const signOut = vi.fn(async () => undefined);
+    render(
+      <AppShell user={adminUser} signOutAction={signOut}>
+        Workspace content
+      </AppShell>,
+    );
+
+    expect(screen.getByRole("link", { name: "User panel" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Admin panel" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Domains" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mailboxes" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Operations" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Audit & security" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Management navigation" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Sign out/i }),
+    ).toBeInTheDocument();
+  });
+
   it("visually hides the closed drawer and exposes disclosure state", () => {
-    render(<AppShell>Workspace content</AppShell>);
+    render(<AppShell user={adminUser}>Workspace content</AppShell>);
 
     const drawer = document.getElementById("workspace-sidebar");
     const toggle = screen.getByRole("button", { name: "Open navigation" });
@@ -63,7 +112,7 @@ describe("AppShell mobile navigation", () => {
 
   it("moves focus into the opened drawer and restores focus after Escape", async () => {
     const user = userEvent.setup();
-    render(<AppShell>Workspace content</AppShell>);
+    render(<AppShell user={adminUser}>Workspace content</AppShell>);
 
     const toggle = screen.getByRole("button", { name: "Open navigation" });
     await user.click(toggle);
@@ -80,18 +129,35 @@ describe("AppShell mobile navigation", () => {
 
   it("contains keyboard focus inside the open navigation drawer", async () => {
     const user = userEvent.setup();
-    render(<AppShell>Workspace content</AppShell>);
+    render(<AppShell user={adminUser}>Workspace content</AppShell>);
 
     await user.click(screen.getByRole("button", { name: "Open navigation" }));
 
     const drawer = screen.getByRole("dialog", { name: "Workspace navigation" });
     const firstLink = screen.getByRole("link", { name: "User panel" });
-    const lastLink = screen.getByRole("link", { name: "Admin panel" });
-    const closeButton = screen.getByRole("button", { name: "Close navigation drawer" });
+    const adminLink = screen.getByRole("link", { name: "Admin panel" });
+    const domainsLink = screen.getByRole("link", { name: "Domains" });
+    const mailboxesLink = screen.getByRole("link", { name: "Mailboxes" });
+    const usersLink = screen.getByRole("link", { name: "Users" });
+    const operationsLink = screen.getByRole("link", { name: "Operations" });
+    const lastLink = screen.getByRole("link", { name: "Audit & security" });
+    const closeButton = screen.getByRole("button", {
+      name: "Close navigation drawer",
+    });
 
     expect(drawer).toHaveAttribute("aria-modal", "true");
     expect(firstLink).toHaveFocus();
 
+    await user.tab();
+    expect(adminLink).toHaveFocus();
+    await user.tab();
+    expect(domainsLink).toHaveFocus();
+    await user.tab();
+    expect(mailboxesLink).toHaveFocus();
+    await user.tab();
+    expect(usersLink).toHaveFocus();
+    await user.tab();
+    expect(operationsLink).toHaveFocus();
     await user.tab();
     expect(lastLink).toHaveFocus();
     await user.tab();
@@ -107,17 +173,23 @@ describe("AppShell mobile navigation", () => {
     const mediaQuery = {
       matches: false,
       media: "(min-width: 48rem)",
-      addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => {
+      addEventListener: (
+        _type: string,
+        listener: (event: MediaQueryListEvent) => void,
+      ) => {
         listeners.add(listener);
       },
-      removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => {
+      removeEventListener: (
+        _type: string,
+        listener: (event: MediaQueryListEvent) => void,
+      ) => {
         listeners.delete(listener);
       },
     } as unknown as MediaQueryList;
     vi.stubGlobal("matchMedia", () => mediaQuery);
 
     const user = userEvent.setup();
-    render(<AppShell>Workspace content</AppShell>);
+    render(<AppShell user={adminUser}>Workspace content</AppShell>);
 
     const toggle = screen.getByRole("button", { name: "Open navigation" });
     await user.click(toggle);
@@ -125,7 +197,9 @@ describe("AppShell mobile navigation", () => {
     const firstLink = screen.getByRole("link", { name: "User panel" });
 
     act(() => {
-      listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent));
+      listeners.forEach((listener) =>
+        listener({ matches: true } as MediaQueryListEvent),
+      );
     });
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -133,7 +207,9 @@ describe("AppShell mobile navigation", () => {
     expect(firstLink).toHaveFocus();
 
     act(() => {
-      listeners.forEach((listener) => listener({ matches: false } as MediaQueryListEvent));
+      listeners.forEach((listener) =>
+        listener({ matches: false } as MediaQueryListEvent),
+      );
     });
 
     expect(toggle).toHaveFocus();
@@ -141,7 +217,7 @@ describe("AppShell mobile navigation", () => {
 
   it("returns focus to the menu trigger when its close control is activated", async () => {
     const user = userEvent.setup();
-    render(<AppShell>Workspace content</AppShell>);
+    render(<AppShell user={adminUser}>Workspace content</AppShell>);
 
     const toggle = screen.getByRole("button", { name: "Open navigation" });
     await user.click(toggle);
@@ -155,7 +231,7 @@ describe("AppShell mobile navigation", () => {
 
   it("does not focus the hidden mobile trigger when navigating from the desktop drawer", async () => {
     const user = userEvent.setup();
-    render(<AppShell>Workspace content</AppShell>);
+    render(<AppShell user={adminUser}>Workspace content</AppShell>);
 
     const toggle = screen.getByRole("button", { name: "Open navigation" });
     const activeLink = screen.getByRole("link", { name: "User panel" });

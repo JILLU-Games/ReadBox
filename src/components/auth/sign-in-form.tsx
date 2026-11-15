@@ -67,7 +67,9 @@ export function SignInForm({
         credentials: "same-origin",
       });
       const sessionData = sessionResponse.ok
-        ? ((await sessionResponse.json()) as { user?: { id?: string } } | null)
+        ? ((await sessionResponse.json()) as {
+            user?: { id?: string; isAdministrator?: boolean };
+          } | null)
         : null;
 
       if (!sessionData?.user) {
@@ -80,7 +82,9 @@ export function SignInForm({
 
       setUsername("");
       setPassword("");
-      window.location.assign("/users");
+      window.location.assign(
+        sessionData.user.isAdministrator ? "/vcon" : "/users",
+      );
     } catch {
       setError("Sign-in is unavailable. Try again later.");
     } finally {

@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 const SAFE_HOST_PATTERN =
   /^(?:\[[0-9a-fA-F:]+\]|[a-zA-Z0-9.-]+)(?::\d{1,5})?$/;
 
@@ -138,4 +140,41 @@ export function resolveAuthRequestUrl(
   }
 
   return `${targetOrigin}${parsed.pathname}${parsed.search}`;
+}
+
+function normalizeCandidateIp(raw: string | null): string | null {
+  if (!raw) return null;
+  let candidate = raw.trim();
+  if (!candidate) return null;
+
+  if (candidate.startsWith("[")) {
+    const closeBracket = candidate.indexOf("]");
+    if (closeBracket <= 1) return null;
+    candidate = candidate.slice(1, closeBracket);
+  } else {
+    const firstColon = candidate.indexOf(":");
+    const lastColon = candidate.lastIndexOf(":");
+    if (firstColon > 0 && firstColon === lastColon) {
+      candidate = candidate.slice(0, firstColon);
+    }
+  }
+
+  return isIP(candidate) !== 0 ? candidate.toLowerCase() : null;
+}
+
+export function extractClientIp(
+  headers: Pick<Headers, "get"> | undefined,
+  options: { readonly trustProxyHeaders: boolean },
+): string | null {
+  if (!options.trustProxyHeaders || !headers) {
+    return null;
+  }
+
+  const forwardedFor = firstHeaderValue(headers.get("x-forwarded-for"));
+  const normalizedForwarded = normalizeCandidateIp(forwardedFor);
+  if (normalizedForwarded) {
+    return normalizedForwarded;
+  }
+
+  return normalizeCandidateIp(firstHeaderValue(headers.get("x-real-ip")));
 }

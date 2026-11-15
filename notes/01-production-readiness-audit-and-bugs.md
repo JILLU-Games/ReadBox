@@ -1,0 +1,71 @@
+# 01 — Production Readiness Forensic Audit & Bug/Gap Registry
+
+> **Document ID:** `DOC-001`  
+> **Baseline Reference:** `BASELINE-2026-11-15` (`notes/00-baseline-freeze-and-audit-sync.md`)  
+> **Parity Reference:** `reference/MailStack` v1.3.5.5 (`notes/vcon-admin-forensic-audit.md`)  
+> **Rule:** Every bug, security gap, contract discrepancy, and missing production feature is assigned a stable ID and mapped to exactly one **Scope-Locked Phase** in `notes/02-phase-roadmap-and-scope-locks.md`.
+
+---
+
+## 1. Confirmed Bugs & Regressions in Current Baseline (`BUG-*`)
+
+| ID | Severity | Location (`File : Symbol / Line`) | Forensic Root Cause | Target Phase |
+|---|---|---|---|---|
+| **BUG-001** | **High** (Resolved in Phase 0) | `tests/auth/postgres-target.test.ts:28,157` | Hardcoded Windows path separator `` `${process.cwd()}\\compose.yaml` `` in mock evidence caused Linux `verify:safe` to fail (`exit 1`). **[RESOLVED in Phase 0 via `node:path` `join()`.]** | **Phase 0 (Done)** |
+| **BUG-002** | **Medium** (Resolved in Phase 0) | `package.json` (`test:auth:core`) | `tests/auth/dual-mode-env.test.ts` (now 8 tests covering iframe cookies, proxy URL normalization, `DEV_AUTH_MODE=bypass/demo`, `extractClientIp`, lockout env defaults) was not wired into `test:auth:core` or `verify:safe`. **[RESOLVED in Phase 0.]** | **Phase 0 (Done)** |
+| **BUG-003** | **High** (Resolved in Phase 0 & Phase 1) | `src/core/auth/credentials.ts`, `src/core/auth/proxy-request.ts`, `src/auth.ts`, `src/config/env-schema.ts`, `src/core/audit/record.ts`, `src/app/sign-in/actions.ts` | `LoginAttempt` hardcoded `ipAddress: null`, ignored reverse-proxy IP, never pruned stale rows, never updated `User.lastLogin`, and lacked `AuditLog` persistence. **[RESOLVED: Phase 0 IP/lockout/pruning/`lastLogin` + Phase 1 `recordAudit()` wiring for `login_success`, `login_failure`, and `logout`.]** | **Phase 0 & 1 (Done)** |
+| **BUG-004** | **Medium** (Resolved in Phase 1) | `src/components/auth/sign-in-form.tsx`, `src/components/layout/app-shell.tsx`, `src/app/(workspace)/layout.tsx` | Post-login redirect hardcoded `/users` even for admins, and `AppShell` showed `"Admin panel"` link to regular non-admin users. **[RESOLVED in Phase 1: admins redirect to `/vcon`, non-admins see only `/users`, and Sign Out button added.]** | **Phase 1 (Done)** |
+| **BUG-005** | **Medium** (Branding & PWA Metadata) | `src/app/layout.tsx`, `src/app/manifest.ts`, `src/components/layout/app-shell.tsx` | Hardcodes `"MailStack"`, `"Foundation mode"`, and `"Mail services are not connected"` instead of loading dynamic `SiteSettings` / `ReadBox` branding and live workspace status. | **Phase 6** |
+| **BUG-006** | **Medium** (320px Responsive Layout — Historical QA Failure) | `docs/FEATURE-PARITY.md:87`, `src/app/sign-in/page.tsx`, `src/app/reset-password/page.tsx` | Documented 320px viewport horizontal clipping on `/sign-in` (and unverified `/reset-password` + workspace screens at 320/768/1280px in light & dark themes). | **Phase 7** |
+| **BUG-007** | **Low/Medium** (Resolved in Phase 1) | `src/core/accounts/policy.ts`, `src/core/auth/credentials.ts`, `src/core/auth/current-user.ts` | Centralized `isAccountAdministrator()` & `getAccountRoleFlags()` helpers strictly read `AdministratorProfile` and ignore legacy `User.isStaff` / `User.isSuperuser` booleans (`tests/audit/record-and-policy.test.ts` verified). | **Phase 1 (Done)** |
+
+---
+
+## 2. Reference App Discrepancies Resolved Before Implementation (`DISC-*`)
+
+Forensic inspection of `reference/MailStack` uncovered 4 discrepancies between prose/labels and actual runtime code. These rules are **locked** so ReadBox does not implement conflicting behavior:
+
+| ID | Discrepancy in `reference/MailStack` | Locked ReadBox Decision | Target Phase |
+|---|---|---|---|
+| **DISC-001** | `soft_delete_mailbox()` and `Status.DELETED` exist in `mailboxes/services.py`, **but no web route calls them**; both single delete and bulk delete execute permanent `purge_mailbox()`. | Keep permanent **`purgeMailbox()`** as the default `/vcon/mailboxes` delete path (requiring exact typed `emailAddress` confirmation on single delete and explicit multi-item confirmation modal on bulk purge). Do **not** silently convert delete to soft-delete. **[RESOLVED in Phase 3.]** | **Phase 3 (Done)** |
+| **DISC-002** | `verify_domain()` (`POST /domains/<uuid>/check/`) **only** validates `MX == MAIL_HOSTNAME` + `A/AAAA` resolution for `MAIL_HOSTNAME` (and auto-disables on failure without auto-enabling on success), whereas `verify_dns_records()` (`GET /domains/<uuid>/dns-status/`) checks all 5 records (`MX`, `A/AAAA`, `SPF`, `DKIM`, `DMARC`). | Expose both clearly in `/vcon/domains`: **Routing Verification (Required for Activation: MX + A/AAAA)** vs **Deliverability Checks (SPF + DKIM + DMARC)**. Preserve fail-closed auto-disable on routing failure and explicit admin toggle to enable. **[RESOLVED in Phase 3.]** | **Phase 3 (Done)** |
+| **DISC-003** | `rebuild_mail_index` passes `--rebuild-missing` to `ingest_maildir`, but `ingest_all()` already scans every unindexed file regardless of that flag. | Implement deterministic unindexed Maildir reconciliation cleanly in `src/core/ingestion/service.ts` (`ingestUnindexedMaildirFiles`) without misleading no-op branches. **[RESOLVED in Phase 4.]** | **Phase 4 (Done)** |
+| **DISC-004** | `reference/MailStack` has `AuditLog` and `LoginAttempt` models plus `admin.py`, **but `/admin/` was never mounted in `config/urls.py`**, leaving zero web UI for audit logs or security lockouts. | Add first-class **`/vcon/audit`** (AuditLog + LoginAttempt monitor — **RESOLVED in Phase 2**) and **`/vcon/operations`** (replaces SSH-only repair/sync/counter CLIs — **RESOLVED in Phase 4**) inside `/vcon`. | **Phase 2 & 4 (Done)** |
+
+---
+
+## 3. Production Readiness Gaps (`GAP-*`) & Exact Target Phases
+
+### 3.1 Security, Audit & Database Foundation
+- **GAP-001 (`Phase 1 — RESOLVED`):** PostgreSQL `mailserver` schema migration (`20261115000000_mailserver_schema_and_roles`) added with `mail_domains`, `mailboxes`, `mail_aliases`, 3 `security_invoker` `postfix_virtual_*` views, and least-privilege `postfix_lookup` grants excluding `password_hash`.
+- **GAP-002 (`Phase 1 — RESOLVED`):** `src/core/audit/record.ts` (`recordAudit`, `recordAppAudit`) implements recursive secret redaction, BigInt/Date normalization, field truncation, and trusted-proxy IP extraction (`TRUST_PROXY_HEADERS`).
+- **GAP-003 (`Phase 1 — RESOLVED`):** `src/core/accounts/policy.ts` (`ensureUserAccessPolicy`, `getUserAccessCapabilities`, `isAccountAdministrator`) added and unit tested.
+- **GAP-004 (`Phase 1 — Role/Sign-Out RESOLVED; SiteSettings Branding -> Phase 6`):** `AppShell` now receives server-resolved `isAdministrator` + `username` + `signOutAction` (live `SiteSettings` hydration remains scheduled for `Phase 6`).
+
+### 3.2 `/vcon` Admin Console Features
+- **GAP-005 (`Phase 2 — RESOLVED`):** `/vcon` (`src/core/admin/overview.ts` + `src/vcon/overview-panel.tsx`) now renders live KPIs (`totalMailboxes`, `activeMailboxes`, `disabledMailboxes`, `totalMessages`, `totalUnread`, `lastReceivedAt`), System Health strip (`Database`, `ServiceHeartbeat("maildir_ingestion")` freshness, `MAIL_STORAGE_ROOT` RWX check), recent 8 deliveries, and recent 8 mailboxes with click-to-copy button (plus clean non-crashing dev fallback).
+- **GAP-006 (`Phase 2 — RESOLVED`):** `/vcon/users` (`list`, case-insensitive search `q`, 25/page pagination, `create` w/ `first.lastNN` username generator + >=16-char CSPRNG password generator honoring `MIN_PASSWORD_LENGTH=15` + `"Create & copy"` one-time modal + searchable mailbox picker, `edit` w/ diff audits + `AdministratorProfile` edit block, `delete` w/ admin-delete/self-delete/last-active-admin guards & mailbox/message preservation) implemented in `src/core/accounts/users.ts`, `credentials-generator.ts`, `actions.ts`, and `src/app/(workspace)/vcon/users/*`.
+- **GAP-007 (`Phase 2 — RESOLVED`):** `/vcon/audit` (`src/core/audit/queries.ts`, `src/components/vcon/audit-console.tsx`, `src/app/(workspace)/vcon/audit/page.tsx`) provides filtered/paginated `AuditLog` inspection with recursive secret redaction alongside active `LoginAttempt` IP/username lockouts.
+- **GAP-008 (`Phase 3 — RESOLVED`):** Implemented `/vcon/domains` CRUD (`/vcon/domains`, `/new`, `/[uuid]/edit`), 5-record DNS preview/status engine (`MX`, `A/AAAA`, `SPF`, `OpenDKIM`, `DMARC`), Cloudflare BIND export, immutable domain names, fail-closed auto-disable on routing failure without auto-enable, atomic default switch, safe delete guards, and `mailserver.mail_domains` sync (`src/core/dns/*`, `src/core/domains/service.ts`, `/api/vcon/domains/*`).
+- **GAP-009 (`Phase 3 — RESOLVED`):** Implemented `/vcon/mailboxes` admin directory + provisioning + purge (`/vcon/mailboxes`, `/new`, `/[uuid]/delete`), real PostgreSQL `mailserver` adapter (`PgReadOnlyMailServerAdapter` + write/sync helpers), `RESERVED_LOCAL_PARTS`, symlink/traversal-safe `confinedPath`, cross-process `proper-lockfile` locking, `0700` `{domain}/{local_part}/Maildir/{new,cur,tmp}` creation, `!READBOX-READ-ONLY!...` hash, compensating rollback preserving pre-existing trees, active toggle, typed-email single purge, bulk purge, and `postmaster`/`abuse` creator (`src/core/mailboxes/*`, `src/core/mailserver/pg-adapter.ts`).
+
+### 3.3 Maildir Ingestion, Operations & `/users` Workspace
+- **GAP-010 (`Phase 4 — RESOLVED`):** Implemented Node Maildir ingestion pipeline (`src/core/ingestion/{sanitizer,parser,attachments,counters,service}.ts`, `src/workers/ingestion.ts`, `scripts/mail/ingest.ts`) featuring read-only `Maildir/new` & `cur` scans, `(mailboxId, sourceFileKey)` idempotency, `postal-mime` parser, `sanitize-html` + `css-tree` AST allowlist sanitizer (`128KB`/`256KB`/`512-rule`/`8-depth` budgets, raster `data:image/*` only), confined `0600` sharded attachments in `ATTACHMENT_STORAGE_ROOT` with rollback cleanup, oversized streaming SHA-256 skip, per-file error isolation, cross-process `proper-lockfile` lock, and `ServiceHeartbeat("maildir_ingestion")` updates.
+- **GAP-011 (`Phase 4 — RESOLVED`):** Implemented `/vcon/operations` diagnostics console (`src/core/operations/service.ts`, `src/components/vcon/operations-console.tsx`, `src/app/(workspace)/vcon/operations/{page,actions}.ts`, `src/core/ingestion/repair.ts`) providing Postfix contract verification, dry-run/strict `mailserver` synchronization, missing Maildir provisioning, unindexed Maildir index rebuild, mailbox counter recalculation, and SHA-256 verified message body repair with confirmation guard and zero message-body exposure.
+- **GAP-012 (`Phase 5 — RESOLVED`):** Implemented full `/users` workspace (`src/core/messages/service.ts`, `src/users/overview-panel.tsx`, `src/components/users/{live-mail-notifier,create-user-mailbox-modal,user-mailboxes-view,mailbox-inbox-view,message-reader-view}.tsx`, `/users`, `/users/mailboxes`, `/users/inbox/[mailboxUuid]`, `/users/inbox/[mailboxUuid]/[messageUuid]`, `/api/messages/{html/[messageUuid],attachment/[attachmentUuid],live}`) featuring membership-scoped KPIs, self-service mailbox creation (`Create & copy` + `Generate`), `canDeleteMailboxes`-gated single/bulk purge, 30/page inbox with `senderName`/`senderAddress`/`subject` search + unread/attachment filters, message reader with auto-read + counter sync + `markMessageUnread` + `canDeleteMessages` soft-delete preserving Maildir source, strict CSP `<iframe sandbox="">` HTML reader endpoint, `confinedPath` regular-file attachment download (`Content-Disposition: attachment`, `nosniff`, `private, no-store`, optional `X-Accel-Redirect`), and bounded `X-MailStack-Live-Request: 1` cursor polling + cross-tab `BroadcastChannel`/`localStorage`/`navigator.locks` Web Notifications.
+
+### 3.4 Settings, System Updates, Health & Production VPS Cutover
+- **GAP-013 (`Phase 6`):** No `/vcon/settings` admin form for singleton `SiteSettings`, safe `MEDIA_ROOT/site-settings/` logo (<=5MB) & favicon (<=512KB) uploads, or public `/api/site-settings` (`PUBLIC_SITE_ORIGIN` CORS).
+- **GAP-014 (`Phase 6`):** No `/vcon/system-update` UI, GitHub release checker, 9-point OS preflight checker, atomic `0640` hard-linked update request handoff, or isolated privileged Node/shell updater scripts (`pg_dump`/`pg_restore` backups, rollback, Postfix `pgsql:` templates, Dovecot LMTP, systemd units).
+- **GAP-015 (`Phase 6`):** `src/core/health/snapshot.ts` does not check pending Prisma migrations, writable `MAIL_STORAGE_ROOT`/`ATTACHMENT_STORAGE_ROOT`, or mandatory production env completeness (`MAIL_DOMAIN`, `MAIL_HOSTNAME`, `SERVER_IP`, etc.), nor document loopback-only `/health/ready` Nginx restriction.
+- **GAP-016 (`Phase 7`):** Missing automated Playwright/headless browser verification across 320px/768px/1280px, light/dark theme contrast, reduced-motion rendering, PWA service-worker private-cache exclusion proof, and isolated PostgreSQL end-to-end tests.
+
+---
+
+## 4. Critical Security Invariants (Non-Negotiable Across Every Phase)
+
+1. **Zero Second Database:** Never add MariaDB, MySQL, or SQLite for ReadBox/mailserver data (`AGENTS.md`).
+2. **Non-Enumerating Access:** Non-admins requesting `/vcon/*` or `/api/vcon/*` must receive 404 (`notFound()`), and non-members requesting `/users` mailbox/message/attachment UUIDs must receive 404 without storage-path disclosure.
+3. **No Arbitrary Shell / SQL Identifiers:** Never concatenate user input into shell commands or SQL identifiers (`^[a-z0-9_]+$` allowlist + Prisma parameterized queries only).
+4. **No Inline XSS / Remote Tracking:** Message HTML must pass allowlist sanitization + CSS AST property/budget filtering and render inside `sandbox=""` iframe with `default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; navigate-to 'none'`.
+5. **Dual-Mode Auth Isolation:** Production (`NODE_ENV=production`) must always enforce `devAuthMode = "off"`, `AUTH_SECRET` (>=32 chars), PostgreSQL `DATABASE_URL`, and `Secure`/`HttpOnly`/`SameSite=Lax` cookies; `bypass`/`demo` exist exclusively for `NODE_ENV=development`.

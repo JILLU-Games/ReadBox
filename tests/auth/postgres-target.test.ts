@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { join } from "node:path";
 import { test } from "node:test";
 import {
   assertDisposablePostgresContainer,
@@ -24,7 +25,7 @@ function validEvidence(): PostgresContainerEvidence {
     project: "readbox-auth-test",
     service: "postgres-test",
     workingDirectory: process.cwd(),
-    configFiles: [`${process.cwd()}\\compose.yaml`],
+    configFiles: [join(process.cwd(), "compose.yaml")],
     configuredDatabase: databaseName,
     configuredUser: "readbox_test",
     passwordMatches: true,
@@ -153,7 +154,7 @@ test("accepts only the expected ephemeral Compose PostgreSQL container", () => {
         ...validEvidence(),
         configFiles: [
           ...validEvidence().configFiles,
-          `${process.cwd()}\\compose.override.yaml`,
+          join(process.cwd(), "compose.override.yaml"),
         ],
       }),
     /ephemeral Compose service/,

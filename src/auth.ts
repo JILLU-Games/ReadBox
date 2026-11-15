@@ -8,7 +8,10 @@ import {
   revokeDevDemoSession,
 } from "@/core/auth/dev-demo-auth";
 import { SESSION_MAX_AGE_SECONDS } from "@/core/auth/password-policy";
-import { isHttpsProxyRequest } from "@/core/auth/proxy-request";
+import {
+  extractClientIp,
+  isHttpsProxyRequest,
+} from "@/core/auth/proxy-request";
 import {
   getAuthCookiePolicy,
   getAuthRuntimeConfigurationError,
@@ -101,10 +104,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
               username: { label: "Username", type: "text" },
               password: { label: "Password", type: "password" },
             },
-            authorize: (credentials) =>
+            authorize: (credentials, request) =>
               devDemoActive
                 ? authorizeDevDemoCredentials(env.nodeEnv, credentials)
-                : authorizeCredentials(getPrismaClient(), credentials),
+                : authorizeCredentials(getPrismaClient(), credentials, {
+                    clientIp: extractClientIp(
+                      request?.headers ?? req?.headers,
+                      { trustProxyHeaders: env.trustProxyHeaders },
+                    ),
+                    userAgent:
+                      (request?.headers ?? req?.headers)?.get("user-agent") ??
+                      "",
+                    failureLimit: env.loginFailureLimit,
+                    failureWindowMs: env.loginFailureWindowSeconds * 1000,
+                    lockoutMs: env.loginLockoutSeconds * 1000,
+                  }),
           }),
         ]
       : [],

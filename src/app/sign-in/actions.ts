@@ -2,6 +2,7 @@
 
 import { signOut } from "@/auth";
 import { env } from "@/config/env";
+import { recordAppAudit } from "@/core/audit/record";
 import { getAuthSecret } from "@/core/auth/auth-secret";
 import { revokeDevDemoSession } from "@/core/auth/dev-demo-auth";
 import { isHttpsProxyRequest } from "@/core/auth/proxy-request";
@@ -50,6 +51,17 @@ export async function signOutAction(): Promise<void> {
           revokeDevDemoSession(token.sid);
         } else {
           await revokeAppSession(getPrismaClient(), token.sid);
+          await recordAppAudit({
+            actorId: typeof token.sub === "string" ? token.sub : null,
+            action: "logout",
+            targetType: "user",
+            targetIdentifier:
+              typeof token.username === "string"
+                ? token.username
+                : String(token.sub ?? ""),
+            headers: requestHeaders,
+            details: { revokedSession: true },
+          });
         }
       } catch {
         logger.error("auth_logout_revocation_failed");
