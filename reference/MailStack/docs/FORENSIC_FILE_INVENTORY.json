@@ -1,0 +1,6266 @@
+{
+  "files": [
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": ".cursorrules",
+      "sha256": "6a7b57d85edaef4ea3492aa2356e66ba501877985ef21d78da47e93ac9123f78",
+      "size_bytes": 255
+    },
+    {
+      "kind": "text",
+      "lines": 15,
+      "path": ".editorconfig",
+      "sha256": "4a016bcdcab17de141e39911b6da85f1f47784aace941f617a5a3154891f728d",
+      "size_bytes": 227
+    },
+    {
+      "kind": "text",
+      "lines": 11,
+      "path": ".env.example",
+      "sha256": "e453f1de4bc7e6de5d02a427c1d9b46b777d8bba667d35cb391960ec9aa81a51",
+      "size_bytes": 411
+    },
+    {
+      "kind": "text",
+      "lines": 12,
+      "path": ".gitattributes",
+      "sha256": "230ea5e06bbc5dcfde8cd68f913ecf803124c5c54f515b61018eb151251a9277",
+      "size_bytes": 194
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": ".github/CODEOWNERS",
+      "sha256": "4225e4b57c7e693411b51abdc430b6e6ab996c8f2b2331a7fd264fa5da8d9f24",
+      "size_bytes": 12
+    },
+    {
+      "kind": "text",
+      "lines": 27,
+      "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "sha256": "1edc385004cf0bfebc522eea1ccf866b96ac842af493ab02be7298d63a1b43c4",
+      "size_bytes": 641
+    },
+    {
+      "kind": "text",
+      "lines": 11,
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "sha256": "43e7e4f690a5a0aef10658048695fb4e00a6d68175406245e3efe9a0043586fb",
+      "size_bytes": 494
+    },
+    {
+      "kind": "text",
+      "lines": 25,
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+      "sha256": "b2fa56cce69ab8429e606cd53234b6bb6527e0d2ec63b45e52dca4e5a7a83105",
+      "size_bytes": 758
+    },
+    {
+      "kind": "text",
+      "lines": 35,
+      "path": ".github/ISSUE_TEMPLATE/question.yml",
+      "sha256": "b11e421c9750e355cc98bf19a7fca8429a59ab4579143c19f40c0249f65bd69f",
+      "size_bytes": 902
+    },
+    {
+      "kind": "text",
+      "lines": 39,
+      "path": ".github/copilot-instructions.md",
+      "sha256": "18fa7dcddcbc73e1ca0cb93f69d1b1f59625007c8a67ae35b0a9f823454a2dcf",
+      "size_bytes": 2300
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": ".github/dependabot.yml",
+      "sha256": "59dceb595c332c21b4d16adb0617d47ccf18b82032791b0b1b964ed130a99a41",
+      "size_bytes": 352
+    },
+    {
+      "kind": "text",
+      "lines": 36,
+      "path": ".github/pull_request_template.md",
+      "sha256": "947b575da756b2b9a2f2b1f96452f38a25288676fffeab52eccb282d35d8c136",
+      "size_bytes": 1547
+    },
+    {
+      "kind": "text",
+      "lines": 53,
+      "path": ".github/workflows/ci.yml",
+      "sha256": "091c789da36308afd07cf78f4070dce5dc6fd01a394d192d305a6eb2a9967ec8",
+      "size_bytes": 1520
+    },
+    {
+      "kind": "text",
+      "lines": 57,
+      "path": ".github/workflows/documentation.yml",
+      "sha256": "954a2e1e7a1aa0a338a2e0457ef41c6958fff07de15cd854f9fbc0d00582b0ed",
+      "size_bytes": 1569
+    },
+    {
+      "kind": "text",
+      "lines": 129,
+      "path": ".github/workflows/release.yml",
+      "sha256": "56a7b5b6d9d40c478286a5dc8be68423d291f331f530f2f14727c10155632b9c",
+      "size_bytes": 4410
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": ".github/workflows/repository-hygiene.yml",
+      "sha256": "133ea8b6409c1a3ca887c0a589f9b58120ee77c9928bc3a7b9558750148ac3c2",
+      "size_bytes": 481
+    },
+    {
+      "kind": "text",
+      "lines": 61,
+      "path": ".gitignore",
+      "sha256": "993da1673a0acb15a3bc9f37d5bdb4374876d7d40727cd37d7c02d86e8117d64",
+      "size_bytes": 626
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "AGENTS.md",
+      "sha256": "ea90552aeed705921ab17f3d80490c7df5f6b2eb5a323bec68737498c3ac934a",
+      "size_bytes": 756
+    },
+    {
+      "kind": "text",
+      "lines": 669,
+      "path": "AI_INSTRUCTIONS.md",
+      "sha256": "227b17e3912e3b05e64e6e6233c3b1acfe15329a79b77f8a041085c6efc9fe51",
+      "size_bytes": 24188
+    },
+    {
+      "kind": "text",
+      "lines": 274,
+      "path": "CHANGELOG.md",
+      "sha256": "b9f93989826790b8a7d9078bfe683c4f1aabefef84eebc6b7f562a23fef83b47",
+      "size_bytes": 25198
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "CITATION.cff",
+      "sha256": "777a7a70e2b7d3423c634f347af2e894dcc77b4f179347c9bbb14af2f03e6f91",
+      "size_bytes": 493
+    },
+    {
+      "kind": "text",
+      "lines": 19,
+      "path": "CODE_OF_CONDUCT.md",
+      "sha256": "8553c53385c0449e6a8771e8b0f4c4405febf0e059a6af995dc1c94c028504a9",
+      "size_bytes": 1117
+    },
+    {
+      "kind": "text",
+      "lines": 79,
+      "path": "CONTRIBUTING.md",
+      "sha256": "a77abafa17540d9d9c7aebf9b36a619c202896ddef02826f7b240f10963c7016",
+      "size_bytes": 3681
+    },
+    {
+      "kind": "text",
+      "lines": 661,
+      "path": "LICENSE",
+      "sha256": "5132c7f0475b02c8107a2e0f0363e70423c62d2664ab927e76193226e5e05905",
+      "size_bytes": 34273
+    },
+    {
+      "kind": "text",
+      "lines": 530,
+      "path": "MEMORY.md",
+      "sha256": "a649933c0a94355e52c6d2b3e00dac4dc7f1eb3c920f453e973e4bcc19e5fba3",
+      "size_bytes": 39242
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "NOTICE.md",
+      "sha256": "1f06d7b726ab849207f98ef9de0aaf9b879805663260ca6c527ddab80c63e221",
+      "size_bytes": 1142
+    },
+    {
+      "kind": "text",
+      "lines": 314,
+      "path": "README.md",
+      "sha256": "9f36df4639a7f8be4bb491c1bd335a7236b1a2b2376b82d88efd2758120e6dd1",
+      "size_bytes": 14214
+    },
+    {
+      "kind": "text",
+      "lines": 56,
+      "path": "ROADMAP.md",
+      "sha256": "6b512eb665b048062222dfc2eafbd201f248b9da214ecc0aa0131b9f7be2978b",
+      "size_bytes": 2806
+    },
+    {
+      "kind": "text",
+      "lines": 40,
+      "path": "SECURITY.md",
+      "sha256": "fdae4f0771a6ff2dcec0bc10cdef9d40d7c34e03f3539e172161fffd4bfc2659",
+      "size_bytes": 1964
+    },
+    {
+      "kind": "text",
+      "lines": 18,
+      "path": "SUPPORT.md",
+      "sha256": "4adbf07f265d5e7f8185f464cfa46a7fe2e6e5829acd465a187724337ff995ab",
+      "size_bytes": 775
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "VERSION",
+      "sha256": "568d5d8239e399c63c7e296b7111083a168b9ce24978638154d0c57d264583b3",
+      "size_bytes": 8
+    },
+    {
+      "kind": "text",
+      "lines": 3,
+      "path": "assets/README.md",
+      "sha256": "bd945def7c240c4f42602fd60ea10968987a64e5808fe5987fde405c1d566b8c",
+      "size_bytes": 281
+    },
+    {
+      "kind": "text",
+      "lines": 16,
+      "path": "assets/mailstack-logo.svg",
+      "sha256": "f8a8eb7c44edb8acd88ee4b139490564aafb1829510a7fe0f113979d0b17173e",
+      "size_bytes": 992
+    },
+    {
+      "kind": "text",
+      "lines": 29,
+      "path": "deployment/templates/dovecot/99-vibmail.conf.tpl",
+      "sha256": "0fb6de6c2e265cc562a4dc52980982d3c4001c5e6f2b653fab005b8140d191e0",
+      "size_bytes": 603
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "deployment/templates/env/contact.env.tpl",
+      "sha256": "0df7c2634657a5e9748fe0fe6ad62d081d870ea91679c9c07773d6f3a7e17f36",
+      "size_bytes": 335
+    },
+    {
+      "kind": "text",
+      "lines": 46,
+      "path": "deployment/templates/env/vibmail.env.tpl",
+      "sha256": "cf6a42f9733b580e8ac5cfbfda2d452018f81f248238393c1c12bb7dca0621f6",
+      "size_bytes": 1535
+    },
+    {
+      "kind": "text",
+      "lines": 137,
+      "path": "deployment/templates/mariadb/bootstrap.sql.tpl",
+      "sha256": "00863bfb539eeac5e38d8e1dd62de4de8536bf0d31870b0a2c46a25847384f87",
+      "size_bytes": 7761
+    },
+    {
+      "kind": "text",
+      "lines": 99,
+      "path": "deployment/templates/nginx/app.conf.tpl",
+      "sha256": "d7fb784cae7f81b8406c00860e2737ec208b3484594675b8253d94e7d1ce1e52",
+      "size_bytes": 2741
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "deployment/templates/nginx/bootstrap.conf.tpl",
+      "sha256": "42b0cb0ccaa709dd9f9bf295f3c7dbccae7f210115b276180b0c23ce09d9fce8",
+      "size_bytes": 809
+    },
+    {
+      "kind": "text",
+      "lines": 92,
+      "path": "deployment/templates/nginx/public.conf.tpl",
+      "sha256": "e93f6a6bb79d455d51b458f08d0ad07054e71595acd9927809730b7fa046a7c9",
+      "size_bytes": 3140
+    },
+    {
+      "kind": "text",
+      "lines": 5,
+      "path": "deployment/templates/postfix/mysql-virtual-aliases.cf.tpl",
+      "sha256": "8961ab3178de85c0098554296337ba119dbf6b8cc00c95e16900a52403e56c90",
+      "size_bytes": 189
+    },
+    {
+      "kind": "text",
+      "lines": 5,
+      "path": "deployment/templates/postfix/mysql-virtual-domains.cf.tpl",
+      "sha256": "01498268e6e20586328a3e05015c79d60356df969b85fd0286d4296f83a2ee60",
+      "size_bytes": 180
+    },
+    {
+      "kind": "text",
+      "lines": 5,
+      "path": "deployment/templates/postfix/mysql-virtual-mailboxes.cf.tpl",
+      "sha256": "3fc360a6efae6cdbd651104f8d9e6a99fcb38db81420dfe415ef6bd28d6189ff",
+      "size_bytes": 186
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "deployment/templates/systemd/vibmail-gunicorn.service.tpl",
+      "sha256": "60e9334d5f7e9dd6f791605c23f3972f000b6049c7c2b1ace2f71ff161e6983c",
+      "size_bytes": 1052
+    },
+    {
+      "kind": "text",
+      "lines": 32,
+      "path": "deployment/templates/systemd/vibmail-ingestion.service.tpl",
+      "sha256": "1cb5a66c726cdc4ff31e585e70612bbd0e9e0fef32ed68637d9a85632bdda029",
+      "size_bytes": 855
+    },
+    {
+      "kind": "text",
+      "lines": 43,
+      "path": "deployment/templates/systemd/vibmail-public-contact.service.tpl",
+      "sha256": "5e54a8a9412a6129f72af86c278873dea035bd1b051526eb4e522e5d7d7b710c",
+      "size_bytes": 1401
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "deployment/templates/systemd/vibmail-updater.service.tpl",
+      "sha256": "431c8e0daa0a7bb67409d1dfbb9ee6a22d3fb7519d902855910077f381fc6046",
+      "size_bytes": 653
+    },
+    {
+      "kind": "text",
+      "lines": 581,
+      "path": "design/DESIGN_MANIFEST.json",
+      "sha256": "efce80e2fa747be75cc2a50acbf015a6785e8e769e3c42ea1f473ac154aed53e",
+      "size_bytes": 21165
+    },
+    {
+      "kind": "text",
+      "lines": 41,
+      "path": "design/README.md",
+      "sha256": "4dff99549e4a0255b67db9463b8bd87646fb0b859e1b3319beff0448ff912dd0",
+      "size_bytes": 1774
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Backup.png",
+      "sha256": "87a820ab90e5dcdc0150fa7fd0a9839b1db3968e89db5e0e14d9563ab69f82db",
+      "size_bytes": 1267875
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Connect Your Mail Accounts.png",
+      "sha256": "247dce38a9aa83b0e394a5ca999cdda7ff5a07b91ec9e310d86efc7b2c1de791",
+      "size_bytes": 1294199
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Create-Teams.png",
+      "sha256": "d51e683213e432349444577eac59769e2a57a0c67c7ddabcb963d10981c93faa",
+      "size_bytes": 939616
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Create-User.png",
+      "sha256": "d06c8ace7ec1e2fadd1a737174eedf90d928285b57888eb03461029059a1ea56",
+      "size_bytes": 1161011
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Create-mailbox.png",
+      "sha256": "e45f9fe742687e26e0304757220c09a5a8ae1706d917fb0f2f3dfbb15d835c6e",
+      "size_bytes": 1207288
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Dashboard.png",
+      "sha256": "4a544cbae41efb4daaa8e310a9c77284264be716337dafa2fd7efe995cd08bbe",
+      "size_bytes": 1334983
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Domain & DNS.png",
+      "sha256": "122f8b81953a49392316da198aaaf22be3c92337fe1d9a5337f2373a90cbd470",
+      "size_bytes": 1093447
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Domain.png",
+      "sha256": "a511f919e3f3e367ca0f39e006872313295cb9a926585dc61d24dcbcd3ec57b7",
+      "size_bytes": 1274765
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Homepage.png",
+      "sha256": "f089ba740b9d5d985cc29ede0efedc4a17e73d60e5cbd5938e8b3679993aae82",
+      "size_bytes": 1457339
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Inbox.png",
+      "sha256": "94ff5f7d0988a93a402bb5d41a743d11c8a852f9213294cf560e225efd669f70",
+      "size_bytes": 1242692
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Logo.png",
+      "sha256": "fa4e743e3a10011a12c0a88f423225799100743354f08fd62e945f5a6fc95846",
+      "size_bytes": 827921
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Logs.png",
+      "sha256": "aedfa344655acbb04f2e70452adee1bee678e78e2a15a9abbe55c141e7d07803",
+      "size_bytes": 1264931
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Mailboxes.png",
+      "sha256": "c59b13fce08278a4ee3e9a11ce75b8c58eeb08efdca2253c05253c33869835f6",
+      "size_bytes": 1232072
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Role & Permisson.png",
+      "sha256": "c83ec3e20c7fca9f76b98c05a076083eba4f76798edafee4ebc858b156c7db18",
+      "size_bytes": 1282368
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Services Overview.png",
+      "sha256": "8f1bf0c9a54133ce3a74778e7ea2ade0ee6b0678b904e9a4e655e9d6c0f781ce",
+      "size_bytes": 1261182
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Settings.png",
+      "sha256": "233f694998e5f46adabdcad096b7adb15dd8d341898614fa747ce0fb48417e27",
+      "size_bytes": 1204451
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Setup & Install - Welcome page.png",
+      "sha256": "2d0592227a9ae36d570f98112b1ce87ba747c668f8fdb58fc86ab17927b067fa",
+      "size_bytes": 1274170
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Teams.png",
+      "sha256": "f026ca2d2bebd570d6e2ac2ed4b0232eef490c720f3e8d99eafc472b57ab087e",
+      "size_bytes": 1295579
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/User-Login-1.png",
+      "sha256": "7631978312a7c9604080838b9b3ec76a37a9732a087877ad95a1bf69888c117c",
+      "size_bytes": 1123180
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/User-login-2.png",
+      "sha256": "b8bb48e0759dd6c54e5c1888bfe7a5c855bce8f68854b26eabd587499598cb66",
+      "size_bytes": 1357333
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/User-managments.png",
+      "sha256": "fcd73c7c4131893397cde9304e247e09ca9acef819aa2602c8592db37e4295e0",
+      "size_bytes": 1208274
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/User-signup.png",
+      "sha256": "8b6d3fc1170838a430b5c040fbc7d4d68457279a14ee5167530ff7eef27d7124",
+      "size_bytes": 1178439
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/Web-Logo.png",
+      "sha256": "73ca0142e584abdaae93a408323ad7c700e0619e8e28a6600aad8f2898c18ae2",
+      "size_bytes": 1263232
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/dashboard-Future.png",
+      "sha256": "61be9c15d824f7cb7da9d47d3ce655671fc1f9a9024c9e5ff82b9fd5573ac2ac",
+      "size_bytes": 1358373
+    },
+    {
+      "kind": "binary",
+      "path": "design/intake/original/profile.png",
+      "sha256": "37805473f4296888ad40104f17c452026b00637682f853d3d00e43a8d7916ca6",
+      "size_bytes": 1138156
+    },
+    {
+      "kind": "text",
+      "lines": 29,
+      "path": "docs/API_REFERENCE.md",
+      "sha256": "e92ea7f2e9146c6c6be9013d642396b953d9aa54cc6d080389dc7b56916f1f92",
+      "size_bytes": 1759
+    },
+    {
+      "kind": "text",
+      "lines": 20,
+      "path": "docs/ARCHITECTURE.md",
+      "sha256": "d2065fbab9c399a77a69349b81ff9b045539f4bbc9d466e4d4f51b116debe772",
+      "size_bytes": 981
+    },
+    {
+      "kind": "text",
+      "lines": 57,
+      "path": "docs/BACKUP_RESTORE.md",
+      "sha256": "bee325fd49907c223f1c7031c570319fafd2c5728f70ff131d8f6ad3a03a9ff5",
+      "size_bytes": 2990
+    },
+    {
+      "kind": "text",
+      "lines": 68,
+      "path": "docs/BRANDING.md",
+      "sha256": "bc7d1070919dba177c0aac577b740170760628c3eb2966bd38459b8673eecd32",
+      "size_bytes": 2747
+    },
+    {
+      "kind": "text",
+      "lines": 41,
+      "path": "docs/BUILD.md",
+      "sha256": "09194bb98042798b06603119552a35e28f82e9648a65e6d0576553a8b3145d3a",
+      "size_bytes": 1544
+    },
+    {
+      "kind": "text",
+      "lines": 29,
+      "path": "docs/CODING_STANDARDS.md",
+      "sha256": "056ca994d4c267765ddcedead8cf017ecf3e1b01b3eda9d60ce9f90b5c7ac49e",
+      "size_bytes": 1146
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "docs/CONFIGURATION.md",
+      "sha256": "b7ec24e43a183e866353bdffa088027346ee472830fdada7c9e5d5cf92a35630",
+      "size_bytes": 1051
+    },
+    {
+      "kind": "text",
+      "lines": 38,
+      "path": "docs/DEPENDENCY_REVIEW.md",
+      "sha256": "a2a4773e802b0e7611ad3484a180ae947ea1ae6848594560e004841495d8bd50",
+      "size_bytes": 2530
+    },
+    {
+      "kind": "text",
+      "lines": 28,
+      "path": "docs/DEVELOPMENT.md",
+      "sha256": "757788e066cd6c1c0cf5c720fa2c992663bcb908c7e584599591f907808d4c98",
+      "size_bytes": 839
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "docs/DNS_AND_DELIVERABILITY.md",
+      "sha256": "1172cdc06733157e750c7e9ff05447c5b4369106519dbf0d40e383b8a74c88a2",
+      "size_bytes": 845
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "docs/FAQ.md",
+      "sha256": "b0202d91af54b4fb4e7f436dfe7189810605ebe5f51a684a8fbbfa7c8dd24a89",
+      "size_bytes": 1452
+    },
+    {
+      "kind": "text",
+      "lines": 27,
+      "path": "docs/FEATURE_MATRIX.md",
+      "sha256": "26ceb61faf9a3106f8e3b03701fa537f875ff3a7282ab656da00317e13f11211",
+      "size_bytes": 2789
+    },
+    {
+      "kind": "text",
+      "lines": 15,
+      "path": "docs/FIRST_COMMIT_WINDOWS.md",
+      "sha256": "bd40f9d0ef1a9545c19ecb54ff02518d6298a42e8c67d49d6f27a25ac6354453",
+      "size_bytes": 655
+    },
+    {
+      "kind": "text",
+      "lines": 30,
+      "path": "docs/FOLDER_STRUCTURE.md",
+      "sha256": "03821bef5eb94b5ed33a71dd0f0642f972d626aa26176ccf89951dfc10c2c267",
+      "size_bytes": 2111
+    },
+    {
+      "kind": "text",
+      "lines": 226,
+      "path": "docs/FORENSIC_AUDIT_REPORT.md",
+      "sha256": "749c9d782eeb80b12d7333d44f81554f63f296234eb5e66a1db7fbad37632db6",
+      "size_bytes": 15035
+    },
+    {
+      "kind": "text",
+      "lines": 84,
+      "path": "docs/GITHUB_REPOSITORY_METADATA.md",
+      "sha256": "f836ef778c22819648efa2ad5e7d3efa22ea71c2c65a49ac9f4a09a8f5a63339",
+      "size_bytes": 1844
+    },
+    {
+      "kind": "text",
+      "lines": 83,
+      "path": "docs/INSTALLATION.md",
+      "sha256": "c861c9464e076bb9cac0711be70099a7cd03e193e519d03e9f96898100f839f3",
+      "size_bytes": 3545
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "docs/KNOWN_LIMITATIONS.md",
+      "sha256": "80515928033e29809a4ed84225db6d837d8e3d4d4fec069348fd96afbd64b10d",
+      "size_bytes": 689
+    },
+    {
+      "kind": "text",
+      "lines": 5,
+      "path": "docs/LEGACY_COMPATIBILITY.md",
+      "sha256": "dbbfe0f69bc85f8d5d5ae0d17f31d573ad95f8ee7666867db50f9024a3c3299e",
+      "size_bytes": 543
+    },
+    {
+      "kind": "text",
+      "lines": 19,
+      "path": "docs/LICENSING.md",
+      "sha256": "ce39aa09b3b227324f8971d31e302f999cad5407e8638d1a5a70053fb66490f5",
+      "size_bytes": 1368
+    },
+    {
+      "kind": "text",
+      "lines": 35,
+      "path": "docs/MAILSTACK_BOOTSTRAP_AUDIT.md",
+      "sha256": "55f1d1ff16b95b8c506bde21f46cfceb51c123c17274612e56dca39077b54c30",
+      "size_bytes": 2596
+    },
+    {
+      "kind": "text",
+      "lines": 29,
+      "path": "docs/MAINTENANCE.md",
+      "sha256": "f3002dabd212e023fba885882a76c33d40ce009489f1b11d6593fd98c38a3b47",
+      "size_bytes": 1104
+    },
+    {
+      "kind": "text",
+      "lines": 77,
+      "path": "docs/OPERATIONS.md",
+      "sha256": "1264661dafb912103cdb1921c518bdb152b60dbda115037d8ebccd27a87726d4",
+      "size_bytes": 2719
+    },
+    {
+      "kind": "text",
+      "lines": 55,
+      "path": "docs/PERFORMANCE_REVIEW.md",
+      "sha256": "eac64eb35cf2d08f0d3f6b72cae1be30172c9f7c294acb1899772b3658a7fb6f",
+      "size_bytes": 3434
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "docs/PRIVACY_AND_RETENTION.md",
+      "sha256": "bc5bce2a62f47f0f736ba76b12c27635dc98ca7101be3c77015918947fa97feb",
+      "size_bytes": 814
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "docs/PUBLIC_RELEASE_CHECKLIST.md",
+      "sha256": "ce5272c0e64bb6549badbe318d79b61fa362901b8ced70bd8b9bfd74c8221361",
+      "size_bytes": 1246
+    },
+    {
+      "kind": "text",
+      "lines": 69,
+      "path": "docs/PUBLISHING.md",
+      "sha256": "925123fdef3de46db07b7015049574936bbcb8c8700f0fc3f384956943ab16b6",
+      "size_bytes": 3233
+    },
+    {
+      "kind": "text",
+      "lines": 46,
+      "path": "docs/QUICKSTART.md",
+      "sha256": "7fe067162d4b6db47e5e35ff841fa6acc577e97a51abfe9dc1e49f535e286d55",
+      "size_bytes": 1695
+    },
+    {
+      "kind": "text",
+      "lines": 54,
+      "path": "docs/REBRAND_COMPATIBILITY.md",
+      "sha256": "36da685dc348686f1c7cea52ef1b039e255202981c2c8f1c13a1e8f4551f19d0",
+      "size_bytes": 2129
+    },
+    {
+      "kind": "text",
+      "lines": 117,
+      "path": "docs/RELEASE_NOTES_1.3.0.md",
+      "sha256": "341b3656b21ccbcf7fb11b1f537d418df995d950e09c400d228abdafd2acde2e",
+      "size_bytes": 8304
+    },
+    {
+      "kind": "text",
+      "lines": 45,
+      "path": "docs/RELEASE_NOTES_1.3.1.md",
+      "sha256": "eb92579ccc92d1d49513d458e80f4b6349f4451524d5994b11b36a3fb36bf79e",
+      "size_bytes": 2841
+    },
+    {
+      "kind": "text",
+      "lines": 39,
+      "path": "docs/RELEASE_NOTES_1.3.2.md",
+      "sha256": "dd7e4445a6d6e406f108df9dff42c8babd62369583215caf898ef501bcab971c",
+      "size_bytes": 2291
+    },
+    {
+      "kind": "text",
+      "lines": 40,
+      "path": "docs/RELEASE_NOTES_1.3.3.md",
+      "sha256": "befdf20ee40d8ff4058b8e97d606f7ab5472f26b7d5f5d816d6868ad09a6c2f5",
+      "size_bytes": 2221
+    },
+    {
+      "kind": "text",
+      "lines": 57,
+      "path": "docs/RELEASE_NOTES_1.3.4.md",
+      "sha256": "ad82f8b3be2286265e3c63199d0fcac35474a0c7c17cdda109e49ceb75ec59b1",
+      "size_bytes": 3444
+    },
+    {
+      "kind": "text",
+      "lines": 20,
+      "path": "docs/RELEASE_NOTES_1.3.5.3.md",
+      "sha256": "b8bc99b8af4b5c8d89a84834ea3664cb42773e28a4465fc66fc584489d1863cb",
+      "size_bytes": 797
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "docs/RELEASE_NOTES_1.3.5.4.md",
+      "sha256": "aefd07bfcdf3edd8be6f39499064d7613fbb0508474c82da436351fca308bd94",
+      "size_bytes": 780
+    },
+    {
+      "kind": "text",
+      "lines": 25,
+      "path": "docs/RELEASE_NOTES_1.3.5.5.md",
+      "sha256": "a988182f4586e43d22a45b79c53ecfb66b0eb067b9d88567d7b5f521291a8506",
+      "size_bytes": 981
+    },
+    {
+      "kind": "text",
+      "lines": 25,
+      "path": "docs/RELEASE_NOTES_1.3.5.md",
+      "sha256": "198977190e1740922f77162a7e362a9509567c0fed8cb4be7d2b5b596bae10cd",
+      "size_bytes": 1005
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "docs/RELEASE_PROCESS.md",
+      "sha256": "c59e55aa01b3b498b83496241b507228cc90a44ef7d00755abdbfb61ef071a0f",
+      "size_bytes": 1931
+    },
+    {
+      "kind": "text",
+      "lines": 26,
+      "path": "docs/SCREENSHOTS.md",
+      "sha256": "27dca974824c300b9a0f0a2bd1a345167f60db662c65ac620e2c51d8cc3adde4",
+      "size_bytes": 1476
+    },
+    {
+      "kind": "text",
+      "lines": 82,
+      "path": "docs/SECURITY_REVIEW.md",
+      "sha256": "1ca441b4db82311a4001c13582b95e3556b0730066f05df4474d7f8a9116553c",
+      "size_bytes": 5872
+    },
+    {
+      "kind": "text",
+      "lines": 237,
+      "path": "docs/TEST_REPORT.md",
+      "sha256": "47d8958ef4464b69009f039a6acaa2bb1d8b1760ba9b1070b99a500bc3b65dde",
+      "size_bytes": 13953
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "docs/THREAT_MODEL.md",
+      "sha256": "9e01b2ce89bfa2d9ac1f7e58cac409596d03a4a2adc5d67240a350a18837609c",
+      "size_bytes": 1172
+    },
+    {
+      "kind": "text",
+      "lines": 42,
+      "path": "docs/TROUBLESHOOTING.md",
+      "sha256": "7ff9f0a8afcd5348b72b7a37b7af51f0859f5ec8c920cc5721c8f5b3f24b21dc",
+      "size_bytes": 2961
+    },
+    {
+      "kind": "text",
+      "lines": 155,
+      "path": "docs/UPGRADE.md",
+      "sha256": "5b70ed1fc640b7e723f2fc551285971791d6d6b80a2e56e401e0d12d19fdd3dc",
+      "size_bytes": 7025
+    },
+    {
+      "kind": "text",
+      "lines": 82,
+      "path": "docs/production-readiness/00_OFFICIAL_BASELINE_FREEZE.md",
+      "sha256": "b4365142a774edf47e38392e8d2491a10cfb54d7c2fbbe738fe1186fd33ae6ea",
+      "size_bytes": 4236
+    },
+    {
+      "kind": "text",
+      "lines": 311,
+      "path": "docs/production-readiness/01_PRODUCTION_READINESS_FORENSIC_REPORT.md",
+      "sha256": "60b3378adcccf94d276222167eb21075f2ffac80cab614291282f119230fc522",
+      "size_bytes": 13766
+    },
+    {
+      "kind": "text",
+      "lines": 289,
+      "path": "docs/production-readiness/02_TWO_PHASE_A_TO_Z_ROADMAP.md",
+      "sha256": "5051f26390bd66a9f109d72b07aeb7c1625aff0d4f760c9f258431319164ebbd",
+      "size_bytes": 11709
+    },
+    {
+      "kind": "text",
+      "lines": 150,
+      "path": "docs/production-readiness/03_UPDATE_PHASE_COMPLETION_LOG.md",
+      "sha256": "8beb5c231ea71ff784bc47215fcb6d8d4f1bd35632d551b7aaeceea959b59d14",
+      "size_bytes": 6564
+    },
+    {
+      "kind": "text",
+      "lines": 159,
+      "path": "docs/production-readiness/04_ERROR_HANDLING_REGISTER_AND_PLAN.md",
+      "sha256": "7e49d0ab71ed2c02ddd60b528164b8e925b0af037c37b6d30c5eb4f9cb1d3abf",
+      "size_bytes": 7138
+    },
+    {
+      "kind": "text",
+      "lines": 127,
+      "path": "docs/production-readiness/05_ACTUAL_IMPLEMENTATION_STATUS.md",
+      "sha256": "891956b2be3103a4c6f0dce077b5c24efd8a0c8d5c54278933d02c0e47ae496e",
+      "size_bytes": 5853
+    },
+    {
+      "kind": "text",
+      "lines": 131,
+      "path": "docs/production-readiness/06_UI_DESIGN_REFERENCE_AND_DEFECT_MATRIX.md",
+      "sha256": "c25ac9c8a35b1238ed8f551fccdd3d850bfbf4bb64dc60bec4436b9a4477f91d",
+      "size_bytes": 4995
+    },
+    {
+      "kind": "text",
+      "lines": 162,
+      "path": "docs/production-readiness/07_PRODUCTION_ACCEPTANCE_GATE.md",
+      "sha256": "32ad5fbfa83fc18b8ec528ca17cb5e5c265dc8711a182d15f7ac0467482eeca4",
+      "size_bytes": 5871
+    },
+    {
+      "kind": "text",
+      "lines": 108,
+      "path": "docs/production-readiness/08_CHANGE_CONTROL_AND_SCOPE_LOCK.md",
+      "sha256": "743a9b453bb978db712451c2bbf4378f8b1cd581e298a6fc4b37f7fa387e13cc",
+      "size_bytes": 3233
+    },
+    {
+      "kind": "text",
+      "lines": 83,
+      "path": "docs/production-readiness/09_RELEASE_AND_UPDATE_EXECUTION_POLICY.md",
+      "sha256": "5a3d7aaaace29a9df7d4688a45e88751c70a2cf9c9335d0f30390050d607ca46",
+      "size_bytes": 2989
+    },
+    {
+      "kind": "text",
+      "lines": 133,
+      "path": "docs/production-readiness/10_TEST_AND_ACCEPTANCE_MATRIX.md",
+      "sha256": "c04f91d234d88042ec0645e7174ef819182314a81e52c35e0fd39c682ccd23a9",
+      "size_bytes": 4436
+    },
+    {
+      "kind": "text",
+      "lines": 114,
+      "path": "docs/production-readiness/11_EXISTING_MESSAGE_REPAIR_AND_BACKFILL_PLAN.md",
+      "sha256": "9d24f69f1f38f4417a3b3d4e85777042dace521e4eabe64ac21164d39d564a00",
+      "size_bytes": 4323
+    },
+    {
+      "kind": "text",
+      "lines": 58,
+      "path": "docs/production-readiness/README.md",
+      "sha256": "5b7ede52d67ea67fa02653d90346733aed2a46bcf0cbcb48c92a52549cbc9beb",
+      "size_bytes": 3590
+    },
+    {
+      "kind": "text",
+      "lines": 131,
+      "path": "documents/ADMIN_GUIDE.md",
+      "sha256": "87949e381e8de367a9f1a5bf573d8f30c6509ec2b83d75e86cd52806d623f354",
+      "size_bytes": 7897
+    },
+    {
+      "kind": "text",
+      "lines": 64,
+      "path": "documents/BASELINE.md",
+      "sha256": "dde360b8d13701b7903c05161608e1027351b2bef391c265640c1cb623142a21",
+      "size_bytes": 3613
+    },
+    {
+      "kind": "text",
+      "lines": 269,
+      "path": "documents/DOCUMENTATION_MANIFEST.json",
+      "sha256": "cdd55fd7e57f8eb8c6f33d0e22a248bffe6ee6069b8e011ce4cd54ea67200b00",
+      "size_bytes": 10580
+    },
+    {
+      "kind": "text",
+      "lines": 78,
+      "path": "documents/DOCUMENTATION_POLICY.md",
+      "sha256": "211fae68d1387bf0597eff5c7d929e6035eeca8f151d9d538cc57c5c1deea769",
+      "size_bytes": 3343
+    },
+    {
+      "kind": "text",
+      "lines": 83,
+      "path": "documents/HOW_TO_USE.md",
+      "sha256": "d478917042e6b89c4f82074f89f8f3951be9194816eb4b0a59882c58c21ea27d",
+      "size_bytes": 3860
+    },
+    {
+      "kind": "text",
+      "lines": 58,
+      "path": "documents/README.md",
+      "sha256": "f4b907f55e9308264d4c932bfd7b2e70ff36bed7f2126eeac389523706d07629",
+      "size_bytes": 4588
+    },
+    {
+      "kind": "text",
+      "lines": 92,
+      "path": "documents/USER_MANUAL.md",
+      "sha256": "5d76a02c18375347cb78a37066c8626ea5126d687ae48340d6db85ca2c4fb8ce",
+      "size_bytes": 5113
+    },
+    {
+      "kind": "text",
+      "lines": 46,
+      "path": "documents/design/ACCESSIBILITY_SPECIFICATION.md",
+      "sha256": "5d35dbc21b16b77fa2853038b7f0a1544887f8467bde3587c158814233b9d589",
+      "size_bytes": 2184
+    },
+    {
+      "kind": "text",
+      "lines": 55,
+      "path": "documents/design/COMPONENT_MATRIX.md",
+      "sha256": "18eaafdc234673716e1731683c8dd9850f9f01a7c948fecfed04c7873614c6d0",
+      "size_bytes": 4679
+    },
+    {
+      "kind": "text",
+      "lines": 52,
+      "path": "documents/design/FUTURE_UI_ROADMAP.md",
+      "sha256": "f96fed30717490c4e5780364a9600e5541937d0955cb3f98bd71cce7b5bbfdfc",
+      "size_bytes": 1564
+    },
+    {
+      "kind": "text",
+      "lines": 48,
+      "path": "documents/design/IMPLEMENTATION_STATUS.md",
+      "sha256": "50bdec7a3bdeb4a6ae273828653ca899d025d8dc6c495d351273c32db5bf9c13",
+      "size_bytes": 3880
+    },
+    {
+      "kind": "text",
+      "lines": 51,
+      "path": "documents/design/RESPONSIVE_SPECIFICATION.md",
+      "sha256": "4ad0cb63632c4f2e62fb5ad0b52c021b6542aab765e7bc320fd0d057dcbbfa67",
+      "size_bytes": 2034
+    },
+    {
+      "kind": "text",
+      "lines": 65,
+      "path": "documents/design/SCREEN_CATALOG.md",
+      "sha256": "bed44c70c7aaa54dc7e20a12c833170bb7f0613eaa4c4730519520f577b0eaae",
+      "size_bytes": 4891
+    },
+    {
+      "kind": "text",
+      "lines": 89,
+      "path": "documents/design/UI_FOUNDATION.md",
+      "sha256": "53081fe9af935d627aade63ba6c79a4770b7cae926d7fdb6eeaa476aa82189ef",
+      "size_bytes": 3765
+    },
+    {
+      "kind": "text",
+      "lines": 59,
+      "path": "documents/phases/PHASE-000-BASELINE.md",
+      "sha256": "3afa61f6e2bf8f71904dfed0c5a9823c44dcd719440b946ce9372ba57e0c566e",
+      "size_bytes": 2540
+    },
+    {
+      "kind": "text",
+      "lines": 68,
+      "path": "documents/phases/PHASE-001-UI-DESIGN-INTAKE-BASELINE.md",
+      "sha256": "0020f08ec237ca732db7cfbdf81dffc20fce59e4db7a65bf9231d0e0dcc2a957",
+      "size_bytes": 2767
+    },
+    {
+      "kind": "text",
+      "lines": 103,
+      "path": "documents/phases/PHASE-002-SHARED-UI-FOUNDATION-AND-APPLICATION-SHELL.md",
+      "sha256": "6e8d0a14fd1e86a6e826b4db916c72feae6ec930450ecd2d031ac051927120ef",
+      "size_bytes": 5987
+    },
+    {
+      "kind": "text",
+      "lines": 86,
+      "path": "documents/phases/PHASE-003-INSTALLATION-RECOVERY-AND-INBOUND-DELIVERY-RELIABILITY.md",
+      "sha256": "c6fe1b71cb3463de5ad7da3f314b5966c90cc5fe349b5f0ed7c67de083a8b47b",
+      "size_bytes": 5052
+    },
+    {
+      "kind": "text",
+      "lines": 166,
+      "path": "documents/phases/PHASE-004-RELEASE-UPGRADE-AND-OPERATIONAL-RELIABILITY.md",
+      "sha256": "41d94c322323f3f197655e6b2cd5cc894271b21ecab403ba83c2a4aab16de921",
+      "size_bytes": 10757
+    },
+    {
+      "kind": "text",
+      "lines": 102,
+      "path": "documents/phases/PHASE-005-UI-NAVIGATION-RELIABILITY-AND-COMPACT-MAILBOX-READER.md",
+      "sha256": "794cd8c7b146b8f0d687704dcd24dfd1f5782c10511e2dda61da6e20dc1cb69e",
+      "size_bytes": 6082
+    },
+    {
+      "kind": "text",
+      "lines": 107,
+      "path": "documents/phases/PHASE-006-READER-INTEGRITY-DATA-REPAIR-AND-RUNTIME-ERROR-CLOSURE.md",
+      "sha256": "3c54f47d6006224e57eccf162fd31cacbafb77cc050b43494a9dbe418e70d41a",
+      "size_bytes": 7187
+    },
+    {
+      "kind": "text",
+      "lines": 226,
+      "path": "documents/phases/PHASE-007-MULTI-DOMAIN-MAILBOX-AND-DNS.md",
+      "sha256": "1f37628ed3edb0ef5725e1ef97e0a6a0676ad7236e84b1521aebddef457da091",
+      "size_bytes": 12003
+    },
+    {
+      "kind": "text",
+      "lines": 104,
+      "path": "documents/phases/PHASE-008-SYSTEM-UPDATE-PREFLIGHT-AND-PRIVILEGE-RELIABILITY.md",
+      "sha256": "7e7a9e6e9b18d0f4dfada5726258eac3f18d31a44daef2cdd0476110bfe1ad1b",
+      "size_bytes": 5492
+    },
+    {
+      "kind": "text",
+      "lines": 750,
+      "path": "install.sh",
+      "sha256": "ebf214a35762ba4492302787d5445b9e4f0c1ed86a071d7b27bd194ad011109d",
+      "shell_functions": [
+        "backup_file",
+        "die",
+        "log",
+        "on_error",
+        "prompt_value",
+        "random_hex",
+        "render",
+        "require_command",
+        "run_as_vmail",
+        "usage",
+        "valid_email",
+        "valid_hostname",
+        "write_initial_credentials"
+      ],
+      "size_bytes": 29430
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/.bandit",
+      "sha256": "fb0f2bb38af1d32fa9b04ddeed489d75e4fd2a3023c8e7927838b3bed9abc821",
+      "size_bytes": 140
+    },
+    {
+      "kind": "text",
+      "lines": 47,
+      "path": "mailbox-app/.env.example",
+      "sha256": "72b5bcf2c47e68d33a66ab61fa16f7a038edeaa1bd5b394716b7abc3cc7eb5d9",
+      "size_bytes": 1555
+    },
+    {
+      "kind": "text",
+      "lines": 25,
+      "path": "mailbox-app/.gitignore",
+      "sha256": "2e6e28c0dfcc5491808872f27bc9918efd495b19dda118bb12d6756f9233ba78",
+      "size_bytes": 243
+    },
+    {
+      "kind": "text",
+      "lines": 101,
+      "path": "mailbox-app/CHANGELOG.md",
+      "sha256": "5f5c340754416dd076a9ec6aae0303b8c588d8befb9eee1c79ca32312a44eb34",
+      "size_bytes": 7208
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "mailbox-app/LICENSES.md",
+      "sha256": "b295265e2f1efdd638f2483893318a9bc3064f033bb37fb752dc0f684f90c78b",
+      "size_bytes": 990
+    },
+    {
+      "kind": "text",
+      "lines": 43,
+      "path": "mailbox-app/README.md",
+      "sha256": "22738cdb23cc63d6fbc284a4a5be0eb1928299505c4594c11455e40b2a96702c",
+      "size_bytes": 1968
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/SECURITY.md",
+      "sha256": "57d8d8cf1862365c5b76e085dd54f5d6ddc9ae8cf01b74fe660190f516eb6033",
+      "size_bytes": 1010
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "8450f10b12d0a0f8371bf7b8034dc4ac1d673e6056423493341774e7988b481c",
+      "size_bytes": 31
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/accounts/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "eba0fa9de041f8167d31f40ed8ee0cbee5446506f37674fcd77ab46d6ae77240",
+      "size_bytes": 40
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/apps/accounts/admin.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.contrib",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "6e270a6933e180759251ec1ea5a751285965d57aad8166f9a8c53cb0c4e973b1",
+      "size_bytes": 158
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/apps/accounts/apps.py",
+      "python": {
+        "classes": [
+          "AccountsConfig"
+        ],
+        "functions": [],
+        "imports": [
+          "django.apps"
+        ],
+        "methods": [
+          "AccountsConfig.ready"
+        ]
+      },
+      "sha256": "9f7ecda0535e8030dfde3783c2a33528d927c34f1078729970361d0a07688a37",
+      "size_bytes": 227
+    },
+    {
+      "kind": "text",
+      "lines": 115,
+      "path": "mailbox-app/apps/accounts/forms.py",
+      "python": {
+        "classes": [
+          "SecureAuthenticationForm",
+          "UserCreateForm",
+          "UserCreateForm.Meta",
+          "UserEditForm",
+          "UserEditForm.Meta",
+          "_BootstrapFormMixin",
+          "_CaseInsensitiveUsernameMixin"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.models",
+          "django",
+          "django.contrib.auth",
+          "django.contrib.auth.forms",
+          "models",
+          "typing"
+        ],
+        "methods": [
+          "SecureAuthenticationForm.__init__",
+          "UserCreateForm.__init__",
+          "UserCreateForm.save",
+          "UserEditForm.__init__",
+          "_BootstrapFormMixin._style_fields",
+          "_CaseInsensitiveUsernameMixin.clean_username"
+        ]
+      },
+      "sha256": "980f7e396b0271e855f6c9e60825bf9e1287a67c80c9919d47bbc3465f309cc6",
+      "size_bytes": 4611
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/accounts/management/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "a97ecf835526dec280359454d67a50cb6f1d5dee3bf06edc619201f78dd3d4f5",
+      "size_bytes": 51
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/accounts/management/commands/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "4ca656fe43a0e66030b18da97709964a454fdb12775a7ed1f11775d4dfe385a8",
+      "size_bytes": 60
+    },
+    {
+      "kind": "text",
+      "lines": 69,
+      "path": "mailbox-app/apps/accounts/management/commands/create_initial_admin.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "django.contrib.auth",
+          "django.contrib.auth.password_validation",
+          "django.core.exceptions",
+          "django.core.management.base",
+          "getpass",
+          "os"
+        ],
+        "methods": [
+          "Command.add_arguments",
+          "Command.handle"
+        ]
+      },
+      "sha256": "cd9e62ad4a57e567135dc22820fd6346b2908b7d4bc4d569c9ca567b6fc2063c",
+      "size_bytes": 2983
+    },
+    {
+      "kind": "text",
+      "lines": 27,
+      "path": "mailbox-app/apps/accounts/migrations/0001_initial.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "eeedc865976a193b681f208ebe6894919482b47fb2c51addfc92fced26afbc49",
+      "size_bytes": 960
+    },
+    {
+      "kind": "text",
+      "lines": 43,
+      "path": "mailbox-app/apps/accounts/migrations/0002_useraccesspolicy.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [
+          "create_existing_user_policies",
+          "remove_existing_user_policies"
+        ],
+        "imports": [
+          "django.conf",
+          "django.db",
+          "django.db.models.deletion"
+        ],
+        "methods": []
+      },
+      "sha256": "13c69ba0dbe78358c01ac81bcea843ec12c9b7f4b74be36247808f80b092cbb7",
+      "size_bytes": 1752
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/accounts/migrations/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "e3ba927d2eeb263efce3918b809b56cc4829276a30b7d4cc00084a10b65da1cb",
+      "size_bytes": 51
+    },
+    {
+      "kind": "text",
+      "lines": 29,
+      "path": "mailbox-app/apps/accounts/models.py",
+      "python": {
+        "classes": [
+          "LoginAttempt",
+          "LoginAttempt.Meta",
+          "UserAccessPolicy"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "django.conf",
+          "django.db"
+        ],
+        "methods": [
+          "UserAccessPolicy.__str__"
+        ]
+      },
+      "sha256": "c187d186b292bc991904a9e8389cd434f3dccac2cc4e58e936395107d429082d",
+      "size_bytes": 1045
+    },
+    {
+      "kind": "text",
+      "lines": 12,
+      "path": "mailbox-app/apps/accounts/signals.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "ensure_access_policy"
+        ],
+        "imports": [
+          "__future__",
+          "django.contrib.auth",
+          "django.db.models.signals",
+          "django.dispatch",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "544f970b28b750f5dd6791bd4fe1609d48f2854fe920f440e5fa001a828d2122",
+      "size_bytes": 398
+    },
+    {
+      "kind": "text",
+      "lines": 13,
+      "path": "mailbox-app/apps/accounts/urls.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.urls"
+        ],
+        "methods": []
+      },
+      "sha256": "00a7963024c52dbd57ac2439c19c65ddbbe2cfd2604eedecf87b421e57686d01",
+      "size_bytes": 473
+    },
+    {
+      "kind": "text",
+      "lines": 270,
+      "path": "mailbox-app/apps/accounts/views.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_attempts",
+          "_locked",
+          "_prune_login_attempts",
+          "_save_user_configuration",
+          "login_view",
+          "logout_view",
+          "user_create",
+          "user_delete",
+          "user_edit",
+          "user_list"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.services",
+          "apps.core.access",
+          "apps.mailboxes.models",
+          "datetime",
+          "django.conf",
+          "django.contrib",
+          "django.contrib.auth",
+          "django.contrib.auth.decorators",
+          "django.core.paginator",
+          "django.db",
+          "django.db.models",
+          "django.shortcuts",
+          "django.utils",
+          "django.utils.http",
+          "django.views.decorators.http",
+          "forms",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "657d21b0ef1d9384e24252b99046443d461f0f5b648c649e77e9fee906b5c377",
+      "size_bytes": 11228
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/audit/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "85733d47a3729fa40e68a9f37c70568a019725b1a8ef20b11452bbc42095cf25",
+      "size_bytes": 37
+    },
+    {
+      "kind": "text",
+      "lines": 11,
+      "path": "mailbox-app/apps/audit/admin.py",
+      "python": {
+        "classes": [
+          "AuditLogAdmin"
+        ],
+        "functions": [],
+        "imports": [
+          "django.contrib",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "d064071554d17f6ad578685405f34ebba3535f39c5a0a95d8669ef838a220742",
+      "size_bytes": 422
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/apps/audit/apps.py",
+      "python": {
+        "classes": [
+          "AuditConfig"
+        ],
+        "functions": [],
+        "imports": [
+          "django.apps"
+        ],
+        "methods": []
+      },
+      "sha256": "aa0276f27c7d882d5f318346744c685f9a3c17630f2d447fba54cd5a2ef71a8d",
+      "size_bytes": 147
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/audit/management/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "a14f011b528d868a52944f8a829bbedadc8cc94420f69800247b86dfbd6fbc0e",
+      "size_bytes": 48
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/audit/management/commands/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "7ddbd1e31722c61c3a28eab3e7783e850be10a35dedd808c6c6b937acea119d4",
+      "size_bytes": 57
+    },
+    {
+      "kind": "text",
+      "lines": 36,
+      "path": "mailbox-app/apps/audit/migrations/0001_initial.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.conf",
+          "django.db",
+          "django.db.models.deletion",
+          "uuid"
+        ],
+        "methods": []
+      },
+      "sha256": "052934cf06459ec2a1c5488ace1abdd05414ef21aaaa19f408dd03fbbd1e6d37",
+      "size_bytes": 1459
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/audit/migrations/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "3392f54320f914863c40606333ca3dc0ff0cb24b6a4424a5bab82762258a31ff",
+      "size_bytes": 48
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "mailbox-app/apps/audit/models.py",
+      "python": {
+        "classes": [
+          "AuditLog",
+          "AuditLog.Meta"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "django.conf",
+          "django.db",
+          "uuid"
+        ],
+        "methods": [
+          "AuditLog.__str__"
+        ]
+      },
+      "sha256": "69072996ec39b60b172a2a08946473e43b2b92d7d4d9851f73186f9ff150ca00",
+      "size_bytes": 925
+    },
+    {
+      "kind": "text",
+      "lines": 96,
+      "path": "mailbox-app/apps/audit/services.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_is_sensitive_key",
+          "_sanitize",
+          "_validated_ip",
+          "client_ip",
+          "record_audit"
+        ],
+        "imports": [
+          "__future__",
+          "django.conf",
+          "django.db",
+          "django.http",
+          "ipaddress",
+          "logging",
+          "models",
+          "typing"
+        ],
+        "methods": []
+      },
+      "sha256": "b55e4a9afdec49395cc74fd8fac8df958365587fe0e816f5f849890da3ab1d7d",
+      "size_bytes": 2636
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/core/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "6e1708b9edc5c29dc03d8df6e2dc24fe56c469ed28db0fe4b324f23a5756d97c",
+      "size_bytes": 36
+    },
+    {
+      "kind": "text",
+      "lines": 69,
+      "path": "mailbox-app/apps/core/access.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_policy",
+          "accessible_mailboxes",
+          "accessible_messages",
+          "is_admin",
+          "require_admin",
+          "user_can_delete_mailbox",
+          "user_can_delete_message"
+        ],
+        "imports": [
+          "__future__",
+          "apps.accounts.models",
+          "apps.mailboxes.models",
+          "apps.messages.models",
+          "django.core.exceptions"
+        ],
+        "methods": []
+      },
+      "sha256": "8fd23b7177a6683ed6a068e19d5ca0dd35b8f8608ea11f6000a98f5e933cca52",
+      "size_bytes": 2326
+    },
+    {
+      "kind": "text",
+      "lines": 5,
+      "path": "mailbox-app/apps/core/admin.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.contrib",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "68657b6e7eddb0972445f6307590a751de5188ca0e437126445d04b14cfb9ff5",
+      "size_bytes": 110
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/apps/core/apps.py",
+      "python": {
+        "classes": [
+          "CoreConfig"
+        ],
+        "functions": [],
+        "imports": [
+          "django.apps"
+        ],
+        "methods": []
+      },
+      "sha256": "0d6d052afd7a4ddd6868a9ebcefc98606b3df8fe42c23dac03376f1441109562",
+      "size_bytes": 145
+    },
+    {
+      "kind": "text",
+      "lines": 32,
+      "path": "mailbox-app/apps/core/context_processors.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "application_context"
+        ],
+        "imports": [
+          "access",
+          "apps.mailboxes.forms",
+          "apps.mailboxes.services",
+          "django.conf",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "f259280a0a146a19266ada573259919a271e68fdf11771d5040469d93d551a40",
+      "size_bytes": 1241
+    },
+    {
+      "kind": "text",
+      "lines": 43,
+      "path": "mailbox-app/apps/core/forms.py",
+      "python": {
+        "classes": [
+          "SiteSettingsForm",
+          "SiteSettingsForm.Meta"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "django",
+          "models"
+        ],
+        "methods": [
+          "SiteSettingsForm.clean_favicon",
+          "SiteSettingsForm.clean_logo"
+        ]
+      },
+      "sha256": "5aa24d2daec5169f44c59dd8f740b83f6a15fd2759c38bc14c86f034e3f8737c",
+      "size_bytes": 1717
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/apps/core/logging.py",
+      "python": {
+        "classes": [
+          "JsonFormatter"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "datetime",
+          "json",
+          "logging"
+        ],
+        "methods": [
+          "JsonFormatter.format"
+        ]
+      },
+      "sha256": "4de751cdbe7316c25f73fee7034b5e2fcaa83941b97187086c8289625a338bcf",
+      "size_bytes": 847
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/core/management/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "7e5293908a104c60fca0f3957961d7f9f7d5b12acc25d5a4c29d6a305c73f688",
+      "size_bytes": 47
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/core/management/commands/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "03b758bd381beb74075372543987e835ef59b9411cf7ac8243589d61b749bb18",
+      "size_bytes": 56
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "mailbox-app/apps/core/middleware.py",
+      "python": {
+        "classes": [
+          "SecurityHeadersMiddleware"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "collections.abc",
+          "django.http",
+          "secrets"
+        ],
+        "methods": [
+          "SecurityHeadersMiddleware.__call__",
+          "SecurityHeadersMiddleware.__init__"
+        ]
+      },
+      "sha256": "503ba637fd2bd20fc65ae84056fcd67216cf5497bc83a72c2fccea13f0c1f7d3",
+      "size_bytes": 1512
+    },
+    {
+      "kind": "text",
+      "lines": 25,
+      "path": "mailbox-app/apps/core/migrations/0001_initial.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.db",
+          "django.utils.timezone"
+        ],
+        "methods": []
+      },
+      "sha256": "80de12457e2c1c62729f8c668e2eadfa2e9dedcf419c802d27a6815341ade827",
+      "size_bytes": 793
+    },
+    {
+      "kind": "text",
+      "lines": 27,
+      "path": "mailbox-app/apps/core/migrations/0002_sitesettings.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "d540cac10ef90ad16d66b38d57a7b614ba5ca711ccefdd0bae3a99ff7378ba2e",
+      "size_bytes": 1543
+    },
+    {
+      "kind": "text",
+      "lines": 13,
+      "path": "mailbox-app/apps/core/migrations/0003_privacy_url_charfield.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "9fbb2ffbeaefebc7a36bfcb4e39880786470fcb3574e1e03afe5b4d50f527531",
+      "size_bytes": 345
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/core/migrations/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "1c3a96cf1994ff027793f349cb7148b27fa8ab5d5ae5987c7fb0f170db49d615",
+      "size_bytes": 47
+    },
+    {
+      "kind": "text",
+      "lines": 41,
+      "path": "mailbox-app/apps/core/models.py",
+      "python": {
+        "classes": [
+          "ServiceHeartbeat",
+          "SiteSettings",
+          "SiteSettings.Meta"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "django.db",
+          "django.utils"
+        ],
+        "methods": [
+          "ServiceHeartbeat.__str__",
+          "SiteSettings.__str__",
+          "SiteSettings.get_solo"
+        ]
+      },
+      "sha256": "0e1ff9651d265a1c79b8e0c66301a885655e29715bf063f5361f8bf226f335ea",
+      "size_bytes": 1665
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/apps/core/urls.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.urls"
+        ],
+        "methods": []
+      },
+      "sha256": "a2e2c72dbb0ced64fcad023d1f3f0f0bca2fc3b09714ffdc9b0615ba5c98e163",
+      "size_bytes": 248
+    },
+    {
+      "kind": "text",
+      "lines": 91,
+      "path": "mailbox-app/apps/core/views.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_path_check",
+          "error_404",
+          "error_500",
+          "live",
+          "ready",
+          "site_settings_api"
+        ],
+        "imports": [
+          "__future__",
+          "django.conf",
+          "django.db",
+          "django.db.migrations.executor",
+          "django.http",
+          "django.shortcuts",
+          "django.views.decorators.http",
+          "models",
+          "pathlib"
+        ],
+        "methods": []
+      },
+      "sha256": "86c04391d9de8d7d05cd15705b0ccf5b9e9d20eea26c75f625a41ac3992af92c",
+      "size_bytes": 3193
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/dashboard/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "bca9708309c3f9b190b680ab29cafd8e01397eb09d93de4634fa04cbe259ef10",
+      "size_bytes": 41
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/apps/dashboard/apps.py",
+      "python": {
+        "classes": [
+          "DashboardConfig"
+        ],
+        "functions": [],
+        "imports": [
+          "django.apps"
+        ],
+        "methods": []
+      },
+      "sha256": "43c162dacd3895a86e482c0ed6de9d27bcd9b1302ba23d0e2f455a517cb39489",
+      "size_bytes": 155
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/dashboard/management/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "bafc110032dcf0472bef4e31e4c98f6c3ff2a84c70d30d76904b97316224937e",
+      "size_bytes": 52
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/dashboard/management/commands/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "a5213d7cf3a32900d45822f7c4ed981c22e0abc497c1b0b33593710a34ed16fd",
+      "size_bytes": 61
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/dashboard/migrations/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "a93c6f5abbe12f10a054c49ebfaf6d045427b1e98857a6208d0f08823d02408a",
+      "size_bytes": 52
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/apps/dashboard/urls.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.urls"
+        ],
+        "methods": []
+      },
+      "sha256": "84716de207fa42eea9a9f38b842683fc004c099f18b8ca247f56f81d38ce68a1",
+      "size_bytes": 583
+    },
+    {
+      "kind": "text",
+      "lines": 339,
+      "path": "mailbox-app/apps/dashboard/views.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_database_ok",
+          "_is_official_release_url",
+          "_queue_update_request",
+          "_storage_ok",
+          "_update_preflight",
+          "check",
+          "check_update",
+          "index",
+          "site_settings",
+          "start_update",
+          "system_update_page",
+          "update_preflight",
+          "update_status"
+        ],
+        "imports": [
+          "__future__",
+          "apps.core.access",
+          "apps.core.forms",
+          "apps.core.models",
+          "apps.mailboxes.models",
+          "contextlib",
+          "django.conf",
+          "django.contrib",
+          "django.contrib.auth.decorators",
+          "django.db",
+          "django.http",
+          "django.shortcuts",
+          "django.views.decorators.http",
+          "json",
+          "logging",
+          "os",
+          "pathlib",
+          "re",
+          "shutil",
+          "subprocess",
+          "tempfile",
+          "urllib.error",
+          "urllib.parse",
+          "urllib.request"
+        ],
+        "methods": []
+      },
+      "sha256": "1f2c0717d982df67e78b2f159df505adabc75b70994a1bf8a0e87df209aa1d9d",
+      "size_bytes": 13102
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/ingestion/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "8e1cd25ac0decd7f78c863b9323686ddca28d9d66f3434ccf445891bfcbc2cdd",
+      "size_bytes": 41
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/apps/ingestion/apps.py",
+      "python": {
+        "classes": [
+          "IngestionConfig"
+        ],
+        "functions": [],
+        "imports": [
+          "django.apps"
+        ],
+        "methods": []
+      },
+      "sha256": "50f8d09319207da8397af01f10c94a96e2aa122fdff4f5d2f1fe6dde6a1b9176",
+      "size_bytes": 155
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/ingestion/management/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "bd9915ca299b9a85c122c4b87e042e1bd5d93d9904eb5e4db5757416629d69ff",
+      "size_bytes": 52
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/ingestion/management/commands/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "7ca9fefa27d3c49c6e34e3e719cb4da3ae0a2ba433108fce7f3e825789fb13a0",
+      "size_bytes": 61
+    },
+    {
+      "kind": "text",
+      "lines": 66,
+      "path": "mailbox-app/apps/ingestion/management/commands/ingest_maildir.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "apps.ingestion.service",
+          "django.conf",
+          "django.core.management.base",
+          "filelock",
+          "signal",
+          "threading"
+        ],
+        "methods": [
+          "Command.add_arguments",
+          "Command.handle",
+          "Command.stop_handler"
+        ]
+      },
+      "sha256": "18f76e00e8a2f99810387030ad5af39f4214350fe7af2164da28f6a905816ae6",
+      "size_bytes": 2687
+    },
+    {
+      "kind": "text",
+      "lines": 18,
+      "path": "mailbox-app/apps/ingestion/management/commands/rebuild_mail_index.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "django.core.management",
+          "django.core.management.base"
+        ],
+        "methods": [
+          "Command.add_arguments",
+          "Command.handle"
+        ]
+      },
+      "sha256": "00ed00cd36ec7ac45fa6feb9c7175c00acf5c30000454163f0032d2dd0e2e99e",
+      "size_bytes": 683
+    },
+    {
+      "kind": "text",
+      "lines": 116,
+      "path": "mailbox-app/apps/ingestion/management/commands/repair_message_bodies.py",
+      "python": {
+        "classes": [
+          "Command",
+          "Counters"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "apps.ingestion.repair",
+          "apps.messages.models",
+          "dataclasses",
+          "django.core.management.base",
+          "logging",
+          "uuid"
+        ],
+        "methods": [
+          "Command.add_arguments",
+          "Command.handle"
+        ]
+      },
+      "sha256": "80fe7355a31bfe501d2bae601aa9161657209c046568a0813b976969765e5780",
+      "size_bytes": 4256
+    },
+    {
+      "kind": "text",
+      "lines": 15,
+      "path": "mailbox-app/apps/ingestion/management/commands/update_mailbox_counters.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "apps.ingestion.service",
+          "apps.mailboxes.models",
+          "django.core.management.base"
+        ],
+        "methods": [
+          "Command.handle"
+        ]
+      },
+      "sha256": "3b3914718f980744ab72a90290b05db5f80b9e4dd4a85fa684ae07fffc36ec5e",
+      "size_bytes": 507
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/ingestion/migrations/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "d20cd1a36325d8c3cfd7dce5a4537aadcacda4dd18c152b2c1282d79bd184400",
+      "size_bytes": 52
+    },
+    {
+      "kind": "text",
+      "lines": 654,
+      "path": "mailbox-app/apps/ingestion/parser.py",
+      "python": {
+        "classes": [
+          "ParsedAttachment",
+          "ParsedMessage",
+          "_CSSBudget",
+          "_MailStackCSSSanitizer",
+          "_SanitizerPreprocessor"
+        ],
+        "functions": [
+          "_css_component_values_safe",
+          "_css_input_within_limit",
+          "_decode_part",
+          "_media_feature_safe",
+          "_media_prelude_safe",
+          "_parse_date",
+          "_prepare_html_for_sanitizer",
+          "_safe_attribute",
+          "_sanitize_declaration_tokens",
+          "_sanitize_declarations",
+          "_sanitize_rule",
+          "decode_header_value",
+          "parse_message",
+          "safe_filename",
+          "sanitize_html",
+          "sha256_bytes"
+        ],
+        "imports": [
+          "__future__",
+          "bleach",
+          "dataclasses",
+          "datetime",
+          "django.utils",
+          "email",
+          "email.header",
+          "email.parser",
+          "email.utils",
+          "hashlib",
+          "html.parser",
+          "re",
+          "tinycss2",
+          "typing",
+          "unicodedata",
+          "urllib.parse"
+        ],
+        "methods": [
+          "_CSSBudget.reserve",
+          "_MailStackCSSSanitizer.__init__",
+          "_MailStackCSSSanitizer.sanitize_css",
+          "_MailStackCSSSanitizer.sanitize_stylesheet",
+          "_SanitizerPreprocessor.__init__",
+          "_SanitizerPreprocessor._safe_image",
+          "_SanitizerPreprocessor.handle_charref",
+          "_SanitizerPreprocessor.handle_data",
+          "_SanitizerPreprocessor.handle_endtag",
+          "_SanitizerPreprocessor.handle_entityref",
+          "_SanitizerPreprocessor.handle_startendtag",
+          "_SanitizerPreprocessor.handle_starttag"
+        ]
+      },
+      "sha256": "2bb4d0c9081017c73e1c0aa406daa55e10d82a4b2f9dbd474f89a42ede3ad807",
+      "size_bytes": 21778
+    },
+    {
+      "kind": "text",
+      "lines": 100,
+      "path": "mailbox-app/apps/ingestion/repair.py",
+      "python": {
+        "classes": [
+          "BodyRepairError",
+          "BodyRepairResult",
+          "RepairSourceMismatch",
+          "RepairSourceMissing",
+          "RepairSourceTooLarge"
+        ],
+        "functions": [
+          "repair_message_bodies",
+          "source_path_for_message"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.validators",
+          "apps.messages.models",
+          "dataclasses",
+          "django.conf",
+          "django.core.exceptions",
+          "django.db",
+          "logging",
+          "parser",
+          "pathlib"
+        ],
+        "methods": []
+      },
+      "sha256": "fe9d8a1e4f085af95808f835a7761359d25b8fb68e3a446f748a613aa16072e5",
+      "size_bytes": 3436
+    },
+    {
+      "kind": "text",
+      "lines": 234,
+      "path": "mailbox-app/apps/ingestion/service.py",
+      "python": {
+        "classes": [
+          "IngestionResult"
+        ],
+        "functions": [
+          "_sha256_file",
+          "ingest_all",
+          "ingest_file",
+          "iter_maildir_files",
+          "source_key",
+          "update_mailbox_counters"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.services",
+          "apps.core.models",
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "apps.mailboxes.validators",
+          "apps.messages.models",
+          "apps.messages.services",
+          "dataclasses",
+          "datetime",
+          "django.conf",
+          "django.db",
+          "django.utils",
+          "hashlib",
+          "logging",
+          "os",
+          "parser",
+          "pathlib",
+          "storage"
+        ],
+        "methods": []
+      },
+      "sha256": "011080225bb8257b10f2f89f32393ae38642660a169ddad0402e3a55d00ac963",
+      "size_bytes": 9369
+    },
+    {
+      "kind": "text",
+      "lines": 66,
+      "path": "mailbox-app/apps/ingestion/storage.py",
+      "python": {
+        "classes": [
+          "AttachmentTooLarge",
+          "StoredAttachment"
+        ],
+        "functions": [
+          "delete_stored",
+          "store_attachment"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.validators",
+          "django.conf",
+          "django.core.exceptions",
+          "mimetypes",
+          "os",
+          "parser",
+          "typing",
+          "uuid"
+        ],
+        "methods": []
+      },
+      "sha256": "b7c6ba1bf5b7ca3b58d741004aa40be0999b458263d2ca206500533f00f87625",
+      "size_bytes": 2069
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/mailboxes/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "298211c051bc7a4b49aad0f61c0dcaae79cc89b59356d2b1a84d5f1b12e3ede7",
+      "size_bytes": 41
+    },
+    {
+      "kind": "text",
+      "lines": 28,
+      "path": "mailbox-app/apps/mailboxes/admin.py",
+      "python": {
+        "classes": [
+          "DomainAdmin",
+          "MailboxAdmin"
+        ],
+        "functions": [],
+        "imports": [
+          "django.contrib",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "42e31d5af7dc68a4fa4192841f7c24f58626df81ba483b4a2d5c4ed99c88fac3",
+      "size_bytes": 743
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/apps/mailboxes/apps.py",
+      "python": {
+        "classes": [
+          "MailboxesConfig"
+        ],
+        "functions": [],
+        "imports": [
+          "django.apps"
+        ],
+        "methods": []
+      },
+      "sha256": "c910ecd5549d151133e101a0fec695e96cfb109f4b30497ac2bdd31f368728c7",
+      "size_bytes": 155
+    },
+    {
+      "kind": "text",
+      "lines": 238,
+      "path": "mailbox-app/apps/mailboxes/dns.py",
+      "python": {
+        "classes": [
+          "DNSVerificationError"
+        ],
+        "functions": [
+          "_decode_name",
+          "_dkim_record",
+          "_query",
+          "build_dns_records",
+          "skip_name",
+          "verify_dns_records",
+          "verify_domain"
+        ],
+        "imports": [
+          "__future__",
+          "collections.abc",
+          "django.conf",
+          "ipaddress",
+          "pathlib",
+          "re",
+          "secrets",
+          "socket",
+          "struct"
+        ],
+        "methods": []
+      },
+      "sha256": "4664e4bb14063348ba4dfa060df9d3ee3376fc9cfc37e8eac85dd3b851d41afd",
+      "size_bytes": 9327
+    },
+    {
+      "kind": "text",
+      "lines": 100,
+      "path": "mailbox-app/apps/mailboxes/forms.py",
+      "python": {
+        "classes": [
+          "DomainForm",
+          "DomainForm.Meta",
+          "MailboxCreateForm"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "apps.core.access",
+          "django",
+          "django.conf",
+          "django.contrib.auth",
+          "models",
+          "typing",
+          "validators"
+        ],
+        "methods": [
+          "DomainForm.__init__",
+          "DomainForm.clean_name",
+          "DomainForm.clean_status",
+          "MailboxCreateForm.__init__",
+          "MailboxCreateForm.clean_domain",
+          "MailboxCreateForm.clean_local_part"
+        ]
+      },
+      "sha256": "1e49210830734c546ffd7552d5712145f10b31ed1952b4afa44a5e4d3ee0441b",
+      "size_bytes": 3932
+    },
+    {
+      "kind": "text",
+      "lines": 274,
+      "path": "mailbox-app/apps/mailboxes/mailserver.py",
+      "python": {
+        "classes": [
+          "MailServerContractError",
+          "MailServerMailbox"
+        ],
+        "functions": [
+          "_alias_source_exists",
+          "_disabled_password_hash",
+          "_identifier",
+          "_tables",
+          "create_mailserver_mailbox",
+          "delete_mailserver_domain",
+          "delete_mailserver_mailbox",
+          "ensure_mailserver_domain",
+          "integration_enabled",
+          "list_mailserver_mailboxes",
+          "mailserver_mailbox_exists",
+          "postfix_rows",
+          "set_mailserver_domain_active",
+          "set_mailserver_mailbox_active",
+          "verify_mailserver_schema"
+        ],
+        "imports": [
+          "__future__",
+          "dataclasses",
+          "django.conf",
+          "django.db",
+          "re",
+          "secrets"
+        ],
+        "methods": []
+      },
+      "sha256": "e5517dd7c49b249cd70788739e61c1f317138b9bb485380c615d42d15b6385e0",
+      "size_bytes": 9830
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/mailboxes/management/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "687be458e36f7c270084697aa9508f9e358eb2c587cb9ef3c34b6fc2b03038fe",
+      "size_bytes": 52
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/mailboxes/management/commands/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "3a0b06833c44937d83114aa909ba6cf6be2f2cc9ac80858c7007023f2509f78a",
+      "size_bytes": 61
+    },
+    {
+      "kind": "text",
+      "lines": 68,
+      "path": "mailbox-app/apps/mailboxes/management/commands/create_system_mailbox.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.mailserver",
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "apps.mailboxes.validators",
+          "django.conf",
+          "django.core.management.base"
+        ],
+        "methods": [
+          "Command.add_arguments",
+          "Command.handle"
+        ]
+      },
+      "sha256": "f0a323d8b94eb2539b0aff9cdf3579f78c44ee7258bbb30381d7184bf2372fdf",
+      "size_bytes": 3482
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/apps/mailboxes/management/commands/provision_maildirs.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "django.core.management.base"
+        ],
+        "methods": [
+          "Command.add_arguments",
+          "Command.handle"
+        ]
+      },
+      "sha256": "2a477195e32205cad59826da1f5ee3bcb7463cb4a7754a4e586770c222fc93a9",
+      "size_bytes": 809
+    },
+    {
+      "kind": "text",
+      "lines": 95,
+      "path": "mailbox-app/apps/mailboxes/management/commands/sync_mailserver_mailboxes.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "apps.mailboxes.mailserver",
+          "apps.mailboxes.models",
+          "apps.mailboxes.validators",
+          "django.core.management.base",
+          "django.db"
+        ],
+        "methods": [
+          "Command.add_arguments",
+          "Command.handle"
+        ]
+      },
+      "sha256": "e86f5dfdcb2b8bede0f61a7ce6ef95cc9fc66c52071b334c922d2d17d2406a1b",
+      "size_bytes": 4495
+    },
+    {
+      "kind": "text",
+      "lines": 27,
+      "path": "mailbox-app/apps/mailboxes/management/commands/verify_mail_storage.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "django.conf",
+          "django.core.management.base",
+          "pathlib"
+        ],
+        "methods": [
+          "Command.handle"
+        ]
+      },
+      "sha256": "1af1cb2a60e9a8f0f594b817eba751d783e1ec035dec64217e8fb08b94f66b2e",
+      "size_bytes": 1097
+    },
+    {
+      "kind": "text",
+      "lines": 20,
+      "path": "mailbox-app/apps/mailboxes/management/commands/verify_mailserver_schema.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "apps.mailboxes.mailserver",
+          "django.core.management.base"
+        ],
+        "methods": [
+          "Command.handle"
+        ]
+      },
+      "sha256": "0df9b993f962424ab6b2b23c29e5c92e18589479a58d75967f0208982759da08",
+      "size_bytes": 748
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "mailbox-app/apps/mailboxes/management/commands/verify_postfix_contract.py",
+      "python": {
+        "classes": [
+          "Command"
+        ],
+        "functions": [],
+        "imports": [
+          "apps.mailboxes.mailserver",
+          "apps.mailboxes.models",
+          "django.core.management.base"
+        ],
+        "methods": [
+          "Command.handle"
+        ]
+      },
+      "sha256": "fe8244060104e9105aaea4eac4ffc7fb60c0b5f5395e9b6fb3175b7bbd2dbb8f",
+      "size_bytes": 953
+    },
+    {
+      "kind": "text",
+      "lines": 62,
+      "path": "mailbox-app/apps/mailboxes/migrations/0001_initial.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.db",
+          "django.db.models.functions.text",
+          "uuid"
+        ],
+        "methods": []
+      },
+      "sha256": "463f42487b286cf1caf123812cea7e9115fa4c7c6cfbff413bb2e645d491bffb",
+      "size_bytes": 2565
+    },
+    {
+      "kind": "text",
+      "lines": 51,
+      "path": "mailbox-app/apps/mailboxes/migrations/0002_postfix_virtual_mailboxes_view.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [
+          "create_view",
+          "drop_view"
+        ],
+        "imports": [
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "bf20a7824bb8c6c36459d6d25900a44b6bc3544c2943a469e3691c0c4bcd7fa1",
+      "size_bytes": 1934
+    },
+    {
+      "kind": "text",
+      "lines": 123,
+      "path": "mailbox-app/apps/mailboxes/migrations/0003_mailboxmembership_and_more.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [
+          "drop_postfix_view",
+          "recreate_postfix_view"
+        ],
+        "imports": [
+          "django.conf",
+          "django.db",
+          "django.db.models.deletion"
+        ],
+        "methods": []
+      },
+      "sha256": "91895792a9ea46ee99fd8349411f74835a9201a55bfa0b789ffeca32f798e4ab",
+      "size_bytes": 5089
+    },
+    {
+      "kind": "text",
+      "lines": 54,
+      "path": "mailbox-app/apps/mailboxes/migrations/0004_generic_postfix_virtual_mailboxes_view.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [
+          "replace_view",
+          "restore_legacy_view"
+        ],
+        "imports": [
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "688c9e4175fef2c94d8652e6b67f7b1a40e0362ea311d1f6d4ea89e5fc940e77",
+      "size_bytes": 1963
+    },
+    {
+      "kind": "text",
+      "lines": 82,
+      "path": "mailbox-app/apps/mailboxes/migrations/0005_domain_and_mailbox_domain.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [
+          "backfill_default_domain",
+          "drop_view",
+          "restore_view"
+        ],
+        "imports": [
+          "django.conf",
+          "django.db",
+          "django.db.models.deletion",
+          "django.db.models.functions.text",
+          "uuid"
+        ],
+        "methods": []
+      },
+      "sha256": "1ec14dd86e1342b2b3f53d84b7393ac9ffcff79ad6537bb1925b1ab1ba930aa2",
+      "size_bytes": 4221
+    },
+    {
+      "kind": "text",
+      "lines": 54,
+      "path": "mailbox-app/apps/mailboxes/migrations/0006_restore_domain_aware_postfix_view.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [
+          "drop_view",
+          "replace_view"
+        ],
+        "imports": [
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "82edbbe723f801c9e05ca5714beba194fe9061ce85f13586f321b6e90a1b3c10",
+      "size_bytes": 1942
+    },
+    {
+      "kind": "text",
+      "lines": 20,
+      "path": "mailbox-app/apps/mailboxes/migrations/0007_domain_default.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [
+          "mark_configured_default"
+        ],
+        "imports": [
+          "django.conf",
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "601fdc316624753e91aef3f08a47834cb5dc99b6838002203d5f66d57be61560",
+      "size_bytes": 669
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/mailboxes/migrations/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "46d94ee49ed40e6d41a8b950773567f93ae7c110b22546773823a198e1961498",
+      "size_bytes": 52
+    },
+    {
+      "kind": "text",
+      "lines": 174,
+      "path": "mailbox-app/apps/mailboxes/models.py",
+      "python": {
+        "classes": [
+          "Domain",
+          "Domain.Meta",
+          "Domain.Status",
+          "Domain.VerificationStatus",
+          "Mailbox",
+          "Mailbox.Meta",
+          "Mailbox.Status",
+          "MailboxMembership",
+          "MailboxMembership.Meta"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "django.conf",
+          "django.core.exceptions",
+          "django.db",
+          "django.db.models.functions",
+          "uuid",
+          "validators"
+        ],
+        "methods": [
+          "Domain.__str__",
+          "Domain.clean",
+          "Mailbox.__str__",
+          "Mailbox.clean",
+          "Mailbox.clean_fields",
+          "Mailbox.save",
+          "MailboxMembership.__str__"
+        ]
+      },
+      "sha256": "5599a2e537e1e8330c5995a6cdc040ed1823bd67f5be47fad6f9b510c7526f45",
+      "size_bytes": 6896
+    },
+    {
+      "kind": "text",
+      "lines": 344,
+      "path": "mailbox-app/apps/mailboxes/services.py",
+      "python": {
+        "classes": [
+          "ProvisioningError"
+        ],
+        "functions": [
+          "_ensure_directory",
+          "_provision_mailbox_locked",
+          "_safe_cleanup_created_paths",
+          "default_domain",
+          "ensure_maildir",
+          "mailbox_paths",
+          "provision_mailbox",
+          "purge_mailbox",
+          "set_mailbox_status",
+          "soft_delete_mailbox"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.services",
+          "apps.ingestion.storage",
+          "apps.messages.models",
+          "django.conf",
+          "django.core.exceptions",
+          "django.db",
+          "django.utils",
+          "filelock",
+          "logging",
+          "mailserver",
+          "models",
+          "os",
+          "pathlib",
+          "shutil",
+          "validators"
+        ],
+        "methods": []
+      },
+      "sha256": "393fd0b39a64f7d83ba68d5e5663ac01ea2999d88644936612ed625fc1be3e5e",
+      "size_bytes": 13276
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "mailbox-app/apps/mailboxes/urls.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.urls"
+        ],
+        "methods": []
+      },
+      "sha256": "82542acd76e960971ab48e4abe99e8b2dbf1f9a1e8d39312ff7d8d7e48bbe30d",
+      "size_bytes": 1204
+    },
+    {
+      "kind": "text",
+      "lines": 91,
+      "path": "mailbox-app/apps/mailboxes/validators.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "confined_path",
+          "normalize_domain",
+          "normalize_local_part",
+          "validate_domain",
+          "validate_local_part"
+        ],
+        "imports": [
+          "__future__",
+          "django.core.exceptions",
+          "ipaddress",
+          "pathlib",
+          "re"
+        ],
+        "methods": []
+      },
+      "sha256": "c5bfaa78c8df33724827758f8fe9c852c3fce6fc4accd5ee757fd5640e9bf332",
+      "size_bytes": 3212
+    },
+    {
+      "kind": "text",
+      "lines": 369,
+      "path": "mailbox-app/apps/mailboxes/views.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "domain_check",
+          "domain_create",
+          "domain_delete",
+          "domain_dns_preview",
+          "domain_dns_status",
+          "domain_edit",
+          "domain_list",
+          "domain_make_default",
+          "domain_toggle",
+          "mailbox_bulk_delete",
+          "mailbox_create",
+          "mailbox_delete",
+          "mailbox_list",
+          "mailbox_toggle"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.services",
+          "apps.core.access",
+          "django.conf",
+          "django.contrib",
+          "django.contrib.auth.decorators",
+          "django.core.exceptions",
+          "django.core.paginator",
+          "django.db",
+          "django.db.models",
+          "django.http",
+          "django.shortcuts",
+          "django.urls",
+          "django.utils",
+          "django.views.decorators.csrf",
+          "django.views.decorators.http",
+          "dns",
+          "forms",
+          "mailserver",
+          "models",
+          "services",
+          "validators"
+        ],
+        "methods": []
+      },
+      "sha256": "77d46bb4a3c2d7b8942753d65a30ff3c5f12c7d0992283d4bbd6ede8c15fc100",
+      "size_bytes": 14200
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/messages/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "fe2ab0096c17f3d78ba10f7e0182b80106a1ffe3f9b0d6c52b193085cb0cebc0",
+      "size_bytes": 40
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/apps/messages/admin.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.contrib",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "5efce85b40b2f157fded06fb21647d936bb4c1ffc427ef82bbb09e12693c8f9f",
+      "size_bytes": 136
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "mailbox-app/apps/messages/apps.py",
+      "python": {
+        "classes": [
+          "MessagesConfig"
+        ],
+        "functions": [],
+        "imports": [
+          "django.apps"
+        ],
+        "methods": []
+      },
+      "sha256": "a158006960303a6878009178b252f91cd961b0618ef1ddac3898a5696e8af058",
+      "size_bytes": 180
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/messages/management/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "e9fd729ded92d026d42ad7555de643b65d32f0b68bc59d46e3eae4a8ed916e5f",
+      "size_bytes": 51
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/messages/management/commands/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "25357aea17d6fc229b1c024987a792d0852a209fb1cd381afa409f732b21ff02",
+      "size_bytes": 60
+    },
+    {
+      "kind": "text",
+      "lines": 82,
+      "path": "mailbox-app/apps/messages/migrations/0001_initial.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.db",
+          "django.db.models.deletion",
+          "uuid"
+        ],
+        "methods": []
+      },
+      "sha256": "9b17bc7d006429adaa1bdc2e4aa0b7288d341881386288d7166b109adff80323",
+      "size_bytes": 4431
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/apps/messages/migrations/0002_alter_attachment_storage_relative_path_and_more.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.db"
+        ],
+        "methods": []
+      },
+      "sha256": "a2ea3c52d700b1777c0c39d1e4bd16b3641ff24baa02f0de8a723e23cc6a1402",
+      "size_bytes": 660
+    },
+    {
+      "kind": "text",
+      "lines": 35,
+      "path": "mailbox-app/apps/messages/migrations/0003_message_deleted_at_message_deleted_by_and_more.py",
+      "python": {
+        "classes": [
+          "Migration"
+        ],
+        "functions": [],
+        "imports": [
+          "django.conf",
+          "django.db",
+          "django.db.models.deletion"
+        ],
+        "methods": []
+      },
+      "sha256": "e6887fdfdafb83b4d33ff34ce8314a5c0c61e9036307afc28ef307cedf2485bd",
+      "size_bytes": 1288
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/apps/messages/migrations/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "1c2cc74200d30c9bce764f13c9f1011f8551b670f151cabe5fbb2288405d0cb2",
+      "size_bytes": 51
+    },
+    {
+      "kind": "text",
+      "lines": 84,
+      "path": "mailbox-app/apps/messages/models.py",
+      "python": {
+        "classes": [
+          "Attachment",
+          "Message",
+          "Message.Meta",
+          "Message.ParseStatus"
+        ],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "django.conf",
+          "django.db",
+          "uuid"
+        ],
+        "methods": [
+          "Attachment.__str__",
+          "Message.__str__"
+        ]
+      },
+      "sha256": "c94d420ed35568c3865d82d1f634f35c1932f20d331c2011fc2dd9774a796a9a",
+      "size_bytes": 3641
+    },
+    {
+      "kind": "text",
+      "lines": 66,
+      "path": "mailbox-app/apps/messages/services.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "recalculate_mailbox_counters",
+          "set_message_read_state",
+          "soft_delete_message"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.services",
+          "apps.mailboxes.models",
+          "django.db",
+          "django.db.models",
+          "django.utils",
+          "models"
+        ],
+        "methods": []
+      },
+      "sha256": "8122bafdacd2915ae624fa9082b1a7b01c5fff7a2f568a974c1767233555eaf9",
+      "size_bytes": 2680
+    },
+    {
+      "kind": "text",
+      "lines": 18,
+      "path": "mailbox-app/apps/messages/urls.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.urls"
+        ],
+        "methods": []
+      },
+      "sha256": "f5f696740d4e69c369dc8b2d7b1b6f9b5d03eda9f9f90af5fea28a1e56aca54d",
+      "size_bytes": 786
+    },
+    {
+      "kind": "text",
+      "lines": 299,
+      "path": "mailbox-app/apps/messages/views.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_is_live_background_request",
+          "_iso",
+          "_message_preview",
+          "attachment_download",
+          "inbox",
+          "live_updates",
+          "mark_state",
+          "message_delete",
+          "message_detail",
+          "safe_html"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.services",
+          "apps.core.access",
+          "apps.mailboxes.validators",
+          "django.conf",
+          "django.contrib",
+          "django.contrib.auth.decorators",
+          "django.core.exceptions",
+          "django.core.paginator",
+          "django.db.models",
+          "django.http",
+          "django.shortcuts",
+          "django.urls",
+          "django.utils.html",
+          "django.utils.http",
+          "django.views.decorators.cache",
+          "django.views.decorators.http",
+          "models",
+          "services",
+          "uuid"
+        ],
+        "methods": []
+      },
+      "sha256": "ce92fc9d7521c997076773a538371f8f79dfbfc4acbf41ec1c964b709f7e6e8a",
+      "size_bytes": 11581
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/config/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "a46a4747409364c630fed4a0207a7b54065fe12f72d5068ebe3a40d97a4a8fca",
+      "size_bytes": 33
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/config/asgi.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.core.asgi",
+          "os"
+        ],
+        "methods": []
+      },
+      "sha256": "8bc1a9c8d37709cda7f75b75f48274043e2d52f061fbd92151dbb74a4e4eac0a",
+      "size_bytes": 177
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/config/settings/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "2619a1f82891ecc68d482f94f09d20b5c54af1290bbe3127ac4dd0d173ec9a09",
+      "size_bytes": 42
+    },
+    {
+      "kind": "text",
+      "lines": 219,
+      "path": "mailbox-app/config/settings/base.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "env_bool",
+          "env_int",
+          "env_list"
+        ],
+        "imports": [
+          "__future__",
+          "dotenv",
+          "os",
+          "pathlib"
+        ],
+        "methods": []
+      },
+      "sha256": "0f057e1a73ad7d5eec717a4ae73de70061dc5b81c337307291f64a3bf3d47b1b",
+      "size_bytes": 8725
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/config/settings/development.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "base"
+        ],
+        "methods": []
+      },
+      "sha256": "8e3ae1bfec98e58a4d6e795e7b8747196074bd1b220fab1dda5f08c0d3ec9f12",
+      "size_bytes": 133
+    },
+    {
+      "kind": "text",
+      "lines": 148,
+      "path": "mailbox-app/config/settings/production.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "required",
+          "validated_absolute_path",
+          "validated_host"
+        ],
+        "imports": [
+          "__future__",
+          "base",
+          "django.core.exceptions",
+          "ipaddress",
+          "os",
+          "pathlib",
+          "re"
+        ],
+        "methods": []
+      },
+      "sha256": "112d9420229b8636b9548f45ebab99bf2bb886f315d1fa1ee53ab731a402d8f3",
+      "size_bytes": 5846
+    },
+    {
+      "kind": "text",
+      "lines": 62,
+      "path": "mailbox-app/config/settings/test.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "__future__",
+          "base",
+          "os",
+          "pathlib",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "9ec8dd61b38eb593212aaedb278a2747988e9455e366d7d8fe3240f552dc3c60",
+      "size_bytes": 2438
+    },
+    {
+      "kind": "text",
+      "lines": 12,
+      "path": "mailbox-app/config/urls.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.urls"
+        ],
+        "methods": []
+      },
+      "sha256": "1b4c4846fe234f67a886145e76f51a84d31a6979a43d48ee113c31ab213914b7",
+      "size_bytes": 398
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/config/wsgi.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "django.core.wsgi",
+          "os"
+        ],
+        "methods": []
+      },
+      "sha256": "5b3ab0458d9b0e1cc579807e7d7dd9efab8735e0fc6c06fa9683a5759e497ac0",
+      "size_bytes": 177
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/deployment/logrotate/vibmail",
+      "sha256": "d0ad94cdcd64d4ee2b44b761e650ca509d7b76347dd8e48c905537f3e79826b9",
+      "size_bytes": 154
+    },
+    {
+      "kind": "text",
+      "lines": 3,
+      "path": "mailbox-app/deployment/mariadb/README.md",
+      "sha256": "7ec5460993756b9dd1e855fd4449f5dbd783c0b3ac8a41be9f783f27e78f998b",
+      "size_bytes": 290
+    },
+    {
+      "kind": "text",
+      "lines": 16,
+      "path": "mailbox-app/deployment/mariadb/create_vibmail_app_database.sql.template",
+      "sha256": "34e733af70396041c902101fee9e7197f5b18c1409f3ef71f0a6c0407a762952",
+      "size_bytes": 812
+    },
+    {
+      "kind": "text",
+      "lines": 92,
+      "path": "mailbox-app/deployment/nginx/app.vibmail.my.conf",
+      "sha256": "4da3e2b1a047a9c949a1ad59642de3758b4ff9a8e4fe57d41df0a93228ceefd9",
+      "size_bytes": 2529
+    },
+    {
+      "kind": "text",
+      "lines": 18,
+      "path": "mailbox-app/deployment/permissions/FILESYSTEM_PERMISSIONS.md",
+      "sha256": "c56b4c94671e72e418dc7809587ea4e193ca899b36649d1ef0748f8b2a923b1c",
+      "size_bytes": 1661
+    },
+    {
+      "kind": "text",
+      "lines": 13,
+      "path": "mailbox-app/deployment/postfix/POSTFIX_INTEGRATION_CONTRACT.md",
+      "sha256": "b0cafbf0fc535c12b4368cb59df1766918098c632528e94d63204af0326cb882",
+      "size_bytes": 615
+    },
+    {
+      "kind": "text",
+      "lines": 11,
+      "path": "mailbox-app/deployment/postfix/POSTFIX_VERIFICATION_COMMANDS.md",
+      "sha256": "2e01b5fe16aef9fb66c0c36f6965472276362f95fc224fb235bef8d06e1d6432",
+      "size_bytes": 407
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/deployment/postfix/main.cf.receive-only.snippet",
+      "sha256": "c5bec44094d9bee26d56ddb6aae4ef274ffcf6de36086f798faa43149a177d9c",
+      "size_bytes": 574
+    },
+    {
+      "kind": "text",
+      "lines": 2,
+      "path": "mailbox-app/deployment/postfix/master.cf.receive-only.snippet",
+      "sha256": "9e0d7d8dc1d3710897edb0606f5b2a0e46b9122ebefba0203954a260e1d5fe6e",
+      "size_bytes": 148
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "mailbox-app/deployment/systemd/vibmail-gunicorn.service",
+      "sha256": "945b76c3e91664dbaf9e23f4222a87fab0159a78044433ca2eff91da9833ff07",
+      "size_bytes": 1033
+    },
+    {
+      "kind": "text",
+      "lines": 32,
+      "path": "mailbox-app/deployment/systemd/vibmail-ingestion.service",
+      "sha256": "1cb5a66c726cdc4ff31e585e70612bbd0e9e0fef32ed68637d9a85632bdda029",
+      "size_bytes": 855
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/docs/ADMIN_GUIDE.md",
+      "sha256": "9b7952bb436458140f81a6d91b54075b9575edb5677ffc93f95337629c2d03ed",
+      "size_bytes": 879
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "mailbox-app/docs/ARCHITECTURE.md",
+      "sha256": "e05ef97e6ee7b2e37ddc49ee27a04259a789542ea66d01a874c621b07a36a386",
+      "size_bytes": 866
+    },
+    {
+      "kind": "text",
+      "lines": 29,
+      "path": "mailbox-app/docs/BACKUP_RESTORE.md",
+      "sha256": "eeeacadc132132951b7cf23fa340ff0de09fb0112b0148702778570bbfee7518",
+      "size_bytes": 1621
+    },
+    {
+      "kind": "text",
+      "lines": 19,
+      "path": "mailbox-app/docs/CONFIGURATION.md",
+      "sha256": "507aa45ca77d05f2548cccbc65aaf166cb76c6f62d05ede6e1911eda8877140a",
+      "size_bytes": 709
+    },
+    {
+      "kind": "text",
+      "lines": 19,
+      "path": "mailbox-app/docs/INSTALLATION.md",
+      "sha256": "b381dceee9b03f20116136a2911b45607cf8080dbaba31a7af0c506183032f7f",
+      "size_bytes": 1289
+    },
+    {
+      "kind": "text",
+      "lines": 13,
+      "path": "mailbox-app/docs/MAILDIR_INGESTION.md",
+      "sha256": "3e91e3fb092976b0a5ec1de595ea770032c219d899f460d207190e3966895dd6",
+      "size_bytes": 863
+    },
+    {
+      "kind": "text",
+      "lines": 38,
+      "path": "mailbox-app/docs/PHASE2_DEPLOYMENT_HANDOFF.md",
+      "sha256": "ab9ea4035dd1f347204576a55e88d90f0bed816fb9d86bda30273f94dd8f3b38",
+      "size_bytes": 1556
+    },
+    {
+      "kind": "text",
+      "lines": 15,
+      "path": "mailbox-app/docs/POSTFIX_INTEGRATION.md",
+      "sha256": "7e318368261c60994d512bca30e2f7dfeb7b4a68abb8cd328de9640066c008cc",
+      "size_bytes": 641
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/docs/SECURITY_OPERATIONS.md",
+      "sha256": "df11c15363677841ce986120ba03ed91620fe1c25c4a5dfdcc56e25b174f6ebc",
+      "size_bytes": 718
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "mailbox-app/docs/THREAT_MODEL.md",
+      "sha256": "8835e30ef702e28fbd9a49ed0996f31d22e8638635a5e02d0469fcf7ebbc3f1e",
+      "size_bytes": 1109
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/docs/TROUBLESHOOTING.md",
+      "sha256": "a94b4834bc8299bf98956c584b1268c7fd2776a0e939f4e89c1d979e281e71f4",
+      "size_bytes": 1008
+    },
+    {
+      "kind": "text",
+      "lines": 1245,
+      "path": "mailbox-app/docs/V1_2_0_ZERO_FREEDOM_SPECIFICATION.md",
+      "sha256": "0ba6bed53fecc6487df6a1c64666ea52888b6309887a13d8c71028314f696cd9",
+      "size_bytes": 37326
+    },
+    {
+      "kind": "text",
+      "lines": 32,
+      "path": "mailbox-app/docs/V1_2_1_ACCEPTANCE_CHECKLIST.md",
+      "sha256": "c5c996abb449f39cdeaa699041a3c3dcbba07ff81965a55cdfca5f84bb854978",
+      "size_bytes": 1261
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/docs/V1_2_1_ARCHITECTURE.md",
+      "sha256": "666b47dbaa9f4bc04a5d6da089ae1a680de207badcd3f77ed4d7e01906216904",
+      "size_bytes": 1677
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "mailbox-app/docs/V1_2_1_LIVE_NOTIFICATIONS.md",
+      "sha256": "91762a85dc340a2a7ab3d58ccf0803d066451f214a89de6a6a2326b02dba7c86",
+      "size_bytes": 592
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "mailbox-app/docs/V1_2_1_ROLLBACK_GUIDE.md",
+      "sha256": "42e872035a981fb3f9a608774b23d6c9c21cdf7cbef4657a09c90359230ab91c",
+      "size_bytes": 976
+    },
+    {
+      "kind": "text",
+      "lines": 19,
+      "path": "mailbox-app/docs/V1_2_1_SECURITY_HOTFIX.md",
+      "sha256": "fb23fbcb2603508de746670b7b37940812ad43e852a2fe22dea03507e00058bf",
+      "size_bytes": 1249
+    },
+    {
+      "kind": "text",
+      "lines": 40,
+      "path": "mailbox-app/docs/V1_2_1_SERVER_BASELINE.md",
+      "sha256": "f9f5f6c43c755f9bce9f7a7970869f6add145028a769a673105879279d0822f5",
+      "size_bytes": 1441
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "mailbox-app/docs/V1_2_1_UPGRADE_GUIDE.md",
+      "sha256": "425588ed39ba7394dd21edecc7fd8941231ef5540264776442f8d0a5c46d8f93",
+      "size_bytes": 1358
+    },
+    {
+      "kind": "text",
+      "lines": 11,
+      "path": "mailbox-app/docs/V1_2_1_USER_GUIDE.md",
+      "sha256": "ab65be2a8cbb5430cddd1a246ff1e0f232fc6ab6a99ac658555b2656666cf4cc",
+      "size_bytes": 701
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "mailbox-app/docs/V1_2_1_USER_MANAGEMENT_GUIDE.md",
+      "sha256": "924da2d49f972bee854ab4be88b95157f3e89b70b090b0fe8ca028a6aa89df96",
+      "size_bytes": 646
+    },
+    {
+      "kind": "text",
+      "lines": 39,
+      "path": "mailbox-app/docs/release/V1_2_1_DEPLOYMENT_VERIFICATION_REPORT.md",
+      "sha256": "8ef37be00daca1fe698a16f503422c46318bebf28842716aa14b528f0fd3b34b",
+      "size_bytes": 1649
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "mailbox-app/docs/release/V1_2_1_FORENSIC_AUDIT_REPORT.md",
+      "sha256": "a6e50ef589dd940aa749a72a0bcb7716519214af6009c4df53fb7db27e19f9ad",
+      "size_bytes": 1668
+    },
+    {
+      "kind": "text",
+      "lines": 22,
+      "path": "mailbox-app/docs/release/V1_2_1_KNOWN_ISSUES.md",
+      "sha256": "ce55f48393dcac23e82e5cbccf7f1d137c8058fd9131e27847d6cb83e889d344",
+      "size_bytes": 1083
+    },
+    {
+      "kind": "text",
+      "lines": 25,
+      "path": "mailbox-app/docs/release/V1_2_1_PERFORMANCE_AUDIT_REPORT.md",
+      "sha256": "e94a0788f953b431e9097edbfd558bba2babdcc455e6ca530df14042d95a7050",
+      "size_bytes": 1292
+    },
+    {
+      "kind": "text",
+      "lines": 49,
+      "path": "mailbox-app/docs/release/V1_2_1_SECURITY_AUDIT_REPORT.md",
+      "sha256": "3a102e37da2668f927245cd9a6f152e9e1be8f1223dd686d5bee9466e4eb0561",
+      "size_bytes": 2233
+    },
+    {
+      "kind": "text",
+      "lines": 28,
+      "path": "mailbox-app/docs/release/V1_2_1_TEST_REPORT.md",
+      "sha256": "8dd73d52de1fbdb2e6576c623b60eca2ded8afe3236338380bfeac34f145a178",
+      "size_bytes": 1100
+    },
+    {
+      "kind": "text",
+      "lines": 4,
+      "path": "mailbox-app/gunicorn.conf.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "2b9a64df502abec178de24c99671b01cde4ca391ecad592e661488e3119993b5",
+      "size_bytes": 244
+    },
+    {
+      "kind": "text",
+      "lines": 16,
+      "path": "mailbox-app/manage.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main"
+        ],
+        "imports": [
+          "django.core.management",
+          "os",
+          "sys"
+        ],
+        "methods": []
+      },
+      "sha256": "baee6eac4a62d273480213082c5c0ed48060ffe4b7a4d3f4aa1bd494a5c7f385",
+      "size_bytes": 429
+    },
+    {
+      "kind": "text",
+      "lines": 85,
+      "path": "mailbox-app/pyproject.toml",
+      "sha256": "901ec85605cf581335eaa20ee3864e9a69de7f42b01145fc7d10e17a46820d43",
+      "size_bytes": 2547
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/requirements/base.txt",
+      "sha256": "0295e4ce373bf3b2ddbd2876df08a87519141cc7c2870f42715962d6681672d0",
+      "size_bytes": 143
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "mailbox-app/requirements/constraints.txt",
+      "sha256": "952b08a9fd58d0a3e71cafefcad09ec5f9f85cf2aa4b8c12ac61ce1d8b31509c",
+      "size_bytes": 448
+    },
+    {
+      "kind": "text",
+      "lines": 8,
+      "path": "mailbox-app/requirements/development.txt",
+      "sha256": "b209f0c087b8e3a380daf98cb59e8634ac66e0749a759628249cd7e9a2923818",
+      "size_bytes": 131
+    },
+    {
+      "kind": "text",
+      "lines": 18,
+      "path": "mailbox-app/requirements/locked.txt",
+      "sha256": "2847661d1326912a358642c1e37220e7fad478366ef291f79daaa9d312d792e6",
+      "size_bytes": 374
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/requirements/production.txt",
+      "sha256": "7cd7af5e6c9c089d2ac987c01f85ecf2b6c5c9f44abf3d1fa230d57e9357621c",
+      "size_bytes": 14
+    },
+    {
+      "kind": "text",
+      "lines": 53,
+      "path": "mailbox-app/scripts/audit_dependencies_v1_2_1.sh",
+      "sha256": "bb7bdffa0e6e1dc0622f17a721bc2b065cec95f93f15c3a48e8e210a8eeda84c",
+      "shell_functions": [
+        "cleanup"
+      ],
+      "size_bytes": 2021
+    },
+    {
+      "kind": "text",
+      "lines": 180,
+      "path": "mailbox-app/scripts/backup.sh",
+      "sha256": "4f00a41f082a2918bfdad0ee1b77e178ffbabe4ede5e4a77ace2bcf091c8ef14",
+      "shell_functions": [
+        "cleanup_on_exit",
+        "restart_services"
+      ],
+      "size_bytes": 6338
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/scripts/create_admin.sh",
+      "sha256": "43caa87beeebe3ac36d5536bb8778aa399a4412b90908545adf57d0cdc66fd87",
+      "shell_functions": [],
+      "size_bytes": 559
+    },
+    {
+      "kind": "text",
+      "lines": 93,
+      "path": "mailbox-app/scripts/deploy_application.sh",
+      "sha256": "f05b3b8780fd0f3c4f8e3abb4ed07d4346d2a19f01546dae06a127ede71a4a8c",
+      "shell_functions": [
+        "run_app",
+        "usage"
+      ],
+      "size_bytes": 4380
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "mailbox-app/scripts/health_check.sh",
+      "sha256": "97e3acd546a2a154377cc82fefebad706070a2c207c09724f1201f01bca2b69c",
+      "shell_functions": [],
+      "size_bytes": 703
+    },
+    {
+      "kind": "text",
+      "lines": 42,
+      "path": "mailbox-app/scripts/install_dependencies.sh",
+      "sha256": "1b5c45d8ab5a94a227ceaa3a07d054a080fe6e388703b8da95c43f12c8d2ad97",
+      "shell_functions": [],
+      "size_bytes": 1733
+    },
+    {
+      "kind": "text",
+      "lines": 64,
+      "path": "mailbox-app/scripts/preflight_v1_2_1.sh",
+      "sha256": "1ff2b71a24499a086d0df78f91c07afd6d06e109a35e90e227a6c10229b06ef8",
+      "shell_functions": [
+        "run_app",
+        "usage"
+      ],
+      "size_bytes": 3560
+    },
+    {
+      "kind": "text",
+      "lines": 142,
+      "path": "mailbox-app/scripts/restore.sh",
+      "sha256": "141f7d41d50737358b4af15302bb19d7d3fe2939078b23810cf3afd7ab5ab5b1",
+      "shell_functions": [
+        "cleanup_on_exit",
+        "restart_services",
+        "run_app",
+        "usage",
+        "validate_tar_archive"
+      ],
+      "size_bytes": 5131
+    },
+    {
+      "kind": "text",
+      "lines": 58,
+      "path": "mailbox-app/scripts/rollback.sh",
+      "sha256": "bdd4edc8412c4a842f76929ab24b8875c2a80310f2cc46e5fdd108aa9e8a08b9",
+      "shell_functions": [
+        "run_app",
+        "usage",
+        "validate_tar_archive"
+      ],
+      "size_bytes": 2687
+    },
+    {
+      "kind": "text",
+      "lines": 159,
+      "path": "mailbox-app/scripts/rollback_upgrade.sh",
+      "sha256": "1b3bdff25edade3b78e5986b5709b7e2b6c250c056ca39ec13d9d7213a61fd10",
+      "shell_functions": [
+        "die",
+        "run_app",
+        "usage",
+        "validate_tar_archive"
+      ],
+      "size_bytes": 6053
+    },
+    {
+      "kind": "text",
+      "lines": 125,
+      "path": "mailbox-app/scripts/update_worker.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main",
+          "process_request",
+          "valid_request_file",
+          "valid_url",
+          "write_status"
+        ],
+        "imports": [
+          "__future__",
+          "contextlib",
+          "json",
+          "os",
+          "pathlib",
+          "pwd",
+          "stat",
+          "subprocess",
+          "tempfile",
+          "time",
+          "urllib.parse",
+          "urllib.request"
+        ],
+        "methods": []
+      },
+      "sha256": "cfbbbbb63a734e38143551939866fc185fb48bbfdda115a9b8ec5a7287638af3",
+      "size_bytes": 4366
+    },
+    {
+      "kind": "text",
+      "lines": 377,
+      "path": "mailbox-app/scripts/upgrade.sh",
+      "sha256": "acc264b4b87e1154e63df24c6bec7622d4a99bb0203e8f4983def55c3dad2359",
+      "shell_functions": [
+        "cleanup_stage",
+        "die",
+        "report_progress",
+        "restore_pre_upgrade_source",
+        "rollback_on_failure",
+        "run_app",
+        "usage"
+      ],
+      "size_bytes": 17051
+    },
+    {
+      "kind": "text",
+      "lines": 82,
+      "path": "mailbox-app/scripts/upgrade_v1_2_1.sh",
+      "sha256": "399978dbe9866d1f0e48c2b7465628423c65c78adbae28eca6808c9e988e6bbc",
+      "shell_functions": [
+        "rollback_on_failure",
+        "usage"
+      ],
+      "size_bytes": 3968
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "mailbox-app/scripts/verify_application.sh",
+      "sha256": "d7c6b43e7af34dd3787e93fb4223ba04d0b384c0a312541d0ec8d6781f3220d2",
+      "shell_functions": [],
+      "size_bytes": 1374
+    },
+    {
+      "kind": "text",
+      "lines": 67,
+      "path": "mailbox-app/scripts/verify_release_manifest.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "digest",
+          "main",
+          "scanned_files"
+        ],
+        "imports": [
+          "__future__",
+          "hashlib",
+          "json",
+          "os",
+          "pathlib",
+          "sys"
+        ],
+        "methods": []
+      },
+      "sha256": "787c840030e1f44d77f4cfff7d9d62efd0733fe92a63b1213719c02c94d49e23",
+      "size_bytes": 2682
+    },
+    {
+      "kind": "text",
+      "lines": 335,
+      "path": "mailbox-app/scripts/verify_upgrade_archive.py",
+      "python": {
+        "classes": [
+          "UpgradeArchiveError"
+        ],
+        "functions": [
+          "compare_migrations",
+          "main",
+          "migration_map_from_archive",
+          "migration_map_from_current",
+          "normalized_version",
+          "package_from_release",
+          "read_checksum",
+          "read_current_version",
+          "safe_extract",
+          "sha256",
+          "sha256_bytes",
+          "verify_archive"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "hashlib",
+          "pathlib",
+          "re",
+          "shutil",
+          "tomllib",
+          "zipfile"
+        ],
+        "methods": []
+      },
+      "sha256": "5c65e8da9d4f8a160d7f799db95eff137aff05b2a84ce7e15fa9a17574e39eb0",
+      "size_bytes": 14150
+    },
+    {
+      "kind": "text",
+      "lines": 78,
+      "path": "mailbox-app/scripts/verify_v1_2_1.sh",
+      "sha256": "09d3b5df64c0abe4ddd3d5b97eda2a73d5aea3f9c9b023c84a1960ac01374e9a",
+      "shell_functions": [
+        "run_app"
+      ],
+      "size_bytes": 3849
+    },
+    {
+      "kind": "text",
+      "lines": 16,
+      "path": "mailbox-app/static/brand/mailstack-logo.svg",
+      "sha256": "f8a8eb7c44edb8acd88ee4b139490564aafb1829510a7fe0f113979d0b17173e",
+      "size_bytes": 992
+    },
+    {
+      "kind": "text",
+      "lines": 1962,
+      "path": "mailbox-app/static/css/app.css",
+      "sha256": "6b3bdb7208c958051eb55e30e4bc256c90d1849e9228ceab5986f94714b1d924",
+      "size_bytes": 66443
+    },
+    {
+      "kind": "text",
+      "lines": 999,
+      "path": "mailbox-app/static/css/foundation.css",
+      "sha256": "926f82a13753f295a30da01c27c40e59dc0b37eb272f260640668a12c5bec8c0",
+      "size_bytes": 19722
+    },
+    {
+      "kind": "text",
+      "lines": 80,
+      "path": "mailbox-app/static/icons/mailstack-icons.svg",
+      "sha256": "2ee3a0453bd2b6255af224d40fafac303fb605c56f03f1c96342c48f2acedde2",
+      "size_bytes": 6269
+    },
+    {
+      "kind": "text",
+      "lines": 1317,
+      "path": "mailbox-app/static/js/app.js",
+      "sha256": "242ccb1282f45f844548215421765bbf8fcae19e761598b640f4ca7167f6f944",
+      "size_bytes": 45636
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/templates/accounts/login.html",
+      "sha256": "78094e529da8f7b20c500973bc5763b407fdfdcfa80cc2596406081e01cebef2",
+      "size_bytes": 865
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/templates/accounts/user_confirm_delete.html",
+      "sha256": "05bbc4b96b5de1fd40cfafa8c0c54e7389b49e81f4198d53c5fd5e2bee84a7ba",
+      "size_bytes": 707
+    },
+    {
+      "kind": "text",
+      "lines": 63,
+      "path": "mailbox-app/templates/accounts/user_form.html",
+      "sha256": "26e5e07ff9e68ac2ba9155d1498d189b36c80b0aa9aa3593b13f374219ffd3b0",
+      "size_bytes": 4460
+    },
+    {
+      "kind": "text",
+      "lines": 8,
+      "path": "mailbox-app/templates/accounts/user_list.html",
+      "sha256": "162a90127b59c79d4074209406f4b8319c097dce1621f77212a5923f399556c2",
+      "size_bytes": 2184
+    },
+    {
+      "kind": "text",
+      "lines": 209,
+      "path": "mailbox-app/templates/base.html",
+      "sha256": "7f2a471c12e6cc8a79e7aad0a5b9622665284209814fa5ad28f235a02403605d",
+      "size_bytes": 12493
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "mailbox-app/templates/dashboard/index.html",
+      "sha256": "8c3d7bbce5ecfce60590489c073aac5a818a7905009008e145aab22820348b1c",
+      "size_bytes": 3370
+    },
+    {
+      "kind": "text",
+      "lines": 51,
+      "path": "mailbox-app/templates/dashboard/site_settings.html",
+      "sha256": "9d73dda54abbc6eca5fcc511c95dbd118ee1c541bd7603d3204407f8790d1a58",
+      "size_bytes": 3733
+    },
+    {
+      "kind": "text",
+      "lines": 545,
+      "path": "mailbox-app/templates/dashboard/system_update.html",
+      "sha256": "90701dea9fa5963ba58c3ed2ff10779a7ef4da1a76eae39e907647ff9cb8dbf0",
+      "size_bytes": 20544
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/templates/errors/403.html",
+      "sha256": "822d9c73e0f1635da2c247851dc83c3a4f1dbcb3fb08d0a3a1676d460952e44a",
+      "size_bytes": 309
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/templates/errors/404.html",
+      "sha256": "375625b19f0d4f3dec5fecd4a21e3e3b50b583e5ae664228839c49861815bdaf",
+      "size_bytes": 225
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/templates/errors/500.html",
+      "sha256": "eae689c593165790c4d3c75f5463ed3bf5b11e1a361cda685e5c6bfddcafbb11",
+      "size_bytes": 247
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "mailbox-app/templates/mailboxes/_create_modal.html",
+      "sha256": "4b103538476d2351b211c3b8e1099cd21fdd0906f5046a670b9f63751fc08e5e",
+      "size_bytes": 3739
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/templates/mailboxes/confirm_delete.html",
+      "sha256": "813b67b9b6744fe0fc9808aa88cd3ed75cf188a4fffaba96e821c1e0729090de",
+      "size_bytes": 916
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/templates/mailboxes/create.html",
+      "sha256": "46cc46b4a00b04f42b5301f7d13157941575e32ddb1bd23e63e8861b8ef6ee63",
+      "size_bytes": 1428
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "mailbox-app/templates/mailboxes/domain_form.html",
+      "sha256": "e9f40ab2e774761df3f375feaee45197c9ad427ace4e5d989a2d11804e1c2aa9",
+      "size_bytes": 2963
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/templates/mailboxes/domains.html",
+      "sha256": "0607cf3c30c71d0d5c3f0bbd8405d91070b6b1585b0bb8f50f1e44a6b4a7582a",
+      "size_bytes": 5568
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/templates/mailboxes/list.html",
+      "sha256": "34ae7af9c73b1df4f66d675ce4b13b2df8c384be545fe2abb38e50fa579a6b2f",
+      "size_bytes": 3386
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "mailbox-app/templates/messages/confirm_delete.html",
+      "sha256": "17fe32636bb9799db0f9fcdf3fc7e9305dbdb16225745e5e55fffe26c9235c92",
+      "size_bytes": 782
+    },
+    {
+      "kind": "text",
+      "lines": 76,
+      "path": "mailbox-app/templates/messages/detail.html",
+      "sha256": "8a224584e9689aa951312ab5bfce50cd28fe4431051eaf8aca454266dbe62e4c",
+      "size_bytes": 4800
+    },
+    {
+      "kind": "text",
+      "lines": 56,
+      "path": "mailbox-app/templates/messages/inbox.html",
+      "sha256": "7bcb6c11b13bbab28d0669b243fe00d9c2f26780cfb74cf9c9df5ebf94b210a0",
+      "size_bytes": 3810
+    },
+    {
+      "kind": "text",
+      "lines": 11,
+      "path": "mailbox-app/templates/pagination.html",
+      "sha256": "f244f5d072aae035bd77de04a71b53d495cc9f09198f31ab7fc74fc53a19b20c",
+      "size_bytes": 476
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/tests/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "979fe8972e41a7e834195bf9bfef79a7280ea077c3880478fda85c66b3db48dd",
+      "size_bytes": 32
+    },
+    {
+      "kind": "text",
+      "lines": 61,
+      "path": "mailbox-app/tests/conftest.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "admin_user",
+          "fixtures_dir",
+          "isolated_storage",
+          "mailbox",
+          "message"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.services",
+          "apps.messages.models",
+          "django.contrib.auth",
+          "django.utils",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "cd9be0f03b23bda00e2ccf177a9b761877117eb9afb501403f4a7330108667a6",
+      "size_bytes": 1694
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/tests/fixtures/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "253c9662d4cc32f0549401e67594163cfa126fd7a7e8feb800d11b80841ebe76",
+      "size_bytes": 41
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/duplicate_message_id_a.eml",
+      "sha256": "35cdf7a648fd8f305c0440da7d12ca74b393c92419cf9c55e9e0ecb70092820d",
+      "size_bytes": 295
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/duplicate_message_id_b.eml",
+      "sha256": "02fcabb8d3c81d87ba7ce704da3f01e493a1f4aff6c1782f3db0b99af5f6d2e0",
+      "size_bytes": 295
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/empty_body.eml",
+      "sha256": "90272c6b8bbb81ba0c9fa8f24581fe54402a16ae5162a4d9b2116a354111f27e",
+      "size_bytes": 247
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/html.eml",
+      "sha256": "a13c1cf589174bca587948c4f86a6816c9f5f9906a5b8145f09907104ec57784",
+      "size_bytes": 594
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "mailbox-app/tests/fixtures/html_event_handler.eml",
+      "sha256": "7a6d264e0f2f5cb64d9c488a89b2f256d4937b359d3a89d7796a1d995bcf6319",
+      "size_bytes": 675
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/html_iframe.eml",
+      "sha256": "7fc868af131c0681c2d4fe246f194dbb8fd8eed160b289ec625a64f0b3758228",
+      "size_bytes": 614
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/tests/fixtures/html_inline_style.eml",
+      "sha256": "70b1744bd3c8f56761f44bd525b769d0e727c81b9c6772a45c46207bad63130c",
+      "size_bytes": 398
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/html_javascript_url.eml",
+      "sha256": "3e961e414f0f94963870f0708739ec25577ef07d9dfbab8b3ddc536ab535754e",
+      "size_bytes": 607
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/tests/fixtures/html_malformed_css.eml",
+      "sha256": "b5f90952cbd2bcba0298f0ec947c182423cbf2b3a7ca5156cbd9d726e321dab0",
+      "size_bytes": 433
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/tests/fixtures/html_media_style.eml",
+      "sha256": "ce2bef02932f3302f0864ca450b8d3f50e2e3d1e205a9bbd207e817002fecb4d",
+      "size_bytes": 526
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/html_remote_image.eml",
+      "sha256": "935d2c7518c89ec068d94a7f1eea2dfa8e690d25f1f1f0dcfcd761dc90f90c72",
+      "size_bytes": 621
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/html_script.eml",
+      "sha256": "1fddd6d606bf680ddecd89f5b3d02357a2d5bc57c040e3ca5e8573b69b860200",
+      "size_bytes": 598
+    },
+    {
+      "kind": "text",
+      "lines": 24,
+      "path": "mailbox-app/tests/fixtures/html_style_heavy.eml",
+      "sha256": "770ae1e2bea47ebcec32fcffc618bcab9631f3c711e206f1b414ea12858b3d01",
+      "size_bytes": 633
+    },
+    {
+      "kind": "text",
+      "lines": 18,
+      "path": "mailbox-app/tests/fixtures/html_style_safe.eml",
+      "sha256": "3ef9cecdcf790a5e1a4f58d63c5a06d31eb2a7fe8bf0a5c6bc5929278a905886",
+      "size_bytes": 460
+    },
+    {
+      "kind": "text",
+      "lines": 14,
+      "path": "mailbox-app/tests/fixtures/html_style_unsafe.eml",
+      "sha256": "e7d6b0b88a9ec7a26c6a9e6de3f4a55302ebc712f194733dd71fcd356d19b046",
+      "size_bytes": 606
+    },
+    {
+      "kind": "text",
+      "lines": 11,
+      "path": "mailbox-app/tests/fixtures/html_table_layout.eml",
+      "sha256": "f1eb197823444aa0725db91f66b18a9ee537e7703fc1e94cf25a0a4f939c04f2",
+      "size_bytes": 433
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/identical_delivery_a.eml",
+      "sha256": "20f32ee3417b9d1de783173cdfa5cbf62596fcd6839f7be55f69f8965156a67f",
+      "size_bytes": 265
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/identical_delivery_b.eml",
+      "sha256": "20f32ee3417b9d1de783173cdfa5cbf62596fcd6839f7be55f69f8965156a67f",
+      "size_bytes": 265
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/invalid_date.eml",
+      "sha256": "5a277c5b9e1eb9e2cf27bdbbb1a2a5273ec2b6bd9c5bf09447cec3ba57f3da7e",
+      "size_bytes": 230
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "mailbox-app/tests/fixtures/malformed_mime.eml",
+      "sha256": "2a27d06b7dba9548c2af46334c0862a4712d71b163c203640b8ceb0fde907b03",
+      "size_bytes": 135
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/tests/fixtures/missing_date.eml",
+      "sha256": "205948f3e190d005f562eede5be3da1c86e238e76d4f879afc3e622bc4d0594f",
+      "size_bytes": 219
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/tests/fixtures/missing_message_id.eml",
+      "sha256": "18597d3264a8e46aa3b18365725d8d938edd7ff534a36b574e5a6ecaf0903f05",
+      "size_bytes": 234
+    },
+    {
+      "kind": "text",
+      "lines": 9,
+      "path": "mailbox-app/tests/fixtures/missing_subject.eml",
+      "sha256": "649b8002b957324c68eaa5e520603e89854f1ed0a17aaec1ef8b3041261ad085",
+      "size_bytes": 238
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/multipart_alternative.eml",
+      "sha256": "8e9d9724946735bb5a5a9d7311599957f3d28ff20136f74f9458b81d28815328",
+      "size_bytes": 601
+    },
+    {
+      "kind": "text",
+      "lines": 31,
+      "path": "mailbox-app/tests/fixtures/multiple_attachments.eml",
+      "sha256": "591eac2cafbe6595b3cb37987bd9d31859f5194b05e16c5b23533c31756116b5",
+      "size_bytes": 800
+    },
+    {
+      "kind": "text",
+      "lines": 36,
+      "path": "mailbox-app/tests/fixtures/nested_multipart.eml",
+      "sha256": "be018306e166e22fa7acbccf8ac7b054cdcc0c6f9e93f93d1a9656f89fe90fc7",
+      "size_bytes": 955
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/one_attachment.eml",
+      "sha256": "4e476397d94d4cfba8aaeab937a65828f52c345744316ff916abd9f22c5f1479",
+      "size_bytes": 622
+    },
+    {
+      "kind": "text",
+      "lines": 63,
+      "path": "mailbox-app/tests/fixtures/oversized_simulation.eml",
+      "sha256": "36c761e6460e3d900f6a8875517476a3d86d2060a3f94e911e81c328bed67738",
+      "size_bytes": 4471
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/plain_text.eml",
+      "sha256": "50b49082c51aafd9a7c7088e8d3c54cfc90423a7efa6847a739d1a451b93367c",
+      "size_bytes": 266
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/traversal_filename.eml",
+      "sha256": "5ff906a606790d2071531025dd8d044e93b95da91b8dbf51a5ac5bb412298654",
+      "size_bytes": 651
+    },
+    {
+      "kind": "text",
+      "lines": 25,
+      "path": "mailbox-app/tests/fixtures/unicode_filename.eml",
+      "sha256": "e17ef199e45632d72b587bfe29a9632bb1fd3afb79412c7546839939ea9814ba",
+      "size_bytes": 742
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/utf8_sender.eml",
+      "sha256": "b669f4042c5001c28dbf9ee7032ca532ddfaf41567b74465dc7197482dc00db1",
+      "size_bytes": 303
+    },
+    {
+      "kind": "text",
+      "lines": 10,
+      "path": "mailbox-app/tests/fixtures/utf8_subject.eml",
+      "sha256": "40732e2feb2a28078552633d544d4f851a1e86c827530d1ae7c78b7f05978025",
+      "size_bytes": 311
+    },
+    {
+      "kind": "text",
+      "lines": 23,
+      "path": "mailbox-app/tests/fixtures/windows_path_filename.eml",
+      "sha256": "8aa88ff5135a32cc86c02aa8aa841843b3c933a563946c9ede4beb2d5ad58e58",
+      "size_bytes": 669
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/tests/functional/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "8f3f6cb402be519c3e0fe3f3d7db6e0cf3d24c0060203c3c6823a95ea8f34744",
+      "size_bytes": 43
+    },
+    {
+      "kind": "text",
+      "lines": 92,
+      "path": "mailbox-app/tests/functional/test_compact_mailbox_reader.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_compact_inbox_renders_preview_without_legacy_body_tabs",
+          "test_live_payload_uses_html_text_as_preview_when_plain_body_is_missing",
+          "test_live_updates_require_background_request_header",
+          "test_plain_only_message_uses_unified_plain_fallback",
+          "test_unified_reader_prefers_sanitized_html_and_preserves_sandbox"
+        ],
+        "imports": [
+          "__future__",
+          "django.urls",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "dbfdc45271d3a74ce1abc136bb59f26a1233fab5a1d01d0ec8571bd858f55b9e",
+      "size_bytes": 3518
+    },
+    {
+      "kind": "text",
+      "lines": 64,
+      "path": "mailbox-app/tests/functional/test_responsive_and_routes.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_css_contains_responsive_breakpoints_and_accessibility_rules",
+          "test_required_routes_resolve",
+          "test_templates_have_semantic_and_accessible_controls",
+          "test_url_configuration_has_no_public_admin_or_registration"
+        ],
+        "imports": [
+          "__future__",
+          "django.urls",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "f1f1c3a525afeb9f39341725639b30e47d9236ce55b325392fc30a796f82225c",
+      "size_bytes": 2300
+    },
+    {
+      "kind": "text",
+      "lines": 82,
+      "path": "mailbox-app/tests/functional/test_site_settings.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_site_settings_accepts_reasonable_png_logo_upload",
+          "test_site_settings_api_rejects_unconfigured_cors_origin",
+          "test_site_settings_is_admin_only",
+          "test_site_settings_persists_and_is_available_in_public_api",
+          "test_site_settings_rejects_non_image_uploads"
+        ],
+        "imports": [
+          "apps.core.models",
+          "django.contrib.auth",
+          "django.core.files.uploadedfile",
+          "django.urls",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "7df2b06938482b20d709e762f0226639143a74d359fa6363fc8b2b49c8778077",
+      "size_bytes": 3302
+    },
+    {
+      "kind": "text",
+      "lines": 177,
+      "path": "mailbox-app/tests/functional/test_system_update.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_check_update_uses_latest_stable_release_and_source_assets",
+          "test_other_pages_do_not_receive_system_update_style_relaxation",
+          "test_start_update_blocks_when_preflight_is_not_ready",
+          "test_start_update_queues_validated_release_request",
+          "test_start_update_rejects_existing_active_job",
+          "test_start_update_rejects_non_official_release_urls",
+          "test_system_update_page_allows_nonce_protected_script",
+          "test_update_preflight_returns_blocked_when_root_worker_is_missing"
+        ],
+        "imports": [
+          "__future__",
+          "apps.dashboard",
+          "django.urls",
+          "json",
+          "pytest",
+          "unittest.mock"
+        ],
+        "methods": []
+      },
+      "sha256": "012e16bd59ae5dbdf1a8cf287a3c42e9190ef98c4e35e1bff532543a9d660496",
+      "size_bytes": 7098
+    },
+    {
+      "kind": "text",
+      "lines": 148,
+      "path": "mailbox-app/tests/functional/test_ui_foundation_shell.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_admin_dashboard_renders_authenticated_application_shell",
+          "test_base_shell_does_not_activate_planned_features",
+          "test_create_mailbox_modal_contains_feature_controls",
+          "test_create_mailbox_route_marks_create_navigation_current",
+          "test_domain_routes_use_reference_shell_scope",
+          "test_foundation_static_assets_and_frozen_tokens_exist",
+          "test_login_uses_unauthenticated_shell_without_private_navigation",
+          "test_mailbox_and_message_routes_mark_mailboxes_current",
+          "test_ordinary_user_shell_hides_administrator_navigation"
+        ],
+        "imports": [
+          "__future__",
+          "django.contrib.auth",
+          "django.urls",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "e9ea63439a8499608d525d8706687f276b116248253e965336ee7cbf8acb3def",
+      "size_bytes": 5034
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/tests/integration/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "64219165532d2a838aa9aa49c461b95ad422a548d5f4e3b9ec1628df7b6e5cab",
+      "size_bytes": 44
+    },
+    {
+      "kind": "text",
+      "lines": 293,
+      "path": "mailbox-app/tests/integration/test_auth_views.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_attachment_download_requires_matching_mailbox_and_message",
+          "test_attachment_download_stream_and_x_accel",
+          "test_authenticated_user_visiting_login_is_redirected",
+          "test_dashboard_empty_and_populated",
+          "test_inbox_search_filters_detail_state_and_safe_html",
+          "test_login_failure_and_rate_limit",
+          "test_login_succeeds_after_lockout_expiry_and_clears_failures",
+          "test_login_success_audit_and_safe_next",
+          "test_logout_is_post_only_and_audited",
+          "test_mailbox_create_list_search_and_toggle",
+          "test_mailbox_create_validation_error",
+          "test_pagination_for_mailboxes_and_messages",
+          "test_password_change_is_unavailable",
+          "test_private_pages_redirect_when_unauthenticated"
+        ],
+        "imports": [
+          "__future__",
+          "apps.accounts.models",
+          "apps.audit.models",
+          "apps.ingestion.storage",
+          "apps.mailboxes.models",
+          "apps.messages.models",
+          "datetime",
+          "django.urls",
+          "django.utils",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "043e1c391163f2fb03946d9d498179c438e0ac4bf09b7b67d281cbbe5428ddcc",
+      "size_bytes": 12053
+    },
+    {
+      "kind": "text",
+      "lines": 227,
+      "path": "mailbox-app/tests/integration/test_commands_health_postfix.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_create_initial_admin_from_environment",
+          "test_create_system_mailbox_can_create_ui_reserved_address",
+          "test_create_system_mailbox_requires_confirmation",
+          "test_health_endpoints",
+          "test_health_ready_reports_unavailable_storage",
+          "test_ingest_command_accepts_rebuild_missing",
+          "test_ingestion_command_rejects_bad_interval_and_second_worker",
+          "test_ingestion_management_command_once_and_dry_run",
+          "test_postfix_view_excludes_structurally_invalid_active_rows",
+          "test_postfix_view_tracks_active_status",
+          "test_provision_maildirs_unknown_mailbox_fails",
+          "test_service_and_model_strings",
+          "test_update_mailbox_counters_command",
+          "test_verify_mail_storage_and_provision_commands",
+          "test_verify_postfix_contract_command"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.models",
+          "apps.core.models",
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "apps.messages.models",
+          "django.contrib.auth",
+          "django.core.management",
+          "django.core.management.base",
+          "django.db",
+          "django.urls",
+          "filelock",
+          "io",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "ac21742565d672b152e883bf64f14119569470a5a06abd7ead55d81e99825fc9",
+      "size_bytes": 8780
+    },
+    {
+      "kind": "text",
+      "lines": 83,
+      "path": "mailbox-app/tests/integration/test_mailserver_sync_command.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_sync_mailserver_mailboxes_disables_unverified_domain",
+          "test_sync_mailserver_mailboxes_imports_existing_row",
+          "test_sync_mailserver_mailboxes_rejects_unsafe_source_domain",
+          "test_sync_mailserver_mailboxes_updates_status"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.mailserver",
+          "apps.mailboxes.models",
+          "django.core.management",
+          "django.core.management.base",
+          "pytest",
+          "unittest.mock"
+        ],
+        "methods": []
+      },
+      "sha256": "adcbdb0d470cb094477e02db249aeb97f6857f79c05f89110bd0442ef9980a55",
+      "size_bytes": 2944
+    },
+    {
+      "kind": "text",
+      "lines": 146,
+      "path": "mailbox-app/tests/integration/test_message_body_repair.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_ingest_fixture",
+          "test_repair_message_bodies_dry_run_then_mutation_preserves_state",
+          "test_repair_message_bodies_preserves_attachment_identity",
+          "test_repair_message_bodies_reports_missing_and_mismatched_sources",
+          "test_repair_message_bodies_requires_explicit_confirmation"
+        ],
+        "imports": [
+          "__future__",
+          "apps.ingestion.service",
+          "apps.mailboxes.services",
+          "apps.messages.models",
+          "django.core.management",
+          "django.core.management.base",
+          "django.utils",
+          "io",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "0827150908555541093b326882d0fb6ccb82cebac11dd9241517217d8d5cbb95",
+      "size_bytes": 5052
+    },
+    {
+      "kind": "text",
+      "lines": 564,
+      "path": "mailbox-app/tests/integration/test_v1_2_access_live_delete.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "assigned_mailbox",
+          "ordinary_user",
+          "test_admin_can_create_unassigned_and_assigned_mailboxes",
+          "test_admin_creates_edits_and_deletes_user_without_deleting_mailbox",
+          "test_attachment_access_is_scoped",
+          "test_branding_copy_controls_and_no_password_navigation",
+          "test_case_insensitive_and_deleted_mailbox_addresses_cannot_be_reused",
+          "test_current_administrator_cannot_delete_itself",
+          "test_deleted_message_is_not_reingested",
+          "test_frontend_contains_live_polling_notifications_and_copy_controls",
+          "test_live_endpoint_bootstrap_then_returns_new_message",
+          "test_live_endpoint_never_leaks_unassigned_mailbox",
+          "test_live_endpoint_payload_is_bounded",
+          "test_live_endpoint_query_count_does_not_scale_with_mailboxes",
+          "test_live_endpoint_returns_requested_visible_authorized_mailboxes",
+          "test_mailbox_delete_requires_permission_and_purges_storage_and_database",
+          "test_mailbox_provisioning_lock_prevents_concurrent_same_address",
+          "test_message_delete_requires_permission_and_is_soft",
+          "test_message_open_auto_reads_once",
+          "test_nginx_source_contains_verified_live_hotfix",
+          "test_ordinary_mailbox_creation_auto_assigns_creator",
+          "test_ordinary_user_cannot_access_user_management",
+          "test_ordinary_user_cannot_toggle_mailbox",
+          "test_ordinary_user_sees_only_assigned_mailboxes_and_messages",
+          "test_pagination_preserves_all_inbox_filters",
+          "test_policy_is_created_for_every_new_user",
+          "test_shared_mailbox_is_visible_to_multiple_users",
+          "test_user_configuration_changes_are_individually_audited",
+          "test_user_creation_never_logs_password",
+          "test_user_delete_invalidates_existing_session",
+          "test_user_list_query_count_does_not_scale_with_users",
+          "test_usernames_are_case_insensitively_unique"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.models",
+          "apps.ingestion.service",
+          "apps.ingestion.storage",
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "apps.messages.models",
+          "apps.messages.services",
+          "django.contrib.auth",
+          "django.db",
+          "django.test",
+          "django.test.utils",
+          "django.urls",
+          "django.utils",
+          "filelock",
+          "json",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "0a01dd69d525dd0b8364097b54d63b7f433440126dcc4b88ed288028a36c47d6",
+      "size_bytes": 22919
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/tests/reliability/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "e3e6868d888f155cbcdb4372dcaaac85a76894b7865ea87671d6a70ec010930d",
+      "size_bytes": 44
+    },
+    {
+      "kind": "text",
+      "lines": 114,
+      "path": "mailbox-app/tests/reliability/test_reliability.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "flaky_create",
+          "test_counter_rebuild_consistency",
+          "test_database_failure_is_recorded_and_next_file_continues",
+          "test_maildir_created_after_database_record_is_discovered",
+          "test_malformed_then_valid_message_continues",
+          "test_missing_source_file_raises_without_record",
+          "test_permission_failure_does_not_create_active_row",
+          "test_worker_restart_reprocess_is_duplicate"
+        ],
+        "imports": [
+          "__future__",
+          "apps.ingestion.service",
+          "apps.mailboxes.services",
+          "apps.messages.models",
+          "django.db",
+          "pytest",
+          "unittest.mock"
+        ],
+        "methods": []
+      },
+      "sha256": "321559f1a21ddc8ce3458b311feaa0eafad8edfe7c185f42b36a90bd79bd8373",
+      "size_bytes": 4091
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/tests/security/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "cfaae60955cf48065708d3cc2a0d48e59dfae5e543421e0d0cd976eeafc794b5",
+      "size_bytes": 41
+    },
+    {
+      "kind": "text",
+      "lines": 183,
+      "path": "mailbox-app/tests/security/test_deployment_assets.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "read",
+          "test_backup_quiesces_and_restarts_mail_services",
+          "test_clean_install_and_deploy_create_mail_roots",
+          "test_dependency_audit_isolated_and_fail_closed",
+          "test_gunicorn_25_control_socket_is_disabled_for_hardened_runtime",
+          "test_management_scripts_force_production_environment",
+          "test_mariadb_application_role_is_scoped_away_from_mailserver_ddl",
+          "test_production_mariadb_warning_qualification_is_narrow_and_documented",
+          "test_release_pins_and_verifies_django_security_patch",
+          "test_release_source_cannot_be_the_live_application_tree",
+          "test_restore_preserves_service_readable_environment_and_quiesces_postfix",
+          "test_sqlparse_security_release_is_pinned_consistently",
+          "test_systemd_runtime_directories_are_isolated",
+          "test_ui_reserves_system_addresses",
+          "test_v1_2_1_security_hotfix_pins_and_bleach_scope",
+          "test_virtualenv_permissions_are_normalized_for_vmail_runtime"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.forms",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "63eb49543077ba00633b52c9cddd1e4205ed66b911099a3cea0d2f240120ac00",
+      "size_bytes": 7660
+    },
+    {
+      "kind": "text",
+      "lines": 247,
+      "path": "mailbox-app/tests/security/test_security_controls.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "fail_create",
+          "test_audit_database_failure_does_not_break_request",
+          "test_audit_details_redact_secrets",
+          "test_audit_redacts_sensitive_substrings_and_tuples",
+          "test_client_ip_honors_forwarded_header_only_when_trusted",
+          "test_csrf_rejects_login_and_state_change",
+          "test_css_sanitizer_preserves_presentation_without_remote_or_active_css",
+          "test_disallowed_host_is_rejected",
+          "test_filename_header_injection_is_neutralized",
+          "test_invalid_read_state_is_denied",
+          "test_missing_attachment_returns_404_without_path_disclosure",
+          "test_no_prohibited_user_interface_terms_in_templates",
+          "test_path_confinement_rejects_absolute_and_parent",
+          "test_production_cookie_flags",
+          "test_security_headers_on_normal_and_html_routes",
+          "test_stored_and_reflected_xss_are_escaped"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.models",
+          "apps.audit.services",
+          "apps.ingestion.parser",
+          "apps.ingestion.storage",
+          "apps.mailboxes.validators",
+          "apps.messages.models",
+          "django.db",
+          "django.test",
+          "django.urls",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "ab37d3f39afd1041685e4b2db7d72c45a2e5a1dda6a16b811b2ec14ee62439d0",
+      "size_bytes": 9145
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "mailbox-app/tests/unit/__init__.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "methods": []
+      },
+      "sha256": "cb8178d73fe6ad37642f0aecde2589c78103d34c85d0b351b8b909d4fcb02213",
+      "size_bytes": 37
+    },
+    {
+      "kind": "text",
+      "lines": 238,
+      "path": "mailbox-app/tests/unit/test_domains.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "resolver",
+          "resolver",
+          "test_default_domain_cannot_be_removed",
+          "test_disabled_or_unverified_domains_cannot_provision",
+          "test_dns_compressed_name_decodes_without_pointer_offset_bug",
+          "test_dns_record_verification_reports_each_record",
+          "test_dns_record_verification_returns_safe_status_on_lookup_failure",
+          "test_dns_verification_normalizes_records",
+          "test_domain_create_propagates_disabled_status_to_mailserver",
+          "test_domain_create_requires_dns_confirmation",
+          "test_domain_create_starts_with_empty_dns_table",
+          "test_domain_dns_preview_returns_records_for_valid_domain",
+          "test_domain_edit_rejects_mailserver_reconciliation_failure",
+          "test_domain_list_requires_admin",
+          "test_domain_validation_rejects_unsafe_names",
+          "test_empty_secondary_domain_can_be_removed",
+          "test_existing_domain_cannot_be_renamed",
+          "test_failed_dns_check_disables_delivery",
+          "test_mailbox_form_only_lists_active_verified_domains",
+          "test_same_local_part_is_allowed_in_different_verified_domains",
+          "test_unverified_domain_cannot_be_enabled"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.dns",
+          "apps.mailboxes.forms",
+          "apps.mailboxes.mailserver",
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "apps.mailboxes.validators",
+          "django",
+          "django.core.exceptions",
+          "django.urls",
+          "pytest",
+          "typing",
+          "unittest.mock"
+        ],
+        "methods": []
+      },
+      "sha256": "5444b0860ed5b8474915c0e85654011a62f14469d0b438977a1159e58954740c",
+      "size_bytes": 9360
+    },
+    {
+      "kind": "text",
+      "lines": 231,
+      "path": "mailbox-app/tests/unit/test_mailserver_adapter.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "cursor_context",
+          "test_create_mailserver_mailbox_executes_expected_insert",
+          "test_create_mailserver_mailbox_rejects_alias_source",
+          "test_create_mailserver_mailbox_requires_domain",
+          "test_delete_mailserver_mailbox_requires_existing_row",
+          "test_disabled_password_is_non_dovecot_hash_and_random",
+          "test_list_mailserver_mailboxes_filters_when_domain_is_requested",
+          "test_list_mailserver_mailboxes_maps_rows",
+          "test_mailserver_exists_and_disabled_mode",
+          "test_mailserver_exists_scopes_explicit_domain",
+          "test_postfix_rows_uses_cross_schema_when_enabled",
+          "test_provisioning_calls_mailserver_inside_application_flow",
+          "test_provisioning_cleans_up_remote_mailbox_when_database_save_fails",
+          "test_provisioning_rejects_existing_mailserver_mailbox",
+          "test_status_adapter_rejects_missing_mailbox",
+          "test_status_service_calls_mailserver_adapter",
+          "test_verify_mailserver_schema_counts_objects",
+          "test_verify_mailserver_schema_rejects_missing_domain"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes",
+          "apps.mailboxes.mailserver",
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "django.core.exceptions",
+          "pytest",
+          "unittest.mock"
+        ],
+        "methods": []
+      },
+      "sha256": "c27d7c7bee74e93dcdf323a49ae7b352f3513a52a01f00fe7e8b1643c56495d1",
+      "size_bytes": 9772
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "mailbox-app/tests/unit/test_open_source_configurability.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_mailbox_model_uses_configured_domain",
+          "test_sync_command_uses_configured_domain"
+        ],
+        "imports": [
+          "apps.mailboxes.mailserver",
+          "apps.mailboxes.models",
+          "django.core.management",
+          "pytest",
+          "unittest.mock"
+        ],
+        "methods": []
+      },
+      "sha256": "2f5024a1c4bb817b0be14032d948bb10235723ad73cf9dee5348d7cc59f3890e",
+      "size_bytes": 1104
+    },
+    {
+      "kind": "text",
+      "lines": 415,
+      "path": "mailbox-app/tests/unit/test_parser_storage.py",
+      "python": {
+        "classes": [
+          "AttachmentPart",
+          "BrokenParser",
+          "FakeMessage",
+          "FakeParser",
+          "FallbackPart"
+        ],
+        "functions": [
+          "fail_decode",
+          "test_confined_storage_rejects_absolute_escape",
+          "test_decode_header_value_falls_back_when_decoder_raises",
+          "test_decode_header_value_handles_none_and_encoded",
+          "test_decode_part_uses_charset_and_utf8_fallback",
+          "test_delete_stored_ignores_escaped_path",
+          "test_parse_date_handles_naive_and_parser_none",
+          "test_parse_message_continues_after_attachment_decode_error",
+          "test_parse_message_css_fixture_contract",
+          "test_parse_message_extracts_headers_bodies_and_attachments",
+          "test_parse_message_fixture_matrix",
+          "test_parse_message_recovers_from_parser_exception",
+          "test_parse_message_security_fixtures",
+          "test_parse_message_style_heavy_html_is_readable_with_sanitized_css",
+          "test_parse_message_warns_when_sender_is_missing",
+          "test_safe_filename",
+          "test_sanitize_html_allows_bounded_media_rules_and_drops_other_at_rules",
+          "test_sanitize_html_css_blocks_data_urls_custom_properties_and_dynamic_functions",
+          "test_sanitize_html_css_fail_closed_limits_do_not_drop_message_content",
+          "test_sanitize_html_keeps_only_sanitized_style_from_head",
+          "test_sanitize_html_links_urls_but_never_linkifies_email_addresses",
+          "test_sanitize_html_preserves_safe_inline_css_and_drops_unsafe_declarations",
+          "test_sanitize_html_preserves_safe_style_block_without_visible_css_leak",
+          "test_sanitize_html_removes_active_and_remote_content",
+          "test_sha256_bytes",
+          "test_store_and_delete_attachment",
+          "test_store_attachment_size_limit"
+        ],
+        "imports": [
+          "__future__",
+          "apps.ingestion.parser",
+          "apps.ingestion.storage",
+          "apps.mailboxes.validators",
+          "django.core.exceptions",
+          "hashlib",
+          "pathlib",
+          "pytest",
+          "re"
+        ],
+        "methods": [
+          "AttachmentPart.get_content_disposition",
+          "AttachmentPart.get_content_type",
+          "AttachmentPart.get_filename",
+          "AttachmentPart.get_payload",
+          "AttachmentPart.is_multipart",
+          "BrokenParser.__init__",
+          "BrokenParser.parsebytes",
+          "FakeMessage.get",
+          "FakeMessage.get_all",
+          "FakeMessage.is_multipart",
+          "FakeMessage.walk",
+          "FakeParser.__init__",
+          "FakeParser.parsebytes",
+          "FallbackPart.get_content",
+          "FallbackPart.get_content_charset",
+          "FallbackPart.get_payload"
+        ]
+      },
+      "sha256": "15f3916c16c87c0f6d26fb509425e2fdfd8190ea3c840d3933657cf0c6ab1788",
+      "size_bytes": 15181
+    },
+    {
+      "kind": "text",
+      "lines": 276,
+      "path": "mailbox-app/tests/unit/test_provisioning_ingestion.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "fail_first",
+          "fail_second",
+          "fail_store",
+          "test_attachment_database_race_removes_stored_file",
+          "test_attachment_over_limit_is_skipped_and_message_retained",
+          "test_attachment_storage_failure_rolls_back_database_and_files",
+          "test_dry_run_does_not_create_records",
+          "test_ensure_maildir_is_idempotent",
+          "test_identical_raw_bytes_under_two_source_keys_are_separate",
+          "test_ingest_all_continues_after_one_file_error",
+          "test_ingest_file_is_idempotent_and_preserves_source",
+          "test_iter_maildir_ignores_tmp_and_symlinks",
+          "test_mailbox_paths_and_provisioning",
+          "test_oversized_integrity_race_returns_duplicate",
+          "test_oversized_message_records_status_without_loading_body",
+          "test_provisioning_does_not_remove_preexisting_tree_on_database_failure",
+          "test_provisioning_filesystem_failure_creates_no_mailbox",
+          "test_provisioning_rolls_back_new_empty_tree_on_database_failure",
+          "test_second_attachment_storage_failure_cleans_first_file",
+          "test_source_key_rejects_outside_and_tmp",
+          "test_update_mailbox_counters"
+        ],
+        "imports": [
+          "__future__",
+          "apps.audit.models",
+          "apps.ingestion.service",
+          "apps.ingestion.storage",
+          "apps.mailboxes.models",
+          "apps.mailboxes.services",
+          "apps.messages.models",
+          "contextlib",
+          "django.db",
+          "os",
+          "pytest",
+          "unittest.mock"
+        ],
+        "methods": []
+      },
+      "sha256": "76599404b320dd0a9395c8a17ff8a3dbfee76899d9521d2f983d082d81fa106c",
+      "size_bytes": 10913
+    },
+    {
+      "kind": "text",
+      "lines": 132,
+      "path": "mailbox-app/tests/unit/test_validators_models.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "test_case_insensitive_database_uniqueness",
+          "test_confined_path_accepts_child_and_rejects_escape",
+          "test_confined_path_rejects_symlink_component",
+          "test_local_part_normalization_and_validation",
+          "test_local_part_rejects_invalid_and_reserved",
+          "test_mailbox_model_accepts_authorized_reserved_system_address",
+          "test_mailbox_model_normalizes_and_enforces_fixed_values",
+          "test_mailbox_model_rejects_mismatched_domain_and_path",
+          "test_message_and_attachment_string_representations",
+          "test_reserved_can_be_explicitly_allowed"
+        ],
+        "imports": [
+          "__future__",
+          "apps.mailboxes.models",
+          "apps.mailboxes.validators",
+          "apps.messages.models",
+          "django.core.exceptions",
+          "django.db",
+          "pathlib",
+          "pytest"
+        ],
+        "methods": []
+      },
+      "sha256": "430b26258ee1512ad862f784d05f56fc168d5b7463872d8896ef75b9dd35b80e",
+      "size_bytes": 4093
+    },
+    {
+      "kind": "text",
+      "lines": 33,
+      "path": "public-site/contact_service/README.md",
+      "sha256": "612e530c7bb88020d092aec3001fd3c38d8e3bcd6a5045a0d83b97415d39ed38",
+      "size_bytes": 779
+    },
+    {
+      "kind": "text",
+      "lines": 753,
+      "path": "public-site/contact_service/contact_app.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_clean_text",
+          "_connection",
+          "_consume_csrf",
+          "_cookie_value",
+          "_digest",
+          "_health",
+          "_issue_csrf",
+          "_json_response",
+          "_rate_limit",
+          "_read_json",
+          "_request_ip",
+          "_require_configuration",
+          "_send_notification",
+          "_store_submission",
+          "_submit_contact",
+          "_update_delivery",
+          "_validate",
+          "application",
+          "initialize_database"
+        ],
+        "imports": [
+          "__future__",
+          "collections.abc",
+          "contextlib",
+          "email.message",
+          "email.utils",
+          "hashlib",
+          "hmac",
+          "http",
+          "http.cookies",
+          "ipaddress",
+          "json",
+          "logging",
+          "os",
+          "pathlib",
+          "re",
+          "secrets",
+          "sqlite3",
+          "subprocess",
+          "time",
+          "typing",
+          "urllib.parse",
+          "uuid"
+        ],
+        "methods": []
+      },
+      "sha256": "fb9b7c272b2d3b5120c54a0aba12604b6884f73bf5dddef0d6b96389473c01ce",
+      "size_bytes": 22158
+    },
+    {
+      "kind": "text",
+      "lines": 184,
+      "path": "public-site/contact_service/test_contact_app.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "csrf_pair",
+          "request",
+          "start_response",
+          "valid_payload"
+        ],
+        "imports": [
+          "__future__",
+          "contact_app",
+          "io",
+          "json",
+          "os",
+          "pathlib",
+          "re",
+          "sqlite3",
+          "tempfile",
+          "time",
+          "unittest"
+        ],
+        "methods": []
+      },
+      "sha256": "45dcdb2ca18a5048b8b2cb3749fbb88f8ca3be94fc682df2312af893edc9798a",
+      "size_bytes": 5045
+    },
+    {
+      "kind": "text",
+      "lines": 29,
+      "path": "public-site/deployment/DEPLOYMENT_NOTES.md",
+      "sha256": "c40380a7e68ce9a1ff5538f71d04cc3ee4fc9ecc6d2292f0dd0be9add4f5e5fa",
+      "size_bytes": 1125
+    },
+    {
+      "kind": "text",
+      "lines": 7,
+      "path": "public-site/deployment/contact.env.template",
+      "sha256": "ec4833ba424ca84b6d5240266d328613e2dad42bbf479d6e6018ab516a16d211",
+      "size_bytes": 342
+    },
+    {
+      "kind": "text",
+      "lines": 61,
+      "path": "public-site/deployment/vibmail-public-contact.service",
+      "sha256": "56ad26dbbdf8093812d8af0edcccf82a4c2c9e54f7d708ce1113b259b0ce73bf",
+      "size_bytes": 1494
+    },
+    {
+      "kind": "text",
+      "lines": 35,
+      "path": "public-site/deployment/vibmail.my.bootstrap.conf",
+      "sha256": "1d789d5d4b64fcfe9e05cda192c1ed250b4d44b6c1a032fe70a7534fdc84d68c",
+      "size_bytes": 730
+    },
+    {
+      "kind": "text",
+      "lines": 162,
+      "path": "public-site/deployment/vibmail.my.conf",
+      "sha256": "e05f6bd4d9af3626f9ce920d99ad4efe9b6461dd6a01021f866f31faec062705",
+      "size_bytes": 4872
+    },
+    {
+      "kind": "text",
+      "lines": 1,
+      "path": "public-site/requirements.txt",
+      "sha256": "b49dc3931d7c6e6dad35f15bb55096326da4994901accc30a1aaab78dcf5bfd0",
+      "size_bytes": 17
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "public-site/site-template/404.html",
+      "sha256": "af649426213c8d5afefdaad819dd5e264e447885fa54fd2a5f42563e36280535",
+      "size_bytes": 1130
+    },
+    {
+      "kind": "text",
+      "lines": 295,
+      "path": "public-site/site-template/assets/app.js",
+      "sha256": "6f04f1f9a346039d95003524fc267f23a4c43b62e4d106232440a2bda90c70e5",
+      "size_bytes": 9833
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "public-site/site-template/assets/favicon.svg",
+      "sha256": "2eca95e6f61cebb5376d77271f4853e4a1a926b1a0f56c9b3a2b8ff10d057a2d",
+      "size_bytes": 554
+    },
+    {
+      "kind": "text",
+      "lines": 666,
+      "path": "public-site/site-template/assets/styles.css",
+      "sha256": "380963636a08cd5d512d0cadedda579b7e9c41dd9d9bb0b13dea94905127c2d9",
+      "size_bytes": 36727
+    },
+    {
+      "kind": "text",
+      "lines": 177,
+      "path": "public-site/site-template/contact/index.html",
+      "sha256": "708fbac292c9967f6e02bb2b880aab72699c5b15ead72cc59fee4ac05cbd6fd3",
+      "size_bytes": 11453
+    },
+    {
+      "kind": "text",
+      "lines": 468,
+      "path": "public-site/site-template/index.html",
+      "sha256": "96574151e17b2ad84775ed2c39331d3443861daca118ac3e9f84af562ae9ed32",
+      "size_bytes": 22446
+    },
+    {
+      "kind": "text",
+      "lines": 76,
+      "path": "public-site/site-template/privacy/index.html",
+      "sha256": "c1ee5b48f0423416628da886a6a406256fdb676a345c56a1fa680529eeb41676",
+      "size_bytes": 5859
+    },
+    {
+      "kind": "text",
+      "lines": 5,
+      "path": "public-site/site-template/robots.txt",
+      "sha256": "a47619f42652312b6bad4a195da81b7fa78b295064a93a1ce3c4edec37bb43bb",
+      "size_bytes": 89
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "public-site/site-template/site.webmanifest",
+      "sha256": "ba2b5172ab80fc91350d9af6152a81fdfc11cc183263c541e272990058f3d49c",
+      "size_bytes": 402
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "public-site/site-template/sitemap.xml",
+      "sha256": "5af67ceddd03e23b50d162db34e576ffe2d3609d04f52dd8816c7deb27b6cb29",
+      "size_bytes": 607
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "public-site/site/404.html",
+      "sha256": "94cb245354c533ab560e2ace7959e48a55ceb52cd90ed5bb9ddf5a5c1f2b304a",
+      "size_bytes": 1128
+    },
+    {
+      "kind": "text",
+      "lines": 292,
+      "path": "public-site/site/assets/app.js",
+      "sha256": "48c09cf5c63e748f3536eb3fecea8cdce87c62f48905c0f894bca951d2809f91",
+      "size_bytes": 9688
+    },
+    {
+      "kind": "text",
+      "lines": 6,
+      "path": "public-site/site/assets/favicon.svg",
+      "sha256": "2eca95e6f61cebb5376d77271f4853e4a1a926b1a0f56c9b3a2b8ff10d057a2d",
+      "size_bytes": 554
+    },
+    {
+      "kind": "text",
+      "lines": 666,
+      "path": "public-site/site/assets/styles.css",
+      "sha256": "380963636a08cd5d512d0cadedda579b7e9c41dd9d9bb0b13dea94905127c2d9",
+      "size_bytes": 36727
+    },
+    {
+      "kind": "text",
+      "lines": 177,
+      "path": "public-site/site/contact/index.html",
+      "sha256": "16a4aedcdcb5ebb29e2f8dd73c631e2be1ee11101bae40ea9b83f41764e5cdf5",
+      "size_bytes": 11431
+    },
+    {
+      "kind": "text",
+      "lines": 468,
+      "path": "public-site/site/index.html",
+      "sha256": "0347c51942f24738b6cc6c8a3f7206cf3117fb4ee208ef80854f0ec978952eeb",
+      "size_bytes": 22385
+    },
+    {
+      "kind": "text",
+      "lines": 76,
+      "path": "public-site/site/privacy/index.html",
+      "sha256": "cc1eadced5ef32ffd3182965db0b91593db6c48fd8e75c7aff90084dc9b1bf80",
+      "size_bytes": 5838
+    },
+    {
+      "kind": "text",
+      "lines": 5,
+      "path": "public-site/site/robots.txt",
+      "sha256": "4f314ec19a91b0fbeb2d84782a7b579b1f71131abc7abc2d134729d9f4788039",
+      "size_bytes": 81
+    },
+    {
+      "kind": "text",
+      "lines": 17,
+      "path": "public-site/site/site.webmanifest",
+      "sha256": "ba2b5172ab80fc91350d9af6152a81fdfc11cc183263c541e272990058f3d49c",
+      "size_bytes": 402
+    },
+    {
+      "kind": "text",
+      "lines": 21,
+      "path": "public-site/site/sitemap.xml",
+      "sha256": "a55ee8a1414c6ea9a6807117069ebf5c8ec6d64b406e876e25fe4e24bba27ac1",
+      "size_bytes": 583
+    },
+    {
+      "kind": "text",
+      "lines": 117,
+      "path": "scripts/build_release.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "canonical_path_key",
+          "digest",
+          "included",
+          "main"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "hashlib",
+          "os",
+          "pathlib",
+          "shutil",
+          "subprocess",
+          "sys",
+          "tempfile",
+          "zipfile"
+        ],
+        "methods": []
+      },
+      "sha256": "623a2f6a1451e717d4b9780afa3a8e82555a45307dc15a0c98c21e2c09cb4edc",
+      "size_bytes": 4779
+    },
+    {
+      "kind": "text",
+      "lines": 103,
+      "path": "scripts/bump_version.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "bump",
+          "main",
+          "read_current_version",
+          "run_generator",
+          "update_active_document_versions",
+          "update_design_manifest_version",
+          "update_package_version",
+          "validate_version"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "json",
+          "pathlib",
+          "re",
+          "subprocess",
+          "sys"
+        ],
+        "methods": []
+      },
+      "sha256": "449a5a73d2ae7940cfee481835001740c6c871d42d3dfeca8b62f9d1527538fd",
+      "size_bytes": 3593
+    },
+    {
+      "kind": "text",
+      "lines": 28,
+      "path": "scripts/bump_version2.py",
+      "python": {
+        "classes": [],
+        "functions": [],
+        "imports": [
+          "pathlib"
+        ],
+        "methods": []
+      },
+      "sha256": "fb4faa146519125d14e47f0b2ff1632ff0aac78ec627157cae8ba061757309ef",
+      "size_bytes": 858
+    },
+    {
+      "kind": "text",
+      "lines": 97,
+      "path": "scripts/check_docs.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "fail",
+          "main"
+        ],
+        "imports": [
+          "__future__",
+          "pathlib",
+          "re",
+          "sys"
+        ],
+        "methods": []
+      },
+      "sha256": "b233d5dfbf21c0a65cea56542f3cdd714a8c327a5d4542a0ca159536123c86e4",
+      "size_bytes": 4570
+    },
+    {
+      "kind": "text",
+      "lines": 247,
+      "path": "scripts/check_documentation_policy.py",
+      "python": {
+        "classes": [
+          "ChangedFile",
+          "PolicyError"
+        ],
+        "functions": [
+          "changed_files_from_git",
+          "commit_exists",
+          "evaluate_policy",
+          "is_phase_sensitive",
+          "is_test_only_path",
+          "is_user_facing",
+          "main",
+          "parse_changed_line",
+          "resolve_base",
+          "run_git"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "dataclasses",
+          "os",
+          "pathlib",
+          "subprocess"
+        ],
+        "methods": [
+          "ChangedFile.deleted"
+        ]
+      },
+      "sha256": "cf3c9da76b9c19a590cec2453985c11c1b20b6da7c49fa86e5d253ccf3a1a11b",
+      "size_bytes": 8177
+    },
+    {
+      "kind": "text",
+      "lines": 86,
+      "path": "scripts/check_version_consistency.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "active_document_versions",
+          "check",
+          "main",
+          "read_json_version",
+          "read_package_version",
+          "read_version"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "json",
+          "pathlib",
+          "re",
+          "sys",
+          "tomllib"
+        ],
+        "methods": []
+      },
+      "sha256": "a66d559413638e53374a30c7617730fbd560bac263d29ffc46ef8f3e91e3af18",
+      "size_bytes": 2842
+    },
+    {
+      "kind": "text",
+      "lines": 429,
+      "path": "scripts/forensic_audit.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "is_ignored",
+          "main",
+          "run"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "ast",
+          "hashlib",
+          "ipaddress",
+          "json",
+          "os",
+          "pathlib",
+          "re",
+          "shell_runtime",
+          "subprocess",
+          "sys",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "585e1d54ed6378433d0090e245cfd9984524e1322f94a38458bfdac722f8b2c8",
+      "size_bytes": 15702
+    },
+    {
+      "kind": "text",
+      "lines": 175,
+      "path": "scripts/generate_inventory.py",
+      "python": {
+        "classes": [
+          "Visitor"
+        ],
+        "functions": [
+          "build",
+          "canonical_path_key",
+          "encoded",
+          "main",
+          "python_symbols",
+          "sha256"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "ast",
+          "hashlib",
+          "json",
+          "pathlib",
+          "re",
+          "sys"
+        ],
+        "methods": [
+          "Visitor.visit_ClassDef",
+          "Visitor.visit_FunctionDef",
+          "Visitor.visit_Import",
+          "Visitor.visit_ImportFrom"
+        ]
+      },
+      "sha256": "1d490a3be51a8362e87e7b1b030748d8b205d36e3209ceec69b12a4b2ed6b9a0",
+      "size_bytes": 6539
+    },
+    {
+      "kind": "text",
+      "lines": 246,
+      "path": "scripts/manage_designs.py",
+      "python": {
+        "classes": [
+          "DesignError"
+        ],
+        "functions": [
+          "canonical_path",
+          "check",
+          "inspect_png",
+          "load_manifest",
+          "main",
+          "sync",
+          "validate_and_render"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "collections",
+          "hashlib",
+          "json",
+          "pathlib",
+          "re",
+          "struct",
+          "zlib"
+        ],
+        "methods": []
+      },
+      "sha256": "87667c7b7cdce037aff0de44c7064228b316466d36ff025a0bde1986f6dabb0d",
+      "size_bytes": 10708
+    },
+    {
+      "kind": "text",
+      "lines": 547,
+      "path": "scripts/manage_documents.py",
+      "python": {
+        "classes": [
+          "DocumentationError",
+          "ManagedDocument"
+        ],
+        "functions": [
+          "canonical_path",
+          "check",
+          "create_phase",
+          "load_documents",
+          "main",
+          "markdown_sections",
+          "parse_front_matter",
+          "render_index",
+          "render_manifest",
+          "render_readme",
+          "sha256_text",
+          "slugify",
+          "sync",
+          "synchronized_content",
+          "validate_document"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "dataclasses",
+          "datetime",
+          "hashlib",
+          "json",
+          "pathlib",
+          "re",
+          "sys"
+        ],
+        "methods": [
+          "ManagedDocument.document_id",
+          "ManagedDocument.document_type",
+          "ManagedDocument.title"
+        ]
+      },
+      "sha256": "65177a9ca5603dc99f3303b841d4127ea671dd45a87f3ccd5df81e6b4723da85",
+      "size_bytes": 20080
+    },
+    {
+      "kind": "text",
+      "lines": 283,
+      "path": "scripts/release_gate.py",
+      "python": {
+        "classes": [
+          "ReleaseGateError",
+          "ReleaseIdentity"
+        ],
+        "functions": [
+          "api_request_json",
+          "git_output",
+          "main",
+          "normalize_package_version",
+          "payload_has_successful_main_ci",
+          "read_package_version",
+          "require_exact_main_head",
+          "require_release_absent",
+          "require_release_lookup_absent_status",
+          "require_successful_main_ci",
+          "validate_local_identity",
+          "write_outputs"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "dataclasses",
+          "json",
+          "os",
+          "pathlib",
+          "re",
+          "subprocess",
+          "sys",
+          "tomllib",
+          "typing",
+          "urllib.error",
+          "urllib.parse",
+          "urllib.request"
+        ],
+        "methods": []
+      },
+      "sha256": "306add937061f778a08407a35b85bc79ff3242832b926166a62667170490772f",
+      "size_bytes": 10161
+    },
+    {
+      "kind": "text",
+      "lines": 48,
+      "path": "scripts/render_public_site.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "pathlib",
+          "shutil"
+        ],
+        "methods": []
+      },
+      "sha256": "aec26ee6b4aec594e49798444f3a7632297541dd1bd12c028c537f2ce1c73bcf",
+      "size_bytes": 1534
+    },
+    {
+      "kind": "text",
+      "lines": 50,
+      "path": "scripts/render_template.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "json",
+          "os",
+          "pathlib",
+          "re",
+          "sys"
+        ],
+        "methods": []
+      },
+      "sha256": "4b591c23da8ba83f90b1e315406af74c40bf58c6a991cb3d18124ab198154e99",
+      "size_bytes": 1667
+    },
+    {
+      "kind": "text",
+      "lines": 192,
+      "path": "scripts/shell_runtime.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "_add_candidate",
+          "_bash_path",
+          "_candidate_bashes",
+          "_probe",
+          "_python3_bridge_bash_env",
+          "_shell_single_quote",
+          "_windows_git_bash_candidates",
+          "bash_environment",
+          "bash_script_command",
+          "bash_syntax_command",
+          "resolve_bash",
+          "script_argument"
+        ],
+        "imports": [
+          "__future__",
+          "atexit",
+          "functools",
+          "os",
+          "pathlib",
+          "shutil",
+          "subprocess",
+          "sys",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "20e15ae4b227e01de56f7a386936aef67a97d748c1e1a374c41f464cf4d9d651",
+      "size_bytes": 6826
+    },
+    {
+      "kind": "text",
+      "lines": 136,
+      "path": "scripts/test_designs.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "load_module",
+          "main",
+          "make_minimal_root",
+          "test_current_baseline",
+          "test_duplicate_id_and_extra_asset_are_blocked",
+          "test_sync_is_deterministic",
+          "test_tampered_source_is_blocked"
+        ],
+        "imports": [
+          "__future__",
+          "importlib.util",
+          "json",
+          "pathlib",
+          "shutil",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "14a712d73f5f62394a30b9e57696ab0d0889d0b25ebf68a763f81c148dcb4574",
+      "size_bytes": 4431
+    },
+    {
+      "kind": "text",
+      "lines": 175,
+      "path": "scripts/test_documents.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "load_module",
+          "main",
+          "run",
+          "test_change_policy",
+          "test_current_baseline",
+          "test_new_phase_is_draft_and_blocked",
+          "test_sync_is_deterministic"
+        ],
+        "imports": [
+          "__future__",
+          "importlib.util",
+          "json",
+          "pathlib",
+          "shutil",
+          "subprocess",
+          "sys",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "42d7c15ede6cfaf3fd756af96b526d86df68a3e92d73dddd3d5f2b14953182ce",
+      "size_bytes": 6259
+    },
+    {
+      "kind": "text",
+      "lines": 155,
+      "path": "scripts/test_installer.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main",
+          "require",
+          "run"
+        ],
+        "imports": [
+          "__future__",
+          "pathlib",
+          "shell_runtime",
+          "subprocess"
+        ],
+        "methods": []
+      },
+      "sha256": "f2bdeb9dfbf42fcc01e50df5f7bcbe68e44f89ba53c20b3f1679799f7a77b1d7",
+      "size_bytes": 7498
+    },
+    {
+      "kind": "text",
+      "lines": 116,
+      "path": "scripts/test_operations.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main",
+          "read",
+          "require"
+        ],
+        "imports": [
+          "__future__",
+          "ipaddress",
+          "pathlib",
+          "re",
+          "shell_runtime",
+          "subprocess"
+        ],
+        "methods": []
+      },
+      "sha256": "5f1917f0b6ecd769c4caecf0a7bb5cff8ae13b847d2f097ecbfa49630d9ed685",
+      "size_bytes": 4332
+    },
+    {
+      "kind": "text",
+      "lines": 250,
+      "path": "scripts/test_release_workflow.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "fake_git_output",
+          "load_module",
+          "main",
+          "make_root",
+          "test_exact_main_head_guard",
+          "test_existing_release_status_fails_closed",
+          "test_package_version_mismatch_fails",
+          "test_revision_release_identity",
+          "test_successful_main_ci_payload_contract",
+          "test_tag_identity_and_manual_mode",
+          "test_version_normalization",
+          "test_workflow_contract"
+        ],
+        "imports": [
+          "__future__",
+          "importlib.util",
+          "pathlib",
+          "sys",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "803d263f3e231172d11dad8a040e8e2c0844fc8b7798e9e8a9ead327951f70dc",
+      "size_bytes": 7777
+    },
+    {
+      "kind": "text",
+      "lines": 216,
+      "path": "scripts/test_ui_foundation.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main",
+          "read",
+          "test_current_routes_only",
+          "test_foundation_does_not_modify_business_contracts",
+          "test_frozen_tokens_and_responsive_contract",
+          "test_javascript_preserves_runtime_and_adds_accessible_shell",
+          "test_required_files_exist",
+          "test_shell_contract",
+          "test_svg_assets_are_local_valid_and_complete",
+          "test_template_control_flow_is_balanced"
+        ],
+        "imports": [
+          "__future__",
+          "pathlib",
+          "re",
+          "xml.etree.ElementTree"
+        ],
+        "methods": []
+      },
+      "sha256": "58d6adef136cbf57f6551dccac82bfc2f732bf491516bc94de7531e93740776e",
+      "size_bytes": 7472
+    },
+    {
+      "kind": "text",
+      "lines": 237,
+      "path": "scripts/test_upgrade.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "add_member",
+          "build_fixture_archive",
+          "load_verifier",
+          "main",
+          "read_shell",
+          "require"
+        ],
+        "imports": [
+          "__future__",
+          "hashlib",
+          "importlib.util",
+          "pathlib",
+          "shell_runtime",
+          "subprocess",
+          "sys",
+          "tempfile",
+          "zipfile"
+        ],
+        "methods": []
+      },
+      "sha256": "6e02850e35938d13dec2486dbe07e89a9f9a3153b6e251d98be412b0f1d1767b",
+      "size_bytes": 10181
+    },
+    {
+      "kind": "text",
+      "lines": 114,
+      "path": "scripts/test_version_workflow.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "load_module",
+          "main",
+          "make_root",
+          "test_bump_updates_active_metadata_only",
+          "test_consistency_checker_rejects_mismatch",
+          "test_invalid_versions_are_rejected_and_same_version_syncs"
+        ],
+        "imports": [
+          "__future__",
+          "importlib.util",
+          "json",
+          "pathlib",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "0a4d5b715a440f0425f6700feca68b165371d5e3420499cb3044917782f6dd3c",
+      "size_bytes": 3884
+    },
+    {
+      "kind": "text",
+      "lines": 168,
+      "path": "scripts/validate_templates.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main",
+          "require"
+        ],
+        "imports": [
+          "__future__",
+          "os",
+          "pathlib",
+          "re",
+          "subprocess",
+          "sys",
+          "tempfile"
+        ],
+        "methods": []
+      },
+      "sha256": "bd814834df256226d950019d2373f19aaeed8794d55673ef27e37b11421ae2b6",
+      "size_bytes": 6849
+    },
+    {
+      "kind": "text",
+      "lines": 156,
+      "path": "scripts/verify_release.py",
+      "python": {
+        "classes": [],
+        "functions": [
+          "main",
+          "sha256",
+          "sha256_bytes"
+        ],
+        "imports": [
+          "__future__",
+          "argparse",
+          "hashlib",
+          "pathlib",
+          "re",
+          "zipfile"
+        ],
+        "methods": []
+      },
+      "sha256": "58f1669ba50dd3ae65d6179d3ec35356c21c51190c95210574985b5e025cdca7",
+      "size_bytes": 6485
+    }
+  ],
+  "release_version": "1.3.5.5",
+  "schema_version": 1,
+  "scope": "All maintained repository files excluding generated archives, caches, build output and this inventory file itself.",
+  "self_entry": {
+    "hash": "intentionally omitted to avoid recursive self-hashing",
+    "path": "docs/FORENSIC_FILE_INVENTORY.json"
+  },
+  "summary": {
+    "binary_files": 25,
+    "files": 476,
+    "python_classes": 104,
+    "python_files": 168,
+    "python_functions": 588,
+    "python_methods": 87,
+    "shell_files": 15,
+    "shell_functions": 42,
+    "text_files": 451,
+    "total_bytes": 32281669,
+    "total_text_lines": 41350
+  }
+}

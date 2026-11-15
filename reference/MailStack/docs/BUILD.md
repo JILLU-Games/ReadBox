@@ -1,0 +1,41 @@
+# Build and release guide
+
+## Development environment
+
+```bash
+python3.12 -m venv .venv
+. .venv/bin/activate
+pip install -r mailbox-app/requirements/development.txt
+```
+
+## Verification
+
+```bash
+python scripts/check_docs.py
+python scripts/forensic_audit.py --root . --profile essential --full
+```
+
+## Deterministic release build
+
+```bash
+python scripts/build_release.py --root .
+python scripts/verify_release.py \
+  dist/mailstack-1.3.3-source.zip \
+  --checksum dist/mailstack-1.3.3-source.zip.sha256
+```
+
+The builder normalizes archive timestamps, preserves executable permissions, writes a source manifest, excludes generated/runtime artifacts and emits a SHA-256 checksum.
+
+## Automated GitHub publication
+
+The deterministic builder remains the canonical artifact producer. After the intended release commit
+is merged to `main` and exact-SHA `main` CI passes, push a matching `v<version>` tag. The release
+workflow re-runs the release gate/full forensic/build/verification path, stores the verified Actions
+artifact, and publishes the GitHub Release with the ZIP and `.sha256` asset.
+
+Manual workflow dispatch validates/builds only. Tag/version/package mismatches, non-current-main tags,
+missing successful `main` CI, and pre-existing releases fail closed.
+
+## Stable promotion
+
+`v1.3.1` remains the immutable published source/release baseline. `1.3.3` is the PHASE-005A development target and must not be tagged until branch, PR, main, and release gates pass; live existing-VPS acceptance remains a separate post-release operational step.
