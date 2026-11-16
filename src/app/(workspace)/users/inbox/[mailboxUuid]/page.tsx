@@ -60,12 +60,17 @@ export default async function UserMailboxInboxPage(props: {
           page: Number(searchParams.page) || 1,
         },
       )
-    : listDemoMailboxMessages(mailboxUuid, {
-        query: searchParams.q,
-        read: readParam,
-        attachments: searchParams.attachments,
-        page: Number(searchParams.page) || 1,
-      });
+    : listDemoMailboxMessages(
+        mailboxUuid,
+        {
+          query: searchParams.q,
+          read: readParam,
+          attachments: searchParams.attachments,
+          page: Number(searchParams.page) || 1,
+        },
+        user.isAdministrator,
+        user.id,
+      );
 
   if (!inboxResult) {
     notFound();

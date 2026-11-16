@@ -70,16 +70,6 @@ export async function updateUserProfileAction(
           fieldErrors: validated.fieldErrors,
         };
       }
-
-      if (user.isAdministrator || user.authSource === "admin_table") {
-        return {
-          ok: false,
-          code: "admin_protected",
-          error:
-            "Administrator accounts cannot update personal profile fields here.",
-        };
-      }
-
       const updated = updateDevDemoProfile(user.id.toString(), validated.data);
       if (!updated) {
         return {
@@ -131,14 +121,6 @@ export async function updateUserPasswordAction(
 
   if (!env.databaseUrl) {
     if (isDemoPreviewWorkspaceActive()) {
-      if (user.isAdministrator || user.authSource === "admin_table") {
-        return {
-          ok: false,
-          code: "admin_protected",
-          error: "Administrator accounts cannot update password here.",
-        };
-      }
-
       const demoControl = getDemoUserControlSettings();
       const result = updateDevDemoPassword(
         user.id.toString(),
@@ -190,13 +172,6 @@ export async function revokeUserSessionAction(
 
   if (!env.databaseUrl) {
     if (isDemoPreviewWorkspaceActive()) {
-      if (user.isAdministrator || user.authSource === "admin_table") {
-        return {
-          ok: false,
-          code: "admin_protected",
-          error: "Administrator accounts cannot manage sessions here.",
-        };
-      }
       const result = revokeDevDemoUserSessionById(
         user.id.toString(),
         sessionId,
@@ -243,13 +218,6 @@ export async function revokeOtherUserSessionsAction(): Promise<
 
   if (!env.databaseUrl) {
     if (isDemoPreviewWorkspaceActive()) {
-      if (user.isAdministrator || user.authSource === "admin_table") {
-        return {
-          ok: false,
-          code: "admin_protected",
-          error: "Administrator accounts cannot manage sessions here.",
-        };
-      }
       const result = revokeDevDemoOtherUserSessions(
         user.id.toString(),
         currentSessionId,

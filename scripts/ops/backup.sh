@@ -5,14 +5,20 @@ umask 077
 
 [[ ${EUID:-$(id -u)} -eq 0 ]] || { printf 'Run as root.\n' >&2; exit 1; }
 
-ENV_FILE=${VIBMAIL_ENV_FILE:-/etc/vibmail/vibmail.env}
+ENV_FILE=${READBOX_ENV_FILE:-${VIBMAIL_ENV_FILE:-/etc/readbox/readbox.env}}
+if [[ ! -r "$ENV_FILE" && -r "/etc/vibmail/vibmail.env" ]]; then
+  ENV_FILE="/etc/vibmail/vibmail.env"
+fi
 [[ -r "$ENV_FILE" ]] || { printf 'Environment file is missing: %s\n' "$ENV_FILE" >&2; exit 1; }
 # shellcheck disable=SC1090
 set -a
 source "$ENV_FILE"
 set +a
 
-BACKUP_ROOT=${BACKUP_ROOT:-/var/backups/vibmail}
+BACKUP_ROOT=${BACKUP_ROOT:-${READBOX_BACKUP_ROOT:-/var/backups/readbox}}
+if [[ ! -d "$BACKUP_ROOT" && -d "/var/backups/vibmail" ]]; then
+  BACKUP_ROOT="/var/backups/vibmail"
+fi
 PG_DB_NAME=${PG_DB_NAME:-readbox}
 MAIL_DOMAIN=${MAIL_DOMAIN:?MAIL_DOMAIN is missing from the environment file}
 APP_HOSTNAME=${APP_HOSTNAME:?APP_HOSTNAME is missing from the environment file}
@@ -36,31 +42,62 @@ for command_name in pg_dump gzip tar sha256sum systemctl python3; do
     || { printf 'Required command is missing: %s\n' "$command_name" >&2; exit 1; }
 done
 
-CONFIG_PATHS=(
-  etc/vibmail/vibmail.env
-  etc/systemd/system/vibmail-web.service
-  etc/systemd/system/vibmail-ingestion.service
-  etc/postfix/main.cf
-  etc/postfix/master.cf
-  etc/postfix/pgsql-virtual-domains.cf
-  etc/postfix/pgsql-virtual-mailboxes.cf
-  etc/postfix/pgsql-virtual-aliases.cf
-)
-for relative in "${CONFIG_PATHS[@]}"; do
-  [[ -f "/$relative" ]] \
-    || { printf 'Required configuration is missing: /%s\n' "$relative" >&2; exit 1; }
+CONFIG_PATHS=()
+if [[ -f "/etc/readbox/readbox.env" ]]; then
+  CONFIG_PATHS+=(etc/readbox/readbox.env)
+elif [[ -f "/etc/vibmail/vibmail.env" ]]; then
+  CONFIG_PATHS+=(etc/vibmail/vibmail.env)
+fi
+
+for svc in readbox-web vibmail-web; do
+  if [[ -f "/etc/systemd/system/${svc}.service" ]]; then
+    CONFIG_PATHS+=("etc/systemd/system/${svc}.service")
+    break
+  fi
 done
 
-if [[ -f /etc/nginx/sites-available/vibmail-app.conf ]]; then
+for svc in readbox-ingestion vibmail-ingestion; do
+  if [[ -f "/etc/systemd/system/${svc}.service" ]]; then
+    CONFIG_PATHS+=("etc/systemd/system/${svc}.service")
+    break
+  fi
+done
+
+for pf in etc/postfix/main.cf etc/postfix/master.cf etc/postfix/pgsql-virtual-domains.cf etc/postfix/pgsql-virtual-mailboxes.cf etc/postfix/pgsql-virtual-aliases.cf; do
+  if [[ -f "/$pf" ]]; then
+    CONFIG_PATHS+=("$pf")
+  fi
+done
+
+if [[ -f /etc/nginx/sites-available/readbox-app.conf ]]; then
+  CONFIG_PATHS+=(etc/nginx/sites-available/readbox-app.conf)
+elif [[ -f /etc/nginx/sites-available/vibmail-app.conf ]]; then
   CONFIG_PATHS+=(etc/nginx/sites-available/vibmail-app.conf)
 fi
-if [[ -f /etc/dovecot/conf.d/99-vibmail.conf ]]; then
+
+if [[ -f /etc/dovecot/conf.d/99-readbox.conf ]]; then
+  CONFIG_PATHS+=(etc/dovecot/conf.d/99-readbox.conf)
+elif [[ -f /etc/dovecot/conf.d/99-vibmail.conf ]]; then
   CONFIG_PATHS+=(etc/dovecot/conf.d/99-vibmail.conf)
 fi
 
 install -d -m 0700 "$DEST"
 
-SERVICES=(postfix dovecot vibmail-ingestion vibmail-web)
+SERVICES=(postfix dovecot)
+for candidate in "${READBOX_INGESTION_SERVICE:-}" "readbox-ingestion" "vibmail-ingestion"; do
+  unit="${candidate%.service}"
+  if systemctl list-unit-files "${unit}.service" >/dev/null 2>&1; then
+    SERVICES+=("$unit")
+    break
+  fi
+done
+for candidate in "${READBOX_WEB_SERVICE:-}" "readbox-web" "vibmail-web"; do
+  unit="${candidate%.service}"
+  if systemctl list-unit-files "${unit}.service" >/dev/null 2>&1; then
+    SERVICES+=("$unit")
+    break
+  fi
+done
 ACTIVE_SERVICES=()
 for service in "${SERVICES[@]}"; do
   if systemctl is-active --quiet "$service.service"; then

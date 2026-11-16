@@ -14,12 +14,22 @@ import urllib.request
 from contextlib import suppress
 from pathlib import Path
 
-RUNTIME_DIR = Path(os.environ.get("UPDATE_RUNTIME_DIR", "/run/vibmail"))
+RUNTIME_DIR = Path(
+    os.environ.get(
+        "UPDATE_RUNTIME_DIR",
+        "/run/readbox" if Path("/run/readbox").exists() else "/run/vibmail",
+    )
+)
 REQUEST_PATH = RUNTIME_DIR / "update_request.json"
 PROCESSING_PATH = RUNTIME_DIR / "update_request.processing.json"
 STATUS_PATH = RUNTIME_DIR / "update_status.json"
 UPGRADE_SCRIPT = Path(
-    os.environ.get("UPDATE_SCRIPT_PATH", "/opt/vibmail/app/scripts/updater/upgrade.sh")
+    os.environ.get(
+        "UPDATE_SCRIPT_PATH",
+        "/opt/readbox/app/scripts/updater/upgrade.sh"
+        if Path("/opt/readbox/app/scripts/updater/upgrade.sh").exists()
+        else "/opt/vibmail/app/scripts/updater/upgrade.sh",
+    )
 )
 GITHUB_REPO = os.environ.get("UPDATE_GITHUB_REPO", "vibtools/ReadBox")
 

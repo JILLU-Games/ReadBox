@@ -6,8 +6,13 @@ import {
 } from "@/core/accounts/user-control-policy";
 import {
   createDemoMailbox,
+  deleteDemoMailbox,
+  getDemoMessageDetail,
   getDemoUserOverview,
+  listDemoMailboxMessages,
   listDemoUserMailboxes,
+  pollDemoLivePayload,
+  softDeleteDemoMessage,
 } from "@/core/messages/demo-workspace";
 import {
   buildAttachmentContentDisposition,
@@ -1191,6 +1196,110 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
       resolvedBody,
       `<p><img src="/api/messages/attachment/${ATTACHMENT_A1_UUID}" alt="Banner"></p>`,
     );
+  });
+
+  it("13. Phase 05 BUG-08: enforces dynamic capabilities, ownership, retention, and cursor-based live polling in Demo Workspace", () => {
+    try {
+      // 1. Set policy with canDeleteMessages: false and canDeleteMailboxes: false for userId: "2"
+      setDemoUserAccessPolicy("2", {
+        canCreateMailboxes: true,
+        canDeleteMessages: false,
+        canDeleteMailboxes: false,
+        maxMailboxes: 5,
+        allowedDomainUuids: [],
+        autoDeleteEnabled: false,
+        autoDeleteDays: 0,
+      });
+
+      // 2. getDemoMessageDetail reflects canDeleteMessage: false for non-admin user
+      const msgDetailUser = getDemoMessageDetail(
+        "11111111-1111-4111-8111-111111111101",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa001",
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(Boolean(msgDetailUser), true);
+      assert.equal(msgDetailUser?.canDeleteMessage, false);
+
+      // Admin gets canDeleteMessage: true
+      const msgDetailAdmin = getDemoMessageDetail(
+        "11111111-1111-4111-8111-111111111101",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa001",
+        { isAdministrator: true, userId: "2" },
+      );
+      assert.equal(Boolean(msgDetailAdmin), true);
+      assert.equal(msgDetailAdmin?.canDeleteMessage, true);
+
+      // 3. softDeleteDemoMessage rejected when canDeleteMessages is false
+      const softDeleteBlocked = softDeleteDemoMessage(
+        "11111111-1111-4111-8111-111111111101",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa001",
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(softDeleteBlocked.ok, false);
+      if (!softDeleteBlocked.ok) {
+        assert.equal(softDeleteBlocked.code, "forbidden");
+      }
+
+      // 4. deleteDemoMailbox rejected when canDeleteMailboxes is false
+      const deleteMailboxBlocked = deleteDemoMailbox(
+        "11111111-1111-4111-8111-111111111101",
+        "billing.ops@readbox.local",
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(deleteMailboxBlocked.ok, false);
+      if (!deleteMailboxBlocked.ok) {
+        assert.equal(deleteMailboxBlocked.code, "blocked");
+      }
+
+      // 5. Ownership isolation: create mailbox assigned to userId: "999"
+      const createdForOther = createDemoMailbox(
+        { localPart: "isolated.box" },
+        { isAdministrator: false, userId: "999" },
+      );
+      assert.equal(createdForOther.ok, true);
+      if (createdForOther.ok) {
+        const otherUuid = createdForOther.data.uuid;
+
+        // User "2" cannot access mailbox of user "999"
+        const forbiddenList = listDemoMailboxMessages(
+          otherUuid,
+          {},
+          false,
+          "2",
+        );
+        assert.equal(forbiddenList, null);
+
+        // Admin CAN access mailbox of user "999"
+        const adminAccess = listDemoMailboxMessages(
+          otherUuid,
+          {},
+          true,
+          "1",
+        );
+        assert.equal(Boolean(adminAccess), true);
+      }
+
+      // 6. pollDemoLivePayload supports cursor-based incremental polling
+      const pollBootstrap = pollDemoLivePayload([], {
+        isAdministrator: true,
+        cursor: 0,
+        bootstrap: true,
+      });
+      assert.equal(pollBootstrap.messages.length, 0);
+      assert.equal(pollBootstrap.cursor >= 5000, true);
+
+      // Polling with cursor = 5000 returns messages with id > 5000
+      const pollIncremental = pollDemoLivePayload([], {
+        isAdministrator: true,
+        cursor: 5000,
+        bootstrap: false,
+      });
+      assert.equal(pollIncremental.messages.length > 0, true);
+      assert.equal(pollIncremental.cursor >= 5001, true);
+      assert.equal(pollIncremental.messages[0]?.id, 5001);
+    } finally {
+      resetDemoUserControlSettings();
+    }
   });
 });
 

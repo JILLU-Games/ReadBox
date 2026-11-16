@@ -47,7 +47,7 @@ export default async function UserSettingsPage() {
     phone: "",
     isAdministrator: user.isAdministrator,
     authSource: user.authSource,
-    editable: !user.isAdministrator && user.authSource === "user_table",
+    editable: true,
     dateJoined: null,
     lastLogin: null,
   };
@@ -57,7 +57,7 @@ export default async function UserSettingsPage() {
     passwordPolicy: DEFAULT_USER_PASSWORD_POLICY,
     activeSessions: [],
     recentEvents: [],
-    canManageSecurity: fallbackProfile.editable,
+    canManageSecurity: true,
   };
   let databaseConfigured = false;
   let mailboxUsed = 0;

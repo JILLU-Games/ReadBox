@@ -81,6 +81,8 @@ export interface UpdateRuntimeOptions {
   readonly envFilePath?: string;
   readonly backupRoot?: string;
   readonly systemdUnitDir?: string;
+  readonly webServiceName?: string;
+  readonly ingestionServiceName?: string;
   readonly fetchImpl?: typeof fetch;
   readonly preflightOverride?: () => Promise<UpdatePreflightResult>;
   readonly prisma?: AuditWriteClient | null;
@@ -322,15 +324,43 @@ async function isExecutableFile(path: string): Promise<boolean> {
 export async function runUpdatePreflight(
   options?: UpdateRuntimeOptions,
 ): Promise<UpdatePreflightResult> {
-  const runtimeDir = options?.runtimeDir ?? env.updateRuntimeDir;
-  const serviceName = options?.serviceName ?? env.updateServiceName;
+  const runtimeDir =
+    options?.runtimeDir ??
+    process.env.UPDATE_RUNTIME_DIR ??
+    env.updateRuntimeDir;
+  const serviceName =
+    options?.serviceName ??
+    process.env.UPDATE_SERVICE_NAME ??
+    env.updateServiceName;
   const normalizedUnitName = serviceName.endsWith(".service")
     ? serviceName
     : `${serviceName}.service`;
-  const upgradeScriptPath = options?.upgradeScriptPath ?? env.updateScriptPath;
-  const appRoot = options?.appRoot ?? "/opt/vibmail/app";
-  const envFilePath = options?.envFilePath ?? "/etc/vibmail/vibmail.env";
-  const backupRoot = options?.backupRoot ?? "/var/backups/vibmail";
+
+  const defaultUpgradeScript =
+    existsSync("/opt/readbox/app/scripts/updater/upgrade.sh")
+      ? "/opt/readbox/app/scripts/updater/upgrade.sh"
+      : existsSync("/opt/vibmail/app/scripts/updater/upgrade.sh")
+        ? "/opt/vibmail/app/scripts/updater/upgrade.sh"
+        : env.updateScriptPath;
+  const upgradeScriptPath = options?.upgradeScriptPath ?? defaultUpgradeScript;
+
+  const appRoot =
+    options?.appRoot ??
+    process.env.READBOX_APP_ROOT ??
+    (existsSync("/opt/readbox/app") ? "/opt/readbox/app" : "/opt/vibmail/app");
+  const envFilePath =
+    options?.envFilePath ??
+    process.env.READBOX_ENV_FILE ??
+    process.env.VIBMAIL_ENV_FILE ??
+    (existsSync("/etc/readbox/readbox.env")
+      ? "/etc/readbox/readbox.env"
+      : "/etc/vibmail/vibmail.env");
+  const backupRoot =
+    options?.backupRoot ??
+    process.env.READBOX_BACKUP_ROOT ??
+    (existsSync("/var/backups/readbox")
+      ? "/var/backups/readbox"
+      : "/var/backups/vibmail");
   const systemdUnitDir = options?.systemdUnitDir ?? "/etc/systemd/system";
 
   const statusPath = join(/*turbopackIgnore: true*/ runtimeDir, "update_status.json");
@@ -419,14 +449,27 @@ export async function runUpdatePreflight(
   }
 
   const systemctlPath = findCommandOnPath("systemctl");
+  const webServiceName =
+    options?.webServiceName ??
+    process.env.READBOX_WEB_SERVICE ??
+    (existsSync(join(systemdUnitDir, "readbox-web.service"))
+      ? "readbox-web.service"
+      : "vibmail-web.service");
+  const ingestionServiceName =
+    options?.ingestionServiceName ??
+    process.env.READBOX_INGESTION_SERVICE ??
+    (existsSync(join(systemdUnitDir, "readbox-ingestion.service"))
+      ? "readbox-ingestion.service"
+      : "vibmail-ingestion.service");
+
   const requiredServices = [
     normalizedUnitName,
     "postgresql.service",
     "postfix.service",
     "dovecot.service",
     "nginx.service",
-    "vibmail-web.service",
-    "vibmail-ingestion.service",
+    webServiceName,
+    ingestionServiceName,
   ] as const;
 
   for (const svc of requiredServices) {
@@ -438,11 +481,29 @@ export async function runUpdatePreflight(
       check(label, false, svc);
       continue;
     }
-    const res = spawnSync(systemctlPath, ["is-active", "--quiet", svc], {
-      timeout: 2_000,
-      windowsHide: true,
-    });
-    check(label, res.status === 0, svc);
+    const candidateUnits = [svc];
+    if (svc === webServiceName) {
+      if (!candidateUnits.includes("readbox-web.service")) candidateUnits.push("readbox-web.service");
+      if (!candidateUnits.includes("vibmail-web.service")) candidateUnits.push("vibmail-web.service");
+    } else if (svc === ingestionServiceName) {
+      if (!candidateUnits.includes("readbox-ingestion.service")) candidateUnits.push("readbox-ingestion.service");
+      if (!candidateUnits.includes("vibmail-ingestion.service")) candidateUnits.push("vibmail-ingestion.service");
+    }
+
+    let active = false;
+    let testedUnit = svc;
+    for (const unit of candidateUnits) {
+      const res = spawnSync(systemctlPath, ["is-active", "--quiet", unit], {
+        timeout: 2_000,
+        windowsHide: true,
+      });
+      if (res.status === 0) {
+        active = true;
+        testedUnit = unit;
+        break;
+      }
+    }
+    check(label, active, testedUnit);
   }
 
   const idPath = findCommandOnPath("id");

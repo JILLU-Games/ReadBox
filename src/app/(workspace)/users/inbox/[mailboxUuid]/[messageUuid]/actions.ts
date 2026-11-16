@@ -33,6 +33,10 @@ export async function markMessageUnreadAction(input: {
       const demoResult = markDemoMessageUnread(
         input.mailboxUuid,
         input.messageUuid,
+        {
+          isAdministrator: user.isAdministrator,
+          userId: user.id,
+        },
       );
       if (demoResult.ok) {
         revalidateMailboxPaths(input.mailboxUuid);
@@ -84,6 +88,10 @@ export async function softDeleteMessageAction(input: {
       const demoResult = softDeleteDemoMessage(
         input.mailboxUuid,
         input.messageUuid,
+        {
+          isAdministrator: user.isAdministrator,
+          userId: user.id,
+        },
       );
       if (demoResult.ok) {
         revalidateMailboxPaths(input.mailboxUuid);

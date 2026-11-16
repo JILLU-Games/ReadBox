@@ -55,7 +55,10 @@ export async function GET(
           messageUuid,
           theme ? { theme } : undefined,
         )
-      : getDemoMessageHtml(messageUuid, theme ? { theme } : undefined);
+      : getDemoMessageHtml(messageUuid, theme ? { theme } : undefined, {
+          isAdministrator: user.isAdministrator,
+          userId: user.id,
+        });
 
     if (!htmlDocument) {
       return new NextResponse("Not found", {

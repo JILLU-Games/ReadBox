@@ -104,7 +104,7 @@ export async function getUserProfile(
           phone: "",
           isAdministrator: true,
           authSource: "admin_table",
-          editable: false,
+          editable: true,
           dateJoined: admin.createdAt.toISOString(),
           lastLogin: admin.lastLogin ? admin.lastLogin.toISOString() : null,
         },
@@ -172,16 +172,97 @@ export async function updateUserProfile(
     };
   }
 
-  if (actor.authSource === "admin_table") {
-    return {
-      ok: false,
-      code: "admin_protected",
-      error: "Administrator accounts cannot update personal profile fields here.",
-    };
-  }
-
   if (actor.userId <= BigInt(0)) {
     return { ok: false, code: "not_found", error: "Account not found." };
+  }
+
+  if (actor.authSource === "admin_table") {
+    try {
+      const savedAdmin = await prisma.$transaction(async (tx) => {
+        const existing = await tx.adminAccount.findUnique({
+          where: { id: actor.userId },
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            createdAt: true,
+            lastLogin: true,
+          },
+        });
+        if (!existing) return null;
+
+        const updated = await tx.adminAccount.update({
+          where: { id: actor.userId },
+          data: {
+            firstName: validated.data.firstName,
+            lastName: validated.data.lastName,
+            email: validated.data.email,
+          },
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            createdAt: true,
+            lastLogin: true,
+          },
+        });
+
+        const changedFields: string[] = [];
+        if (existing.firstName !== updated.firstName) changedFields.push("firstName");
+        if (existing.lastName !== updated.lastName) changedFields.push("lastName");
+        if (existing.email !== updated.email) changedFields.push("email");
+
+        await recordAudit(tx as unknown as AuditWriteClient, {
+          actorId: null,
+          action: "user_profile_updated",
+          targetType: "admin",
+          targetIdentifier: updated.username,
+          headers: actor.headers,
+          clientIp: actor.clientIp,
+          userAgent: actor.userAgent,
+          trustProxyHeaders: actor.trustProxyHeaders,
+          details: {
+            admin_actor_id: updated.id.toString(),
+            changed_fields: changedFields,
+          },
+        });
+
+        return updated;
+      });
+
+      if (!savedAdmin) {
+        return { ok: false, code: "not_found", error: "Account not found." };
+      }
+
+      return {
+        ok: true,
+        message: "Profile settings saved.",
+        data: {
+          id: savedAdmin.id.toString(),
+          username: savedAdmin.username,
+          firstName: savedAdmin.firstName,
+          lastName: savedAdmin.lastName,
+          email: savedAdmin.email,
+          phone: "",
+          isAdministrator: true,
+          authSource: "admin_table",
+          editable: true,
+          dateJoined: savedAdmin.createdAt.toISOString(),
+          lastLogin: savedAdmin.lastLogin ? savedAdmin.lastLogin.toISOString() : null,
+        },
+      };
+    } catch {
+      logger.error("admin_profile_update_failed");
+      return {
+        ok: false,
+        code: "unavailable",
+        error: "Could not save profile changes. Try again later.",
+      };
+    }
   }
 
   try {
@@ -286,7 +367,7 @@ export async function getUserSecuritySnapshot(
   const passwordPolicy =
     options.passwordPolicy ?? (await resolveEffectiveUserPasswordPolicy(prisma));
 
-  if (actor.authSource === "admin_table" || actor.userId <= BigInt(0)) {
+  if (actor.userId <= BigInt(0)) {
     return {
       passwordPolicy,
       activeSessions: [],
@@ -299,6 +380,79 @@ export async function getUserSecuritySnapshot(
     options.currentSessionId && isOpaqueToken(options.currentSessionId)
       ? hashOpaqueToken(options.currentSessionId)
       : null;
+
+  if (actor.authSource === "admin_table") {
+    try {
+      const now = new Date();
+      const [adminSessions, adminEvents] = await Promise.all([
+        prisma.adminSession.findMany({
+          where: {
+            adminId: actor.userId,
+            expiresAt: { gt: now },
+          },
+          orderBy: [{ createdAt: "desc" }],
+          take: 25,
+          select: {
+            id: true,
+            tokenHash: true,
+            ipAddress: true,
+            userAgent: true,
+            createdAt: true,
+            lastSeenAt: true,
+            expiresAt: true,
+          },
+        }),
+        prisma.auditLog.findMany({
+          where: {
+            action: { in: [...USER_SECURITY_AUDIT_ACTIONS] },
+            targetType: "admin",
+            ...(actor.username ? { targetIdentifier: actor.username } : {}),
+          },
+          orderBy: [{ createdAt: "desc" }],
+          take: 10,
+          select: {
+            id: true,
+            action: true,
+            ipAddress: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+
+      return {
+        passwordPolicy,
+        canManageSecurity: true,
+        activeSessions: adminSessions.map((session) => ({
+          id: session.id.toString(),
+          label: formatUserAgentSummary(session.userAgent),
+          ipAddress: session.ipAddress ?? null,
+          createdAt: session.createdAt.toISOString(),
+          lastSeenAt: session.lastSeenAt ? session.lastSeenAt.toISOString() : null,
+          expiresAt: session.expiresAt.toISOString(),
+          isCurrent: Boolean(currentHash && session.tokenHash === currentHash),
+        })),
+        recentEvents: adminEvents.map((evt) => {
+          const formatted = formatSecurityEventLabel(evt.action);
+          return {
+            id: evt.id.toString(),
+            action: evt.action,
+            label: formatted.label,
+            ipAddress: evt.ipAddress ?? null,
+            createdAt: evt.createdAt.toISOString(),
+            outcome: formatted.outcome,
+          };
+        }),
+      };
+    } catch {
+      logger.error("admin_security_snapshot_failed");
+      return {
+        passwordPolicy,
+        activeSessions: [],
+        recentEvents: [],
+        canManageSecurity: true,
+      };
+    }
+  }
 
   try {
     const now = new Date();
@@ -395,14 +549,6 @@ export async function updateUserPassword(
     ) => Promise<boolean>;
   } = {},
 ): Promise<UserProfileActionResult<{ readonly revokedOtherSessions: number }>> {
-  if (actor.authSource === "admin_table") {
-    return {
-      ok: false,
-      code: "admin_protected",
-      error: "Administrator accounts cannot update password here.",
-    };
-  }
-
   if (actor.userId <= BigInt(0)) {
     return { ok: false, code: "not_found", error: "Account not found." };
   }
@@ -425,6 +571,97 @@ export async function updateUserPassword(
     options.currentSessionId && isOpaqueToken(options.currentSessionId)
       ? hashOpaqueToken(options.currentSessionId)
       : null;
+
+  if (actor.authSource === "admin_table") {
+    try {
+      const existing = await prisma.adminAccount.findUnique({
+        where: { id: actor.userId },
+        select: {
+          id: true,
+          username: true,
+          passwordHash: true,
+          isActive: true,
+        },
+      });
+
+      if (!existing) {
+        return { ok: false, code: "not_found", error: "Account not found." };
+      }
+
+      const matches = await verifyFn(
+        existing.passwordHash,
+        validated.data.currentPassword,
+      );
+      if (!matches) {
+        return {
+          ok: false,
+          code: "validation",
+          error: "Current password is incorrect.",
+          fieldErrors: {
+            currentPassword: "Current password is incorrect.",
+          },
+        };
+      }
+
+      const nextHash = await hashFn(validated.data.newPassword);
+
+      const revokedOtherSessions = await prisma.$transaction(async (tx) => {
+        await tx.adminAccount.update({
+          where: { id: existing.id },
+          data: {
+            passwordHash: nextHash,
+            passwordResetRequired: false,
+          },
+        });
+
+        let revoked = 0;
+        if (validated.data.revokeOtherSessions) {
+          const deleted = await tx.adminSession.deleteMany({
+            where: {
+              adminId: existing.id,
+              ...(currentSessionHash
+                ? { tokenHash: { not: currentSessionHash } }
+                : {}),
+            },
+          });
+          revoked = deleted.count;
+        }
+
+        await recordAudit(tx as unknown as AuditWriteClient, {
+          actorId: null,
+          action: "user_password_changed",
+          targetType: "admin",
+          targetIdentifier: existing.username,
+          headers: actor.headers,
+          clientIp: actor.clientIp,
+          userAgent: actor.userAgent,
+          trustProxyHeaders: actor.trustProxyHeaders,
+          details: {
+            admin_actor_id: existing.id.toString(),
+            revoked_other_sessions: revoked,
+          },
+        });
+
+        return revoked;
+      });
+
+      return {
+        ok: true,
+        data: { revokedOtherSessions },
+        message:
+          revokedOtherSessions > 0
+            ? `Password updated and ${revokedOtherSessions} other active session(s) signed out.`
+            : "Password updated.",
+      };
+    } catch {
+      logger.error("admin_password_update_failed");
+      return {
+        ok: false,
+        code: "unavailable",
+        error: "Could not update your password. Try again later.",
+      };
+    }
+  }
 
   try {
     const existing = await prisma.user.findUnique({
@@ -519,14 +756,6 @@ export async function revokeUserSessionById(
   rawSessionId: string,
   options: { readonly currentSessionId?: string | null } = {},
 ): Promise<UserProfileActionResult<{ readonly revoked: number }>> {
-  if (actor.authSource === "admin_table") {
-    return {
-      ok: false,
-      code: "admin_protected",
-      error: "Administrator accounts cannot manage sessions here.",
-    };
-  }
-
   const sessionId = parseSessionBigIntId(rawSessionId);
   if (sessionId === null || actor.userId <= BigInt(0)) {
     return { ok: false, code: "not_found", error: "Session not found." };
@@ -536,6 +765,69 @@ export async function revokeUserSessionById(
     options.currentSessionId && isOpaqueToken(options.currentSessionId)
       ? hashOpaqueToken(options.currentSessionId)
       : null;
+
+  if (actor.authSource === "admin_table") {
+    try {
+      const outcome = await prisma.$transaction(async (tx) => {
+        const target = await tx.adminSession.findFirst({
+          where: { id: sessionId, adminId: actor.userId },
+          select: {
+            id: true,
+            tokenHash: true,
+            admin: { select: { username: true } },
+          },
+        });
+        if (!target) {
+          return { status: "not_found" as const };
+        }
+
+        if (currentHash && target.tokenHash === currentHash) {
+          return { status: "current_protected" as const };
+        }
+
+        await tx.adminSession.delete({ where: { id: target.id } });
+        await recordAudit(tx as unknown as AuditWriteClient, {
+          actorId: null,
+          action: "user_session_revoked",
+          targetType: "admin",
+          targetIdentifier: target.admin.username,
+          headers: actor.headers,
+          clientIp: actor.clientIp,
+          userAgent: actor.userAgent,
+          trustProxyHeaders: actor.trustProxyHeaders,
+          details: {
+            admin_actor_id: actor.userId.toString(),
+            session_id: target.id.toString(),
+          },
+        });
+        return { status: "revoked" as const };
+      });
+
+      if (outcome.status === "not_found") {
+        return { ok: false, code: "not_found", error: "Session not found." };
+      }
+      if (outcome.status === "current_protected") {
+        return {
+          ok: false,
+          code: "validation",
+          error: "Use Sign out in the header to end your current session.",
+        };
+      }
+
+      return {
+        ok: true,
+        data: { revoked: 1 },
+        message: "Session revoked.",
+      };
+    } catch {
+      logger.error("admin_session_revoke_failed");
+      return {
+        ok: false,
+        code: "unavailable",
+        error: "Could not revoke session. Try again later.",
+      };
+    }
+  }
 
   try {
     const outcome = await prisma.$transaction(async (tx) => {
@@ -601,14 +893,6 @@ export async function revokeOtherUserSessions(
   actor: UserProfileActorContext,
   options: { readonly currentSessionId?: string | null } = {},
 ): Promise<UserProfileActionResult<{ readonly revoked: number }>> {
-  if (actor.authSource === "admin_table") {
-    return {
-      ok: false,
-      code: "admin_protected",
-      error: "Administrator accounts cannot manage sessions here.",
-    };
-  }
-
   if (actor.userId <= BigInt(0)) {
     return { ok: false, code: "not_found", error: "Account not found." };
   }
@@ -617,6 +901,64 @@ export async function revokeOtherUserSessions(
     options.currentSessionId && isOpaqueToken(options.currentSessionId)
       ? hashOpaqueToken(options.currentSessionId)
       : null;
+
+  if (actor.authSource === "admin_table") {
+    try {
+      const revokedCount = await prisma.$transaction(async (tx) => {
+        const admin = await tx.adminAccount.findUnique({
+          where: { id: actor.userId },
+          select: { username: true },
+        });
+        if (!admin) return null;
+
+        const deleted = await tx.adminSession.deleteMany({
+          where: {
+            adminId: actor.userId,
+            ...(currentHash ? { tokenHash: { not: currentHash } } : {}),
+          },
+        });
+
+        if (deleted.count > 0) {
+          await recordAudit(tx as unknown as AuditWriteClient, {
+            actorId: null,
+            action: "user_sessions_revoked",
+            targetType: "admin",
+            targetIdentifier: admin.username,
+            headers: actor.headers,
+            clientIp: actor.clientIp,
+            userAgent: actor.userAgent,
+            trustProxyHeaders: actor.trustProxyHeaders,
+            details: {
+              admin_actor_id: actor.userId.toString(),
+              revoked_count: deleted.count,
+            },
+          });
+        }
+
+        return deleted.count;
+      });
+
+      if (revokedCount === null) {
+        return { ok: false, code: "not_found", error: "Account not found." };
+      }
+
+      return {
+        ok: true,
+        data: { revoked: revokedCount },
+        message:
+          revokedCount > 0
+            ? `Signed out ${revokedCount} other active session(s).`
+            : "No other active sessions to sign out.",
+      };
+    } catch {
+      logger.error("admin_sessions_revoke_failed");
+      return {
+        ok: false,
+        code: "unavailable",
+        error: "Could not sign out other sessions. Try again later.",
+      };
+    }
+  }
 
   try {
     const revokedCount = await prisma.$transaction(async (tx) => {

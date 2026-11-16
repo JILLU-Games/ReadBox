@@ -314,9 +314,16 @@ export function UserSettingsView({
       <PageHeader
         title="Settings"
         actions={
-          <Button asChild size="sm" variant="outline">
-            <Link href="/users">Overview</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {savedProfile.isAdministrator ? (
+              <Button asChild size="sm" variant="outline">
+                <Link href="/vcon">Admin panel</Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm" variant="outline">
+              <Link href="/users">Overview</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -328,7 +335,7 @@ export function UserSettingsView({
 
       {!savedProfile.editable ? (
         <AlertBanner variant="info" role="status">
-          Administrator accounts cannot modify personal profile or security fields here.
+          This account profile is managed externally and cannot be modified here.
         </AlertBanner>
       ) : null}
 

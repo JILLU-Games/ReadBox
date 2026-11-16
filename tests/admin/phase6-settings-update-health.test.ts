@@ -452,6 +452,13 @@ test("System Update validates official GitHub release URLs, checks release asset
     });
     assert.equal(Array.isArray(preflightReport.checks), true);
     assert.equal(preflightReport.checks.length >= 9, true);
+
+    // BUG-21: Check updateScriptPath default includes /scripts/updater/upgrade.sh
+    const parsedEnv = parseEnvironment({});
+    assert.equal(
+      parsedEnv.updateScriptPath.includes("/scripts/updater/upgrade.sh"),
+      true,
+    );
   } finally {
     await rm(tempRuntimeDir, { recursive: true, force: true });
   }

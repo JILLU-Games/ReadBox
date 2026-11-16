@@ -100,6 +100,10 @@ export async function deleteUserMailboxAction(input: {
       const demoResult = deleteDemoMailbox(
         input.mailboxUuid,
         input.confirmationEmail,
+        {
+          isAdministrator: user.isAdministrator,
+          userId: user.id,
+        },
       );
       if (demoResult.ok) {
         revalidateUsersWorkspace();
@@ -154,6 +158,10 @@ export async function bulkDeleteUserMailboxesAction(input: {
       const demoResult = bulkDeleteDemoMailboxes(
         input.mailboxUuids,
         input.confirmed,
+        {
+          isAdministrator: user.isAdministrator,
+          userId: user.id,
+        },
       );
       if (demoResult.ok) {
         revalidateUsersWorkspace();

@@ -36,7 +36,10 @@ export async function GET(
 
   const { attachmentUuid } = await context.params;
   if (!env.databaseUrl && demoActive) {
-    const demoAttachment = getDemoAttachmentDownload(attachmentUuid);
+    const demoAttachment = getDemoAttachmentDownload(attachmentUuid, {
+      isAdministrator: user.isAdministrator,
+      userId: user.id,
+    });
     if (!demoAttachment) {
       return uniformNotFound();
     }

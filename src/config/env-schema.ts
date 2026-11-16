@@ -206,7 +206,11 @@ const environmentSchema = z
     ),
     UPDATE_SCRIPT_PATH: z.preprocess(
       emptyToUndefined,
-      z.string().trim().min(1).default("/opt/vibmail/app/scripts/upgrade.sh"),
+      z
+        .string()
+        .trim()
+        .min(1)
+        .default("/opt/vibmail/app/scripts/updater/upgrade.sh"),
     ),
     UPDATE_GITHUB_REPO: z.preprocess(
       emptyToUndefined,
