@@ -140,7 +140,7 @@ export function MailboxInboxView({
                 <span>
                   <strong
                     data-testid="inbox-unread-count"
-                    className="font-mono font-semibold text-primary"
+                    className="font-mono font-medium text-primary"
                   >
                     {liveCounts.unreadMessages}
                   </strong>{" "}
@@ -288,7 +288,7 @@ export function MailboxInboxView({
                           <span
                             className={cn(
                               "truncate text-xs text-foreground",
-                              !item.isRead ? "font-semibold" : "font-medium",
+                              !item.isRead ? "font-medium" : "font-normal",
                             )}
                           >
                             {item.senderName ||
@@ -307,7 +307,7 @@ export function MailboxInboxView({
                           <span
                             className={cn(
                               "truncate text-xs text-foreground",
-                              !item.isRead ? "font-semibold" : "font-normal",
+                              !item.isRead ? "font-medium" : "font-normal",
                             )}
                           >
                             {item.subject || "(No subject)"}

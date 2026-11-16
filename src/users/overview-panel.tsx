@@ -111,28 +111,20 @@ export function UserOverview({
       <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
         <PageTitle>Inbox &amp; Mailbox Workspace</PageTitle>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="secondary">
-            <Link href="/users/mailboxes">
-              <Icon glyph={Mail} />
-              My mailboxes
-            </Link>
+        {createMailboxAction ? (
+          <Button
+            type="button"
+            onClick={() =>
+              usesShellModal
+                ? liveContext.openCreateMailboxModal?.()
+                : setCreateOpen(true)
+            }
+            disabled={!snapshot.databaseConfigured}
+          >
+            <Icon glyph={Plus} />
+            Create mailbox
           </Button>
-          {createMailboxAction ? (
-            <Button
-              type="button"
-              onClick={() =>
-                usesShellModal
-                  ? liveContext.openCreateMailboxModal?.()
-                  : setCreateOpen(true)
-              }
-              disabled={!snapshot.databaseConfigured}
-            >
-              <Icon glyph={Plus} />
-              Create mailbox
-            </Button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
 
       {!snapshot.databaseConfigured ? (
@@ -203,8 +195,8 @@ export function UserOverview({
         </div>
       </section>
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Panel>
+      <div className="grid min-w-0 gap-3 lg:grid-cols-2">
+        <Panel className="min-w-0">
           <PanelHeader>
             <div className="flex items-center gap-1.5">
               <Icon glyph={MailOpen} className="text-muted-foreground" />
@@ -243,7 +235,7 @@ export function UserOverview({
                         <span
                           className={cn(
                             "truncate text-xs text-foreground",
-                            !msg.isRead ? "font-semibold" : "font-normal",
+                            !msg.isRead ? "font-medium" : "font-normal",
                           )}
                         >
                           {msg.subject || "(No subject)"}
@@ -270,7 +262,7 @@ export function UserOverview({
           </div>
         </Panel>
 
-        <Panel>
+        <Panel className="min-w-0">
           <PanelHeader>
             <div className="flex items-center gap-1.5">
               <Icon glyph={Mail} className="text-muted-foreground" />
@@ -299,13 +291,13 @@ export function UserOverview({
                     className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <CopyButton
                           value={mailbox.emailAddress}
                           title="Copy email address"
                           successMessage={`Copied ${mailbox.emailAddress}`}
                           errorMessage="Unable to copy address."
-                          className="max-w-full font-mono"
+                          className="min-w-0 max-w-full font-mono"
                         >
                           <span className="truncate">{mailbox.emailAddress}</span>
                         </CopyButton>

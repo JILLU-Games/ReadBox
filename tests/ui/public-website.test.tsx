@@ -15,7 +15,13 @@ vi.mock("next-themes", () => ({
 
 describe("Public Website UI Components", () => {
   it("renders PublicSiteHeader with brand, navigation links, and Client login / Request a mailbox CTAs", () => {
-    render(<PublicSiteHeader siteName="MailStack" activePage="home" />);
+    const { container } = render(
+      <PublicSiteHeader
+        siteName="MailStack"
+        logoUrl="/api/media/branding/logo.png"
+        activePage="home"
+      />,
+    );
 
     expect(screen.getByText("MailStack")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Client login/i })).toHaveAttribute(
@@ -25,6 +31,9 @@ describe("Public Website UI Components", () => {
     expect(
       screen.getByRole("link", { name: /Request a mailbox/i }),
     ).toHaveAttribute("href", "/contact");
+    const logoImg = container.querySelector("img");
+    expect(logoImg).not.toBeNull();
+    expect(logoImg).toHaveAttribute("referrerpolicy", "no-referrer");
   });
 
   it("renders PublicSiteFooter with dynamic support email, privacy policy, and copyright", () => {
@@ -65,7 +74,7 @@ describe("Public Website UI Components", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders ContactInquiryForm with preselected service, live character counter, and validation feedback", async () => {
+  it("renders ContactInquiryForm with preselected service, live character counter, and validation AlertBanner", async () => {
     const user = userEvent.setup();
     render(
       <ContactInquiryForm
@@ -83,5 +92,11 @@ describe("Public Website UI Components", () => {
     const messageInput = screen.getByLabelText(/Project or mailbox details/i);
     await user.type(messageInput, "Shared support mailbox setup");
     expect(screen.getByText("28")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Send inquiry/i }));
+    const banner = await screen.findByRole("status");
+    expect(banner).toHaveTextContent(
+      "Please complete all required fields before submitting.",
+    );
   });
 });

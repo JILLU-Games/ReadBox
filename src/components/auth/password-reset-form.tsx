@@ -1,9 +1,10 @@
 "use client";
 
 import {
-    completePasswordResetAction,
-    type PasswordResetState,
+  completePasswordResetAction,
+  type PasswordResetState,
 } from "@/app/reset-password/actions";
+import { AlertBanner, Button, Input, Label } from "@/components/ui";
 import { passwordConfirmationMatches } from "@/core/auth/password-policy";
 import { useActionState, useState, type FormEvent } from "react";
 
@@ -40,15 +41,14 @@ export function PasswordResetForm() {
   return (
     <form
       action={action}
-      className="mt-8 space-y-5"
+      className="space-y-3"
       onInput={(event) => updatePasswordMismatch(event.currentTarget)}
       onSubmit={validatePasswordConfirmation}
     >
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="reset-token">Reset token</label>
-        <input
+      <div className="space-y-1">
+        <Label htmlFor="reset-token">Reset token</Label>
+        <Input
           autoComplete="off"
-          className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
           id="reset-token"
           maxLength={43}
           name="token"
@@ -56,11 +56,10 @@ export function PasswordResetForm() {
           spellCheck={false}
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="new-password">New password</label>
-        <input
+      <div className="space-y-1">
+        <Label htmlFor="new-password">New password</Label>
+        <Input
           autoComplete="new-password"
-          className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
           id="new-password"
           maxLength={128}
           minLength={15}
@@ -69,11 +68,10 @@ export function PasswordResetForm() {
           type="password"
         />
       </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="confirm-password">Confirm new password</label>
-        <input
+      <div className="space-y-1">
+        <Label htmlFor="confirm-password">Confirm new password</Label>
+        <Input
           autoComplete="new-password"
-          className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
           id="confirm-password"
           aria-describedby={passwordMismatch ? "password-mismatch" : undefined}
           aria-invalid={passwordMismatch}
@@ -85,25 +83,24 @@ export function PasswordResetForm() {
         />
       </div>
       {passwordMismatch ? (
-        <p className="text-sm text-destructive" id="password-mismatch" role="alert">
+        <AlertBanner id="password-mismatch" variant="error">
           Passwords do not match.
-        </p>
+        </AlertBanner>
       ) : null}
       {state.status === "success" ? (
-        <p className="text-sm" role="status">Password reset complete. You can sign in now.</p>
+        <AlertBanner variant="success">
+          Password reset complete. You can sign in now.
+        </AlertBanner>
       ) : null}
       {state.status === "invalid" ? (
-        <p className="text-sm text-destructive" role="alert">
-          Reset could not be completed. Check the token and password requirements.
-        </p>
+        <AlertBanner variant="error">
+          Reset could not be completed. Check the token and password
+          requirements.
+        </AlertBanner>
       ) : null}
-      <button
-        className="min-h-11 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
-        disabled={pending}
-        type="submit"
-      >
+      <Button className="w-full" disabled={pending} type="submit">
         {pending ? "Updating password..." : "Set new password"}
-      </button>
+      </Button>
     </form>
   );
 }

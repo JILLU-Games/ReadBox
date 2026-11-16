@@ -388,7 +388,7 @@ export function UserMailboxesView({
                   <TableCell className="text-right font-mono tabular-nums text-foreground">
                     {totalMessages}
                   </TableCell>
-                  <TableCell className="text-right font-mono font-semibold tabular-nums text-primary">
+                  <TableCell className="text-right font-mono font-medium tabular-nums text-primary">
                     {unreadMessages}
                   </TableCell>
                   <TableCell className="font-mono tabular-nums text-muted-foreground">

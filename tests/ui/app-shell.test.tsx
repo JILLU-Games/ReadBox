@@ -33,6 +33,14 @@ import { AppShell } from "@/components/layout/app-shell";
 
 const adminUser = { username: "admin.operator", isAdministrator: true };
 const regularUser = { username: "inbox.user", isAdministrator: false };
+const sampleMailboxes = [
+  {
+    uuid: "11111111-2222-4333-8444-555555555555",
+    emailAddress: "alice@mailstack.local",
+    unreadMessages: "2",
+    totalMessages: "5",
+  },
+];
 
 describe("AppShell navigation, role gating, and sign-out", () => {
   beforeEach(() => {
@@ -53,10 +61,30 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     vi.unstubAllGlobals();
   });
 
-  it("hides admin navigation from non-administrators and omitted user state", () => {
-    render(<AppShell user={regularUser}>Workspace content</AppShell>);
+  it("replaces legacy User panel link with compact Users navigation and hides admin navigation from regular users", () => {
+    render(
+      <AppShell user={regularUser} mailboxes={sampleMailboxes}>
+        Workspace content
+      </AppShell>,
+    );
 
-    expect(screen.getByRole("link", { name: "User panel" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "User panel" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
+      "href",
+      "/users",
+    );
+    expect(screen.getByRole("link", { name: "My mailboxes" })).toHaveAttribute(
+      "href",
+      "/users/mailboxes",
+    );
+    expect(
+      screen.getByRole("link", { name: /alice@mailstack\.local/i }),
+    ).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555",
+    );
     expect(
       screen.queryByRole("link", { name: "Admin panel" }),
     ).not.toBeInTheDocument();
@@ -72,7 +100,8 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows management navigation and sign-out control for administrators", () => {
+  it("shows grouped Management dropdown navigation and opens related sub-menus on group click for administrators", async () => {
+    const user = userEvent.setup();
     const signOut = vi.fn(async () => undefined);
     render(
       <AppShell user={adminUser} signOutAction={signOut}>
@@ -80,24 +109,64 @@ describe("AppShell navigation, role gating, and sign-out", () => {
       </AppShell>,
     );
 
-    expect(screen.getByRole("link", { name: "User panel" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "User panel" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Workspace navigation" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Management navigation" }),
+    ).toBeInTheDocument();
+
+    const overviewGroupBtn = screen.getByRole("button", {
+      name: /Overview & Ops/i,
+    });
+    const mailGroupBtn = screen.getByRole("button", {
+      name: /Mail & Domains/i,
+    });
+    const usersGroupBtn = screen.getByRole("button", {
+      name: /Users & Security/i,
+    });
+    const systemGroupBtn = screen.getByRole("button", {
+      name: /System & Settings/i,
+    });
+
+    // Overview & Ops group is open by default
+    expect(overviewGroupBtn).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getByRole("link", { name: "Admin panel" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Operations" }),
+    ).toBeInTheDocument();
+
+    // Other groups start collapsed and open when clicked
+    expect(mailGroupBtn).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByRole("link", { name: "Domains" }),
+    ).not.toBeInTheDocument();
+    await user.click(mailGroupBtn);
+    expect(mailGroupBtn).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("link", { name: "Domains" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mailboxes" })).toBeInTheDocument();
+
+    expect(usersGroupBtn).toHaveAttribute("aria-expanded", "false");
+    await user.click(usersGroupBtn);
+    expect(usersGroupBtn).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Operations" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Audit & security" }),
     ).toBeInTheDocument();
+
+    expect(systemGroupBtn).toHaveAttribute("aria-expanded", "false");
+    await user.click(systemGroupBtn);
+    expect(systemGroupBtn).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "System update" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("navigation", { name: "Management navigation" }),
-    ).toBeInTheDocument();
+
     expect(
       screen.getByRole("button", { name: /Sign out/i }),
     ).toBeInTheDocument();
@@ -122,7 +191,9 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     await user.click(toggle);
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("link", { name: "User panel" })).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: /Overview & Ops/i }),
+    ).toHaveFocus();
 
     await user.keyboard("{Escape}");
 
@@ -138,42 +209,41 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     await user.click(screen.getByRole("button", { name: "Open navigation" }));
 
     const drawer = screen.getByRole("dialog", { name: "Workspace navigation" });
-    const firstLink = screen.getByRole("link", { name: "User panel" });
+    const firstGroupBtn = screen.getByRole("button", {
+      name: /Overview & Ops/i,
+    });
     const adminLink = screen.getByRole("link", { name: "Admin panel" });
-    const domainsLink = screen.getByRole("link", { name: "Domains" });
-    const mailboxesLink = screen.getByRole("link", { name: "Mailboxes" });
-    const usersLink = screen.getByRole("link", { name: "Users" });
     const operationsLink = screen.getByRole("link", { name: "Operations" });
-    const auditLink = screen.getByRole("link", { name: "Audit & security" });
-    const settingsLink = screen.getByRole("link", { name: "Settings" });
-    const lastLink = screen.getByRole("link", { name: "System update" });
+    const mailGroupBtn = screen.getByRole("button", {
+      name: /Mail & Domains/i,
+    });
+    const usersGroupBtn = screen.getByRole("button", {
+      name: /Users & Security/i,
+    });
+    const systemGroupBtn = screen.getByRole("button", {
+      name: /System & Settings/i,
+    });
     const closeButton = screen.getByRole("button", {
       name: "Close navigation drawer",
     });
 
     expect(drawer).toHaveAttribute("aria-modal", "true");
-    expect(firstLink).toHaveFocus();
+    expect(firstGroupBtn).toHaveFocus();
 
     await user.tab();
     expect(adminLink).toHaveFocus();
     await user.tab();
-    expect(domainsLink).toHaveFocus();
-    await user.tab();
-    expect(mailboxesLink).toHaveFocus();
-    await user.tab();
-    expect(usersLink).toHaveFocus();
-    await user.tab();
     expect(operationsLink).toHaveFocus();
     await user.tab();
-    expect(auditLink).toHaveFocus();
+    expect(mailGroupBtn).toHaveFocus();
     await user.tab();
-    expect(settingsLink).toHaveFocus();
+    expect(usersGroupBtn).toHaveFocus();
     await user.tab();
-    expect(lastLink).toHaveFocus();
+    expect(systemGroupBtn).toHaveFocus();
     await user.tab();
     expect(closeButton).toHaveFocus();
     await user.tab();
-    expect(firstLink).toHaveFocus();
+    expect(firstGroupBtn).toHaveFocus();
     await user.tab({ shift: true });
     expect(closeButton).toHaveFocus();
   });
@@ -204,7 +274,9 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     const toggle = screen.getByRole("button", { name: "Open navigation" });
     await user.click(toggle);
     const drawer = screen.getByRole("dialog", { name: "Workspace navigation" });
-    const firstLink = screen.getByRole("link", { name: "User panel" });
+    const firstGroupBtn = screen.getByRole("button", {
+      name: /Overview & Ops/i,
+    });
 
     act(() => {
       listeners.forEach((listener) =>
@@ -214,7 +286,7 @@ describe("AppShell navigation, role gating, and sign-out", () => {
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(drawer).not.toHaveAttribute("role", "dialog");
-    expect(firstLink).toHaveFocus();
+    expect(firstGroupBtn).toHaveFocus();
 
     act(() => {
       listeners.forEach((listener) =>
@@ -244,7 +316,7 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     render(<AppShell user={adminUser}>Workspace content</AppShell>);
 
     const toggle = screen.getByRole("button", { name: "Open navigation" });
-    const activeLink = screen.getByRole("link", { name: "User panel" });
+    const activeLink = screen.getByRole("link", { name: "Admin panel" });
     activeLink.focus();
     await user.click(activeLink);
 

@@ -2,6 +2,16 @@ import { PublicFaqAccordion } from "@/components/public/public-faq-accordion";
 import { PUBLIC_FAQ_ITEMS } from "@/components/public/public-faq-data";
 import { PublicSiteFooter } from "@/components/public/public-site-footer";
 import { PublicSiteHeader } from "@/components/public/public-site-header";
+import {
+  Badge,
+  Button,
+  Icon,
+  PageTitle,
+  Panel,
+  PanelBody,
+  PanelHeader,
+  SectionTitle,
+} from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
 import {
@@ -325,28 +335,25 @@ export default async function PublicLandingPage() {
 
       <main id="main" className="flex-1">
         {/* Compact Hero + Live Business Inbox Preview */}
-        <section className="border-b border-border bg-gradient-to-b from-card to-background py-8 sm:py-11">
+        <section className="border-b border-border bg-card py-7 sm:py-9">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
               <div className="min-w-0 lg:col-span-7">
-                <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-success"
-                    aria-hidden="true"
-                  />
+                <Badge variant="outline" className="max-w-full gap-1.5 whitespace-normal">
+                  <span className="size-1.5 shrink-0 bg-success" aria-hidden="true" />
                   <span>
                     Private Mailbox Infrastructure · Verified Custom Domains
                   </span>
-                </div>
+                </Badge>
 
-                <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+                <PageTitle className="mt-3 text-xl font-medium tracking-tight sm:text-2xl">
                   Private mailboxes for individuals, teams, and growing
                   businesses.
-                </h1>
+                </PageTitle>
 
                 <p
                   data-site-tagline
-                  className="mt-2.5 max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm"
+                  className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground"
                 >
                   {settings.siteTagline
                     ? `${settings.siteTagline} Provision custom-domain mailboxes, grant role-based team inbox access, and keep every message inside a hardened, auditable environment.`
@@ -354,53 +361,54 @@ export default async function PublicLandingPage() {
                 </p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <Link
-                    href="/contact"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-xs transition-opacity hover:opacity-95"
-                  >
-                    <span>Request a mailbox</span>
-                    <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  </Link>
-                  <Link
-                    href="#services"
-                    className="inline-flex h-9 items-center rounded-md border border-border bg-card px-3.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    Explore service tiers
-                  </Link>
-                  <Link
-                    href="/sign-in"
-                    className="inline-flex h-9 items-center gap-1 rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-                  >
-                    <span>Client login</span>
-                    <ArrowRight className="h-3 w-3" aria-hidden="true" />
-                  </Link>
+                  <Button asChild>
+                    <Link href="/contact">
+                      <span>Request a mailbox</span>
+                      <Icon glyph={ArrowRight} className="size-3.5" />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link href="#services">Explore service tiers</Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link href="/sign-in">
+                      <span>Client login</span>
+                      <Icon glyph={ArrowRight} className="size-3" />
+                    </Link>
+                  </Button>
                 </div>
 
                 <dl className="mt-5 grid grid-cols-1 gap-2 border-t border-border pt-4 sm:grid-cols-3">
-                  <div className="min-w-0 rounded-md border border-border bg-card/70 px-2.5 py-2">
-                    <dt className="text-[10px] font-medium text-muted-foreground uppercase">
-                      Authentication
-                    </dt>
-                    <dd className="mt-0.5 font-mono text-xs font-semibold text-foreground">
-                      SPF · DKIM · DMARC
-                    </dd>
-                  </div>
-                  <div className="min-w-0 rounded-md border border-border bg-card/70 px-2.5 py-2">
-                    <dt className="text-[10px] font-medium text-muted-foreground uppercase">
-                      Access Model
-                    </dt>
-                    <dd className="mt-0.5 text-xs font-semibold text-foreground">
-                      Role-Based Shared
-                    </dd>
-                  </div>
-                  <div className="min-w-0 rounded-md border border-border bg-card/70 px-2.5 py-2">
-                    <dt className="text-[10px] font-medium text-muted-foreground uppercase">
-                      Message Safety
-                    </dt>
-                    <dd className="mt-0.5 text-xs font-semibold text-foreground">
-                      Sandboxed Reader
-                    </dd>
-                  </div>
+                  <Panel className="min-w-0 bg-background">
+                    <PanelBody className="px-2.5 py-2">
+                      <dt className="text-[11px] font-medium text-muted-foreground">
+                        Authentication
+                      </dt>
+                      <dd className="mt-0.5 font-mono text-xs font-medium text-foreground">
+                        SPF · DKIM · DMARC
+                      </dd>
+                    </PanelBody>
+                  </Panel>
+                  <Panel className="min-w-0 bg-background">
+                    <PanelBody className="px-2.5 py-2">
+                      <dt className="text-[11px] font-medium text-muted-foreground">
+                        Access Model
+                      </dt>
+                      <dd className="mt-0.5 text-xs font-medium text-foreground">
+                        Role-Based Shared
+                      </dd>
+                    </PanelBody>
+                  </Panel>
+                  <Panel className="min-w-0 bg-background">
+                    <PanelBody className="px-2.5 py-2">
+                      <dt className="text-[11px] font-medium text-muted-foreground">
+                        Message Safety
+                      </dt>
+                      <dd className="mt-0.5 text-xs font-medium text-foreground">
+                        Sandboxed Reader
+                      </dd>
+                    </PanelBody>
+                  </Panel>
                 </dl>
               </div>
 
@@ -409,36 +417,34 @@ export default async function PublicLandingPage() {
                 aria-label={`${siteName} workspace preview`}
                 className="min-w-0 lg:col-span-5"
               >
-                <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/60 px-3 py-2">
-                    <div className="flex items-center gap-1.5" aria-hidden="true">
-                      <span className="h-2 w-2 rounded-full bg-destructive/70" />
-                      <span className="h-2 w-2 rounded-full bg-warning/70" />
-                      <span className="h-2 w-2 rounded-full bg-success/70" />
-                      <span className="ml-1 text-[11px] font-semibold text-foreground">
-                        {siteName} Business Inbox
-                      </span>
-                    </div>
-                    <span className="rounded bg-success-bg px-1.5 py-0.5 font-mono text-[10px] font-medium text-success-foreground">
-                      SPF · DKIM · DMARC Verified
+                <Panel className="bg-background">
+                  <PanelHeader className="bg-muted">
+                    <span className="text-xs font-medium text-foreground">
+                      {siteName} Business Inbox
                     </span>
-                  </div>
+                    <Badge variant="success" className="font-mono text-[10px]">
+                      SPF · DKIM · DMARC Verified
+                    </Badge>
+                  </PanelHeader>
 
                   <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-12 sm:divide-x sm:divide-y-0">
-                    <div className="bg-muted/25 p-2.5 sm:col-span-5">
-                      <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                    <div className="bg-card p-2.5 sm:col-span-5">
+                      <p className="text-[11px] font-medium text-muted-foreground">
                         Active Mailboxes
                       </p>
                       <ul className="mt-1.5 space-y-1 text-[11px]">
-                        <li className="flex items-center justify-between gap-1 rounded bg-sidebar-active px-2 py-1 font-medium text-sidebar-active-foreground">
+                        <li className="flex items-center justify-between gap-1 bg-sidebar-active px-2 py-1 font-medium text-sidebar-active-foreground">
                           <span className="truncate font-mono">
                             support@{mailDomain}
                           </span>
-                          <span className="shrink-0 rounded bg-primary px-1 text-[10px] text-primary-foreground">
+                          <Badge
+                            variant="accent"
+                            className="shrink-0 font-mono text-[10px]"
+                          >
                             4
-                          </span>
+                          </Badge>
                         </li>
-                        <li className="flex items-center justify-between gap-1 rounded px-2 py-1 text-muted-foreground">
+                        <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
                           <span className="truncate font-mono">
                             billing@{mailDomain}
                           </span>
@@ -446,7 +452,7 @@ export default async function PublicLandingPage() {
                             1
                           </span>
                         </li>
-                        <li className="flex items-center justify-between gap-1 rounded px-2 py-1 text-muted-foreground">
+                        <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
                           <span className="truncate font-mono">
                             ops@{mailDomain}
                           </span>
@@ -454,7 +460,7 @@ export default async function PublicLandingPage() {
                             0
                           </span>
                         </li>
-                        <li className="flex items-center justify-between gap-1 rounded px-2 py-1 text-muted-foreground">
+                        <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
                           <span className="truncate font-mono">
                             legal@{mailDomain}
                           </span>
@@ -467,14 +473,14 @@ export default async function PublicLandingPage() {
 
                     <div className="p-2.5 sm:col-span-7">
                       <div className="space-y-1.5">
-                        <article className="rounded border border-primary/30 bg-sidebar-active/40 p-2">
+                        <article className="border border-primary/40 bg-accent p-2">
                           <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
-                            <span className="font-semibold text-foreground">
+                            <span className="font-medium text-foreground">
                               Enterprise Onboarding
                             </span>
                             <span className="font-mono">2m ago</span>
                           </div>
-                          <p className="mt-0.5 truncate text-xs font-semibold text-foreground">
+                          <p className="mt-0.5 truncate text-xs font-medium text-foreground">
                             Custom domain verification completed
                           </p>
                           <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
@@ -483,9 +489,9 @@ export default async function PublicLandingPage() {
                           </p>
                         </article>
 
-                        <article className="rounded border border-border bg-background p-2">
+                        <article className="border border-border bg-card p-2">
                           <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
-                            <span className="font-semibold text-foreground">
+                            <span className="font-medium text-foreground">
                               Finance Team
                             </span>
                             <span className="font-mono">18m ago</span>
@@ -507,7 +513,7 @@ export default async function PublicLandingPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Panel>
               </div>
             </div>
           </div>
@@ -521,69 +527,56 @@ export default async function PublicLandingPage() {
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {TRUST_PILLARS.map((pillar) => (
-                <div
-                  key={pillar.title}
-                  className="rounded-md border border-border bg-background/60 p-3"
-                >
-                  <p className="text-xs font-semibold text-foreground">
-                    {pillar.title}
-                  </p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    {pillar.description}
-                  </p>
-                </div>
+                <Panel key={pillar.title} className="bg-background">
+                  <PanelBody>
+                    <p className="text-xs font-medium text-foreground">
+                      {pillar.title}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                      {pillar.description}
+                    </p>
+                  </PanelBody>
+                </Panel>
               ))}
             </div>
           </div>
         </section>
 
         {/* Services Section (#services) */}
-        <section id="services" className="scroll-mt-14 py-8 sm:py-10">
+        <section id="services" className="scroll-mt-14 py-7 sm:py-9">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                Services
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              <SectionTitle className="text-sm font-medium sm:text-base">
                 Mailbox configurations tailored to how you work
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+              </SectionTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Whether you need a private address for yourself, a shared
                 support inbox for your team, or managed multi-domain email for
                 your organization, {siteName} scales cleanly.
               </p>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {SERVICE_TIERS.map((tier) => {
-                const TierIcon = tier.icon;
-                return (
-                  <article
-                    key={tier.key}
-                    className={`flex flex-col justify-between rounded-lg border p-4 transition-shadow ${
-                      tier.featured
-                        ? "border-primary bg-card shadow-xs"
-                        : "border-border bg-card"
-                    }`}
-                  >
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {SERVICE_TIERS.map((tier) => (
+                <Panel
+                  key={tier.key}
+                  className={`flex flex-col justify-between ${
+                    tier.featured ? "border-primary" : ""
+                  }`}
+                >
+                  <PanelBody className="flex flex-1 flex-col justify-between p-4">
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold ${
-                            tier.featured
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
+                        <Badge variant={tier.featured ? "accent" : "default"}>
                           {tier.badge}
-                        </span>
-                        <TierIcon
-                          className="h-4 w-4 text-muted-foreground"
-                          aria-hidden="true"
+                        </Badge>
+                        <Icon
+                          glyph={tier.icon}
+                          className="size-4 text-muted-foreground"
                         />
                       </div>
 
-                      <h3 className="mt-2.5 text-sm font-bold text-foreground sm:text-base">
+                      <h3 className="mt-2.5 text-sm font-medium text-foreground">
                         {tier.title}
                       </h3>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -596,9 +589,9 @@ export default async function PublicLandingPage() {
                             key={bullet}
                             className="flex items-start gap-1.5 leading-snug"
                           >
-                            <CheckCircle2
-                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success"
-                              aria-hidden="true"
+                            <Icon
+                              glyph={CheckCircle2}
+                              className="mt-0.5 size-3.5 shrink-0 text-success"
                             />
                             <span>{bullet}</span>
                           </li>
@@ -607,21 +600,20 @@ export default async function PublicLandingPage() {
                     </div>
 
                     <div className="mt-4 pt-2">
-                      <Link
-                        href={tier.href}
-                        className={`inline-flex h-8 w-full items-center justify-center gap-1 rounded-md px-3 text-xs font-semibold transition-colors ${
-                          tier.featured
-                            ? "bg-primary text-primary-foreground hover:opacity-95"
-                            : "border border-border bg-background text-foreground hover:bg-muted"
-                        }`}
+                      <Button
+                        variant={tier.featured ? "default" : "outline"}
+                        asChild
+                        className="w-full"
                       >
-                        <span>{tier.ctaLabel}</span>
-                        <ArrowRight className="h-3 w-3" aria-hidden="true" />
-                      </Link>
+                        <Link href={tier.href}>
+                          <span>{tier.ctaLabel}</span>
+                          <Icon glyph={ArrowRight} className="size-3" />
+                        </Link>
+                      </Button>
                     </div>
-                  </article>
-                );
-              })}
+                  </PanelBody>
+                </Panel>
+              ))}
             </div>
           </div>
         </section>
@@ -629,77 +621,68 @@ export default async function PublicLandingPage() {
         {/* Features Section (#features) */}
         <section
           id="features"
-          className="scroll-mt-14 border-y border-border bg-card py-8 sm:py-10"
+          className="scroll-mt-14 border-y border-border bg-card py-7 sm:py-9"
         >
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                Platform Capabilities
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              <SectionTitle className="text-sm font-medium sm:text-base">
                 Focused features without enterprise bloat
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+              </SectionTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Every component in {siteName} is designed for clarity,
                 predictability, and low operational overhead.
               </p>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-              {CORE_FEATURES.map((feature) => {
-                const FeatureIcon = feature.icon;
-                return (
-                  <article
-                    key={feature.title}
-                    className="rounded-lg border border-border bg-background p-4"
-                  >
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {CORE_FEATURES.map((feature) => (
+                <Panel key={feature.title} className="bg-background">
+                  <PanelBody className="p-3.5">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                        <FeatureIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-secondary text-secondary-foreground">
+                        <Icon glyph={feature.icon} className="size-3.5" />
                       </span>
-                      <h3 className="text-xs font-bold text-foreground sm:text-sm">
+                      <h3 className="text-xs font-medium text-foreground">
                         {feature.title}
                       </h3>
                     </div>
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                       {feature.description}
                     </p>
-                  </article>
-                );
-              })}
+                  </PanelBody>
+                </Panel>
+              ))}
             </div>
           </div>
         </section>
 
         {/* 3-Step Onboarding Workflow */}
-        <section className="py-8 sm:py-10">
+        <section className="py-7 sm:py-9">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                How Onboarding Works
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              <SectionTitle className="text-sm font-medium sm:text-base">
                 From domain setup to active team inbox in three steps
-              </h2>
+              </SectionTitle>
             </div>
 
-            <ol className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+            <ol className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {ONBOARDING_STEPS.map((item) => (
-                <li
-                  key={item.step}
-                  className="rounded-lg border border-border bg-card p-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-xs font-bold text-primary-foreground">
-                      {item.step}
-                    </span>
-                    <h3 className="text-xs font-bold text-foreground sm:text-sm">
-                      {item.title}
-                    </h3>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                    {item.description}
-                  </p>
+                <li key={item.step}>
+                  <Panel className="h-full">
+                    <PanelBody className="p-3.5">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-6 shrink-0 items-center justify-center bg-primary font-mono text-xs font-medium text-primary-foreground">
+                          {item.step}
+                        </span>
+                        <h3 className="text-xs font-medium text-foreground">
+                          {item.title}
+                        </h3>
+                      </div>
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        {item.description}
+                      </p>
+                    </PanelBody>
+                  </Panel>
                 </li>
               ))}
             </ol>
@@ -709,51 +692,47 @@ export default async function PublicLandingPage() {
         {/* Security by Design (#security) */}
         <section
           id="security"
-          className="scroll-mt-14 border-y border-border bg-card py-8 sm:py-10"
+          className="scroll-mt-14 border-y border-border bg-card py-7 sm:py-9"
         >
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
               <div className="lg:col-span-5">
-                <p className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                  Security by Design
-                </p>
-                <h2 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+                <SectionTitle className="text-sm font-medium sm:text-base">
                   Hardened from the SMTP edge to the browser reader
-                </h2>
+                </SectionTitle>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                   Email is one of the primary entry points for organizational
                   risk. {siteName} enforces defensive controls at every layer of
                   delivery, storage, and message viewing.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  <span className="rounded border border-border bg-muted px-2 py-0.5 font-mono text-[10px] text-foreground">
+                  <Badge variant="outline" className="font-mono text-[10px]">
                     Strict CSP
-                  </span>
-                  <span className="rounded border border-border bg-muted px-2 py-0.5 font-mono text-[10px] text-foreground">
+                  </Badge>
+                  <Badge variant="outline" className="font-mono text-[10px]">
                     Sandboxed Iframe
-                  </span>
-                  <span className="rounded border border-border bg-muted px-2 py-0.5 font-mono text-[10px] text-foreground">
+                  </Badge>
+                  <Badge variant="outline" className="font-mono text-[10px]">
                     Path Confinement
-                  </span>
-                  <span className="rounded border border-border bg-muted px-2 py-0.5 font-mono text-[10px] text-foreground">
+                  </Badge>
+                  <Badge variant="outline" className="font-mono text-[10px]">
                     PostgreSQL Audit Trail
-                  </span>
+                  </Badge>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 lg:col-span-7">
                 {SECURITY_PILLARS.map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-lg border border-border bg-background p-3.5"
-                  >
-                    <h3 className="text-xs font-bold text-foreground sm:text-sm">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </div>
+                  <Panel key={item.title} className="bg-background">
+                    <PanelBody className="p-3.5">
+                      <h3 className="text-xs font-medium text-foreground">
+                        {item.title}
+                      </h3>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {item.description}
+                      </p>
+                    </PanelBody>
+                  </Panel>
                 ))}
               </div>
             </div>
@@ -761,40 +740,30 @@ export default async function PublicLandingPage() {
         </section>
 
         {/* Use Cases */}
-        <section className="py-8 sm:py-10">
+        <section className="py-7 sm:py-9">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                Use Cases
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              <SectionTitle className="text-sm font-medium sm:text-base">
                 Built for operational clarity across teams
-              </h2>
+              </SectionTitle>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {USE_CASES.map((useCase) => {
-                const UseCaseIcon = useCase.icon;
-                return (
-                  <article
-                    key={useCase.title}
-                    className="rounded-lg border border-border bg-card p-3.5"
-                  >
+              {USE_CASES.map((useCase) => (
+                <Panel key={useCase.title}>
+                  <PanelBody className="p-3.5">
                     <div className="flex items-center gap-2">
-                      <UseCaseIcon
-                        className="h-4 w-4 shrink-0 text-primary"
-                        aria-hidden="true"
-                      />
-                      <h3 className="text-xs font-bold text-foreground">
+                      <Icon glyph={useCase.icon} className="size-4 text-primary" />
+                      <h3 className="text-xs font-medium text-foreground">
                         {useCase.title}
                       </h3>
                     </div>
                     <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                       {useCase.description}
                     </p>
-                  </article>
-                );
-              })}
+                  </PanelBody>
+                </Panel>
+              ))}
             </div>
           </div>
         </section>
@@ -802,16 +771,13 @@ export default async function PublicLandingPage() {
         {/* FAQ Section (#faq) */}
         <section
           id="faq"
-          className="scroll-mt-14 border-t border-border bg-card/50 py-8 sm:py-10"
+          className="scroll-mt-14 border-t border-border bg-card py-7 sm:py-9"
         >
           <div className="mx-auto max-w-4xl px-3 sm:px-5">
             <div className="mb-4">
-              <p className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                FAQ
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              <SectionTitle className="text-sm font-medium sm:text-base">
                 Common questions about {siteName}
-              </h2>
+              </SectionTitle>
             </div>
 
             <PublicFaqAccordion items={PUBLIC_FAQ_ITEMS} />
@@ -819,37 +785,32 @@ export default async function PublicLandingPage() {
         </section>
 
         {/* Compact Bottom CTA Banner */}
-        <section className="border-t border-border bg-card py-7 sm:py-9">
+        <section className="border-t border-border bg-card py-6 sm:py-8">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
-            <div className="flex flex-col items-start justify-between gap-4 rounded-lg border border-border bg-background p-4 sm:flex-row sm:items-center sm:p-5">
-              <div className="max-w-xl">
-                <p className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                  Get Started
-                </p>
-                <h2 className="mt-0.5 text-base font-bold text-foreground sm:text-lg">
-                  Ready to set up your private or team mailboxes?
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Tell us about your domain or mailbox requirements and our team
-                  will prepare a tailored onboarding plan.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href="/contact"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-95"
-                >
-                  <span>Request a mailbox</span>
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Link>
-                <Link
-                  href="/sign-in"
-                  className="inline-flex h-8 items-center rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground hover:bg-muted"
-                >
-                  Client login
-                </Link>
-              </div>
-            </div>
+            <Panel className="bg-background">
+              <PanelBody className="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
+                <div className="max-w-xl">
+                  <SectionTitle className="text-sm font-medium sm:text-base">
+                    Ready to set up your private or team mailboxes?
+                  </SectionTitle>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Tell us about your domain or mailbox requirements and our
+                    team will prepare a tailored onboarding plan.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button asChild>
+                    <Link href="/contact">
+                      <span>Request a mailbox</span>
+                      <Icon glyph={ArrowRight} className="size-3.5" />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link href="/sign-in">Client login</Link>
+                  </Button>
+                </div>
+              </PanelBody>
+            </Panel>
           </div>
         </section>
       </main>

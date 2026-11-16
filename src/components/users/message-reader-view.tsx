@@ -202,14 +202,14 @@ export function MessageReaderView({
             <div className="flex min-w-0 flex-1 items-start gap-2.5">
               <div
                 aria-hidden="true"
-                className="grid size-8 shrink-0 place-items-center bg-primary text-xs font-semibold text-primary-foreground"
+                className="grid size-8 shrink-0 place-items-center bg-primary text-xs font-medium text-primary-foreground"
               >
                 {avatarInitial}
               </div>
 
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <strong className="break-all text-xs font-semibold text-foreground">
+                  <strong className="break-all text-xs font-medium text-foreground">
                     {senderDisplay}
                   </strong>
                   {message.senderAddress && message.senderName ? (
@@ -318,7 +318,7 @@ export function MessageReaderView({
 
           {message.parseWarning ? (
             <AlertBanner variant="warning" role="note">
-              <strong className="font-semibold">Parsing warning:</strong>{" "}
+              <strong className="font-medium">Parsing warning:</strong>{" "}
               {message.parseWarning}
             </AlertBanner>
           ) : null}
@@ -379,7 +379,7 @@ export function MessageReaderView({
               <Icon glyph={Paperclip} className="text-muted-foreground" />
               <h2
                 id="attachments-heading"
-                className="text-xs font-semibold text-foreground"
+                className="text-xs font-medium text-foreground"
               >
                 Attachments ({message.attachments.length})
               </h2>

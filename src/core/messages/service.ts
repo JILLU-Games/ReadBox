@@ -1263,6 +1263,7 @@ export function buildSanitizedHtmlDocument(
       : "<p>No HTML body is available.</p>";
 
   const lightCss =
+    "*{scrollbar-width:none;-ms-overflow-style:none;}*::-webkit-scrollbar{display:none;width:0;height:0;}" +
     "html{color-scheme:light;color:#1b2733;background:#ffffff;font-family:\"Segoe UI\",\"Segoe UI Web\",system-ui,-apple-system,\"Helvetica Neue\",sans-serif;}" +
     "body{margin:0;padding:16px;font-size:13px;line-height:1.55;overflow-wrap:anywhere;}" +
     "img{max-width:100%;height:auto;}table{max-width:100%;border-collapse:collapse;}" +
