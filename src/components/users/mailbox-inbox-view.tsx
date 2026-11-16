@@ -95,6 +95,34 @@ export function MailboxInboxView({
     activeMessage && markUnreadAction && deleteMessageAction,
   );
 
+  const activeIndex = activeMessage
+    ? inboxResult.items.findIndex((item) => item.uuid === activeMessage.uuid)
+    : -1;
+  const readerNavigation =
+    activeMessage && activeIndex !== -1
+      ? {
+          currentIndex:
+            (inboxResult.page - 1) * inboxResult.pageSize + activeIndex + 1,
+          totalCount: inboxResult.totalCount,
+          prevHref:
+            activeIndex > 0
+              ? buildMessageUrl(
+                  mailbox.uuid,
+                  inboxResult.items[activeIndex - 1]!.uuid,
+                  filterParams,
+                )
+              : null,
+          nextHref:
+            activeIndex < inboxResult.items.length - 1
+              ? buildMessageUrl(
+                  mailbox.uuid,
+                  inboxResult.items[activeIndex + 1]!.uuid,
+                  filterParams,
+                )
+              : null,
+        }
+      : null;
+
   return (
     <div className="space-y-3">
       <LiveWorkspaceNavigationBar
@@ -106,7 +134,7 @@ export function MailboxInboxView({
       <div
         className={cn(
           "border border-border bg-card",
-          !readerExpanded && "xl:grid xl:grid-cols-[minmax(360px,42%)_1fr]",
+          !readerExpanded && "xl:grid xl:grid-cols-[minmax(320px,35%)_1fr]",
         )}
       >
         <section
@@ -382,6 +410,7 @@ export function MailboxInboxView({
               embedded={true}
               expanded={readerExpanded}
               onToggleExpanded={() => setReaderExpanded((prev) => !prev)}
+              navigation={readerNavigation}
             />
           </div>
         ) : (

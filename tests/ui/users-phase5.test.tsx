@@ -357,7 +357,7 @@ describe("Phase 5 — User Workspace UI components", () => {
     expect(screen.getByLabelText("Attachment filter")).toBeInTheDocument();
   });
 
-  it("renders MessageReaderView with sandboxed iframe, attachments, and gated Delete button", async () => {
+  it("renders MessageReaderView with unified Gmail-style email body, working links/buttons, attachments, and gated Delete button without HTML/Plain-text toggles", async () => {
     const user = userEvent.setup();
     const markUnread = vi.fn(async () => ({
       ok: true as const,
@@ -400,6 +400,8 @@ describe("Phase 5 — User Workspace UI components", () => {
           parseStatus: "ok",
           parseWarning: "",
           textBody: "Plain text fallback statement.",
+          htmlBody:
+            '<div><p>Your November statement is ready.</p><a href="https://billing.vendor.example/inv/9021">View Invoice #9021</a></div>',
           hasHtmlBody: true,
           attachments: [
             {
@@ -417,21 +419,24 @@ describe("Phase 5 — User Workspace UI components", () => {
       />,
     );
 
-    const iframe = screen.getByTitle("Email message content");
-    expect(iframe).toHaveAttribute("sandbox", "");
-    expect(iframe).toHaveAttribute("referrerpolicy", "no-referrer");
-    expect(iframe).toHaveAttribute(
-      "src",
-      "/api/messages/html/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeee1",
+    // Ensure confusing Sanitized HTML / Plain text toggle buttons are absent
+    expect(
+      screen.queryByRole("button", { name: /Sanitized HTML/i }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /Plain text/i })).toBeNull();
+
+    // Ensure HTML email body and interactive CTA link render directly in the DOM
+    expect(
+      screen.getByText("Your November statement is ready."),
+    ).toBeInTheDocument();
+    const ctaLink = screen.getByRole("link", { name: /View Invoice #9021/i });
+    expect(ctaLink).toHaveAttribute(
+      "href",
+      "https://billing.vendor.example/inv/9021",
     );
+    expect(ctaLink).toHaveAttribute("target", "_blank");
 
     expect(screen.getByText("statement.pdf")).toBeInTheDocument();
-
-    // Switch to plain text view
-    await user.click(screen.getByRole("button", { name: /Plain text/i }));
-    expect(
-      screen.getByText("Plain text fallback statement."),
-    ).toBeInTheDocument();
 
     // Open delete modal
     await user.click(screen.getByRole("button", { name: /^Delete$/i }));

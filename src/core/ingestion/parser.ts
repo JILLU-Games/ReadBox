@@ -138,14 +138,18 @@ export async function parseEmailMessage(
   const messageIdHeader = (parsed.messageId ?? "").trim().slice(0, 998);
 
   const textBody = (parsed.text ?? "").trim();
-  const sanitizedHtmlBody = parsed.html
-    ? sanitizeHtmlEmail(parsed.html)
-    : "";
 
   const attachments: ParsedAttachmentItem[] = [];
   const rawAttachments = Array.isArray(parsed.attachments)
     ? parsed.attachments
     : [];
+  const inlineCidDataUris = new Map<string, string>();
+  const inlineRasterTypes = new Set([
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+  ]);
 
   for (const item of rawAttachments) {
     if (attachments.length >= maxAttachments) {
@@ -166,15 +170,51 @@ export async function parseEmailMessage(
       contentBytes = new Uint8Array();
     }
 
+    const declaredMimeType = (item.mimeType ?? "application/octet-stream")
+      .trim()
+      .toLowerCase()
+      .slice(0, 255);
+    const normalizedMime =
+      declaredMimeType === "image/jpg" ? "image/jpeg" : declaredMimeType;
+    const contentId = (item.contentId ?? "").replace(/^<|>$/g, "").trim().slice(0, 998);
+
+    if (
+      contentId &&
+      inlineRasterTypes.has(normalizedMime) &&
+      contentBytes.byteLength > 0 &&
+      contentBytes.byteLength <= 2 * 1024 * 1024
+    ) {
+      const dataUri = `data:${normalizedMime};base64,${Buffer.from(contentBytes).toString("base64")}`;
+      inlineCidDataUris.set(contentId, dataUri);
+      inlineCidDataUris.set(contentId.toLowerCase(), dataUri);
+    }
+
     attachments.push({
       originalFilename: (item.filename ?? "").trim() || "attachment.bin",
       content: contentBytes,
-      declaredMimeType:
-        (item.mimeType ?? "application/octet-stream").trim().toLowerCase().slice(0, 255),
+      declaredMimeType,
       isInline: item.disposition === "inline",
-      contentId: (item.contentId ?? "").replace(/^<|>$/g, "").slice(0, 998),
+      contentId,
     });
   }
+
+  let htmlSource = parsed.html ?? "";
+  if (htmlSource && inlineCidDataUris.size > 0) {
+    htmlSource = htmlSource.replace(
+      /(<img\b[^>]*?\bsrc\s*=\s*["'])cid:([^"']+)(["'])/gi,
+      (fullMatch, prefix: string, rawCid: string, suffix: string) => {
+        const cleanedCid = rawCid.replace(/^<|>$/g, "").trim();
+        const dataUri =
+          inlineCidDataUris.get(cleanedCid) ??
+          inlineCidDataUris.get(cleanedCid.toLowerCase());
+        return dataUri ? `${prefix}${dataUri}${suffix}` : fullMatch;
+      },
+    );
+  }
+
+  const sanitizedHtmlBody = htmlSource
+    ? sanitizeHtmlEmail(htmlSource)
+    : "";
 
   if (!textBody && !sanitizedHtmlBody && attachments.length === 0) {
     warnings.push("Empty message body");
