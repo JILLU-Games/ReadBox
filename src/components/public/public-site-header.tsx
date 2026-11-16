@@ -1,8 +1,8 @@
 "use client";
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { Badge, Button, Icon } from "@/components/ui";
-import { ArrowUpRight, Lock, Mail, Menu, X } from "lucide-react";
+import { Button, Icon } from "@/components/ui";
+import { LogIn, Menu, UserPlus, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -22,13 +22,13 @@ export function PublicSiteHeader({
 
   const navItems = [
     {
-      label: "Services",
-      href: activePage === "home" ? "#services" : "/#services",
+      label: "Capabilities",
+      href: activePage === "home" ? "#capabilities" : "/#capabilities",
       active: false,
     },
     {
-      label: "Features",
-      href: activePage === "home" ? "#features" : "/#features",
+      label: "Workspaces",
+      href: activePage === "home" ? "#workspaces" : "/#workspaces",
       active: false,
     },
     {
@@ -46,11 +46,6 @@ export function PublicSiteHeader({
       href: "/contact",
       active: activePage === "contact",
     },
-    {
-      label: "Privacy",
-      href: "/privacy",
-      active: activePage === "privacy",
-    },
   ];
 
   return (
@@ -66,11 +61,11 @@ export function PublicSiteHeader({
         data-header
         className="sticky top-0 z-40 border-b border-border bg-card"
       >
-        <div className="mx-auto flex h-12 max-w-6xl items-center justify-between gap-2 px-3 sm:px-5">
+        <div className="mx-auto flex h-12 max-w-6xl items-center justify-between gap-4 px-3 sm:px-5">
           <Link
             href="/"
             aria-label={`${siteName} home`}
-            className="flex min-w-0 items-center gap-2 text-xs font-medium tracking-tight text-foreground"
+            className="flex min-w-0 shrink-0 items-center gap-2 text-xs font-medium tracking-tight whitespace-nowrap text-foreground"
           >
             <span
               aria-hidden="true"
@@ -90,9 +85,6 @@ export function PublicSiteHeader({
               )}
             </span>
             <span className="truncate font-medium">{siteName}</span>
-            <Badge variant="outline" className="hidden sm:inline-flex">
-              Private Mail
-            </Badge>
           </Link>
 
           <nav
@@ -104,7 +96,7 @@ export function PublicSiteHeader({
                 key={item.label}
                 href={item.href}
                 aria-current={item.active ? "page" : undefined}
-                className={`rounded-none px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                className={` shrink-0 rounded-none px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                   item.active
                     ? "bg-secondary text-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -119,20 +111,16 @@ export function PublicSiteHeader({
             <ThemeToggle />
 
             <Button variant="outline" size="default" asChild>
-              <Link href="/sign-in">
-                <Icon glyph={Lock} className="size-3 text-muted-foreground" />
-                <span>Client login</span>
+              <Link href="/sign-in" className="whitespace-nowrap">
+                <Icon glyph={LogIn} className="size-3 text-muted-foreground" />
+                <span>Sign in</span>
               </Link>
             </Button>
 
-            <Button
-              size="default"
-              asChild
-              className="hidden sm:inline-flex"
-            >
-              <Link href="/contact">
-                <Icon glyph={Mail} className="size-3" />
-                <span>Request a mailbox</span>
+            <Button size="default" asChild>
+              <Link href="/sign-up" className="whitespace-nowrap">
+                <Icon glyph={UserPlus} className="size-3" />
+                <span>Sign up</span>
               </Link>
             </Button>
 
@@ -176,24 +164,35 @@ export function PublicSiteHeader({
                   {item.label}
                 </Link>
               ))}
+              <Link
+                href="/privacy"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`rounded-none px-2.5 py-1.5 text-xs font-medium ${
+                  activePage === "privacy"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                Privacy
+              </Link>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
               <Button size="default" asChild className="flex-1">
                 <Link
-                  href="/contact"
+                  href="/sign-up"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Icon glyph={Mail} className="size-3" />
-                  <span>Request a mailbox</span>
+                  <Icon glyph={UserPlus} className="size-3" />
+                  <span>Sign up</span>
                 </Link>
               </Button>
-              <Button variant="outline" size="default" asChild>
+              <Button variant="outline" size="default" asChild className="flex-1">
                 <Link
-                  href="/users"
+                  href="/sign-in"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>Webmail</span>
-                  <Icon glyph={ArrowUpRight} className="size-3" />
+                  <Icon glyph={LogIn} className="size-3" />
+                  <span>Sign in</span>
                 </Link>
               </Button>
             </div>

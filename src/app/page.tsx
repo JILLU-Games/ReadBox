@@ -19,13 +19,15 @@ import {
   ArrowRight,
   Building2,
   CheckCircle2,
-  FileCheck2,
+  Clock,
   Globe,
   KeyRound,
   Lock,
+  LogIn,
   Mail,
-  Shield,
   ShieldCheck,
+  Sliders,
+  UserPlus,
   Users,
 } from "lucide-react";
 import type { Metadata } from "next";
@@ -45,11 +47,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteName = settings.siteName || "MailStack";
   const tagline =
     settings.siteTagline ||
-    "Private Mailbox Hosting, Team Email & Custom Domain Mail";
+    "Self-Service Custom-Domain Mailboxes, Policy-Governed Workspaces & Team Email";
   const title = `${siteName} — ${tagline}`;
   const description =
     settings.footerDescription ||
-    `${siteName} delivers private custom-domain mailboxes, shared team inbox access, verified SPF/DKIM/DMARC authentication, and auditable business email operations.`;
+    `${siteName} provides self-service user sign-up, policy-governed custom-domain mailboxes, per-user mailbox quotas, automated email retention, and verified SPF/DKIM/DMARC operations.`;
   const baseUrl = resolvePublicBaseUrl();
 
   return {
@@ -59,10 +61,10 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     keywords: [
       siteName,
-      "private mailbox hosting",
+      "self-service mailbox workspace",
       "custom domain email",
       "shared team inbox",
-      "business email service",
+      "email auto-delete retention",
       "managed mail server",
       "SPF DKIM DMARC email",
       "secure webmail",
@@ -90,173 +92,144 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const TRUST_PILLARS = [
+const CAPABILITY_MODULES = [
   {
-    title: "Dedicated domain identity",
+    index: "01",
+    title: "Self-Service Sign-Up & Verification",
     description:
-      "Operate mailboxes on your own domain with live MX, SPF, DKIM, and DMARC verification.",
+      "Users register directly via /sign-up with configurable field requirements, email/phone verification rules, and instant or admin-approved activation.",
+    icon: UserPlus,
   },
   {
-    title: "Shared team access",
+    index: "02",
+    title: "On-Demand Mailbox Provisioning",
     description:
-      "Assign multiple team members to read operational mailboxes without sharing credentials.",
+      "Authenticated workspace users create custom addresses on permitted domains up to their assigned mailbox quota without waiting on manual tickets.",
+    icon: Mail,
   },
   {
-    title: "Security by default",
+    index: "03",
+    title: "Automated Email Retention",
     description:
-      "Server-side HTML sanitization, sandboxed message rendering, and strict CSP protection.",
+      "Configurable auto-delete retention windows automatically filter and expire older messages per user policy while preserving active operational threads.",
+    icon: Clock,
   },
   {
-    title: "Admin visibility",
+    index: "04",
+    title: "Granular Users Control Console",
     description:
-      "Complete audit logs, quota tracking, and live service health checks from a single console.",
+      "Administrators manage global and per-user allowed domains, mailbox quotas, creation rights, and account approvals from /vcon/users/control.",
+    icon: Sliders,
+  },
+  {
+    index: "05",
+    title: "Isolated Admin & User Auth",
+    description:
+      "Dedicated database tables and session registries separate User Workspace access (/sign-in) from Platform Administration (/vcon/login).",
+    icon: Lock,
+  },
+  {
+    index: "06",
+    title: "Sandboxed Reader & DNS Guardrails",
+    description:
+      "Live MX, SPF, DKIM, and DMARC checks pair with server-side HTML sanitization, sandboxed message rendering, and PostgreSQL audit logs.",
+    icon: ShieldCheck,
   },
 ] as const;
 
-const SERVICE_TIERS = [
+const WORKSPACE_TIERS = [
   {
     key: "personal",
-    badge: "Individual & Executive",
+    kicker: "Individual Workspace",
     featured: false,
-    title: "Personal Private Mailbox",
+    title: "Self-Service Personal Mailboxes",
     summary:
-      "A clean, private custom-domain mailbox for founders, consultants, and professionals who value direct control and zero ad tracking.",
+      "Register your account, choose from allowed verified domains, and provision private mailboxes with zero ad tracking and automated retention.",
     bullets: [
-      "Custom domain address with full DNS verification",
-      "Clean, distraction-free webmail reader",
-      "Sanitized HTML rendering with remote tracker blocking",
-      "Dedicated storage quota and attachment controls",
+      "Direct account registration via /sign-up",
+      "Self-service mailbox creation within assigned quota",
+      "Configurable email auto-delete retention window",
+      "Sanitized HTML reader with tracker blocking",
     ],
-    ctaLabel: "Request personal mailbox",
-    href: "/contact?service=personal",
+    ctaLabel: "Sign up for workspace",
+    href: "/sign-up",
     icon: KeyRound,
   },
   {
     key: "team",
-    badge: "Most Requested",
+    kicker: "Collaborative Operations",
     featured: true,
-    title: "Team Mailbox Access",
+    title: "Team & Shared Mailbox Access",
     summary:
-      "Shared operational inboxes for support, billing, sales, and project teams—with role-based access instead of shared passwords.",
+      "Operate shared support@, billing@, and ops@ inboxes alongside personal workspace mailboxes using role-based access instead of shared passwords.",
     bullets: [
-      "Granular per-user mailbox read permissions",
-      "Fast search, unread filters, and attachment downloads",
-      "Centralized user lifecycle and password management",
-      "Complete audit log of administrative changes",
+      "Granular per-user mailbox read & creation permissions",
+      "Per-user domain whitelist & mailbox quota enforcement",
+      "Fast search, unread filtering, and safe attachments",
+      "Complete audit trail of account and mailbox activity",
     ],
-    ctaLabel: "Configure team access",
-    href: "/contact?service=team",
+    ctaLabel: "Create team account",
+    href: "/sign-up",
     icon: Users,
   },
   {
     key: "business",
-    badge: "Multi-Domain & Compliance",
+    kicker: "Multi-Domain Governance",
     featured: false,
-    title: "Business Mailbox Operations",
+    title: "Enterprise & Custom Domains",
     summary:
-      "Dedicated multi-domain mail operations for organizations requiring strict governance, isolated storage, and operational transparency.",
+      "Onboard your organization's custom domains with dedicated DKIM selectors, custom user sign-up policies, and full administrative telemetry.",
     bullets: [
       "Multi-domain provisioning with automated DKIM keys",
-      "Live Postfix, Dovecot, OpenDKIM, and worker telemetry",
-      "Quota enforcement and controlled mailbox purge workflows",
-      "Priority onboarding and custom retention policies",
+      "Centralized /vcon/users/control policy governance",
+      "Live Postfix, Dovecot, OpenDKIM & worker health checks",
+      "Custom domain onboarding & technical support",
     ],
-    ctaLabel: "Discuss business setup",
+    ctaLabel: "Contact enterprise support",
     href: "/contact?service=business",
     icon: Building2,
   },
 ] as const;
 
-const CORE_FEATURES = [
-  {
-    title: "Centralized Mailbox Governance",
-    description:
-      "Create domains, generate DKIM selectors, provision mailboxes, set storage quotas, and assign user access from a single administrative interface.",
-    icon: Globe,
-  },
-  {
-    title: "Role-Based Webmail Reader",
-    description:
-      "Authorized users sign in to a fast, responsive webmail workspace where they can switch between assigned mailboxes, filter unread mail, and inspect headers.",
-    icon: Mail,
-  },
-  {
-    title: "Attachment & HTML Safety",
-    description:
-      "Untrusted HTML emails are sanitized server-side and isolated inside a sandboxed reader, while attachments are validated and served with safe download headers.",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Audit Logging & Health Checks",
-    description:
-      "Every domain change, mailbox action, and permission grant is recorded in an immutable audit log alongside live mail stack readiness checks.",
-    icon: Activity,
-  },
-] as const;
-
-const ONBOARDING_STEPS = [
+const WORKFLOW_STEPS = [
   {
     step: "1",
-    title: "Review requirements",
+    title: "Create your account",
     description:
-      "Share your domain name, required mailbox addresses, and team size through our onboarding request form.",
+      "Sign up at /sign-up with your email and credentials. Accounts activate immediately or upon administrator approval based on platform policy.",
   },
   {
     step: "2",
-    title: "Provision & verify DNS",
+    title: "Provision mailboxes on allowed domains",
     description:
-      "We configure your domain, generate DKIM keys, and provide exact MX, SPF, DKIM, and DMARC records for verification.",
+      "Sign in to /users/mailboxes, select an approved domain, and create your custom mailbox addresses within your allocated quota.",
   },
   {
     step: "3",
-    title: "Assign team access",
+    title: "Receive & manage mail securely",
     description:
-      "Your mailboxes go live with individual user accounts, role-based permissions, and ongoing operational monitoring.",
+      "Read incoming mail inside the sandboxed webmail workspace with real-time updates, unread filters, and automatic retention enforcement.",
   },
 ] as const;
 
 const SECURITY_PILLARS = [
   {
-    title: "Authenticated Mail Delivery",
+    title: "Authenticated Mail Delivery (SPF · DKIM · DMARC)",
     description:
-      "Automated DKIM key generation, strict SPF policies, and DMARC alignment checks protect your domain reputation.",
+      "Automated DKIM key generation, strict SPF policies, and DMARC alignment checks protect domain reputation across every hosted address.",
+    icon: Globe,
   },
   {
-    title: "Hardened Web & Application Layer",
+    title: "Policy-Driven Workspace Isolation",
     description:
-      "Strict Content Security Policy, CSRF protection, rate-limited authentication, and HSTS across every public endpoint.",
+      "Every user operation—domain selection, mailbox creation, and inbox reading—is verified at runtime against their active User Access Policy.",
+    icon: ShieldCheck,
   },
   {
-    title: "Operational Guardrails",
+    title: "Immutable PostgreSQL Audit Trail",
     description:
-      "Filesystem path confinement, least-privilege service accounts, and explicit confirmation workflows for destructive actions.",
-  },
-] as const;
-
-const USE_CASES = [
-  {
-    title: "Executive & Founder Mail",
-    description:
-      "Private custom-domain addresses with strict access control and zero advertising telemetry.",
-    icon: Lock,
-  },
-  {
-    title: "Customer Support Desks",
-    description:
-      "Shared support@ and help@ inboxes accessible to authorized agents with individual logins.",
-    icon: Users,
-  },
-  {
-    title: "Billing & Finance Operations",
-    description:
-      "Centralized invoices@, billing@, and vendor communications with clear read/unread tracking.",
-    icon: FileCheck2,
-  },
-  {
-    title: "Legal & Compliance Archives",
-    description:
-      "Audited access to legal@, notices@, and governance mailboxes across multiple corporate domains.",
-    icon: Shield,
+      "Sign-ups, policy updates, mailbox creations, and administrative actions are recorded in a single authoritative PostgreSQL database.",
+    icon: Activity,
   },
 ] as const;
 
@@ -276,27 +249,17 @@ export default async function PublicLandingPage() {
         url: `${baseUrl}/`,
         description:
           settings.siteTagline ||
-          "Private custom-domain mailbox hosting, shared team inbox access, and managed business email infrastructure.",
+          "Self-service custom-domain mailbox hosting, policy-governed workspaces, and managed business email infrastructure.",
         ...(settings.supportEmail ? { email: settings.supportEmail } : {}),
         ...(settings.contactPhone ? { telephone: settings.contactPhone } : {}),
         contactPoint: [
           {
             "@type": "ContactPoint",
-            contactType: "sales and onboarding",
+            contactType: "customer support and domain onboarding",
             url: `${baseUrl}/contact`,
             availableLanguage: ["en"],
           },
         ],
-      },
-      {
-        "@type": "Service",
-        "@id": `${baseUrl}/#service`,
-        name: `${siteName} Managed Mailbox & Team Email Service`,
-        provider: {
-          "@id": `${baseUrl}/#organization`,
-        },
-        serviceType: "Private Mailbox Hosting and Business Email",
-        areaServed: "Worldwide",
       },
       {
         "@type": "WebApplication",
@@ -334,54 +297,87 @@ export default async function PublicLandingPage() {
       />
 
       <main id="main" className="flex-1">
-        {/* Compact Hero + Live Business Inbox Preview */}
+        {/* Hero Section + Live Policy-Governed Workspace Preview */}
         <section className="border-b border-border bg-card py-7 sm:py-9">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
-            <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
-              <div className="min-w-0 lg:col-span-7">
-                <Badge variant="outline" className="max-w-full gap-1.5 whitespace-normal">
-                  <span className="size-1.5 shrink-0 bg-success" aria-hidden="true" />
-                  <span>
-                    Private Mailbox Infrastructure · Verified Custom Domains
-                  </span>
-                </Badge>
+            <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
+              <div className="flex min-w-0 flex-col justify-between lg:col-span-7">
+                <div>
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    Self-Service Mailboxes · Domain &amp; Quota Governance · SPF /
+                    DKIM / DMARC
+                  </p>
 
-                <PageTitle className="mt-3 text-xl font-medium tracking-tight sm:text-2xl">
-                  Private mailboxes for individuals, teams, and growing
-                  businesses.
-                </PageTitle>
+                  <PageTitle className="mt-2 text-xl font-medium tracking-tight text-balance sm:text-2xl">
+                    Self-service custom-domain mailboxes and policy-governed
+                    team workspaces.
+                  </PageTitle>
 
-                <p
-                  data-site-tagline
-                  className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground"
-                >
-                  {settings.siteTagline
-                    ? `${settings.siteTagline} Provision custom-domain mailboxes, grant role-based team inbox access, and keep every message inside a hardened, auditable environment.`
-                    : `Provision custom-domain mailboxes, grant role-based team inbox access, and keep every message inside a hardened, auditable environment managed by ${siteName}.`}
-                </p>
+                  <p
+                    data-site-tagline
+                    className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground"
+                  >
+                    {settings.siteTagline
+                      ? `${settings.siteTagline} Create your account, provision mailboxes on approved domains within your quota, and manage messages with automated retention and sandboxed HTML security.`
+                      : `Create your workspace account, provision mailboxes on approved domains within your quota, and manage messages with automated retention and sandboxed HTML security on ${siteName}.`}
+                  </p>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <Button asChild>
-                    <Link href="/contact">
-                      <span>Request a mailbox</span>
-                      <Icon glyph={ArrowRight} className="size-3.5" />
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link href="#services">Explore service tiers</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link href="/sign-in">
-                      <span>Client login</span>
-                      <Icon glyph={ArrowRight} className="size-3" />
-                    </Link>
-                  </Button>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <Button asChild>
+                      <Link href="/sign-up">
+                        <Icon glyph={UserPlus} className="size-3.5" />
+                        <span>Sign up</span>
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link href="/sign-in">
+                        <Icon glyph={LogIn} className="size-3.5" />
+                        <span>Sign in</span>
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" asChild>
+                      <Link href="/contact">
+                        <span>Contact &amp; domain support</span>
+                        <Icon glyph={ArrowRight} className="size-3" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
 
-                <dl className="mt-5 grid grid-cols-1 gap-2 border-t border-border pt-4 sm:grid-cols-3">
+                <dl className="mt-6 grid grid-cols-2 gap-2 border-t border-border pt-4 sm:grid-cols-4">
                   <Panel className="min-w-0 bg-background">
                     <PanelBody className="px-2.5 py-2">
-                      <dt className="text-[11px] font-medium text-muted-foreground">
+                      <dt className="text-[11px] text-muted-foreground">
+                        Onboarding
+                      </dt>
+                      <dd className="mt-0.5 text-xs font-medium text-foreground">
+                        Self-Service Sign-Up
+                      </dd>
+                    </PanelBody>
+                  </Panel>
+                  <Panel className="min-w-0 bg-background">
+                    <PanelBody className="px-2.5 py-2">
+                      <dt className="text-[11px] text-muted-foreground">
+                        Mailbox Control
+                      </dt>
+                      <dd className="mt-0.5 text-xs font-medium text-foreground">
+                        Domain &amp; Quota Policy
+                      </dd>
+                    </PanelBody>
+                  </Panel>
+                  <Panel className="min-w-0 bg-background">
+                    <PanelBody className="px-2.5 py-2">
+                      <dt className="text-[11px] text-muted-foreground">
+                        Lifecycle
+                      </dt>
+                      <dd className="mt-0.5 text-xs font-medium text-foreground">
+                        Auto-Delete Retention
+                      </dd>
+                    </PanelBody>
+                  </Panel>
+                  <Panel className="min-w-0 bg-background">
+                    <PanelBody className="px-2.5 py-2">
+                      <dt className="text-[11px] text-muted-foreground">
                         Authentication
                       </dt>
                       <dd className="mt-0.5 font-mono text-xs font-medium text-foreground">
@@ -389,126 +385,108 @@ export default async function PublicLandingPage() {
                       </dd>
                     </PanelBody>
                   </Panel>
-                  <Panel className="min-w-0 bg-background">
-                    <PanelBody className="px-2.5 py-2">
-                      <dt className="text-[11px] font-medium text-muted-foreground">
-                        Access Model
-                      </dt>
-                      <dd className="mt-0.5 text-xs font-medium text-foreground">
-                        Role-Based Shared
-                      </dd>
-                    </PanelBody>
-                  </Panel>
-                  <Panel className="min-w-0 bg-background">
-                    <PanelBody className="px-2.5 py-2">
-                      <dt className="text-[11px] font-medium text-muted-foreground">
-                        Message Safety
-                      </dt>
-                      <dd className="mt-0.5 text-xs font-medium text-foreground">
-                        Sandboxed Reader
-                      </dd>
-                    </PanelBody>
-                  </Panel>
                 </dl>
               </div>
 
-              {/* Compact Business Inbox Preview Window */}
+              {/* Compact Workspace & Policy Preview Window */}
               <div
                 aria-label={`${siteName} workspace preview`}
                 className="min-w-0 lg:col-span-5"
               >
-                <Panel className="bg-background">
+                <Panel className="flex h-full flex-col justify-between bg-background">
                   <PanelHeader className="bg-muted">
                     <span className="text-xs font-medium text-foreground">
-                      {siteName} Business Inbox
+                      {siteName} User Workspace
                     </span>
-                    <Badge variant="success" className="font-mono text-[10px]">
-                      SPF · DKIM · DMARC Verified
-                    </Badge>
+                    <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                      Quota: 3 / 5 · Auto-delete: 30d
+                    </span>
                   </PanelHeader>
 
-                  <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-12 sm:divide-x sm:divide-y-0">
+                  <div className="grid flex-1 grid-cols-1 divide-y divide-border sm:grid-cols-12 sm:divide-x sm:divide-y-0">
                     <div className="bg-card p-2.5 sm:col-span-5">
-                      <p className="text-[11px] font-medium text-muted-foreground">
-                        Active Mailboxes
-                      </p>
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="text-[11px] font-medium text-muted-foreground">
+                          My Mailboxes
+                        </p>
+                        <span className="font-mono text-[10px] text-success">
+                          + Create
+                        </span>
+                      </div>
                       <ul className="mt-1.5 space-y-1 text-[11px]">
                         <li className="flex items-center justify-between gap-1 bg-sidebar-active px-2 py-1 font-medium text-sidebar-active-foreground">
                           <span className="truncate font-mono">
-                            support@{mailDomain}
+                            alex@{mailDomain}
                           </span>
-                          <Badge
-                            variant="accent"
-                            className="shrink-0 font-mono text-[10px]"
-                          >
-                            4
-                          </Badge>
+                          <span className="shrink-0 font-mono text-[10px] tabular-nums">
+                            3
+                          </span>
                         </li>
                         <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
                           <span className="truncate font-mono">
-                            billing@{mailDomain}
+                            support@{mailDomain}
                           </span>
-                          <span className="shrink-0 font-mono text-[10px]">
+                          <span className="shrink-0 font-mono text-[10px] tabular-nums">
                             1
                           </span>
                         </li>
                         <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
                           <span className="truncate font-mono">
-                            ops@{mailDomain}
+                            billing@{mailDomain}
                           </span>
-                          <span className="shrink-0 font-mono text-[10px]">
-                            0
-                          </span>
-                        </li>
-                        <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
-                          <span className="truncate font-mono">
-                            legal@{mailDomain}
-                          </span>
-                          <span className="shrink-0 font-mono text-[10px]">
+                          <span className="shrink-0 font-mono text-[10px] tabular-nums">
                             0
                           </span>
                         </li>
                       </ul>
+
+                      <div className="mt-2.5 border-t border-border pt-2 text-[10px] text-muted-foreground">
+                        <p className="font-medium text-foreground">
+                          Active Policy
+                        </p>
+                        <p className="mt-0.5 font-mono">
+                          Allowed: @{mailDomain}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="p-2.5 sm:col-span-7">
+                    <div className="flex flex-col justify-between p-2.5 sm:col-span-7">
                       <div className="space-y-1.5">
                         <article className="border border-primary/40 bg-accent p-2">
                           <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
                             <span className="font-medium text-foreground">
-                              Enterprise Onboarding
+                              Workspace Control
                             </span>
-                            <span className="font-mono">2m ago</span>
+                            <span className="font-mono tabular-nums">1m ago</span>
                           </div>
                           <p className="mt-0.5 truncate text-xs font-medium text-foreground">
-                            Custom domain verification completed
+                            Self-service mailbox provisioned
                           </p>
                           <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
-                            MX, SPF, DKIM, and DMARC records are active for{" "}
-                            {mailDomain}.
+                            alex@{mailDomain} active · DKIM &amp; DMARC verified.
                           </p>
                         </article>
 
                         <article className="border border-border bg-card p-2">
                           <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
                             <span className="font-medium text-foreground">
-                              Finance Team
+                              Operations Desk
                             </span>
-                            <span className="font-mono">18m ago</span>
+                            <span className="font-mono tabular-nums">14m ago</span>
                           </div>
                           <p className="mt-0.5 truncate text-xs font-medium text-foreground">
-                            Q2 statement &amp; PDF invoice attached
+                            Release notes &amp; signed attachment
                           </p>
                           <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
-                            Sanitized HTML view · 2 verified attachments ready.
+                            Sanitized HTML · 30-day retention policy active.
                           </p>
                         </article>
                       </div>
 
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-1 border-t border-border pt-2 text-[10px] text-muted-foreground">
-                        <span>Sanitized HTML · Remote images blocked</span>
+                        <span>Sandboxed Reader · Tracker-free</span>
                         <span className="font-mono font-medium text-success">
-                          Audit log active
+                          Policy Enforced
                         </span>
                       </div>
                     </div>
@@ -519,21 +497,50 @@ export default async function PublicLandingPage() {
           </div>
         </section>
 
-        {/* Compact 4-Pillar Trust Strip */}
+        {/* Core Capabilities (#capabilities) */}
         <section
-          aria-label="Operational highlights"
-          className="border-b border-border bg-card py-4"
+          id="capabilities"
+          className="scroll-mt-14 border-b border-border py-7 sm:py-9"
         >
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {TRUST_PILLARS.map((pillar) => (
-                <Panel key={pillar.title} className="bg-background">
-                  <PanelBody>
-                    <p className="text-xs font-medium text-foreground">
-                      {pillar.title}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                      {pillar.description}
+            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+              <div className="max-w-2xl">
+                <SectionTitle className="text-sm font-medium sm:text-base">
+                  Built for self-service speed and administrative control
+                </SectionTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {siteName} combines instant user sign-up and self-service
+                  mailbox creation with strict domain, quota, and retention
+                  governance.
+                </p>
+              </div>
+              <Link
+                href="/sign-up"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                <span>Create your account</span>
+                <Icon glyph={ArrowRight} className="size-3" />
+              </Link>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {CAPABILITY_MODULES.map((cap) => (
+                <Panel key={cap.index} className="bg-card">
+                  <PanelBody className="p-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {cap.index}.
+                      </span>
+                      <Icon
+                        glyph={cap.icon}
+                        className="size-3.5 text-muted-foreground"
+                      />
+                    </div>
+                    <h3 className="mt-1.5 text-xs font-medium text-foreground">
+                      {cap.title}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {cap.description}
                     </p>
                   </PanelBody>
                 </Panel>
@@ -542,41 +549,44 @@ export default async function PublicLandingPage() {
           </div>
         </section>
 
-        {/* Services Section (#services) */}
-        <section id="services" className="scroll-mt-14 py-7 sm:py-9">
+        {/* Workspace Access & Governance Tiers (#workspaces) */}
+        <section
+          id="workspaces"
+          className="scroll-mt-14 border-b border-border bg-card py-7 sm:py-9"
+        >
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
               <SectionTitle className="text-sm font-medium sm:text-base">
-                Mailbox configurations tailored to how you work
+                Workspace configurations for individuals, teams, and enterprises
               </SectionTitle>
               <p className="mt-1 text-xs text-muted-foreground">
-                Whether you need a private address for yourself, a shared
-                support inbox for your team, or managed multi-domain email for
-                your organization, {siteName} scales cleanly.
+                Start immediately with self-service sign-up or connect your
+                organization&apos;s custom domains with tailored quota and
+                retention rules.
               </p>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {SERVICE_TIERS.map((tier) => (
+              {WORKSPACE_TIERS.map((tier) => (
                 <Panel
                   key={tier.key}
-                  className={`flex flex-col justify-between ${
+                  className={`flex flex-col justify-between bg-background ${
                     tier.featured ? "border-primary" : ""
                   }`}
                 >
                   <PanelBody className="flex flex-1 flex-col justify-between p-4">
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <Badge variant={tier.featured ? "accent" : "default"}>
-                          {tier.badge}
-                        </Badge>
+                        <span className="text-[11px] font-medium text-muted-foreground">
+                          {tier.kicker}
+                        </span>
                         <Icon
                           glyph={tier.icon}
                           className="size-4 text-muted-foreground"
                         />
                       </div>
 
-                      <h3 className="mt-2.5 text-sm font-medium text-foreground">
+                      <h3 className="mt-2 text-sm font-medium text-foreground">
                         {tier.title}
                       </h3>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -618,60 +628,22 @@ export default async function PublicLandingPage() {
           </div>
         </section>
 
-        {/* Features Section (#features) */}
-        <section
-          id="features"
-          className="scroll-mt-14 border-y border-border bg-card py-7 sm:py-9"
-        >
+        {/* 3-Step Self-Service Workflow */}
+        <section className="border-b border-border py-7 sm:py-9">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
               <SectionTitle className="text-sm font-medium sm:text-base">
-                Focused features without enterprise bloat
-              </SectionTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Every component in {siteName} is designed for clarity,
-                predictability, and low operational overhead.
-              </p>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {CORE_FEATURES.map((feature) => (
-                <Panel key={feature.title} className="bg-background">
-                  <PanelBody className="p-3.5">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-secondary text-secondary-foreground">
-                        <Icon glyph={feature.icon} className="size-3.5" />
-                      </span>
-                      <h3 className="text-xs font-medium text-foreground">
-                        {feature.title}
-                      </h3>
-                    </div>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                      {feature.description}
-                    </p>
-                  </PanelBody>
-                </Panel>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 3-Step Onboarding Workflow */}
-        <section className="py-7 sm:py-9">
-          <div className="mx-auto max-w-6xl px-3 sm:px-5">
-            <div className="max-w-2xl">
-              <SectionTitle className="text-sm font-medium sm:text-base">
-                From domain setup to active team inbox in three steps
+                From account sign-up to active mailbox in three steps
               </SectionTitle>
             </div>
 
             <ol className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {ONBOARDING_STEPS.map((item) => (
+              {WORKFLOW_STEPS.map((item) => (
                 <li key={item.step}>
-                  <Panel className="h-full">
+                  <Panel className="h-full bg-card">
                     <PanelBody className="p-3.5">
                       <div className="flex items-center gap-2">
-                        <span className="flex size-6 shrink-0 items-center justify-center bg-primary font-mono text-xs font-medium text-primary-foreground">
+                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-[11px] font-medium tabular-nums text-primary-foreground">
                           {item.step}
                         </span>
                         <h3 className="text-xs font-medium text-foreground">
@@ -689,10 +661,10 @@ export default async function PublicLandingPage() {
           </div>
         </section>
 
-        {/* Security by Design (#security) */}
+        {/* Security Architecture (#security) */}
         <section
           id="security"
-          className="scroll-mt-14 border-y border-border bg-card py-7 sm:py-9"
+          className="scroll-mt-14 border-b border-border bg-card py-7 sm:py-9"
         >
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
@@ -701,19 +673,19 @@ export default async function PublicLandingPage() {
                   Hardened from the SMTP edge to the browser reader
                 </SectionTitle>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                  Email is one of the primary entry points for organizational
-                  risk. {siteName} enforces defensive controls at every layer of
-                  delivery, storage, and message viewing.
+                  {siteName} enforces defensive controls across delivery,
+                  authentication, runtime policy evaluation, and message
+                  viewing.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <Badge variant="outline" className="font-mono text-[10px]">
-                    Strict CSP
+                    Scoped Auth Tables
                   </Badge>
                   <Badge variant="outline" className="font-mono text-[10px]">
                     Sandboxed Iframe
                   </Badge>
                   <Badge variant="outline" className="font-mono text-[10px]">
-                    Path Confinement
+                    Quota &amp; Domain Locks
                   </Badge>
                   <Badge variant="outline" className="font-mono text-[10px]">
                     PostgreSQL Audit Trail
@@ -725,9 +697,15 @@ export default async function PublicLandingPage() {
                 {SECURITY_PILLARS.map((item) => (
                   <Panel key={item.title} className="bg-background">
                     <PanelBody className="p-3.5">
-                      <h3 className="text-xs font-medium text-foreground">
-                        {item.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <Icon
+                          glyph={item.icon}
+                          className="size-3.5 text-primary"
+                        />
+                        <h3 className="text-xs font-medium text-foreground">
+                          {item.title}
+                        </h3>
+                      </div>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         {item.description}
                       </p>
@@ -739,40 +717,8 @@ export default async function PublicLandingPage() {
           </div>
         </section>
 
-        {/* Use Cases */}
-        <section className="py-7 sm:py-9">
-          <div className="mx-auto max-w-6xl px-3 sm:px-5">
-            <div className="max-w-2xl">
-              <SectionTitle className="text-sm font-medium sm:text-base">
-                Built for operational clarity across teams
-              </SectionTitle>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {USE_CASES.map((useCase) => (
-                <Panel key={useCase.title}>
-                  <PanelBody className="p-3.5">
-                    <div className="flex items-center gap-2">
-                      <Icon glyph={useCase.icon} className="size-4 text-primary" />
-                      <h3 className="text-xs font-medium text-foreground">
-                        {useCase.title}
-                      </h3>
-                    </div>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                      {useCase.description}
-                    </p>
-                  </PanelBody>
-                </Panel>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* FAQ Section (#faq) */}
-        <section
-          id="faq"
-          className="scroll-mt-14 border-t border-border bg-card py-7 sm:py-9"
-        >
+        <section id="faq" className="scroll-mt-14 py-7 sm:py-9">
           <div className="mx-auto max-w-4xl px-3 sm:px-5">
             <div className="mb-4">
               <SectionTitle className="text-sm font-medium sm:text-base">
@@ -784,29 +730,36 @@ export default async function PublicLandingPage() {
           </div>
         </section>
 
-        {/* Compact Bottom CTA Banner */}
+        {/* Compact Bottom Conversion Banner */}
         <section className="border-t border-border bg-card py-6 sm:py-8">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <Panel className="bg-background">
               <PanelBody className="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
                 <div className="max-w-xl">
                   <SectionTitle className="text-sm font-medium sm:text-base">
-                    Ready to set up your private or team mailboxes?
+                    Ready to launch your mailbox workspace?
                   </SectionTitle>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Tell us about your domain or mailbox requirements and our
-                    team will prepare a tailored onboarding plan.
+                    Create your account to start provisioning mailboxes on
+                    approved domains, or contact our team for custom enterprise
+                    domain onboarding.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button asChild>
-                    <Link href="/contact">
-                      <span>Request a mailbox</span>
-                      <Icon glyph={ArrowRight} className="size-3.5" />
+                    <Link href="/sign-up">
+                      <Icon glyph={UserPlus} className="size-3.5" />
+                      <span>Sign up</span>
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link href="/sign-in">Client login</Link>
+                    <Link href="/sign-in">
+                      <Icon glyph={LogIn} className="size-3.5" />
+                      <span>Sign in</span>
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link href="/contact">Contact support</Link>
                   </Button>
                 </div>
               </PanelBody>
