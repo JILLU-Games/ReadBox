@@ -162,8 +162,45 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Hello team,\n\nYour November billing summary (Invoice #9021) is attached.\nTotal amount: $184.00\nDue date: 2026-11-30\n\nRegards,\nVendor Billing",
-        htmlBody: `<h3 style="margin:0 0 8px 0;font-size:15px;font-weight:600">Invoice #9021</h3><p style="margin:0 0 10px 0;font-size:13px;line-height:1.5">Your November monthly statement is ready for review.</p><table style="border-collapse:collapse;width:100%;max-width:420px;font-size:12px"><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Period</td><td style="padding:6px;border-width:1px;border-style:solid">Nov 01 – Nov 30, 2026</td></tr><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Amount</td><td style="padding:6px;border-width:1px;border-style:solid">$184.00</td></tr></table>`,
+          "Hello team,\n\nYour November billing summary (Invoice #9021) is attached.\nTotal amount: $184.00\nDue date: 2026-11-30\nView invoice online: https://billing.vendor.example/invoices/INV-9021\nDownload PDF receipt: https://billing.vendor.example/invoices/INV-9021/download\n\nRegards,\nVendor Billing",
+        htmlBody: `<div style="max-width:640px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55">
+  <div style="background-color:#1e3a8a;color:#ffffff;padding:18px 20px;margin-bottom:16px">
+    <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.85">Vendor Cloud Billing</div>
+    <h2 style="margin:4px 0 0 0;font-size:18px;font-weight:600;color:#ffffff">Invoice #9021 — Monthly Statement</h2>
+  </div>
+  <p style="margin:0 0 12px 0;font-size:13px">Hello Billing Operations,</p>
+  <p style="margin:0 0 16px 0;font-size:13px">Your November 2026 infrastructure and workspace statement has been generated and is ready for review. Automatic settlement is scheduled for <strong>November 30, 2026</strong>.</p>
+  <table style="border-collapse:collapse;width:100%;margin:0 0 16px 0;font-size:13px">
+    <thead>
+      <tr style="background-color:rgba(37,88,191,0.08)">
+        <th align="left" style="padding:8px 10px;border:1px solid #dce3e8;font-weight:600">Description</th>
+        <th align="left" style="padding:8px 10px;border:1px solid #dce3e8;font-weight:600">Period</th>
+        <th align="right" style="padding:8px 10px;border:1px solid #dce3e8;font-weight:600">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:8px 10px;border:1px solid #dce3e8">Dedicated Mail Relay &amp; Storage Cluster</td>
+        <td style="padding:8px 10px;border:1px solid #dce3e8">Nov 01 – Nov 30, 2026</td>
+        <td align="right" style="padding:8px 10px;border:1px solid #dce3e8">$149.00</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 10px;border:1px solid #dce3e8">Archived Audit &amp; Compliance Retention</td>
+        <td style="padding:8px 10px;border:1px solid #dce3e8">Nov 01 – Nov 30, 2026</td>
+        <td align="right" style="padding:8px 10px;border:1px solid #dce3e8">$35.00</td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding:8px 10px;border:1px solid #dce3e8;font-weight:600">Total Due (USD)</td>
+        <td align="right" style="padding:8px 10px;border:1px solid #dce3e8;font-weight:600">$184.00</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin:18px 0;display:flex;flex-wrap:wrap;gap:10px">
+    <a href="https://billing.vendor.example/invoices/INV-9021" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#2558bf;color:#ffffff;text-decoration:none;padding:8px 16px;font-size:13px;font-weight:500">Pay or View Invoice #9021</a>
+    <a href="https://billing.vendor.example/portal/statements" target="_blank" rel="noopener noreferrer" style="display:inline-block;border:1px solid #2558bf;color:#2558bf;text-decoration:none;padding:7px 14px;font-size:13px;font-weight:500">Open Billing Portal</a>
+  </div>
+  <p style="margin:14px 0 0 0;font-size:12px;opacity:0.8">Questions about this statement? Reply to <a href="mailto:billing@vendor.example" style="color:#2558bf">billing@vendor.example</a> or visit <a href="https://billing.vendor.example/support" target="_blank" rel="noopener noreferrer" style="color:#2558bf">https://billing.vendor.example/support</a>.</p>
+</div>`,
         attachments: [
           {
             uuid: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001",
@@ -198,8 +235,22 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Your annual workspace plan renewal is complete.\nNext renewal date: 2027-02-13\nReference: SUB-2026-049",
-        htmlBody: null,
+          "Your annual workspace plan renewal is complete.\nNext renewal date: 2027-02-13\nReference: SUB-2026-049\nManage subscription: https://workspace.example/account/subscriptions/SUB-2026-049",
+        htmlBody: `<div style="max-width:640px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55">
+  <div style="border-left:4px solid #1f7a4c;padding:10px 14px;background-color:rgba(31,122,76,0.08);margin-bottom:14px">
+    <div style="font-size:13px;font-weight:600">Subscription Renewal Confirmed</div>
+    <div style="font-size:12px;opacity:0.85">Reference ID: <code>SUB-2026-049</code> · Active through Feb 13, 2027</div>
+  </div>
+  <p style="margin:0 0 12px 0;font-size:13px">Your annual enterprise domain &amp; mailbox workspace subscription has been renewed with zero service interruption.</p>
+  <ul style="margin:0 0 16px 18px;padding:0;font-size:13px">
+    <li style="margin-bottom:4px">Plan Tier: <strong>Enterprise Multi-Domain Workspace</strong></li>
+    <li style="margin-bottom:4px">Next Renewal Date: <strong>February 13, 2027</strong></li>
+    <li style="margin-bottom:4px">Assigned Mailbox: <code>billing.ops@mailstack.local</code></li>
+  </ul>
+  <p style="margin:0 0 14px 0">
+    <a href="https://workspace.example/account/subscriptions/SUB-2026-049" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#2558bf;color:#ffffff;text-decoration:none;padding:8px 16px;font-size:13px;font-weight:500">Manage Subscription Settings</a>
+  </p>
+</div>`,
         attachments: [],
         deleted: false,
       },
@@ -222,8 +273,16 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Settlement batch #441 has been deposited to your primary operating account.",
-        htmlBody: `<p style="margin:0;font-size:13px">Settlement batch <strong>#441</strong> has been settled cleanly.</p>`,
+          "Settlement batch #441 has been deposited to your primary operating account.\nTransfer trace: ACH-2026-884120\nDetails: https://merchant.example/payouts/batch-441",
+        htmlBody: `<div style="max-width:640px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55">
+  <p style="margin:0 0 10px 0;font-size:13px">Settlement batch <strong>#441</strong> has been settled cleanly to your primary operating account.</p>
+  <table style="border-collapse:collapse;width:100%;max-width:460px;margin:0 0 14px 0;font-size:12px">
+    <tr><td style="padding:6px 10px;border:1px solid #dce3e8;opacity:0.8">Batch Reference</td><td style="padding:6px 10px;border:1px solid #dce3e8;font-weight:600">BATCH-441</td></tr>
+    <tr><td style="padding:6px 10px;border:1px solid #dce3e8;opacity:0.8">ACH Trace Number</td><td style="padding:6px 10px;border:1px solid #dce3e8"><code>ACH-2026-884120</code></td></tr>
+    <tr><td style="padding:6px 10px;border:1px solid #dce3e8;opacity:0.8">Status</td><td style="padding:6px 10px;border:1px solid #dce3e8;color:#1f7a4c;font-weight:600">Deposited</td></tr>
+  </table>
+  <p style="margin:0;font-size:12px">View full reconciliation ledger: <a href="https://merchant.example/payouts/batch-441" target="_blank" rel="noopener noreferrer" style="color:#2558bf">https://merchant.example/payouts/batch-441</a></p>
+</div>`,
         attachments: [],
         deleted: false,
       },
@@ -245,8 +304,13 @@ function createInitialDemoStore(): DemoStoreState {
         isRead: false,
         parseStatus: "ok",
         parseWarning: "",
-        textBody: "Your one-time verification code is: 482910\nExpires in 10 minutes.",
-        htmlBody: null,
+        textBody:
+          "Your one-time verification code is: 482910\nExpires in 10 minutes.\nSecurity portal: https://portal.example/security/activity",
+        htmlBody: `<div style="max-width:560px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55">
+  <p style="margin:0 0 10px 0;font-size:13px">Use the following one-time verification code to complete your sign-in request:</p>
+  <div style="display:inline-block;padding:10px 18px;border:1px solid #2558bf;background-color:rgba(37,88,191,0.08);font-size:20px;font-weight:600;letter-spacing:0.18em;margin:4px 0 12px 0">482910</div>
+  <p style="margin:0 0 10px 0;font-size:12px;opacity:0.85">This code expires in 10 minutes. If you did not request this code, review your account activity at <a href="https://portal.example/security/activity" target="_blank" rel="noopener noreferrer" style="color:#2558bf">https://portal.example/security/activity</a>.</p>
+</div>`,
         attachments: [],
         deleted: false,
       },
@@ -269,8 +333,15 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Hi Support,\n\nAll team members have completed onboarding and can now access the shared inbox.\n\nThanks!",
-        htmlBody: `<p style="margin:0 0 8px 0;font-size:13px">Hi Support,</p><p style="margin:0;font-size:13px">All team members have completed onboarding and can now access the shared inbox.</p>`,
+          "Hi Support,\n\nAll team members have completed onboarding and can now access the shared inbox.\nTicket URL: https://helpdesk.example/tickets/882\n\nThanks!",
+        htmlBody: `<div style="max-width:640px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55">
+  <p style="margin:0 0 10px 0;font-size:13px">Hi Support,</p>
+  <p style="margin:0 0 12px 0;font-size:13px">All team members have completed onboarding and can now access the shared inbox at <strong>support.desk@teambox.dev</strong>.</p>
+  <p style="margin:0 0 12px 0">
+    <a href="https://helpdesk.example/tickets/882" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#2558bf;color:#ffffff;text-decoration:none;padding:7px 14px;font-size:12px;font-weight:500">View Ticket #882</a>
+  </p>
+  <p style="margin:0;font-size:13px">Thanks,<br />Customer Care Team</p>
+</div>`,
         attachments: [
           {
             uuid: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb002",
@@ -652,6 +723,7 @@ export function getDemoMessageDetail(
     parseStatus: msg.parseStatus,
     parseWarning: msg.parseWarning,
     textBody: msg.textBody,
+    htmlBody: msg.htmlBody ?? "",
     hasHtmlBody: Boolean(msg.htmlBody),
     attachments: msg.attachments.map((att) => ({
       uuid: att.uuid,

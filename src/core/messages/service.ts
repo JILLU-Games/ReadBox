@@ -181,6 +181,7 @@ export interface UserMessageDetail {
   readonly parseStatus: string;
   readonly parseWarning: string;
   readonly textBody: string;
+  readonly htmlBody?: string;
   readonly hasHtmlBody: boolean;
   readonly attachments: readonly UserAttachmentItem[];
   readonly canDeleteMessage: boolean;
@@ -1257,6 +1258,7 @@ export async function getMessageDetailForUser(
     parseStatus: message.parseStatus,
     parseWarning: message.parseWarning,
     textBody: message.textBody,
+    htmlBody: message.sanitizedHtmlBody,
     hasHtmlBody: message.sanitizedHtmlBody.trim().length > 0,
     attachments: message.attachments.map((att) => ({
       uuid: att.uuid,
