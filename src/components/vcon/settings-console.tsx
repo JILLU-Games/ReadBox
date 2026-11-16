@@ -116,6 +116,16 @@ export function SettingsConsole({
           setCopyrightText(response.settings.copyrightText);
           setSourceCodeUrl(response.settings.sourceCodeUrl);
           setPrivacyUrl(response.settings.privacyUrl);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("readbox:site-settings-updated", {
+                detail: response.settings,
+              }),
+            );
+            if (response.settings.siteName?.trim()) {
+              document.title = `Site Settings | ${response.settings.siteName.trim()}`;
+            }
+          }
         }
         setClearLogo(false);
         setClearFavicon(false);

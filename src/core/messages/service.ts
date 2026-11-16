@@ -30,7 +30,7 @@ import type { PrismaClient } from "@prisma/client";
 import { lstat } from "node:fs/promises";
 import "server-only";
 
-export const LIVE_UPDATE_HEADER = "X-MailStack-Live-Request";
+export const LIVE_UPDATE_HEADER = "X-ReadBox-Live-Request";
 export const LIVE_UPDATE_MESSAGE_LIMIT = 20;
 export const LIVE_UPDATE_MAILBOX_LIMIT = 50;
 export const LIVE_UPDATE_VISIBLE_MAILBOX_LIMIT = 50;

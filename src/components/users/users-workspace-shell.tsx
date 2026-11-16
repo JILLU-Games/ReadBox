@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Button, Icon } from "@/components/ui";
+import { Button, Icon } from "@/components/ui";
 import { CreateUserMailboxModal } from "@/components/users/create-user-mailbox-modal";
 import { UsersLiveProvider } from "@/components/users/live-mail-notifier";
 import type { UserAccessCapabilities } from "@/core/accounts/policy";
@@ -9,7 +9,7 @@ import type {
   MailboxCreationDomainOption,
 } from "@/core/mailboxes/service";
 import type { UserMailboxSummaryItem } from "@/core/messages/service";
-import { Bell, BellRing, Plus } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
 export interface UsersWorkspaceShellProps {
@@ -58,7 +58,7 @@ export function UsersWorkspaceShell({
         if (canCreate) setCreateOpen(true);
       }}
     >
-      {({ notificationPermission, handleEnableNotifications, syncDegraded }) => (
+      {({ notificationPermission, handleEnableNotifications }) => (
         <div className="border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -72,21 +72,10 @@ export function UsersWorkspaceShell({
                 <Icon glyph={Plus} />
                 Create mailbox
               </Button>
-              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                {mailboxes.length}
-                {maxMailboxes > 0 ? ` / ${maxMailboxes}` : ""}{" "}
-                {mailboxes.length === 1 ? "inbox" : "inboxes"}
-              </span>
-              {capabilities?.autoDeleteEnabled &&
-              (capabilities?.autoDeleteDays ?? 0) > 0 ? (
-                <Badge variant="outline">
-                  Auto-delete: {capabilities.autoDeleteDays}d
-                </Badge>
-              ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {notificationPermission === "default" ? (
+            {notificationPermission === "default" ? (
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   size="sm"
@@ -96,23 +85,8 @@ export function UsersWorkspaceShell({
                   <Icon glyph={Bell} />
                   Enable notifications
                 </Button>
-              ) : notificationPermission === "granted" ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
-                  <Icon glyph={BellRing} />
-                  Alerts on
-                </span>
-              ) : null}
-
-              {syncDegraded ? (
-                <span className="text-[11px] font-medium text-warning">
-                  Live sync paused
-                </span>
-              ) : null}
-
-              <span className="hidden text-[11px] text-muted-foreground sm:inline">
-                Receive-only
-              </span>
-            </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="min-w-0 bg-background p-3">{children}</div>

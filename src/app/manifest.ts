@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   const settings = getCachedSiteSettingsSnapshot();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
   const description =
     settings.siteTagline || "Private team mailbox workspace";
 

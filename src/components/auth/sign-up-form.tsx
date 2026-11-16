@@ -112,11 +112,11 @@ export function SignUpForm({
         <AlertBanner
           variant="success"
           role="status"
-          title="Registration submitted for administrator approval"
+          title="Registration submitted for approval"
         >
           Account <span className="font-medium">{approvalPendingUser}</span> has
-          been created and is awaiting verification in Users Control. You will
-          be able to sign in once approved.
+          been created and is awaiting approval. You will be able to sign in
+          once your account is activated.
         </AlertBanner>
         <Button asChild className="w-full" size="sm" variant="outline">
           <Link href="/sign-in">Return to user sign in</Link>

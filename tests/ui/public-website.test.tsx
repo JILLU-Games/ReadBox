@@ -17,13 +17,13 @@ describe("Public Website UI Components", () => {
   it("renders PublicSiteHeader with brand, navigation links, and Sign in / Sign up CTAs without Request a mailbox", () => {
     const { container } = render(
       <PublicSiteHeader
-        siteName="MailStack"
+        siteName="ReadBox"
         logoUrl="/api/media/branding/logo.png"
         activePage="home"
       />,
     );
 
-    expect(screen.getByText("MailStack")).toBeInTheDocument();
+    expect(screen.getByText("ReadBox")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Sign in/i })).toHaveAttribute(
       "href",
       "/sign-in",
@@ -43,7 +43,7 @@ describe("Public Website UI Components", () => {
   it("renders PublicSiteFooter with Sign up, Sign in, dynamic support email, privacy policy, and copyright", () => {
     render(
       <PublicSiteFooter
-        siteName="MailStack"
+        siteName="ReadBox"
         supportEmail="ops@mailstack.io"
         footerDescription="Hardened custom-domain email operations."
         copyrightText="All rights reserved."
@@ -85,7 +85,7 @@ describe("Public Website UI Components", () => {
     const user = userEvent.setup();
     render(
       <ContactInquiryForm
-        siteName="MailStack"
+        siteName="ReadBox"
         initialServiceType="team"
         privacyUrl="/privacy"
       />,

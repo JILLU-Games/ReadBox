@@ -860,7 +860,7 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     }
   });
 
-  it("8. validates X-MailStack-Live-Request header and returns bounded cursor updates without message bodies", async () => {
+  it("8. validates X-ReadBox-Live-Request header and returns bounded cursor updates without message bodies", async () => {
     const validHeaders = new Headers({ [LIVE_UPDATE_HEADER]: "1" });
     const missingHeaders = new Headers();
     assert.equal(isLiveBackgroundRequest(validHeaders), true);

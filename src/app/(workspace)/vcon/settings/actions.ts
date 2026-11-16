@@ -114,9 +114,18 @@ export async function saveSiteSettingsAction(
     };
   }
 
+  revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/contact");
+  revalidatePath("/privacy");
+  revalidatePath("/sign-in");
+  revalidatePath("/sign-up");
+  revalidatePath("/reset-password");
+  revalidatePath("/vcon/login");
   revalidatePath("/vcon/settings");
   revalidatePath("/vcon");
   revalidatePath("/users");
+  revalidatePath("/manifest.webmanifest");
 
   return {
     ok: true,

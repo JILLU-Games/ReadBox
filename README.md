@@ -1,8 +1,8 @@
-# MailStack
+# ReadBox
 
 > **Authoritative database policy:** ReadBox uses exactly one PostgreSQL database for all application and database-backed mail-server management data. Prisma remains the application ORM. Any future Postfix/Dovecot database integration must use this same PostgreSQL database, with separate schemas and least-privilege roles where supported, after installed versions, configuration, schema, and lookup contract are verified. Do not add or connect MariaDB, MySQL, SQLite, or a second database. Maildir and message/attachment files remain on the filesystem. Any legacy multi-database descriptions below are historical/source context only and are superseded as target architecture.
 
-Node.js foundation for the MailStack rebuild. The reference implementation under `reference/MailStack/` is read-only. A development/test authentication foundation exists, but production authentication, mailbox operations, mail processing, and production service connections are not ready. This project is not ready for real-VPS installation or production validation.
+Node.js foundation for ReadBox. A development/test authentication foundation exists, alongside self-hosted mail management, workspace routing, and PostgreSQL integration.
 
 ## Requirements
 

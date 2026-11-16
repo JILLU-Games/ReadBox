@@ -4,9 +4,11 @@ import { getSiteSettings } from "@/core/settings/service";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
   const description =
     settings.siteTagline || "Self-hosted mail server and shared team inbox.";
 

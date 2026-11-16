@@ -14,7 +14,7 @@ import {
   Select,
   Textarea,
 } from "@/components/ui";
-import { RotateCcw, Send, ShieldCheck } from "lucide-react";
+import { RotateCcw, Send } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -207,9 +207,9 @@ export function ContactInquiryForm({
         );
       }
 
-      setStatusBanner({
+        setStatusBanner({
         type: "success",
-        text: `Thank you. Your inquiry has been received by the ${siteName} support & administration team.`,
+        text: `Thank you. Your inquiry has been received by the ${siteName} support team.`,
         requestId: data.request_id,
       });
       setFullName("");
@@ -239,13 +239,7 @@ export function ContactInquiryForm({
   return (
     <Panel>
       <PanelHeader>
-        <div className="flex items-center gap-2">
-          <SectionTitle>Support &amp; Onboarding Inquiry</SectionTitle>
-        </div>
-        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Icon glyph={ShieldCheck} className="size-3.5 text-success" />
-          <span>CSRF Protected · Required fields marked *</span>
-        </span>
+        <SectionTitle>Support &amp; Onboarding Inquiry</SectionTitle>
       </PanelHeader>
 
       <PanelBody className="p-4">
@@ -554,9 +548,6 @@ export function ContactInquiryForm({
                 <span>Clear</span>
               </Button>
             </div>
-            <span className="text-[11px] text-muted-foreground">
-              Rate-limited &amp; audited submission channel
-            </span>
           </div>
         </form>
       </PanelBody>

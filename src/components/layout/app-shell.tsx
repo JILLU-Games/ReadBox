@@ -137,8 +137,39 @@ export function AppShell({
   const isAdministrator = user?.isAdministrator === true;
   const isAdminRoute = pathname.startsWith("/vcon");
 
-  const brandName = branding?.siteName?.trim() || "MailStack";
-  const statusLabel = branding?.statusLabel?.trim() || "Workspace ready";
+  const [liveBrandingOverride, setLiveBrandingOverride] =
+    useState<AppShellBranding | null>(null);
+
+  useEffect(() => {
+    function handleBrandingUpdated(event: Event) {
+      const detail = (
+        event as CustomEvent<{
+          siteName?: string;
+          siteTagline?: string;
+          logoUrl?: string;
+        }>
+      ).detail;
+      if (detail) {
+        setLiveBrandingOverride({
+          siteName: detail.siteName,
+          siteTagline: detail.siteTagline,
+          logoUrl: detail.logoUrl,
+        });
+      }
+    }
+    window.addEventListener(
+      "readbox:site-settings-updated",
+      handleBrandingUpdated,
+    );
+    return () =>
+      window.removeEventListener(
+        "readbox:site-settings-updated",
+        handleBrandingUpdated,
+      );
+  }, []);
+
+  const effectiveBranding = liveBrandingOverride ?? branding;
+  const brandName = effectiveBranding?.siteName?.trim() || "ReadBox";
 
   const activeAdminGroupId = useMemo(() => {
     const matched = managementGroups.find((group) =>
@@ -249,9 +280,9 @@ export function AppShell({
         )}
       >
         <div className="flex h-12 shrink-0 items-center gap-2.5 border-b border-border px-3">
-          {branding?.logoUrl ? (
+          {effectiveBranding?.logoUrl ? (
             <img
-              src={branding.logoUrl}
+              src={effectiveBranding.logoUrl}
               alt={`${brandName} logo`}
               referrerPolicy="no-referrer"
               className="size-7 shrink-0 rounded-none border border-border object-contain p-0.5"
@@ -468,19 +499,15 @@ export function AppShell({
           )}
         </div>
 
-        <div className="mt-auto shrink-0 border-t border-border px-3 py-2.5">
-          {user ? (
-            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+        {user ? (
+          <div className="mt-auto shrink-0 border-t border-border px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 text-xs">
               <span className="truncate font-medium text-sidebar-foreground">
                 {user.username}
               </span>
-              <span className="shrink-0 text-[11px] text-sidebar-muted">
-                {isAdministrator ? "Admin" : "User"}
-              </span>
             </div>
-          ) : null}
-          <div className="text-[11px] text-sidebar-muted">{statusLabel}</div>
-        </div>
+          </div>
+        ) : null}
       </aside>
 
       <div className="min-h-dvh md:pl-56">
@@ -495,18 +522,15 @@ export function AppShell({
           >
             <Menu aria-hidden="true" />
           </IconButton>
-          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-            <Icon glyph={isAdminRoute || isAdministrator ? ShieldCheck : LayoutDashboard} />
-            <span className="truncate font-medium text-foreground">
-              {isAdminRoute || isAdministrator ? "Admin" : "Workspace"}
-            </span>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            {user ? (
-              <span className="hidden max-w-40 truncate text-xs text-muted-foreground sm:inline">
-                {user.username}
+          {isAdminRoute ? (
+            <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+              <Icon glyph={ShieldCheck} />
+              <span className="truncate font-medium text-foreground">
+                Admin
               </span>
-            ) : null}
+            </div>
+          ) : null}
+          <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             {signOutAction ? (
               <form action={signOutAction}>

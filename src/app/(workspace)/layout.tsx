@@ -44,6 +44,8 @@ async function loadSidebarMailboxes(user: {
   }));
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function WorkspaceLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
@@ -66,13 +68,9 @@ export default async function WorkspaceLayout({
           : null
       }
       branding={{
-        siteName: settings.siteName,
+        siteName: settings.siteName || "ReadBox",
         siteTagline: settings.siteTagline,
         logoUrl: settings.logoUrl,
-        statusLabel: settings.databaseConnected
-          ? "PostgreSQL workspace"
-          : "Workspace ready",
-        statusDescription: settings.siteTagline,
       }}
       mailboxes={mailboxes}
       signOutAction={devBypassActive ? undefined : signOutAction}

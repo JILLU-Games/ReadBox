@@ -93,7 +93,6 @@ export async function getCurrentSystemVersion(
 ): Promise<string> {
   const candidates = [
     resolve(workspaceRoot, "VERSION"),
-    resolve(workspaceRoot, "reference", "MailStack", "VERSION"),
   ];
   for (const candidate of candidates) {
     try {
@@ -171,7 +170,7 @@ export async function checkLatestRelease(
       method: "GET",
       headers: {
         Accept: "application/vnd.github+json",
-        "User-Agent": "MailStack-Updater",
+        "User-Agent": "ReadBox-Updater",
       },
       signal: AbortSignal.timeout(10_000),
       cache: "no-store",

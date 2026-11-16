@@ -14,14 +14,20 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Reset password",
-  referrer: "no-referrer",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteName = settings.siteName || "ReadBox";
+  return {
+    title: {
+      absolute: `Reset password | ${siteName}`,
+    },
+    referrer: "no-referrer",
+  };
+}
 
 export default async function ResetPasswordPage() {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
@@ -41,7 +47,6 @@ export default async function ResetPasswordPage() {
       <Panel>
         <PanelHeader>
           <PageTitle>Set a new password</PageTitle>
-          <span className="text-[11px] text-muted-foreground">{siteName}</span>
         </PanelHeader>
         <PanelBody className="p-4">
           <PasswordResetForm />

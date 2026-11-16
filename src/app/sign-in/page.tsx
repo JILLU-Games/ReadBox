@@ -3,7 +3,6 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
   AlertBanner,
-  Badge,
   Button,
   Icon,
   PageTitle,
@@ -23,10 +22,16 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "User sign in",
-  referrer: "same-origin",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteName = settings.siteName || "ReadBox";
+  return {
+    title: {
+      absolute: `User sign in | ${siteName}`,
+    },
+    referrer: "same-origin",
+  };
+}
 
 export default async function SignInPage() {
   const devBypassActive =
@@ -40,7 +45,7 @@ export default async function SignInPage() {
     getSiteSettings(),
     getUserControlSettings(prisma),
   ]);
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
@@ -59,11 +64,7 @@ export default async function SignInPage() {
 
       <Panel>
         <PanelHeader>
-          <div className="flex items-center gap-2">
-            <PageTitle>User sign in</PageTitle>
-            <Badge variant="outline">Workspace</Badge>
-          </div>
-          <span className="text-[11px] text-muted-foreground">{siteName}</span>
+          <PageTitle>User sign in</PageTitle>
         </PanelHeader>
         <PanelBody className="space-y-3 p-4">
           {devBypassActive ? (
@@ -71,16 +72,13 @@ export default async function SignInPage() {
               <AlertBanner
                 variant="info"
                 role="status"
-                title={`Development auth bypass is active (${env.devAuthRole}).`}
+                title="Local workspace preview is active."
               >
-                Protected workspace routes are open locally without signing in.
+                You can open the user workspace directly without signing in.
               </AlertBanner>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm">
-                  <Link href="/users">Open user panel</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/vcon">Open admin panel</Link>
+                  <Link href="/users">Open workspace</Link>
                 </Button>
               </div>
             </div>
@@ -95,11 +93,7 @@ export default async function SignInPage() {
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button asChild size="sm">
-                  <Link href={currentUser.isAdministrator ? "/vcon" : "/users"}>
-                    {currentUser.isAdministrator
-                      ? "Open admin panel"
-                      : "Open user panel"}
-                  </Link>
+                  <Link href="/users">Open workspace</Link>
                 </Button>
                 <form action={signOutAction}>
                   <Button type="submit" size="sm" variant="outline">
@@ -129,27 +123,19 @@ export default async function SignInPage() {
       </Panel>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex flex-wrap items-center gap-3">
-          {userControl.signupEnabled ? (
-            <Link
-              className="font-medium text-foreground underline hover:text-primary"
-              href="/sign-up"
-            >
-              Create user account
-            </Link>
-          ) : null}
+        {userControl.signupEnabled ? (
           <Link
-            className="text-muted-foreground underline hover:text-foreground"
-            href="/reset-password"
+            className="font-medium text-foreground underline hover:text-primary"
+            href="/sign-up"
           >
-            Reset password
+            Create user account
           </Link>
-        </div>
+        ) : null}
         <Link
           className="text-muted-foreground underline hover:text-foreground"
-          href="/vcon/login"
+          href="/reset-password"
         >
-          Admin login
+          Reset password
         </Link>
       </div>
     </main>

@@ -19,15 +19,14 @@ export function PublicSiteFooter({
   footerDescription,
   copyrightText,
   privacyUrl,
-  sourceCodeUrl,
   supportEmail,
 }: PublicSiteFooterProps) {
   const year = new Date().getFullYear();
   const resolvedDescription =
     footerDescription?.trim() ||
-    "Self-service custom-domain mailboxes, policy-governed workspaces, automated message retention, and auditable business mail operations.";
+    "Self-service custom-domain mailboxes, shared team inboxes, and private webmail workspaces.";
   const resolvedCopyright =
-    copyrightText?.trim() || "Managed private email infrastructure.";
+    copyrightText?.trim() || "All rights reserved.";
   const resolvedPrivacyHref = privacyUrl?.trim() || "/privacy";
 
   return (
@@ -101,14 +100,14 @@ export function PublicSiteFooter({
               </li>
               <li>
                 <Link href="/users/mailboxes" className="hover:text-foreground">
-                  Mailbox provisioning
+                  My mailboxes
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h2 className="text-xs font-medium text-foreground">Platform</h2>
+            <h2 className="text-xs font-medium text-foreground">Features</h2>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link href="/#capabilities" className="hover:text-foreground">
@@ -117,12 +116,12 @@ export function PublicSiteFooter({
               </li>
               <li>
                 <Link href="/#workspaces" className="hover:text-foreground">
-                  Access &amp; quota tiers
+                  Workspace plans
                 </Link>
               </li>
               <li>
                 <Link href="/#security" className="hover:text-foreground">
-                  Security architecture
+                  Privacy &amp; security
                 </Link>
               </li>
               <li>
@@ -135,7 +134,7 @@ export function PublicSiteFooter({
 
           <div>
             <h2 className="text-xs font-medium text-foreground">
-              Support &amp; Governance
+              Support &amp; Legal
             </h2>
             <ul className="mt-2 space-y-1.5">
               <li>
@@ -148,11 +147,6 @@ export function PublicSiteFooter({
                 </Link>
               </li>
               <li>
-                <Link href="/vcon/login" className="hover:text-foreground">
-                  Admin console login
-                </Link>
-              </li>
-              <li>
                 <Link
                   href={resolvedPrivacyHref}
                   data-privacy-url
@@ -161,20 +155,6 @@ export function PublicSiteFooter({
                   Privacy policy
                 </Link>
               </li>
-              {sourceCodeUrl ? (
-                <li>
-                  <a
-                    href={sourceCodeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-source-code-url
-                    className="inline-flex items-center gap-1 hover:text-foreground"
-                  >
-                    <span>Source code</span>
-                    <Icon glyph={ArrowUpRight} className="size-3" />
-                  </a>
-                </li>
-              ) : null}
             </ul>
           </div>
         </div>
@@ -183,9 +163,6 @@ export function PublicSiteFooter({
           <p>
             © <span data-year>{year}</span> {siteName}.{" "}
             <span data-footer-copyright>{resolvedCopyright}</span>
-          </p>
-          <p className="font-mono text-[11px] text-muted-foreground">
-            SPF · DKIM · DMARC · TLS · Policy-Governed Workspaces
           </p>
         </div>
       </div>

@@ -337,7 +337,7 @@ model ServiceHeartbeat {
 
 model SiteSettings {
   id               BigInt   @id @default(autoincrement())
-  siteName         String   @default("MailStack") @map("site_name") @db.VarChar(120)
+  siteName         String   @default("ReadBox") @map("site_name") @db.VarChar(120)
   siteTagline      String   @default("Self-hosted mail server and shared team inbox.") @map("site_tagline") @db.VarChar(200)
   logoPath         String   @default("") @map("logo_path") @db.VarChar(100)
   faviconPath      String   @default("") @map("favicon_path") @db.VarChar(100)
@@ -346,7 +346,7 @@ model SiteSettings {
   officeAddress    String   @default("") @map("office_address") @db.VarChar(255)
   footerDescription String  @default("") @map("footer_description") @db.Text
   copyrightText    String   @default("Authorized team use only.") @map("copyright_text") @db.VarChar(255)
-  sourceCodeUrl    String   @default("https://github.com/vibtools/MailStack") @map("source_code_url") @db.VarChar(200)
+  sourceCodeUrl    String   @default("https://github.com/vibtools/ReadBox") @map("source_code_url") @db.VarChar(200)
   privacyUrl       String   @default("/privacy/") @map("privacy_url") @db.VarChar(500)
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 

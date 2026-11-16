@@ -3,7 +3,6 @@ import { registerUserSignupAction } from "@/app/sign-up/actions";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
-  Badge,
   Button,
   Icon,
   PageTitle,
@@ -22,10 +21,16 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "User sign up",
-  referrer: "same-origin",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteName = settings.siteName || "ReadBox";
+  return {
+    title: {
+      absolute: `User sign up | ${siteName}`,
+    },
+    referrer: "same-origin",
+  };
+}
 
 export default async function SignUpPage() {
   const devDemoActive =
@@ -37,7 +42,7 @@ export default async function SignUpPage() {
     getSiteSettings(),
     getUserControlSettings(prisma),
   ]);
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
@@ -56,17 +61,7 @@ export default async function SignUpPage() {
 
       <Panel>
         <PanelHeader>
-          <div className="flex items-center gap-2">
-            <PageTitle>Create user account</PageTitle>
-            <Badge variant="outline">
-              {userControl.verificationMode === "admin_approval"
-                ? "Approval required"
-                : userControl.verificationMode === "invite_code"
-                  ? "Invite code"
-                  : "Instant"}
-            </Badge>
-          </div>
-          <span className="text-[11px] text-muted-foreground">{siteName}</span>
+          <PageTitle>Create user account</PageTitle>
         </PanelHeader>
         <PanelBody className="space-y-3 p-4">
           {currentUser ? (
@@ -80,11 +75,7 @@ export default async function SignUpPage() {
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button asChild size="sm">
-                  <Link href={currentUser.isAdministrator ? "/vcon" : "/users"}>
-                    {currentUser.isAdministrator
-                      ? "Open admin panel"
-                      : "Open user panel"}
-                  </Link>
+                  <Link href="/users">Open workspace</Link>
                 </Button>
                 <form action={signOutAction}>
                   <Button type="submit" size="sm" variant="outline">
@@ -108,12 +99,6 @@ export default async function SignUpPage() {
           href="/sign-in"
         >
           Already have an account? Sign in
-        </Link>
-        <Link
-          className="text-muted-foreground underline hover:text-foreground"
-          href="/vcon/login"
-        >
-          Admin login
         </Link>
       </div>
     </main>

@@ -35,9 +35,9 @@ function resolvePublicBaseUrl(): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
-  const title = `Contact & Enterprise Support — ${siteName}`;
-  const description = `Contact the ${siteName} team for custom domain onboarding, workspace quota policies, or technical support.`;
+  const siteName = settings.siteName || "ReadBox";
+  const title = `Contact & Support — ${siteName}`;
+  const description = `Contact the ${siteName} team for custom domain onboarding, team workspace setup, or support.`;
   const baseUrl = resolvePublicBaseUrl();
 
   return {
@@ -68,7 +68,7 @@ export default async function PublicContactPage(props: {
   readonly searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
   const resolvedSearchParams = (await props.searchParams) ?? {};
   const rawService = resolvedSearchParams.service;
   const initialServiceType = Array.isArray(rawService)
@@ -89,12 +89,12 @@ export default async function PublicContactPage(props: {
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <PageTitle className="text-lg font-medium sm:text-xl">
-                  Contact, Domain Onboarding &amp; Support
+                  Contact &amp; Support
                 </PageTitle>
                 <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                  Reach out for custom domain integration, organization quota
-                  policies, or technical assistance. Need immediate mailbox
-                  access? Create your account directly via self-service sign-up.
+                  Reach out for custom domain onboarding, team workspace setup,
+                  or general support. Need immediate mailbox access? Create your
+                  account directly via sign-up.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -121,13 +121,13 @@ export default async function PublicContactPage(props: {
               <aside className="space-y-4 lg:col-span-5">
                 <Panel>
                   <PanelHeader>
-                    <SectionTitle>Instant Self-Service Workspace</SectionTitle>
+                    <SectionTitle>Self-Service Workspace</SectionTitle>
                   </PanelHeader>
                   <PanelBody className="space-y-3">
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Individual users and teams can register directly, access
-                      approved domains, and create mailboxes within their
-                      assigned quota without waiting for manual ticket review.
+                      available domains, and create mailboxes right from their
+                      workspace.
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" asChild>
@@ -139,7 +139,7 @@ export default async function PublicContactPage(props: {
                       <Button size="sm" variant="outline" asChild>
                         <Link href="/sign-in">
                           <Icon glyph={LogIn} className="size-3" />
-                          <span>Sign in to workspace</span>
+                          <span>Sign in</span>
                         </Link>
                       </Button>
                     </div>
@@ -148,7 +148,7 @@ export default async function PublicContactPage(props: {
 
                 <Panel>
                   <PanelHeader>
-                    <SectionTitle>Enterprise &amp; Custom Domain Flow</SectionTitle>
+                    <SectionTitle>Custom Domain Onboarding</SectionTitle>
                   </PanelHeader>
                   <PanelBody>
                     <ol className="space-y-2.5 text-xs">
@@ -158,11 +158,11 @@ export default async function PublicContactPage(props: {
                         </span>
                         <div>
                           <p className="font-medium text-foreground">
-                            Domain &amp; policy review
+                            Share your requirements
                           </p>
                           <p className="mt-0.5 text-muted-foreground">
-                            We review your custom domain, mailbox quota needs,
-                            and retention rules.
+                            Tell us about your custom domain, team size, and
+                            workspace preferences.
                           </p>
                         </div>
                       </li>
@@ -172,11 +172,11 @@ export default async function PublicContactPage(props: {
                         </span>
                         <div>
                           <p className="font-medium text-foreground">
-                            DNS &amp; DKIM verification
+                            Domain verification
                           </p>
                           <p className="mt-0.5 text-muted-foreground">
-                            Exact MX, SPF, DKIM, and DMARC records are generated
-                            and verified.
+                            Our team provides simple verification steps to
+                            connect your domain.
                           </p>
                         </div>
                       </li>
@@ -186,11 +186,11 @@ export default async function PublicContactPage(props: {
                         </span>
                         <div>
                           <p className="font-medium text-foreground">
-                            Policy &amp; workspace activation
+                            Workspace activation
                           </p>
                           <p className="mt-0.5 text-muted-foreground">
-                            Allowed domains, mailbox quotas, and auto-delete
-                            policies are enabled for your users.
+                            Your custom domain and mailbox limits are enabled
+                            for your workspace users.
                           </p>
                         </div>
                       </li>
@@ -205,7 +205,7 @@ export default async function PublicContactPage(props: {
                         glyph={ShieldCheck}
                         className="size-4 text-success"
                       />
-                      <SectionTitle>Platform Guarantees</SectionTitle>
+                      <SectionTitle>Workspace Highlights</SectionTitle>
                     </div>
                   </PanelHeader>
                   <PanelBody>
@@ -215,21 +215,21 @@ export default async function PublicContactPage(props: {
                           glyph={CheckCircle2}
                           className="size-3.5 text-success"
                         />
-                        <span>Live SPF, DKIM, and DMARC verification</span>
+                        <span>Dedicated custom domains for teams</span>
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Icon
                           glyph={CheckCircle2}
                           className="size-3.5 text-success"
                         />
-                        <span>Per-user domain access &amp; mailbox quotas</span>
+                        <span>Flexible mailbox limits per account</span>
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Icon
                           glyph={CheckCircle2}
                           className="size-3.5 text-success"
                         />
-                        <span>Automated email retention &amp; audit logs</span>
+                        <span>Automated message retention options</span>
                       </li>
                     </ul>
 
@@ -298,7 +298,6 @@ export default async function PublicContactPage(props: {
         footerDescription={settings.footerDescription}
         copyrightText={settings.copyrightText}
         privacyUrl={settings.privacyUrl}
-        sourceCodeUrl={settings.sourceCodeUrl}
         supportEmail={settings.supportEmail}
       />
     </div>

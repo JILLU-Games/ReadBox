@@ -215,20 +215,7 @@ export function UserMailboxesView({
 
       <div className="border border-border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <PageTitle>My Mailboxes</PageTitle>
-            {maxMailboxes > 0 ? (
-              <Badge variant="outline">
-                Quota: {listResult.totalCount} / {maxMailboxes}
-              </Badge>
-            ) : null}
-            {listResult.capabilities.autoDeleteEnabled &&
-            (listResult.capabilities.autoDeleteDays ?? 0) > 0 ? (
-              <Badge variant="outline">
-                Auto-delete: {listResult.capabilities.autoDeleteDays}d
-              </Badge>
-            ) : null}
-          </div>
+          <PageTitle>My Mailboxes</PageTitle>
           <Button
             type="button"
             onClick={() =>
@@ -564,8 +551,8 @@ export function UserMailboxesView({
             Delete {selectedUuids.size} selected mailbox(es)?
           </DialogTitle>
           <DialogDescription>
-            Selected mailboxes, indexed messages, attachments, and Maildir data
-            will be permanently purged.
+            Selected mailboxes and all of their messages and attachments will
+            be permanently deleted.
           </DialogDescription>
           <DialogFooter>
             <Button

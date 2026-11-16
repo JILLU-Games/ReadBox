@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the fixed, root-only ReadBox / MailStack upgrade request."""
+"""Run the fixed, root-only ReadBox upgrade request."""
 from __future__ import annotations
 
 import json
@@ -21,7 +21,7 @@ STATUS_PATH = RUNTIME_DIR / "update_status.json"
 UPGRADE_SCRIPT = Path(
     os.environ.get("UPDATE_SCRIPT_PATH", "/opt/vibmail/app/scripts/updater/upgrade.sh")
 )
-GITHUB_REPO = os.environ.get("UPDATE_GITHUB_REPO", "vibtools/MailStack")
+GITHUB_REPO = os.environ.get("UPDATE_GITHUB_REPO", "vibtools/ReadBox")
 
 
 def write_status(step: str, message: str, progress: int) -> None:

@@ -113,20 +113,7 @@ export function UserOverview({
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <PageTitle>Inbox &amp; Mailbox Workspace</PageTitle>
-          {maxMailboxes > 0 ? (
-            <Badge variant="outline">
-              Quota: {liveSummary.totalMailboxes} / {maxMailboxes}
-            </Badge>
-          ) : null}
-          {snapshot.capabilities.autoDeleteEnabled &&
-          (snapshot.capabilities.autoDeleteDays ?? 0) > 0 ? (
-            <Badge variant="outline">
-              Auto-delete: {snapshot.capabilities.autoDeleteDays}d
-            </Badge>
-          ) : null}
-        </div>
+        <PageTitle>Inbox &amp; Mailbox Workspace</PageTitle>
 
         {createMailboxAction ? (
           <Button

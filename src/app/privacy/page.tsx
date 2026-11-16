@@ -18,9 +18,9 @@ function resolvePublicBaseUrl(): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
   const title = `Privacy Policy — ${siteName}`;
-  const description = `Learn how ${siteName} handles workspace accounts, self-service mailboxes, automated email retention, contact inquiries, and security logs.`;
+  const description = `Learn how ${siteName} handles workspace accounts, mailboxes, automated message retention, and support inquiries.`;
   const baseUrl = resolvePublicBaseUrl();
 
   return {
@@ -44,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PublicPrivacyPage() {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -60,12 +60,11 @@ export default async function PublicPrivacyPage() {
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <PageTitle className="text-lg font-medium sm:text-xl">
-                  Privacy Policy — Workspace, Mailbox &amp; Inquiry Governance
+                  Privacy Policy
                 </PageTitle>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {siteName} is engineered around minimal data collection,
-                  isolated account authentication, configurable auto-delete
-                  retention, and transparent operational logging.
+                  {siteName} is designed around minimal data collection, private
+                  workspace access, and configurable message retention.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -97,13 +96,8 @@ export default async function PublicPrivacyPage() {
                     </h2>
                     <p className="mt-1">
                       This Privacy Notice explains what information {siteName}{" "}
-                      collects when you register a workspace account via{" "}
-                      <code className="font-mono text-foreground">/sign-up</code>
-                      , provision or read mailboxes in{" "}
-                      <code className="font-mono text-foreground">/users</code>,
-                      or submit an inquiry through{" "}
-                      <code className="font-mono text-foreground">/contact</code>
-                      .
+                      collects when you register a workspace account, manage
+                      mailboxes, or submit a support inquiry.
                     </p>
                   </section>
 
@@ -116,11 +110,9 @@ export default async function PublicPrivacyPage() {
                         <strong className="font-medium text-foreground">
                           Workspace account registration:
                         </strong>{" "}
-                        When you create an account, we store your email address,
-                        password hash, optional display name, phone or company
-                        fields required by platform policy, and your assigned
-                        User Access Policy (allowed domains, mailbox quota, and
-                        auto-delete retention settings).
+                        When you create an account, we store your username,
+                        encrypted credentials, optional profile details, and
+                        your workspace mailbox preferences.
                       </li>
                       <li>
                         <strong className="font-medium text-foreground">
@@ -132,27 +124,24 @@ export default async function PublicPrivacyPage() {
                       </li>
                       <li>
                         <strong className="font-medium text-foreground">
-                          Abuse-prevention &amp; audit metadata:
+                          Service protection:
                         </strong>{" "}
-                        To protect our infrastructure, we process one-way
-                        cryptographic hashes of submitting IP addresses for rate
-                        limiting and record authentication, mailbox creation, and
-                        policy changes in PostgreSQL audit logs.
+                        To protect our service from abuse, we record basic
+                        security events and rate-limit automated submissions.
                       </li>
                     </ul>
                   </section>
 
                   <section>
                     <h2 className="text-xs font-medium text-foreground">
-                      3. Automated Email Retention &amp; Data Lifecycle
+                      3. Automated Message Retention
                     </h2>
                     <p className="mt-1">
-                      {siteName} supports policy-driven email auto-delete
-                      retention. When automated retention is enabled on a user or
-                      global policy, messages older than the configured retention
-                      window (<code className="font-mono text-foreground">autoDeleteDays</code>)
-                      are automatically filtered and expired from workspace
-                      views. We never scan mailbox contents for advertising.
+                      {siteName} supports automated message retention. When
+                      retention is enabled for your workspace, messages older
+                      than your configured retention window are automatically
+                      expired from your inbox view. We never scan mailbox
+                      contents for advertising.
                     </p>
                   </section>
 
@@ -161,10 +150,9 @@ export default async function PublicPrivacyPage() {
                       4. Security and Access Controls
                     </h2>
                     <p className="mt-1">
-                      {siteName} enforces separate database tables for Workspace
-                      Users and Platform Administrators, TLS encryption in
-                      transit, CSRF protection on interactive forms, server-side
-                      HTML sanitization, and strict domain and quota checks.
+                      {siteName} protects your account with encrypted
+                      connections, isolated workspace sessions, tracker-free
+                      message viewing, and strict domain and mailbox permissions.
                     </p>
                   </section>
 
@@ -173,13 +161,13 @@ export default async function PublicPrivacyPage() {
                       5. Contact &amp; Data Requests
                     </h2>
                     <p className="mt-1">
-                      For privacy, account deletion, or security questions
-                      regarding {siteName}, please submit a request via{" "}
+                      For privacy, account deletion, or support questions
+                      regarding {siteName}, please submit a request via our{" "}
                       <Link
                         href="/contact"
                         className="font-medium text-foreground underline decoration-border underline-offset-2 hover:text-primary"
                       >
-                        /contact
+                        Contact page
                       </Link>
                       {settings.supportEmail ? (
                         <>
@@ -210,7 +198,6 @@ export default async function PublicPrivacyPage() {
         footerDescription={settings.footerDescription}
         copyrightText={settings.copyrightText}
         privacyUrl={settings.privacyUrl}
-        sourceCodeUrl={settings.sourceCodeUrl}
         supportEmail={settings.supportEmail}
       />
     </div>

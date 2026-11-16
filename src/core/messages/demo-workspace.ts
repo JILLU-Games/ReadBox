@@ -152,7 +152,7 @@ function createInitialDemoStore(): DemoStoreState {
         senderAddress: "billing@vendor.example",
         recipientAddresses: ["billing.ops@mailstack.local"],
         ccAddresses: ["finance@mailstack.local"],
-        subject: "Invoice #9021 — November Infrastructure Statement",
+        subject: "Invoice #9021 — November Monthly Statement",
         preview:
           "Your November billing summary is ready. Total due: $184.00 on Nov 30.",
         receivedAt: "2026-11-15T12:42:00.000Z",
@@ -163,7 +163,7 @@ function createInitialDemoStore(): DemoStoreState {
         parseWarning: "",
         textBody:
           "Hello team,\n\nYour November billing summary (Invoice #9021) is attached.\nTotal amount: $184.00\nDue date: 2026-11-30\n\nRegards,\nVendor Billing",
-        htmlBody: `<h3 style="margin:0 0 8px 0;font-size:15px;font-weight:600">Invoice #9021</h3><p style="margin:0 0 10px 0;font-size:13px;line-height:1.5">Your November infrastructure statement is ready for review.</p><table style="border-collapse:collapse;width:100%;max-width:420px;font-size:12px"><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Period</td><td style="padding:6px;border-width:1px;border-style:solid">Nov 01 – Nov 30, 2026</td></tr><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Amount</td><td style="padding:6px;border-width:1px;border-style:solid">$184.00</td></tr></table>`,
+        htmlBody: `<h3 style="margin:0 0 8px 0;font-size:15px;font-weight:600">Invoice #9021</h3><p style="margin:0 0 10px 0;font-size:13px;line-height:1.5">Your November monthly statement is ready for review.</p><table style="border-collapse:collapse;width:100%;max-width:420px;font-size:12px"><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Period</td><td style="padding:6px;border-width:1px;border-style:solid">Nov 01 – Nov 30, 2026</td></tr><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Amount</td><td style="padding:6px;border-width:1px;border-style:solid">$184.00</td></tr></table>`,
         attachments: [
           {
             uuid: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001",
@@ -183,14 +183,14 @@ function createInitialDemoStore(): DemoStoreState {
         id: "5002",
         uuid: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa002",
         mailboxUuid: "11111111-1111-4111-8111-111111111101",
-        messageIdHeader: "<tls-renew@letsencrypt.org>",
-        senderName: "Security Ops",
-        senderAddress: "secops@cloudnode.example",
+        messageIdHeader: "<sub-renewal@workspace.example>",
+        senderName: "Account Services",
+        senderAddress: "accounts@workspace.example",
         recipientAddresses: ["billing.ops@mailstack.local"],
         ccAddresses: [],
-        subject: "TLS Certificate Renewed for mail.mailstack.local",
+        subject: "Annual workspace plan renewal confirmation",
         preview:
-          "Automated ACME renewal succeeded. Valid through Feb 13, 2027.",
+          "Your annual workspace subscription has been renewed through Feb 13, 2027.",
         receivedAt: "2026-11-15T10:15:00.000Z",
         parsedAt: "2026-11-15T10:15:01.000Z",
         sizeBytes: 3420,
@@ -198,7 +198,7 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Automated certificate renewal completed for mail.mailstack.local.\nExpiry: 2027-02-13 UTC\nSerial: 04:9A:2F:18:C2",
+          "Your annual workspace plan renewal is complete.\nNext renewal date: 2027-02-13\nReference: SUB-2026-049",
         htmlBody: null,
         attachments: [],
         deleted: false,
@@ -259,9 +259,9 @@ function createInitialDemoStore(): DemoStoreState {
         senderAddress: "care@client-org.example",
         recipientAddresses: ["support.desk@teambox.dev"],
         ccAddresses: [],
-        subject: "Re: Domain DNS cutover confirmation",
+        subject: "Re: Team onboarding schedule confirmation",
         preview:
-          "MX and SPF records have propagated across all authoritative nameservers.",
+          "All team members have been added to the shared support workspace.",
         receivedAt: "2026-11-15T09:20:00.000Z",
         parsedAt: "2026-11-15T09:20:02.000Z",
         sizeBytes: 9120,
@@ -269,18 +269,18 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Hi Support,\n\nMX and SPF records propagated cleanly across our resolvers.\n\nThanks!",
-        htmlBody: `<p style="margin:0 0 8px 0;font-size:13px">Hi Support,</p><p style="margin:0;font-size:13px">MX and SPF records propagated cleanly across our resolvers.</p>`,
+          "Hi Support,\n\nAll team members have completed onboarding and can now access the shared inbox.\n\nThanks!",
+        htmlBody: `<p style="margin:0 0 8px 0;font-size:13px">Hi Support,</p><p style="margin:0;font-size:13px">All team members have completed onboarding and can now access the shared inbox.</p>`,
         attachments: [
           {
             uuid: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb002",
-            originalFilename: "dns-check-report.txt",
-            safeFilename: "dns-check-report.txt",
+            originalFilename: "onboarding-summary.txt",
+            safeFilename: "onboarding-summary.txt",
             declaredMimeType: "text/plain",
             detectedMimeType: "text/plain",
             sizeBytes: 98,
             isInline: false,
-            content: "MX: mail.mailstack.local (10) OK\nSPF: v=spf1 a:mail.mailstack.local -all OK\n",
+            content: "Workspace: support.desk@teambox.dev\nStatus: Active\n",
           },
         ],
         deleted: false,
@@ -880,7 +880,7 @@ export function softDeleteDemoMessage(
   return {
     ok: true,
     data: { uuid: msg.uuid },
-    message: "Message deleted. The source email remains preserved.",
+    message: "Message deleted.",
   };
 }
 

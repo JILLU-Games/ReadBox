@@ -21,10 +21,16 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Admin sign in",
-  referrer: "same-origin",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteName = settings.siteName || "ReadBox";
+  return {
+    title: {
+      absolute: `Admin sign in | ${siteName}`,
+    },
+    referrer: "same-origin",
+  };
+}
 
 export default async function AdminLoginPage() {
   const devBypassActive =
@@ -36,7 +42,7 @@ export default async function AdminLoginPage() {
     authActive ? getCurrentUser() : Promise.resolve(null),
     getSiteSettings(),
   ]);
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
