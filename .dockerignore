@@ -1,0 +1,46 @@
+# Version control & local IDE/OS files
+.git
+.gitignore
+.gitattributes
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+.aistudio
+
+# Dependencies & build caches
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Local environment files & secrets
+.env
+.env.*
+!.env.example
+
+# Logs & temporary runtime directories
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.playwright-cli
+.runtime
+
+# Python caches (if any local tooling ran)
+**/__pycache__
+*.pyc
+*.pyo
+
+# Tests, reference source & non-runtime documentation
+tests
+reference
+docs
+notes
+compose.yaml
+Dockerfile
+docker-compose.yml
+.dockerignore

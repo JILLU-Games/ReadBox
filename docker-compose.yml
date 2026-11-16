@@ -1,0 +1,105 @@
+services:
+  postgres:
+    image: postgres:16.14-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-readbox}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_DB:?Coolify auto-generates SERVICE_PASSWORD_DB}
+      POSTGRES_DB: ${POSTGRES_DB:-readbox}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - readbox_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-readbox} -d $${POSTGRES_DB:-readbox}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+
+      # Database & Migrations (Coolify auto-generates SERVICE_PASSWORD_DB)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-readbox}:${SERVICE_PASSWORD_DB}@postgres:5432/${POSTGRES_DB:-readbox}?schema=public
+      PRISMA_CLI_ALLOW_REMOTE: "true"
+
+      # Authentication & Proxy Trust (Coolify auto-generates SERVICE_BASE64_64_SECRET)
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      AUTH_SECRET: ${SERVICE_BASE64_64_SECRET:?Coolify auto-generates SERVICE_BASE64_64_SECRET}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-true}
+      AUTH_URL: ${AUTH_URL:-}
+      PUBLIC_SITE_ORIGIN: ${PUBLIC_SITE_ORIGIN:-}
+      DEV_AUTH_MODE: "off"
+      DEV_AUTH_ROLE: "user"
+
+      # Login Lockout & Logging
+      LOGIN_FAILURE_LIMIT: ${LOGIN_FAILURE_LIMIT:-5}
+      LOGIN_FAILURE_WINDOW_SECONDS: ${LOGIN_FAILURE_WINDOW_SECONDS:-900}
+      LOGIN_LOCKOUT_SECONDS: ${LOGIN_LOCKOUT_SECONDS:-900}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+      # Mail Domain & Host Configuration (configure in Coolify UI for your domain)
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-mailstack.local}
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.mailstack.local}
+      APP_HOSTNAME: ${APP_HOSTNAME:-app.mailstack.local}
+      SERVER_IP: ${SERVER_IP:-127.0.0.1}
+      DNS_LOOKUP_TIMEOUT_SECONDS: ${DNS_LOOKUP_TIMEOUT_SECONDS:-3}
+
+      # Persistent Storage Paths (backed by named volumes below)
+      MAIL_STORAGE_ROOT: /var/vmail
+      ATTACHMENT_STORAGE_ROOT: /var/lib/readbox/attachments
+      MEDIA_ROOT: /var/lib/readbox/media
+      MAILBOX_PROVISION_LOCK_ROOT: /var/lock/readbox-provision
+      OPENDKIM_KEYS_ROOT: /etc/opendkim/keys
+      INGESTION_LOCK_FILE: /var/lock/readbox-provision/readbox-ingestion.lock
+
+      # Mailbox & Message Policy
+      MAILBOX_DEFAULT_QUOTA_BYTES: ${MAILBOX_DEFAULT_QUOTA_BYTES:-2147483648}
+      INGESTION_STALE_AFTER_SECONDS: ${INGESTION_STALE_AFTER_SECONDS:-120}
+      INGESTION_INTERVAL_SECONDS: ${INGESTION_INTERVAL_SECONDS:-15}
+      MAX_MESSAGE_SIZE_MB: ${MAX_MESSAGE_SIZE_MB:-25}
+      MAX_ATTACHMENT_SIZE_MB: ${MAX_ATTACHMENT_SIZE_MB:-20}
+      MAX_ATTACHMENTS_PER_MESSAGE: ${MAX_ATTACHMENTS_PER_MESSAGE:-25}
+
+      # Optional Release Check Settings
+      UPDATE_GITHUB_REPO: ${UPDATE_GITHUB_REPO:-vibtools/ReadBox}
+    volumes:
+      - readbox_vmail:/var/vmail
+      - readbox_attachments:/var/lib/readbox/attachments
+      - readbox_media:/var/lib/readbox/media
+      - readbox_locks:/var/lock/readbox-provision
+      - readbox_opendkim:/etc/opendkim/keys
+    networks:
+      - readbox_internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/live').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  postgres_data:
+  readbox_vmail:
+  readbox_attachments:
+  readbox_media:
+  readbox_locks:
+  readbox_opendkim:
+
+networks:
+  readbox_internal:
+    driver: bridge
