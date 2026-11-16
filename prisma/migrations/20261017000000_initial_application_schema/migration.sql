@@ -11,11 +11,45 @@ CREATE TABLE "users" (
     "first_name" VARCHAR(150) NOT NULL DEFAULT '',
     "last_name" VARCHAR(150) NOT NULL DEFAULT '',
     "email" VARCHAR(254) NOT NULL DEFAULT '',
+    "phone" VARCHAR(40) NOT NULL DEFAULT '',
     "is_staff" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "verification_status" VARCHAR(24) NOT NULL DEFAULT 'verified',
     "date_joined" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "admin_accounts" (
+    "id" BIGSERIAL NOT NULL,
+    "username" VARCHAR(150) NOT NULL,
+    "password_hash" VARCHAR(128) NOT NULL,
+    "first_name" VARCHAR(150) NOT NULL DEFAULT '',
+    "last_name" VARCHAR(150) NOT NULL DEFAULT '',
+    "email" VARCHAR(254) NOT NULL DEFAULT '',
+    "is_superuser" BOOLEAN NOT NULL DEFAULT true,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "password_reset_required" BOOLEAN NOT NULL DEFAULT false,
+    "last_login" TIMESTAMPTZ(6),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "admin_accounts_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "admin_sessions" (
+    "id" BIGSERIAL NOT NULL,
+    "token_hash" CHAR(64) NOT NULL,
+    "admin_id" BIGINT NOT NULL,
+    "expires_at" TIMESTAMPTZ(6) NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "last_seen_at" TIMESTAMPTZ(6),
+    "ip_address" INET,
+    "user_agent" VARCHAR(500) NOT NULL DEFAULT '',
+
+    CONSTRAINT "admin_sessions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -33,12 +67,42 @@ CREATE TABLE "login_attempts" (
 CREATE TABLE "user_access_policies" (
     "id" BIGSERIAL NOT NULL,
     "user_id" BIGINT NOT NULL,
+    "can_create_mailboxes" BOOLEAN NOT NULL DEFAULT true,
     "can_delete_messages" BOOLEAN NOT NULL DEFAULT false,
     "can_delete_mailboxes" BOOLEAN NOT NULL DEFAULT false,
+    "max_mailboxes" INTEGER NOT NULL DEFAULT 3,
+    "allowed_domain_uuids" JSONB NOT NULL DEFAULT '[]',
+    "auto_delete_enabled" BOOLEAN NOT NULL DEFAULT false,
+    "auto_delete_days" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
     CONSTRAINT "user_access_policies_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_control_settings" (
+    "id" BIGSERIAL NOT NULL,
+    "signup_enabled" BOOLEAN NOT NULL DEFAULT true,
+    "first_name_requirement" VARCHAR(16) NOT NULL DEFAULT 'optional',
+    "last_name_requirement" VARCHAR(16) NOT NULL DEFAULT 'optional',
+    "email_requirement" VARCHAR(16) NOT NULL DEFAULT 'required',
+    "phone_requirement" VARCHAR(16) NOT NULL DEFAULT 'optional',
+    "min_password_length" INTEGER NOT NULL DEFAULT 12,
+    "require_strong_password" BOOLEAN NOT NULL DEFAULT true,
+    "verification_mode" VARCHAR(24) NOT NULL DEFAULT 'instant',
+    "invite_code" VARCHAR(120) NOT NULL DEFAULT '',
+    "allowed_domain_uuids" JSONB NOT NULL DEFAULT '[]',
+    "default_max_mailboxes" INTEGER NOT NULL DEFAULT 3,
+    "auto_provision_starter_mailbox" BOOLEAN NOT NULL DEFAULT false,
+    "default_can_create_mailboxes" BOOLEAN NOT NULL DEFAULT true,
+    "default_can_delete_messages" BOOLEAN NOT NULL DEFAULT false,
+    "default_can_delete_mailboxes" BOOLEAN NOT NULL DEFAULT false,
+    "auto_delete_enabled" BOOLEAN NOT NULL DEFAULT false,
+    "auto_delete_days" INTEGER NOT NULL DEFAULT 30,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "user_control_settings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -168,7 +232,7 @@ CREATE TABLE "service_heartbeats" (
 -- CreateTable
 CREATE TABLE "site_settings" (
     "id" BIGSERIAL NOT NULL,
-    "site_name" VARCHAR(120) NOT NULL DEFAULT 'MailStack',
+    "site_name" VARCHAR(120) NOT NULL DEFAULT 'ReadBox',
     "site_tagline" VARCHAR(200) NOT NULL DEFAULT 'Self-hosted mail server and shared team inbox.',
     "logo_path" VARCHAR(100) NOT NULL DEFAULT '',
     "favicon_path" VARCHAR(100) NOT NULL DEFAULT '',
@@ -177,7 +241,7 @@ CREATE TABLE "site_settings" (
     "office_address" VARCHAR(255) NOT NULL DEFAULT '',
     "footer_description" TEXT NOT NULL DEFAULT '',
     "copyright_text" VARCHAR(255) NOT NULL DEFAULT 'Authorized team use only.',
-    "source_code_url" VARCHAR(200) NOT NULL DEFAULT 'https://github.com/vibtools/MailStack',
+    "source_code_url" VARCHAR(200) NOT NULL DEFAULT 'https://github.com/vibtools/ReadBox',
     "privacy_url" VARCHAR(500) NOT NULL DEFAULT '/privacy/',
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
@@ -186,6 +250,12 @@ CREATE TABLE "site_settings" (
 
 -- CreateIndex
 CREATE INDEX "users_username_idx" ON "users"("username");
+CREATE INDEX "users_verification_status_idx" ON "users"("verification_status");
+CREATE UNIQUE INDEX "admin_accounts_username_key" ON "admin_accounts"("username");
+CREATE INDEX "admin_accounts_username_idx" ON "admin_accounts"("username");
+CREATE UNIQUE INDEX "admin_sessions_token_hash_key" ON "admin_sessions"("token_hash");
+CREATE INDEX "admin_sessions_admin_id_expires_at_idx" ON "admin_sessions"("admin_id", "expires_at");
+CREATE INDEX "admin_sessions_expires_at_idx" ON "admin_sessions"("expires_at");
 
 -- CreateIndex
 CREATE INDEX "login_attempts_username_normalized_idx" ON "login_attempts"("username_normalized");
@@ -292,6 +362,9 @@ CREATE INDEX "audit_logs_actor_id_idx" ON "audit_logs"("actor_id");
 CREATE UNIQUE INDEX "service_heartbeats_service_name_key" ON "service_heartbeats"("service_name");
 
 -- AddForeignKey
+ALTER TABLE "admin_sessions" ADD CONSTRAINT "admin_sessions_admin_id_fkey" FOREIGN KEY ("admin_id") REFERENCES "admin_accounts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "user_access_policies" ADD CONSTRAINT "user_access_policies_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -323,6 +396,7 @@ ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actor_id_fkey" FOREIGN KEY (
 
 -- Preserve Django form/model case-insensitive uniqueness in PostgreSQL.
 CREATE UNIQUE INDEX "users_username_ci_key" ON "users" (lower("username"));
+CREATE UNIQUE INDEX "admin_accounts_username_ci_key" ON "admin_accounts" (lower("username"));
 CREATE UNIQUE INDEX "domains_name_ci_key" ON "domains" (lower("name"));
 CREATE UNIQUE INDEX "mailboxes_domain_local_part_ci_key" ON "mailboxes" ("domain_id", lower("local_part"));
 CREATE UNIQUE INDEX "mailboxes_email_address_ci_key" ON "mailboxes" (lower("email_address"));

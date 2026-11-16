@@ -66,6 +66,8 @@ export async function verifyPostfixContractAction(): Promise<
     getPrismaClient() as unknown as OperationsPrismaClient,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -87,6 +89,8 @@ export async function syncMailserverMailboxesAction(input: {
     input,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -108,6 +112,8 @@ export async function provisionMaildirsAction(input: {
     input,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -130,6 +136,8 @@ export async function rebuildMailIndexAction(input: {
     input,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -150,6 +158,8 @@ export async function recalculateCountersAction(input: {
     input,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -174,6 +184,8 @@ export async function repairMessageBodiesAction(input: {
     input,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },

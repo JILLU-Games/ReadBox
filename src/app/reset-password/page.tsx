@@ -1,3 +1,4 @@
+import { requestPasswordResetAction } from "@/app/reset-password/actions";
 import { PasswordResetForm } from "@/components/auth/password-reset-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
@@ -7,6 +8,9 @@ import {
   PanelBody,
   PanelHeader,
 } from "@/components/ui";
+import { env } from "@/config/env";
+import { getUserControlSettings } from "@/core/accounts/user-control-policy";
+import { getPrismaClient } from "@/core/database/client";
 import { getSiteSettings } from "@/core/settings/service";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -25,7 +29,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ResetPasswordPage() {
-  const settings = await getSiteSettings();
+  const devDemoActive =
+    env.nodeEnv === "development" && env.devAuthMode === "demo";
+  const prisma = !devDemoActive && env.databaseUrl ? getPrismaClient() : null;
+  const [settings, userControl] = await Promise.all([
+    getSiteSettings(),
+    getUserControlSettings(prisma),
+  ]);
   const siteName = settings.siteName || "ReadBox";
 
   return (
@@ -42,7 +52,11 @@ export default async function ResetPasswordPage() {
           <PageTitle>Set a new password</PageTitle>
         </PanelHeader>
         <PanelBody className="p-4">
-          <PasswordResetForm />
+          <PasswordResetForm
+            minPasswordLength={Math.max(8, userControl.minPasswordLength)}
+            requireStrongPassword={userControl.requireStrongPassword}
+            requestResetAction={requestPasswordResetAction}
+          />
         </PanelBody>
       </Panel>
 

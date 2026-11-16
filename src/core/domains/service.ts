@@ -28,6 +28,8 @@ export type DomainPrismaClient = PrismaClient & PrismaRawQueryable;
 
 export interface DomainAuditContext {
   readonly actorId: bigint;
+  readonly authSource?: "admin_table" | "user_table";
+  readonly actorUsername?: string;
   readonly headers?: Pick<Headers, "get">;
   readonly clientIp?: string | null;
   readonly userAgent?: string | null;
@@ -74,7 +76,9 @@ function isUniqueConstraintError(error: unknown): boolean {
 async function resolveActorIdForDatabase(
   db: Pick<PrismaClient, "user">,
   actorId: bigint,
+  authSource?: "admin_table" | "user_table",
 ): Promise<bigint | null> {
+  if (authSource === "admin_table") return null;
   if (actorId <= BigInt(0)) return null;
   const user = await db.user.findUnique({
     where: { id: actorId },
@@ -242,9 +246,15 @@ export async function createDomain(
       select: { uuid: true, name: true },
     });
 
-    const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+    const resolvedActorId = await resolveActorIdForDatabase(
+      prisma,
+      ctx.actorId,
+      ctx.authSource,
+    );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: "domain_create",
       targetType: "domain",
       targetIdentifier: created.name,
@@ -379,9 +389,15 @@ export async function updateDomainStatus(
       };
     }
 
-    const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+    const resolvedActorId = await resolveActorIdForDatabase(
+      prisma,
+      ctx.actorId,
+      ctx.authSource,
+    );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: "domain_update",
       targetType: "domain",
       targetIdentifier: domain.name,
@@ -470,9 +486,15 @@ export async function checkDomainDns(
       },
     });
 
-    const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+    const resolvedActorId = await resolveActorIdForDatabase(
+      prisma,
+      ctx.actorId,
+      ctx.authSource,
+    );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: "domain_dns_check",
       targetType: "domain",
       targetIdentifier: domain.name,
@@ -550,9 +572,15 @@ export async function toggleDomainStatus(
       data: { status: targetStatus },
     });
 
-    const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+    const resolvedActorId = await resolveActorIdForDatabase(
+      prisma,
+      ctx.actorId,
+      ctx.authSource,
+    );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: targetStatus === "active" ? "domain_enable" : "domain_disable",
       targetType: "domain",
       targetIdentifier: domain.name,
@@ -627,9 +655,15 @@ export async function setDefaultDomain(
       }),
     ]);
 
-    const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+    const resolvedActorId = await resolveActorIdForDatabase(
+      prisma,
+      ctx.actorId,
+      ctx.authSource,
+    );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: "domain_set_default",
       targetType: "domain",
       targetIdentifier: domain.name,
@@ -701,9 +735,15 @@ export async function deleteDomain(
     await deleteMailserverDomain(sqlExecutor, { domainName: domain.name });
     await prisma.domain.delete({ where: { id: domain.id } });
 
-    const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+    const resolvedActorId = await resolveActorIdForDatabase(
+      prisma,
+      ctx.actorId,
+      ctx.authSource,
+    );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: "domain_delete",
       targetType: "domain",
       targetIdentifier: domain.name,

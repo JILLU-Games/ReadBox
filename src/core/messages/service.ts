@@ -46,6 +46,7 @@ export const SAFE_HTML_CSP_POLICY = [
 
 export interface UserWorkspaceActor {
   readonly userId: bigint;
+  readonly authSource?: "admin_table" | "user_table";
   readonly username?: string;
   readonly isAdministrator: boolean;
   readonly headers?: Pick<Headers, "get">;
@@ -161,6 +162,7 @@ export interface UserAttachmentItem {
   readonly detectedMimeType: string;
   readonly sizeBytes: number;
   readonly isInline: boolean;
+  readonly contentId?: string;
 }
 
 export interface UserMessageDetail {
@@ -330,7 +332,7 @@ function buildAccessibleMessageWhere(
 }
 
 async function resolveActorCapabilities(
-  prisma: Pick<PrismaClient, "userAccessPolicy">,
+  prisma: Partial<Pick<PrismaClient, "userAccessPolicy" | "userControlSettings">>,
   actor: Pick<UserWorkspaceActor, "userId" | "isAdministrator">,
 ): Promise<UserAccessCapabilities> {
   if (actor.isAdministrator) {
@@ -344,17 +346,34 @@ async function resolveActorCapabilities(
       autoDeleteDays: 0,
     };
   }
+  const hasPolicyClient = Boolean(prisma.userAccessPolicy);
   const [baseCaps, globalSettings] = await Promise.all([
-    getUserAccessCapabilities(prisma, actor.userId),
-    getUserControlSettings(
-      prisma as Partial<Pick<PrismaClient, "userControlSettings">>,
-    ),
+    hasPolicyClient
+      ? getUserAccessCapabilities(
+          prisma as Pick<PrismaClient, "userAccessPolicy">,
+          actor.userId,
+        )
+      : Promise.resolve({
+          canDeleteMessages: false,
+          canDeleteMailboxes: false,
+        }),
+    getUserControlSettings(prisma),
   ]);
-  const effective = await getUserExtendedPolicy(
-    prisma,
-    actor.userId,
-    globalSettings,
-  );
+  const effective = hasPolicyClient
+    ? await getUserExtendedPolicy(
+        prisma as Pick<PrismaClient, "userAccessPolicy">,
+        actor.userId,
+        globalSettings,
+      )
+    : {
+        canDeleteMessages: globalSettings.defaultCanDeleteMessages,
+        canDeleteMailboxes: globalSettings.defaultCanDeleteMailboxes,
+        canCreateMailboxes: globalSettings.defaultCanCreateMailboxes,
+        maxMailboxes: globalSettings.defaultMaxMailboxes,
+        allowedDomainUuids: [...globalSettings.allowedDomainUuids],
+        autoDeleteEnabled: globalSettings.autoDeleteEnabled,
+        autoDeleteDays: globalSettings.autoDeleteDays,
+      };
   return {
     canDeleteMessages: baseCaps.canDeleteMessages || effective.canDeleteMessages,
     canDeleteMailboxes:
@@ -367,6 +386,56 @@ async function resolveActorCapabilities(
   };
 }
 
+export function resolveInlineCidAttachmentsInHtml(
+  html: string,
+  attachments: readonly {
+    readonly uuid: string;
+    readonly contentId?: string | null;
+    readonly originalFilename?: string | null;
+    readonly safeFilename?: string | null;
+    readonly isInline?: boolean;
+  }[],
+): string {
+  if (!html || !attachments || attachments.length === 0) {
+    return html;
+  }
+  const cidLookup = new Map<string, string>();
+  for (const att of attachments) {
+    if (!att.uuid) continue;
+    const attachmentUrl = `/api/messages/attachment/${att.uuid}`;
+    const rawCid = (att.contentId ?? "").replace(/^<|>$/g, "").trim();
+    if (rawCid) {
+      cidLookup.set(rawCid, attachmentUrl);
+      cidLookup.set(rawCid.toLowerCase(), attachmentUrl);
+    }
+    if (att.isInline) {
+      const orig = (att.originalFilename ?? "").trim();
+      if (orig && !cidLookup.has(orig.toLowerCase())) {
+        cidLookup.set(orig, attachmentUrl);
+        cidLookup.set(orig.toLowerCase(), attachmentUrl);
+      }
+      const safe = (att.safeFilename ?? "").trim();
+      if (safe && !cidLookup.has(safe.toLowerCase())) {
+        cidLookup.set(safe, attachmentUrl);
+        cidLookup.set(safe.toLowerCase(), attachmentUrl);
+      }
+    }
+  }
+  if (cidLookup.size === 0) {
+    return html;
+  }
+  return html.replace(
+    /(<img\b[^>]*?\bsrc\s*=\s*["'])cid:([^"']+)(["'])/gi,
+    (fullMatch, prefix: string, rawCid: string, suffix: string) => {
+      const cleanedCid = rawCid.replace(/^<|>$/g, "").trim();
+      if (!cleanedCid) return fullMatch;
+      const resolvedUrl =
+        cidLookup.get(cleanedCid) ?? cidLookup.get(cleanedCid.toLowerCase());
+      return resolvedUrl ? `${prefix}${resolvedUrl}${suffix}` : fullMatch;
+    },
+  );
+}
+
 function resolveActorRetentionCutoff(
   capabilities: UserAccessCapabilities,
   isAdministrator: boolean,
@@ -376,6 +445,41 @@ function resolveActorRetentionCutoff(
     autoDeleteEnabled: Boolean(capabilities.autoDeleteEnabled),
     autoDeleteDays: capabilities.autoDeleteDays ?? 0,
   });
+}
+
+export function buildRetentionFilterClause(
+  retentionCutoff: Date | null,
+): Record<string, unknown> {
+  if (!retentionCutoff) {
+    return {};
+  }
+  return {
+    AND: [
+      {
+        OR: [
+          { receivedAt: { gte: retentionCutoff } },
+          { receivedAt: null, createdAt: { gte: retentionCutoff } },
+        ],
+      },
+    ],
+  };
+}
+
+export function isMessageWithinRetention(
+  msg: {
+    readonly receivedAt?: Date | null;
+    readonly createdAt?: Date | null;
+  },
+  retentionCutoff: Date | null,
+): boolean {
+  if (!retentionCutoff) {
+    return true;
+  }
+  const effectiveDate = msg.receivedAt ?? msg.createdAt ?? null;
+  if (!effectiveDate) {
+    return true;
+  }
+  return effectiveDate >= retentionCutoff;
 }
 
 function filterDomainsForCapabilities<
@@ -396,7 +500,9 @@ function filterDomainsForCapabilities<
 async function resolveActorIdForDatabase(
   prisma: Pick<PrismaClient, "user">,
   actorId: bigint,
+  authSource?: "admin_table" | "user_table",
 ): Promise<bigint | null> {
+  if (authSource === "admin_table") return null;
   try {
     const found = await prisma.user.findUnique({
       where: { id: actorId },
@@ -474,7 +580,7 @@ export async function getUserWorkspaceOverview(
   const mailboxWhere = buildAccessibleMailboxWhere(actor);
   const messageWhere = buildAccessibleMessageWhere(
     actor,
-    retentionCutoff ? { receivedAt: { gte: retentionCutoff } } : {},
+    buildRetentionFilterClause(retentionCutoff),
   );
 
   const [
@@ -520,6 +626,7 @@ export async function getUserWorkspaceOverview(
         textBody: true,
         sanitizedHtmlBody: true,
         receivedAt: true,
+        createdAt: true,
         isRead: true,
         hasAttachments: true,
         sizeBytes: true,
@@ -561,8 +668,8 @@ export async function getUserWorkspaceOverview(
   ]);
 
   const recentMessages = retentionCutoff
-    ? recentMessagesRaw.filter(
-        (msg) => !msg.receivedAt || msg.receivedAt >= retentionCutoff,
+    ? recentMessagesRaw.filter((msg) =>
+        isMessageWithinRetention(msg, retentionCutoff),
       )
     : recentMessagesRaw;
   const filteredDomains = filterDomainsForCapabilities(
@@ -801,6 +908,8 @@ export async function createUserSelfMailbox(
     config,
     {
       actorId: actor.userId,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: actor.headers,
       clientIp: actor.clientIp,
       userAgent: actor.userAgent,
@@ -845,6 +954,8 @@ export async function deleteUserMailbox(
     config,
     {
       actorId: actor.userId,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: actor.headers,
       clientIp: actor.clientIp,
       userAgent: actor.userAgent,
@@ -899,6 +1010,8 @@ export async function bulkDeleteUserMailboxes(
     config,
     {
       actorId: actor.userId,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: actor.headers,
       clientIp: actor.clientIp,
       userAgent: actor.userAgent,
@@ -978,7 +1091,7 @@ export async function listMailboxMessagesForUser(
   const messageWhere: Record<string, unknown> = {
     mailboxId: mailbox.id,
     deletedAt: null,
-    ...(retentionCutoff ? { receivedAt: { gte: retentionCutoff } } : {}),
+    ...buildRetentionFilterClause(retentionCutoff),
   };
 
   if (query.length > 0) {
@@ -1025,6 +1138,7 @@ export async function listMailboxMessagesForUser(
       textBody: true,
       sanitizedHtmlBody: true,
       receivedAt: true,
+      createdAt: true,
       sizeBytes: true,
       isRead: true,
       hasAttachments: true,
@@ -1033,18 +1147,37 @@ export async function listMailboxMessagesForUser(
   });
 
   const rows = retentionCutoff
-    ? rowsRaw.filter(
-        (row) => !row.receivedAt || row.receivedAt >= retentionCutoff,
-      )
+    ? rowsRaw.filter((row) => isMessageWithinRetention(row, retentionCutoff))
     : rowsRaw;
+
+  let headerTotalMessages = Number(mailbox.totalMessages);
+  let headerUnreadMessages = Number(mailbox.unreadMessages);
+  if (retentionCutoff) {
+    const retentionMailboxBaseWhere: Record<string, unknown> = {
+      mailboxId: mailbox.id,
+      deletedAt: null,
+      ...buildRetentionFilterClause(retentionCutoff),
+    };
+    const [retTotal, retUnread] = await Promise.all([
+      prisma.message.count({ where: retentionMailboxBaseWhere }),
+      prisma.message.count({
+        where: { ...retentionMailboxBaseWhere, isRead: false },
+      }),
+    ]);
+    headerTotalMessages = retTotal;
+    headerUnreadMessages = retUnread;
+  }
 
   if (options.recordAccessAudit !== false) {
     const resolvedActorId = await resolveActorIdForDatabase(
       prisma,
       actor.userId,
+      actor.authSource,
     );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? actor.userId,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       action: "inbox_access",
       targetType: "mailbox",
       targetIdentifier: mailbox.emailAddress,
@@ -1069,8 +1202,8 @@ export async function listMailboxMessagesForUser(
       emailAddress: mailbox.emailAddress,
       domainName: mailbox.domain.name,
       status: mailbox.status,
-      totalMessages: Number(mailbox.totalMessages),
-      unreadMessages: Number(mailbox.unreadMessages),
+      totalMessages: headerTotalMessages,
+      unreadMessages: headerUnreadMessages,
       lastReceivedAt: mailbox.lastReceivedAt
         ? mailbox.lastReceivedAt.toISOString()
         : null,
@@ -1145,7 +1278,7 @@ export async function getMessageDetailForUser(
       uuid: messageUuid.trim(),
       mailboxId: mailbox.id,
       deletedAt: null,
-      ...(retentionCutoff ? { receivedAt: { gte: retentionCutoff } } : {}),
+      ...buildRetentionFilterClause(retentionCutoff),
     },
     select: {
       id: true,
@@ -1158,6 +1291,7 @@ export async function getMessageDetailForUser(
       ccAddresses: true,
       subject: true,
       receivedAt: true,
+      createdAt: true,
       parsedAt: true,
       textBody: true,
       sanitizedHtmlBody: true,
@@ -1176,21 +1310,21 @@ export async function getMessageDetailForUser(
           detectedMimeType: true,
           sizeBytes: true,
           isInline: true,
+          contentId: true,
         },
       },
     },
   });
 
-  if (
-    !message ||
-    (retentionCutoff &&
-      message.receivedAt &&
-      message.receivedAt < retentionCutoff)
-  ) {
+  if (!message || !isMessageWithinRetention(message, retentionCutoff)) {
     return null;
   }
 
-  const resolvedActorId = await resolveActorIdForDatabase(prisma, actor.userId);
+  const resolvedActorId = await resolveActorIdForDatabase(
+    prisma,
+    actor.userId,
+    actor.authSource,
+  );
   let totalMessages = Number(mailbox.totalMessages);
   let unreadMessages = Number(mailbox.unreadMessages);
   let lastReceivedAt = mailbox.lastReceivedAt;
@@ -1206,7 +1340,9 @@ export async function getMessageDetailForUser(
     lastReceivedAt = counters.lastReceivedAt;
 
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? actor.userId,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       action: "message_auto_read",
       targetType: "message",
       targetIdentifier: message.uuid,
@@ -1219,7 +1355,9 @@ export async function getMessageDetailForUser(
   }
 
   await recordAudit(prisma as unknown as AuditWriteClient, {
-    actorId: resolvedActorId,
+    actorId: resolvedActorId ?? actor.userId,
+    authSource: actor.authSource,
+    actorUsername: actor.username,
     action: "message_view",
     targetType: "message",
     targetIdentifier: message.uuid,
@@ -1229,6 +1367,11 @@ export async function getMessageDetailForUser(
     trustProxyHeaders: actor.trustProxyHeaders,
     details: { mailbox: mailbox.emailAddress },
   });
+
+  const resolvedHtmlBody = resolveInlineCidAttachmentsInHtml(
+    message.sanitizedHtmlBody,
+    message.attachments,
+  );
 
   return {
     id: message.id.toString(),
@@ -1258,8 +1401,8 @@ export async function getMessageDetailForUser(
     parseStatus: message.parseStatus,
     parseWarning: message.parseWarning,
     textBody: message.textBody,
-    htmlBody: message.sanitizedHtmlBody,
-    hasHtmlBody: message.sanitizedHtmlBody.trim().length > 0,
+    htmlBody: resolvedHtmlBody,
+    hasHtmlBody: resolvedHtmlBody.trim().length > 0,
     attachments: message.attachments.map((att) => ({
       uuid: att.uuid,
       originalFilename: att.originalFilename,
@@ -1268,6 +1411,7 @@ export async function getMessageDetailForUser(
       detectedMimeType: att.detectedMimeType,
       sizeBytes: Number(att.sizeBytes),
       isInline: att.isInline,
+      contentId: att.contentId ?? "",
     })),
     canDeleteMessage: capabilities.canDeleteMessages,
   };
@@ -1318,9 +1462,12 @@ export async function markMessageUnreadForUser(
     const resolvedActorId = await resolveActorIdForDatabase(
       prisma,
       actor.userId,
+      actor.authSource,
     );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? actor.userId,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       action: "message_mark_unread",
       targetType: "message",
       targetIdentifier: message.uuid,
@@ -1379,7 +1526,11 @@ export async function softDeleteMessageForUser(
     return { ok: false, code: "not_found", error: "Message not found." };
   }
 
-  const resolvedActorId = await resolveActorIdForDatabase(prisma, actor.userId);
+  const resolvedActorId = await resolveActorIdForDatabase(
+    prisma,
+    actor.userId,
+    actor.authSource,
+  );
 
   await prisma.message.update({
     where: { id: message.id },
@@ -1392,7 +1543,9 @@ export async function softDeleteMessageForUser(
   await recalculateMailboxCounters(prisma, mailbox.id);
 
   await recordAudit(prisma as unknown as AuditWriteClient, {
-    actorId: resolvedActorId,
+    actorId: resolvedActorId ?? actor.userId,
+    authSource: actor.authSource,
+    actorUsername: actor.username,
     action: "message_deleted",
     targetType: "message",
     targetIdentifier: message.uuid,
@@ -1471,6 +1624,16 @@ export async function getSanitizedMessageHtmlForUser(
     select: {
       uuid: true,
       sanitizedHtmlBody: true,
+      attachments: {
+        orderBy: [{ id: "asc" }],
+        select: {
+          uuid: true,
+          originalFilename: true,
+          safeFilename: true,
+          isInline: true,
+          contentId: true,
+        },
+      },
     },
   });
 
@@ -1478,9 +1641,15 @@ export async function getSanitizedMessageHtmlForUser(
     return null;
   }
 
-  const resolvedActorId = await resolveActorIdForDatabase(prisma, actor.userId);
+  const resolvedActorId = await resolveActorIdForDatabase(
+    prisma,
+    actor.userId,
+    actor.authSource,
+  );
   await recordAudit(prisma as unknown as AuditWriteClient, {
-    actorId: resolvedActorId,
+    actorId: resolvedActorId ?? actor.userId,
+    authSource: actor.authSource,
+    actorUsername: actor.username,
     action: "message_html_view",
     targetType: "message",
     targetIdentifier: message.uuid,
@@ -1490,7 +1659,12 @@ export async function getSanitizedMessageHtmlForUser(
     trustProxyHeaders: actor.trustProxyHeaders,
   });
 
-  return buildSanitizedHtmlDocument(message.sanitizedHtmlBody, options);
+  const resolvedHtml = resolveInlineCidAttachmentsInHtml(
+    message.sanitizedHtmlBody,
+    message.attachments ?? [],
+  );
+
+  return buildSanitizedHtmlDocument(resolvedHtml, options);
 }
 
 export function buildAttachmentContentDisposition(
@@ -1568,9 +1742,15 @@ export async function getAttachmentForUserDownload(
     return null;
   }
 
-  const resolvedActorId = await resolveActorIdForDatabase(prisma, actor.userId);
+  const resolvedActorId = await resolveActorIdForDatabase(
+    prisma,
+    actor.userId,
+    actor.authSource,
+  );
   await recordAudit(prisma as unknown as AuditWriteClient, {
-    actorId: resolvedActorId,
+    actorId: resolvedActorId ?? actor.userId,
+    authSource: actor.authSource,
+    actorUsername: actor.username,
     action: "attachment_download",
     targetType: "attachment",
     targetIdentifier: attachment.uuid,
@@ -1597,7 +1777,8 @@ export function isLiveBackgroundRequest(
 }
 
 export async function pollLiveMessagesForUser(
-  prisma: Pick<PrismaClient, "mailbox" | "message">,
+  prisma: Pick<PrismaClient, "mailbox" | "message"> &
+    Partial<Pick<PrismaClient, "userAccessPolicy" | "userControlSettings">>,
   actor: Pick<UserWorkspaceActor, "userId" | "isAdministrator">,
   input: {
     readonly bootstrap?: boolean;
@@ -1619,8 +1800,17 @@ export async function pollLiveMessagesForUser(
     requestedCursor = BigInt(0);
   }
 
+  const capabilities = await resolveActorCapabilities(prisma, actor);
+  const retentionCutoff = resolveActorRetentionCutoff(
+    capabilities,
+    actor.isAdministrator,
+  );
+
   const mailboxWhere = buildAccessibleMailboxWhere(actor);
-  const messageWhere = buildAccessibleMessageWhere(actor);
+  const messageWhere = buildAccessibleMessageWhere(
+    actor,
+    buildRetentionFilterClause(retentionCutoff),
+  );
 
   const [
     maxMessageAgg,
@@ -1657,7 +1847,7 @@ export async function pollLiveMessagesForUser(
   const newMessages: LiveUpdateMessageItem[] = [];
 
   if (!bootstrap) {
-    const rows = await prisma.message.findMany({
+    const rowsRaw = await prisma.message.findMany({
       where: {
         ...messageWhere,
         id: { gt: requestedCursor },
@@ -1673,6 +1863,7 @@ export async function pollLiveMessagesForUser(
         textBody: true,
         sanitizedHtmlBody: true,
         receivedAt: true,
+        createdAt: true,
         sizeBytes: true,
         hasAttachments: true,
         isRead: true,
@@ -1684,6 +1875,10 @@ export async function pollLiveMessagesForUser(
         },
       },
     });
+
+    const rows = retentionCutoff
+      ? rowsRaw.filter((row) => isMessageWithinRetention(row, retentionCutoff))
+      : rowsRaw;
 
     for (const item of rows) {
       newMessages.push({
@@ -1703,8 +1898,8 @@ export async function pollLiveMessagesForUser(
       });
     }
 
-    if (rows.length > 0) {
-      nextCursor = rows[rows.length - 1]!.id;
+    if (rowsRaw.length > 0) {
+      nextCursor = rowsRaw[rowsRaw.length - 1]!.id;
     }
   }
 
@@ -1723,6 +1918,7 @@ export async function pollLiveMessagesForUser(
     orderBy: [{ emailAddress: "asc" }],
     take: LIVE_UPDATE_MAILBOX_LIMIT,
     select: {
+      id: true,
       uuid: true,
       emailAddress: true,
       status: true,
@@ -1732,6 +1928,46 @@ export async function pollLiveMessagesForUser(
     },
   });
 
+  let summaryTotalMessages = Number(
+    mailboxAggregates._sum.totalMessages ?? BigInt(0),
+  );
+  let summaryUnreadMessages = Number(
+    mailboxAggregates._sum.unreadMessages ?? BigInt(0),
+  );
+
+  const retentionMailboxCounts = new Map<
+    string,
+    { totalMessages: number; unreadMessages: number }
+  >();
+
+  if (retentionCutoff) {
+    const [retTotal, retUnread] = await Promise.all([
+      prisma.message.count({ where: messageWhere }),
+      prisma.message.count({ where: { ...messageWhere, isRead: false } }),
+    ]);
+    summaryTotalMessages = retTotal;
+    summaryUnreadMessages = retUnread;
+
+    await Promise.all(
+      mailboxRows.map(async (mbx) => {
+        if (mbx.id === undefined) return;
+        const mbxBaseWhere: Record<string, unknown> = {
+          mailboxId: mbx.id,
+          deletedAt: null,
+          ...buildRetentionFilterClause(retentionCutoff),
+        };
+        const [mbxTotal, mbxUnread] = await Promise.all([
+          prisma.message.count({ where: mbxBaseWhere }),
+          prisma.message.count({ where: { ...mbxBaseWhere, isRead: false } }),
+        ]);
+        retentionMailboxCounts.set(mbx.uuid, {
+          totalMessages: mbxTotal,
+          unreadMessages: mbxUnread,
+        });
+      }),
+    );
+  }
+
   return {
     cursor: Number(nextCursor),
     has_more: !bootstrap && nextCursor < currentCursor,
@@ -1739,23 +1975,185 @@ export async function pollLiveMessagesForUser(
       total_mailboxes: totalMailboxes,
       active_mailboxes: activeMailboxes,
       disabled_mailboxes: disabledMailboxes,
-      total_messages: Number(mailboxAggregates._sum.totalMessages ?? BigInt(0)),
-      total_unread: Number(mailboxAggregates._sum.unreadMessages ?? BigInt(0)),
+      total_messages: summaryTotalMessages,
+      total_unread: summaryUnreadMessages,
       last_received: mailboxAggregates._max.lastReceivedAt
         ? mailboxAggregates._max.lastReceivedAt.toISOString()
         : null,
     },
     mailboxes_truncated: totalMailboxes > LIVE_UPDATE_MAILBOX_LIMIT,
-    mailboxes: mailboxRows.map((row) => ({
-      uuid: row.uuid,
-      email_address: row.emailAddress,
-      status: row.status,
-      total_messages: Number(row.totalMessages),
-      unread_messages: Number(row.unreadMessages),
-      last_received_at: row.lastReceivedAt
-        ? row.lastReceivedAt.toISOString()
-        : null,
-    })),
+    mailboxes: mailboxRows.map((row) => {
+      const retOverride = retentionMailboxCounts.get(row.uuid);
+      return {
+        uuid: row.uuid,
+        email_address: row.emailAddress,
+        status: row.status,
+        total_messages: retOverride
+          ? retOverride.totalMessages
+          : Number(row.totalMessages),
+        unread_messages: retOverride
+          ? retOverride.unreadMessages
+          : Number(row.unreadMessages),
+        last_received_at: row.lastReceivedAt
+          ? row.lastReceivedAt.toISOString()
+          : null,
+      };
+    }),
     messages: newMessages,
+  };
+}
+
+export interface RetentionPurgeSummary {
+  readonly dryRun: boolean;
+  readonly retentionDays: number;
+  readonly cutoffIso: string | null;
+  readonly scannedMailboxes: number;
+  readonly affectedMailboxes: number;
+  readonly purgedMessages: number;
+}
+
+export async function purgeExpiredMessagesForRetention(
+  prisma: Pick<PrismaClient, "mailbox" | "message"> &
+    Partial<Pick<PrismaClient, "userControlSettings" | "user" | "auditLog">>,
+  options: {
+    readonly dryRun?: boolean;
+    readonly retentionDays?: number;
+    readonly mailboxUuid?: string;
+    readonly now?: Date;
+    readonly actor?: Partial<UserWorkspaceActor>;
+  } = {},
+): Promise<RetentionPurgeSummary> {
+  const dryRun = options.dryRun === true;
+  const now = options.now ?? new Date();
+  const globalSettings = await getUserControlSettings(prisma);
+
+  const explicitDays =
+    typeof options.retentionDays === "number" &&
+    Number.isFinite(options.retentionDays)
+      ? Math.max(0, Math.floor(options.retentionDays))
+      : undefined;
+
+  const effectiveDays =
+    explicitDays !== undefined
+      ? explicitDays
+      : globalSettings.autoDeleteEnabled
+        ? globalSettings.autoDeleteDays
+        : 0;
+
+  const cutoff =
+    effectiveDays > 0
+      ? computeMessageRetentionCutoff(
+          { autoDeleteEnabled: true, autoDeleteDays: effectiveDays },
+          now,
+        )
+      : null;
+
+  const mailboxWhere: Record<string, unknown> = {
+    deletedAt: null,
+    ...(options.mailboxUuid?.trim()
+      ? { uuid: options.mailboxUuid.trim() }
+      : {}),
+  };
+
+  const mailboxes = await prisma.mailbox.findMany({
+    where: mailboxWhere,
+    select: {
+      id: true,
+      uuid: true,
+      emailAddress: true,
+    },
+  });
+
+  if (!cutoff || mailboxes.length === 0) {
+    return {
+      dryRun,
+      retentionDays: effectiveDays,
+      cutoffIso: cutoff ? cutoff.toISOString() : null,
+      scannedMailboxes: mailboxes.length,
+      affectedMailboxes: 0,
+      purgedMessages: 0,
+    };
+  }
+
+  let affectedMailboxes = 0;
+  let purgedMessages = 0;
+
+  for (const mailbox of mailboxes) {
+    const activeMessages = await prisma.message.findMany({
+      where: {
+        mailboxId: mailbox.id,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        uuid: true,
+        receivedAt: true,
+        createdAt: true,
+      },
+    });
+
+    const expiredMessages = activeMessages.filter(
+      (msg) => !isMessageWithinRetention(msg, cutoff),
+    );
+
+    if (expiredMessages.length === 0) {
+      continue;
+    }
+
+    affectedMailboxes += 1;
+    purgedMessages += expiredMessages.length;
+
+    if (!dryRun) {
+      for (const expired of expiredMessages) {
+        await prisma.message.update({
+          where: { id: expired.id },
+          data: {
+            deletedAt: now,
+          },
+        });
+      }
+      await recalculateMailboxCounters(prisma, mailbox.id);
+    }
+  }
+
+  if (!dryRun && purgedMessages > 0 && prisma.auditLog) {
+    const rawActorId = options.actor?.userId;
+    const resolvedActorId =
+      rawActorId && prisma.user
+        ? await resolveActorIdForDatabase(
+            prisma as Pick<PrismaClient, "user">,
+            rawActorId,
+            options.actor?.authSource,
+          )
+        : null;
+
+    await recordAudit(prisma as unknown as AuditWriteClient, {
+      actorId: resolvedActorId ?? rawActorId ?? null,
+      authSource: options.actor?.authSource,
+      actorUsername: options.actor?.username,
+      action: "messages_retention_purged",
+      targetType: "mailbox",
+      targetIdentifier: options.mailboxUuid?.trim() || "all",
+      headers: options.actor?.headers,
+      clientIp: options.actor?.clientIp,
+      userAgent: options.actor?.userAgent,
+      trustProxyHeaders: options.actor?.trustProxyHeaders,
+      details: {
+        retention_days: effectiveDays,
+        cutoff_iso: cutoff.toISOString(),
+        scanned_mailboxes: mailboxes.length,
+        affected_mailboxes: affectedMailboxes,
+        purged_messages: purgedMessages,
+      },
+    });
+  }
+
+  return {
+    dryRun,
+    retentionDays: effectiveDays,
+    cutoffIso: cutoff.toISOString(),
+    scannedMailboxes: mailboxes.length,
+    affectedMailboxes,
+    purgedMessages,
   };
 }

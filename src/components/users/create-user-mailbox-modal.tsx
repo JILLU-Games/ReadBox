@@ -64,8 +64,13 @@ export function CreateUserMailboxModal({
   const router = useRouter();
   const defaultDomain =
     domains.find((d) => d.isDefault) ?? domains[0] ?? null;
+  const defaultDomainUuid = defaultDomain?.uuid ?? "";
   const [localPart, setLocalPart] = useState("");
-  const [domainUuid, setDomainUuid] = useState(defaultDomain?.uuid ?? "");
+  const [selectedDomainUuid, setDomainUuid] = useState("");
+  const domainUuid =
+    selectedDomainUuid && domains.some((d) => d.uuid === selectedDomainUuid)
+      ? selectedDomainUuid
+      : defaultDomainUuid;
   const [suggestions, setSuggestions] = useState<string[]>(() =>
     generateUsaMailboxSuggestions(3),
   );

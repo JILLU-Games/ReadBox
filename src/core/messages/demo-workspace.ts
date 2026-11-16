@@ -10,6 +10,10 @@ import {
 } from "@/core/accounts/user-control-policy";
 import type { MailboxActionResult } from "@/core/mailboxes/service";
 import {
+  MailValidationError,
+  validateLocalPart,
+} from "@/core/mailboxes/validators";
+import {
   buildSanitizedHtmlDocument,
   type LiveUpdatePayload,
   type MessageActionResult,
@@ -799,12 +803,19 @@ export function createDemoMailbox(
     }
   }
 
-  const localPart = input.localPart.trim().toLowerCase();
-  if (!/^[a-z0-9._+-]{1,64}$/.test(localPart)) {
+  let localPart: string;
+  try {
+    localPart = validateLocalPart(input.localPart);
+  } catch (error) {
+    const message =
+      error instanceof MailValidationError
+        ? error.message
+        : "Invalid mailbox local part.";
     return {
       ok: false,
       code: "validation",
-      error: "Mailbox local part may only contain lowercase letters, numbers, dots, hyphens, underscores, or plus signs.",
+      error: message,
+      fieldErrors: { localPart: message },
     };
   }
 

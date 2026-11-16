@@ -1,0 +1,49 @@
+# 004 — Error Handling & Resilience Registry
+
+**Purpose:** Tracks all existing error-handling mechanisms in the ReadBox baseline, identifies exact error-handling defects uncovered in the forensic audit, and logs each error-handling hardening update per phase.
+
+---
+
+## 1. Existing Error Handling in Baseline (Currently Active)
+
+| Layer / Module | File Path | Existing Error Handling Mechanism | Current Status |
+| --- | --- | --- | --- |
+| **Global & Route Error Boundaries** | `/src/app/error.tsx`, `/src/app/global-error.tsx`, `/src/app/(workspace)/users/error.tsx`, `/src/app/(workspace)/vcon/error.tsx` | Catch unhandled React rendering and server component exceptions; display retry UI without crashing the app shell. | Working |
+| **Environment Schema Validation** | `/src/config/env-schema.ts` | Zod schema validation (`envSchema`) with `.superRefine()` enforcing `AUTH_SECRET` when `AUTH_ENABLED=true`. | Working (except `UPDATE_SCRIPT_PATH` default in `BUG-21`) |
+| **Structured Application Logger** | `/src/lib/logger.ts` | Structured JSON/console logging (`logger.info`, `logger.warn`, `logger.error`) with sensitive field redaction. | Working |
+| **Login Rate-Limiting & Lockout** | `/src/core/auth/credentials.ts` | Tracks `LoginAttempt` by normalized username and IP within `loginFailureWindowSeconds` and locks out brute-force attempts for `loginLockoutSeconds`. | Working |
+| **Toast & Banner Feedback** | `/src/lib/toast.ts`, `/src/components/ui/alert-banner.tsx` | Global `notify.success` / `notify.error` toast dispatcher + inline `AlertBanner` for exact server action error reporting. | Working |
+| **Attachment Size & Path Traversal Guards** | `/src/core/ingestion/service.ts`, `/src/core/messages/service.ts` | `AttachmentTooLargeError` guard, SHA-256 verification, and `realpath` containment checks inside `ATTACHMENT_STORAGE_ROOT` and `MAIL_STORAGE_ROOT`. | Working |
+| **Public Contact CSRF, Honeypot, Rate Limit & DB Persistence** | `/src/core/contact/service.ts` | Validates signed CSRF tokens, timing window (`elapsedSeconds`), honeypot field, and per-IP/per-email rate limits (`429`); persists sanitized inquiries in PostgreSQL `AuditLog` (`public_contact_submitted`) and enforces non-static production HMAC secrets. | **Working (Fixed in Phase 03)** |
+| **System Update Archive Verification** | `/src/core/updates/service.ts`, `/scripts/updater/verify_upgrade_archive.py` | Enforces official GitHub repository URL origin, lockfile (`flock`), and SHA-256 checksum verification before upgrade. | Working |
+| **AuthSource-Aware Audit & FK Fallback (Added Phase 01)** | `/src/core/audit/record.ts`, `/src/core/audit/queries.ts` | Prevents `audit_logs_actor_id_fkey` foreign-key failures for `admin_table` actors and retries on `P2003` with `actorId: null` + preserved metadata in `details`. | **Working (Fixed in Phase 01)** |
+| **Maildir Parse Status Check Alignment (Added Phase 01)** | `/src/core/ingestion/service.ts`, `/src/core/operations/service.ts` | Records `parse_status = 'error'` on malformed messages to match PostgreSQL `messages_parse_status_check` without crashing ingestion. | **Working (Fixed in Phase 01)** |
+| **Structured Password Reset Validation & Audit Logging (Added Phase 02)** | `/src/core/auth/password-reset.ts`, `/src/app/reset-password/actions.ts` | Validates self-service token requests and password completions with specific field errors (`invalid_token`, `password_policy`, `password_mismatch`), dynamic `UserControlSettings` policy enforcement, and `AuditLog` entries (`password_reset_requested`, `password_reset_completed`). | **Working (Fixed in Phase 02)** |
+| **Fail-Closed Policy & Site Settings Persistence (Added Phase 03)** | `/src/core/accounts/user-control-policy.ts`, `/src/core/settings/service.ts` | Logs database write errors (`logger.error`) and returns `{ ok: false, error: ... }` whenever a configured Prisma client fails during `updateUserControlSettings`, `updateUserExtendedPolicy`, or `updateSiteSettings` instead of silently falling back to demo memory. | **Working (Fixed in Phase 03)** |
+
+---
+
+## 2. Error-Handling Defects & Gaps Found in Forensic Audit (Status Tracker)
+
+| Bug ID | Module / File | Previous Broken Error Handling Behavior | Error-Handling Fix | Target Phase | Status |
+| --- | --- | --- | --- | --- | --- |
+| `BUG-02` | `/src/core/audit/record.ts` & callers | `recordAudit` caught FK violation errors (`audit_persistence_failed`) and returned `null` when an `AdminAccount` (`admin_table`) passed raw `actorId` not present in `users`. | Made actor resolution `authSource`-aware across all services and added `P2003` FK fallback retry in `recordAudit` so admin audit events are never dropped. | **Phase 01** | **FIXED (`2026-11-16`)** |
+| `BUG-03` | `/src/core/ingestion/service.ts:385-393` | Writing `parseStatus = "failed"` violated PostgreSQL `messages_parse_status_check` (`'ok'`, `'warning'`, `'error'`, `'oversized'`), throwing an unhandled Prisma constraint error. | Aligned `parseStatus` (`"error"`) with PostgreSQL CHECK constraint and updated `/vcon/operations` query (`{ in: ["error", "failed"] }`). | **Phase 01** | **FIXED (`2026-11-16`)** |
+| `BUG-05` | `/src/core/accounts/user-control-policy.ts` | `try { ... } catch {}` blocks silently swallowed PostgreSQL connection/query errors during `updateUserControlSettings` and `updateUserExtendedPolicy`, writing to demo memory and returning `{ ok: true }` (false-positive success toast). | When Prisma is configured, logs the database error (`logger.error`) and returns `{ ok: false, error: "Could not save user control/access policy to database. Please try again." }` (fail-closed). | **Phase 03** | **FIXED (`2026-11-16`)** |
+| `BUG-06` | `/src/core/settings/service.ts` | `updateSiteSettings` caught `dbError` when `env.nodeEnv !== "production"` and returned `{ ok: true }` from an in-memory object. | Propagates DB errors to the fail-closed outer handler (`{ ok: false, error: "Unable to save site settings right now. Please try again." }`) whenever a configured Prisma client fails to persist `SiteSettings`, regardless of `NODE_ENV`. | **Phase 03** | **FIXED (`2026-11-16`)** |
+| `BUG-07` | `/src/core/contact/service.ts` | Fell back to a hardcoded static HMAC secret when `AUTH_SECRET` / `CONTACT_SECRET_KEY` were unset, and lost the entire contact submission if the process restarted. | Generates a cryptographically random per-process secret in production when env secrets are unset, persists full sanitized contact inquiries in PostgreSQL `AuditLog` (`public_contact_submitted`), and fails closed (`500`) if DB persistence fails. | **Phase 03** | **FIXED (`2026-11-16`)** |
+| `BUG-11` | `/src/core/auth/password-reset.ts` | Returned only a generic `boolean` (`false`) for expired token, invalid token, password mismatch, or policy violation, preventing specific field/error feedback. | Added `completePasswordResetDetailed` with structured field errors (`token` vs `password`), dynamic `UserControlSettings` password policy validation, `AdminAccount` & Demo Mode reset support, and `AuditLog` entries. | **Phase 02** | **FIXED (`2026-11-16`)** |
+| `BUG-17` | `/src/app/(workspace)/users/{layout,page,mailboxes/page,settings/page}.tsx` | Server component `try { ... } catch {}` blocks swallow Prisma errors without calling `logger.error`, silently rendering "Database not configured" even when `DATABASE_URL` is set and a query failed. | Logs unexpected Prisma errors via `logger.error` with `userId` and route context while rendering a clean recoverable fallback state. | **Phase 04** | **FIXED (`2026-11-16`)** |
+| `BUG-21` | `/src/core/updates/service.ts` | Default `UPDATE_SCRIPT_PATH` points to nonexistent `/opt/vibmail/app/scripts/upgrade.sh`, causing preflight to permanently report `Blocked by upgrade script executable`. | Fix default path to `/opt/vibmail/app/scripts/updater/upgrade.sh` and report clear actionable preflight diagnostics. | **Phase 06** | PENDING |
+
+---
+
+## 3. Error-Handling Update Log (Per Phase)
+
+- **Baseline (`2026-11-16`):** Registry initialized with 8 existing error-handling layers and 8 forensic error-handling fixes queued across Phases 01–06.
+- **Phase 01 (`2026-11-16`):** Fixed `BUG-02` (`authSource`-aware actor resolution + `P2003` foreign-key fallback in `recordAudit` + `self_delete` guard fix in `deleteManagedUser`) and `BUG-03` (`messages_parse_status_check` alignment in `ingestion/service.ts` and `operations/service.ts`), plus unified `MailValidationError` field error reporting in `createDemoMailbox` (`BUG-04`).
+- **Phase 02 (`2026-11-16`):** Fixed `BUG-11` (`completePasswordResetDetailed` structured error codes/field errors, dynamic `UserControlSettings` password policy enforcement, `AdminAccount` & Demo Mode reset support, and `AuditLog` persistence for `password_reset_requested` / `password_reset_completed`), plus cross-table `users` ↔ `admin_accounts` username collision validation (`BUG-13`) and resilient non-blocking starter mailbox auto-provisioning (`BUG-12`).
+- **Phase 03 (`2026-11-16`):** Fixed `BUG-05` (fail-closed DB error handling in `updateUserControlSettings` and `updateUserExtendedPolicy`), `BUG-06` (fail-closed DB error handling in `updateSiteSettings` across all `NODE_ENV` values when Prisma is active), and `BUG-07` (fail-closed PostgreSQL persistence for `/contact` inquiries + non-static production HMAC secret).
+- **Phase 04 (`2026-11-16`):** Fixed `BUG-17` (structured `logger.error` reporting in `/src/app/(workspace)/users/{layout,page,mailboxes/page,settings/page}.tsx` when Prisma queries throw unexpected errors).
+
+

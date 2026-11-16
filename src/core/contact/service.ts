@@ -66,15 +66,59 @@ export interface CleanedContactSubmission {
   readonly message: string;
 }
 
+export interface PersistedContactSubmissionItem {
+  readonly requestId: string;
+  readonly fullName: string;
+  readonly workEmail: string;
+  readonly company: string;
+  readonly phone: string;
+  readonly serviceType: string;
+  readonly serviceLabel: string;
+  readonly teamSize: string;
+  readonly message: string;
+  readonly submittedAt: string;
+}
+
+export interface ContactInquiryReadClient {
+  readonly auditLog?: {
+    findMany(args: {
+      where: Record<string, unknown>;
+      orderBy: { createdAt: "desc" };
+      take: number;
+    }): Promise<
+      ReadonlyArray<{
+        targetIdentifier: string;
+        details: unknown;
+        createdAt: Date;
+      }>
+    >;
+  };
+}
+
 const csrfTokensStore = new Map<string, CsrfTokenEntry>();
 const submissionsStore: SubmissionRateEntry[] = [];
+let ephemeralProductionSecret: string | null = null;
+let warnedEphemeralSecret = false;
 
 function getSecretKey(): string {
-  return (
-    env.authSecret ||
-    process.env.CONTACT_SECRET_KEY ||
-    "readbox-public-contact-default-hmac-secret-key-2026"
-  );
+  const configured =
+    env.authSecret?.trim() || process.env.CONTACT_SECRET_KEY?.trim();
+  if (configured) {
+    return configured;
+  }
+  if (env.nodeEnv === "production") {
+    if (!ephemeralProductionSecret) {
+      ephemeralProductionSecret = randomBytes(32).toString("hex");
+    }
+    if (!warnedEphemeralSecret) {
+      warnedEphemeralSecret = true;
+      logger.warn("contact_csrf_ephemeral_secret_active", {
+        reason: "missing_auth_or_contact_secret_key",
+      });
+    }
+    return ephemeralProductionSecret;
+  }
+  return "readbox-public-contact-default-hmac-secret-key-2026";
 }
 
 export function digestContactValue(value: string): string {
@@ -98,6 +142,8 @@ function pruneExpiredState(nowSeconds: number): void {
 export function resetContactServiceStateForTests(): void {
   csrfTokensStore.clear();
   submissionsStore.length = 0;
+  ephemeralProductionSecret = null;
+  warnedEphemeralSecret = false;
 }
 
 export function issueContactCsrfToken(nowMs: number = Date.now()): {
@@ -387,7 +433,7 @@ export async function recordContactSubmission(options: {
   readonly requestId: string;
 } | {
   readonly ok: false;
-  readonly status: 429;
+  readonly status: 429 | 500;
   readonly retryAfterSeconds: number;
   readonly message: string;
 }> {
@@ -407,13 +453,7 @@ export async function recordContactSubmission(options: {
   }
 
   const requestId = randomBytes(16).toString("hex");
-  submissionsStore.push({
-    requestId,
-    ipHash,
-    emailHash,
-    createdAt: nowSeconds,
-    cleaned: options.cleaned,
-  });
+  const submittedAt = new Date(nowMs).toISOString();
 
   const client =
     options.prisma !== undefined
@@ -423,29 +463,54 @@ export async function recordContactSubmission(options: {
         : null;
 
   if (client) {
-    try {
-      await recordAudit(client, {
-        actorId: null,
-        action: "public_contact_submitted",
-        targetType: "contact_inquiry",
-        targetIdentifier: requestId,
-        headers: options.headers,
-        details: {
-          service_type: options.cleaned.service_type,
-          service_label: SERVICE_LABELS[options.cleaned.service_type] ?? options.cleaned.service_type,
-          team_size: options.cleaned.team_size || "not_specified",
-          work_email_domain: options.cleaned.work_email.split("@")[1] ?? "",
-          has_company: Boolean(options.cleaned.company),
-          has_phone: Boolean(options.cleaned.phone),
-        },
-      });
-    } catch (error) {
-      logger.warn("contact_inquiry_audit_fallback", {
+    const auditRecord = await recordAudit(client, {
+      actorId: null,
+      action: "public_contact_submitted",
+      targetType: "contact_inquiry",
+      targetIdentifier: requestId,
+      headers: options.headers,
+      details: {
         request_id: requestId,
-        reason: error instanceof Error ? error.name : "unknown_error",
+        full_name: options.cleaned.full_name,
+        work_email: options.cleaned.work_email,
+        work_email_domain: options.cleaned.work_email.split("@")[1] ?? "",
+        company: options.cleaned.company,
+        phone: options.cleaned.phone,
+        has_company: Boolean(options.cleaned.company),
+        has_phone: Boolean(options.cleaned.phone),
+        service_type: options.cleaned.service_type,
+        service_label:
+          SERVICE_LABELS[options.cleaned.service_type] ??
+          options.cleaned.service_type,
+        team_size: options.cleaned.team_size || "not_specified",
+        message: options.cleaned.message,
+        ip_hash: ipHash,
+        email_hash: emailHash,
+        submitted_at: submittedAt,
+      },
+    });
+
+    if (!auditRecord) {
+      logger.error("contact_inquiry_persistence_failed", {
+        request_id: requestId,
       });
+      return {
+        ok: false,
+        status: 500,
+        retryAfterSeconds: 0,
+        message:
+          "Unable to record your inquiry right now. Please try again shortly.",
+      };
     }
   }
+
+  submissionsStore.push({
+    requestId,
+    ipHash,
+    emailHash,
+    createdAt: nowSeconds,
+    cleaned: options.cleaned,
+  });
 
   logger.info("public_contact_inquiry_received", {
     request_id: requestId,
@@ -456,4 +521,85 @@ export async function recordContactSubmission(options: {
     ok: true,
     requestId,
   };
+}
+
+export async function listContactSubmissions(options?: {
+  readonly prisma?: ContactInquiryReadClient | null;
+  readonly limit?: number;
+}): Promise<readonly PersistedContactSubmissionItem[]> {
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 200);
+  const client =
+    options?.prisma !== undefined
+      ? options.prisma
+      : env.databaseUrl
+        ? (getPrismaClient() as unknown as ContactInquiryReadClient)
+        : null;
+
+  if (client?.auditLog?.findMany) {
+    try {
+      const rows = await client.auditLog.findMany({
+        where: {
+          action: "public_contact_submitted",
+          targetType: "contact_inquiry",
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
+
+      return rows.map((row) => {
+        const details =
+          row.details && typeof row.details === "object"
+            ? (row.details as Record<string, unknown>)
+            : {};
+        const serviceType =
+          typeof details.service_type === "string" ? details.service_type : "";
+        return {
+          requestId:
+            typeof details.request_id === "string" && details.request_id
+              ? details.request_id
+              : row.targetIdentifier,
+          fullName:
+            typeof details.full_name === "string" ? details.full_name : "",
+          workEmail:
+            typeof details.work_email === "string" ? details.work_email : "",
+          company: typeof details.company === "string" ? details.company : "",
+          phone: typeof details.phone === "string" ? details.phone : "",
+          serviceType,
+          serviceLabel:
+            typeof details.service_label === "string" && details.service_label
+              ? details.service_label
+              : (SERVICE_LABELS[serviceType] ?? serviceType),
+          teamSize:
+            typeof details.team_size === "string" ? details.team_size : "",
+          message: typeof details.message === "string" ? details.message : "",
+          submittedAt:
+            typeof details.submitted_at === "string" && details.submitted_at
+              ? details.submitted_at
+              : row.createdAt.toISOString(),
+        };
+      });
+    } catch (error) {
+      logger.warn("contact_inquiries_read_fallback", {
+        reason: error instanceof Error ? error.name : "unknown_error",
+      });
+    }
+  }
+
+  return [...submissionsStore]
+    .reverse()
+    .slice(0, limit)
+    .map((entry) => ({
+      requestId: entry.requestId,
+      fullName: entry.cleaned.full_name,
+      workEmail: entry.cleaned.work_email,
+      company: entry.cleaned.company,
+      phone: entry.cleaned.phone,
+      serviceType: entry.cleaned.service_type,
+      serviceLabel:
+        SERVICE_LABELS[entry.cleaned.service_type] ??
+        entry.cleaned.service_type,
+      teamSize: entry.cleaned.team_size || "not_specified",
+      message: entry.cleaned.message,
+      submittedAt: new Date(entry.createdAt * 1000).toISOString(),
+    }));
 }

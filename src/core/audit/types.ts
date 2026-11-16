@@ -26,6 +26,8 @@ export interface AuditWriteClient {
 
 export interface RecordAuditInput {
   readonly actorId?: bigint | string | null;
+  readonly authSource?: "admin_table" | "user_table";
+  readonly actorUsername?: string | null;
   readonly action: string;
   readonly targetType?: string;
   readonly targetIdentifier?: string;

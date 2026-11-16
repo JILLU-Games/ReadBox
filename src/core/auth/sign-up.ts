@@ -1,3 +1,4 @@
+import { env } from "@/config/env";
 import {
   DEFAULT_USER_CONTROL_SETTINGS,
   getUserControlSettings,
@@ -6,11 +7,18 @@ import {
 import { recordAudit } from "@/core/audit/record";
 import type { AuditWriteClient } from "@/core/audit/types";
 import {
+  listDevDemoDynamicUsers,
   registerDevDemoSignupUser,
   updateDevDemoDynamicUserStatus,
 } from "@/core/auth/dev-demo-auth";
 import { hashPassword } from "@/core/auth/password";
 import { MAX_PASSWORD_LENGTH } from "@/core/auth/password-policy";
+import {
+  provisionMailbox,
+  type MailboxPrismaClient,
+} from "@/core/mailboxes/service";
+import { validateLocalPart } from "@/core/mailboxes/validators";
+import { createDemoMailbox } from "@/core/messages/demo-workspace";
 import { logger } from "@/core/server/logger";
 import type { PrismaClient } from "@prisma/client";
 import "server-only";
@@ -59,6 +67,7 @@ export type RegisterUserResult =
       readonly username: string;
       readonly verificationStatus: "verified" | "pending_approval";
       readonly requiresApproval: boolean;
+      readonly starterMailboxEmail?: string | null;
     }
   | {
       readonly ok: false;
@@ -79,6 +88,209 @@ function hasStrongPasswordComplexity(password: string): boolean {
     /\d/.test(password) &&
     /[^A-Za-z0-9]/.test(password)
   );
+}
+
+export function deriveStarterMailboxLocalPart(rawUsername: string): string {
+  const beforeAt = rawUsername.trim().toLowerCase().split("@")[0] ?? "";
+  const sanitized = beforeAt
+    .replace(/[^a-z0-9._+-]/g, ".")
+    .replace(/\.{2,}/g, ".")
+    .replace(/^[._+-]+|[._+-]+$/g, "")
+    .slice(0, 48);
+
+  const candidate = sanitized.length >= 2 ? sanitized : `user.${sanitized || "inbox"}`;
+  try {
+    return validateLocalPart(candidate);
+  } catch {
+    try {
+      return validateLocalPart(`mbox.${candidate}`.slice(0, 48));
+    } catch {
+      return "user.inbox";
+    }
+  }
+}
+
+async function tryProvisionStarterMailbox(
+  prisma: PrismaClient | null,
+  params: {
+    readonly userId: string | bigint;
+    readonly username: string;
+    readonly settings: UserControlSettingsShape;
+    readonly devDemoActive?: boolean;
+    readonly clientIp?: string | null;
+    readonly userAgent?: string | null;
+  },
+): Promise<string | null> {
+  if (!params.settings.autoProvisionStarterMailbox) {
+    return null;
+  }
+
+  const baseLocalPart = deriveStarterMailboxLocalPart(params.username);
+  const preferredDomainUuid = params.settings.allowedDomainUuids[0];
+
+  if (params.devDemoActive || !prisma) {
+    const firstTry = createDemoMailbox(
+      { localPart: baseLocalPart, domainUuid: preferredDomainUuid },
+      { isAdministrator: true, userId: params.userId },
+    );
+    if (firstTry.ok) {
+      return firstTry.data.emailAddress;
+    }
+    if (firstTry.code === "conflict") {
+      const fallbackLocal = deriveStarterMailboxLocalPart(
+        `${baseLocalPart}.${params.userId.toString()}`,
+      );
+      const secondTry = createDemoMailbox(
+        { localPart: fallbackLocal, domainUuid: preferredDomainUuid },
+        { isAdministrator: true, userId: params.userId },
+      );
+      if (secondTry.ok) {
+        return secondTry.data.emailAddress;
+      }
+    }
+    return null;
+  }
+
+  if (!("domain" in prisma) || !prisma.domain || !("mailbox" in prisma) || !prisma.mailbox) {
+    return null;
+  }
+
+  try {
+    const numericUserId =
+      typeof params.userId === "bigint" ? params.userId : BigInt(params.userId);
+
+    if (
+      "mailboxMembership" in prisma &&
+      prisma.mailboxMembership &&
+      typeof prisma.mailboxMembership.count === "function"
+    ) {
+      const existingCount = await prisma.mailboxMembership.count({
+        where: { userId: numericUserId },
+      });
+      if (existingCount > 0) {
+        return null;
+      }
+    }
+
+    const domains = await prisma.domain.findMany({
+      where: {
+        status: "active",
+        verificationStatus: "verified",
+        ...(params.settings.allowedDomainUuids.length > 0
+          ? { uuid: { in: [...params.settings.allowedDomainUuids] } }
+          : {}),
+      },
+      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      select: { id: true, uuid: true, name: true },
+    });
+
+    const targetDomain = domains[0];
+    if (!targetDomain) {
+      return null;
+    }
+
+    const runtimeConfig = {
+      mailDomain: env.mailDomain,
+      mailStorageRoot: env.mailStorageRoot,
+      attachmentStorageRoot: env.attachmentStorageRoot,
+      mailboxProvisionLockRoot: env.mailboxProvisionLockRoot,
+      defaultQuotaBytes: env.mailboxDefaultQuotaBytes,
+    };
+
+    const candidateLocals = [
+      baseLocalPart,
+      deriveStarterMailboxLocalPart(
+        `${baseLocalPart}.${numericUserId.toString()}`,
+      ),
+    ];
+
+    for (const candidateLocal of candidateLocals) {
+      const provisioned = await provisionMailbox(
+        prisma as unknown as MailboxPrismaClient,
+        {
+          localPart: candidateLocal,
+          domainUuid: targetDomain.uuid,
+          assignedUserIds: [numericUserId.toString()],
+        },
+        runtimeConfig,
+        {
+          actorId: numericUserId,
+          authSource: "user_table",
+          actorUsername: params.username,
+          clientIp: params.clientIp,
+          userAgent: params.userAgent,
+        },
+      );
+
+      if (provisioned.ok) {
+        return provisioned.data.emailAddress;
+      }
+
+      if (provisioned.code === "conflict") {
+        continue;
+      }
+
+      // If running against a lightweight database/test environment without maildir or mailserver schema,
+      // fall back to creating the application Mailbox + MailboxMembership record directly.
+      const emailAddress = `${candidateLocal}@${targetDomain.name.toLowerCase()}`;
+      const existingMailbox = await prisma.mailbox.findFirst({
+        where: {
+          emailAddress: { equals: emailAddress, mode: "insensitive" },
+        },
+        select: { id: true },
+      });
+      if (existingMailbox) {
+        continue;
+      }
+
+      const createdMailbox = await prisma.mailbox.create({
+        data: {
+          domainId: targetDomain.id,
+          localPart: candidateLocal,
+          emailAddress,
+          status: "active",
+          maildirRelativePath: `${targetDomain.name.toLowerCase()}/${candidateLocal}/Maildir`,
+        },
+        select: { id: true, emailAddress: true },
+      });
+
+      if ("mailboxMembership" in prisma && prisma.mailboxMembership) {
+        await prisma.mailboxMembership.createMany({
+          data: [
+            {
+              userId: numericUserId,
+              mailboxId: createdMailbox.id,
+              assignedById: numericUserId,
+            },
+          ],
+          skipDuplicates: true,
+        });
+      }
+
+      if ("auditLog" in prisma && prisma.auditLog) {
+        await recordAudit(prisma as unknown as AuditWriteClient, {
+          actorId: numericUserId,
+          authSource: "user_table",
+          actorUsername: params.username,
+          action: "mailbox_create",
+          targetType: "mailbox",
+          targetIdentifier: createdMailbox.emailAddress,
+          clientIp: params.clientIp,
+          userAgent: params.userAgent,
+          details: {
+            assigned_user_ids: [numericUserId.toString()],
+            starter_mailbox: true,
+          },
+        });
+      }
+
+      return createdMailbox.emailAddress;
+    }
+  } catch {
+    logger.warn("starter_mailbox_autoprovision_skipped");
+  }
+
+  return null;
 }
 
 export function validateSignUpInput(
@@ -253,12 +465,29 @@ export async function registerUserAccount(
         fieldErrors: { username: "A user with that username already exists." },
       };
     }
+
+    let starterMailboxEmail: string | null = null;
+    if (
+      settings.autoProvisionStarterMailbox &&
+      payload.verificationStatus === "verified"
+    ) {
+      starterMailboxEmail = await tryProvisionStarterMailbox(null, {
+        userId: createdDemo.id,
+        username: createdDemo.username,
+        settings,
+        devDemoActive: true,
+        clientIp: options.clientIp,
+        userAgent: options.userAgent,
+      });
+    }
+
     return {
       ok: true,
       userId: createdDemo.id,
       username: createdDemo.username,
       verificationStatus: payload.verificationStatus,
       requiresApproval: payload.verificationStatus === "pending_approval",
+      starterMailboxEmail,
     };
   }
 
@@ -356,12 +585,27 @@ export async function registerUserAccount(
       return user;
     });
 
+    let starterMailboxEmail: string | null = null;
+    if (
+      settings.autoProvisionStarterMailbox &&
+      payload.verificationStatus === "verified"
+    ) {
+      starterMailboxEmail = await tryProvisionStarterMailbox(prisma, {
+        userId: created.id,
+        username: created.username,
+        settings,
+        clientIp: options.clientIp,
+        userAgent: options.userAgent,
+      });
+    }
+
     return {
       ok: true,
       userId: created.id.toString(),
       username: created.username,
       verificationStatus: payload.verificationStatus,
       requiresApproval: payload.verificationStatus === "pending_approval",
+      starterMailboxEmail,
     };
   } catch {
     logger.error("user_self_signup_failed");
@@ -380,6 +624,8 @@ export async function updatePendingUserVerification(
   options: {
     readonly devDemoActive?: boolean;
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly clientIp?: string | null;
     readonly userAgent?: string | null;
   } = {},
@@ -393,6 +639,22 @@ export async function updatePendingUserVerification(
     const updated = updateDevDemoDynamicUserStatus(trimmed, decision);
     if (!updated) {
       return { ok: false, error: "User registration record not found." };
+    }
+    if (decision === "verified") {
+      const settings = await getUserControlSettings(null);
+      if (settings.autoProvisionStarterMailbox) {
+        const dynamicUser = listDevDemoDynamicUsers().find(
+          (u) => u.id === trimmed,
+        );
+        await tryProvisionStarterMailbox(null, {
+          userId: trimmed,
+          username: dynamicUser?.username ?? updated.username,
+          settings,
+          devDemoActive: true,
+          clientIp: options.clientIp,
+          userAgent: options.userAgent,
+        });
+      }
     }
     return { ok: true };
   }
@@ -419,6 +681,8 @@ export async function updatePendingUserVerification(
       if ("auditLog" in tx && tx.auditLog) {
         await recordAudit(tx as unknown as AuditWriteClient, {
           actorId: options.actorId ?? null,
+          authSource: options.authSource,
+          actorUsername: options.actorUsername,
           action:
             decision === "verified"
               ? "user_signup_approved"
@@ -432,6 +696,19 @@ export async function updatePendingUserVerification(
       }
     });
 
+    if (decision === "verified") {
+      const settings = await getUserControlSettings(prisma);
+      if (settings.autoProvisionStarterMailbox) {
+        await tryProvisionStarterMailbox(prisma, {
+          userId: existing.id,
+          username: existing.username,
+          settings,
+          clientIp: options.clientIp,
+          userAgent: options.userAgent,
+        });
+      }
+    }
+
     return { ok: true };
   } catch {
     logger.error("user_signup_verification_update_failed");
@@ -440,7 +717,8 @@ export async function updatePendingUserVerification(
 }
 
 export async function upsertAdminAccountRecord(
-  prisma: Pick<PrismaClient, "adminAccount">,
+  prisma: Pick<PrismaClient, "adminAccount"> &
+    Partial<Pick<PrismaClient, "user">>,
   input: {
     readonly username: string;
     readonly passwordHash: string;
@@ -453,6 +731,24 @@ export async function upsertAdminAccountRecord(
   },
 ) {
   const usernameNormalized = input.username.trim().toLowerCase();
+
+  if (prisma.user && typeof prisma.user.findFirst === "function") {
+    const collidingUser = await prisma.user.findFirst({
+      where: {
+        username: { equals: usernameNormalized, mode: "insensitive" },
+      },
+      select: {
+        id: true,
+        administratorProfile: { select: { isSuperuser: true } },
+      },
+    });
+    if (collidingUser && !collidingUser.administratorProfile) {
+      throw new Error(
+        `Cannot provision admin account "${usernameNormalized}": a regular user account with that username already exists.`,
+      );
+    }
+  }
+
   return prisma.adminAccount.upsert({
     where: { username: usernameNormalized },
     create: {

@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import {
   consumeContactCsrfToken,
   issueContactCsrfToken,
+  listContactSubmissions,
   recordContactSubmission,
   resetContactServiceStateForTests,
   validateContactPayload,
@@ -155,6 +156,59 @@ describe("Public Contact Service (CSRF, Validation, Rate Limiting & Audit)", () 
     if (!fourth.ok) {
       assert.equal(fourth.status, 429);
       assert.equal(fourth.retryAfterSeconds, 3600);
+    }
+
+    // BUG-07: Verify full contact details are persisted in AuditLog and queryable via listContactSubmissions
+    const firstAudit = (audits[0] as { data: { details: Record<string, unknown>; targetIdentifier: string } }).data;
+    assert.equal(firstAudit.details.full_name, "Jordan Taylor");
+    assert.equal(firstAudit.details.work_email, "jordan@company.org");
+    assert.equal(firstAudit.details.company, "Company Org");
+    assert.equal(
+      firstAudit.details.message,
+      "Need multi-domain mailbox provisioning with DKIM and DMARC.",
+    );
+
+    const listedFromDb = await listContactSubmissions({
+      prisma: {
+        auditLog: {
+          findMany: async () => [
+            {
+              targetIdentifier: firstAudit.targetIdentifier,
+              details: firstAudit.details,
+              createdAt: new Date(now),
+            },
+          ],
+        },
+      },
+    });
+    assert.equal(listedFromDb.length, 1);
+    assert.equal(listedFromDb[0]?.fullName, "Jordan Taylor");
+    assert.equal(listedFromDb[0]?.workEmail, "jordan@company.org");
+    assert.equal(
+      listedFromDb[0]?.message,
+      "Need multi-domain mailbox provisioning with DKIM and DMARC.",
+    );
+
+    // BUG-07: Fail-closed (status 500) when configured database fails to persist inquiry
+    const failingPrisma = {
+      auditLog: {
+        create: async () => {
+          throw new Error("DB unavailable");
+        },
+      },
+    };
+    const failedPersist = await recordContactSubmission({
+      requestIp: "198.51.100.99",
+      cleaned: {
+        ...sampleCleaned,
+        work_email: "new.sender@company.org",
+      },
+      prisma: failingPrisma as never,
+      nowMs: now + 10_000,
+    });
+    assert.equal(failedPersist.ok, false);
+    if (!failedPersist.ok) {
+      assert.equal(failedPersist.status, 500);
     }
   });
 });

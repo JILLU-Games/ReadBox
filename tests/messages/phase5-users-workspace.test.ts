@@ -314,8 +314,41 @@ function createFakeWorkspacePrisma(options?: {
       if (!mbx || !matchesMailboxWhere(mbx, mailboxWhere)) return false;
     }
 
+    if (where.receivedAt === null && row.receivedAt !== null) return false;
+    if (
+      where.receivedAt &&
+      typeof where.receivedAt === "object" &&
+      (where.receivedAt as { gte?: Date }).gte instanceof Date
+    ) {
+      if (
+        !row.receivedAt ||
+        row.receivedAt < (where.receivedAt as { gte: Date }).gte
+      ) {
+        return false;
+      }
+    }
+    if (
+      where.createdAt &&
+      typeof where.createdAt === "object" &&
+      (where.createdAt as { gte?: Date }).gte instanceof Date
+    ) {
+      if (row.createdAt < (where.createdAt as { gte: Date }).gte) {
+        return false;
+      }
+    }
+
+    if (Array.isArray(where.AND)) {
+      const andMatched = where.AND.every((clause: Record<string, unknown>) =>
+        matchesMessageWhere(row, clause),
+      );
+      if (!andMatched) return false;
+    }
+
     if (Array.isArray(where.OR)) {
       const orMatched = where.OR.some((clause: Record<string, unknown>) => {
+        if ("receivedAt" in clause || "createdAt" in clause || "AND" in clause) {
+          return matchesMessageWhere(row, clause);
+        }
         const sName = (clause.senderName as { contains?: string } | undefined)
           ?.contains;
         const sAddr = (
@@ -1003,4 +1036,161 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
       resetDemoUserControlSettings();
     }
   });
+
+  it("11. Phase 03 BUG-20: preserves recent receivedAt:null messages via createdAt fallback and purges expired messages with counter recalculation", async () => {
+    const { isMessageWithinRetention, purgeExpiredMessagesForRetention } =
+      await import("@/core/messages/service");
+
+    const cutoff = new Date("2026-11-14T00:00:00.000Z");
+    assert.equal(
+      isMessageWithinRetention(
+        {
+          receivedAt: null,
+          createdAt: new Date("2026-11-15T08:00:00.000Z"),
+        },
+        cutoff,
+      ),
+      true,
+    );
+    assert.equal(
+      isMessageWithinRetention(
+        {
+          receivedAt: null,
+          createdAt: new Date("2026-11-10T08:00:00.000Z"),
+        },
+        cutoff,
+      ),
+      false,
+    );
+
+    const fake = createFakeWorkspacePrisma();
+    // Make Message #1 old (2026-10-01) and Message #2 recent with receivedAt: null
+    fake.messages[0]!.receivedAt = new Date("2026-10-01T00:00:00.000Z");
+    fake.messages[0]!.createdAt = new Date("2026-10-01T00:00:00.000Z");
+    fake.messages[1]!.receivedAt = null;
+    fake.messages[1]!.createdAt = new Date("2026-11-15T10:00:00.000Z");
+
+    const now = new Date("2026-11-16T00:00:00.000Z");
+    const drySummary = await purgeExpiredMessagesForRetention(fake as never, {
+      dryRun: true,
+      retentionDays: 7,
+      now,
+    });
+    assert.equal(drySummary.purgedMessages, 1);
+    assert.equal(drySummary.affectedMailboxes, 1);
+    assert.equal(fake.messages[0]!.deletedAt, null);
+
+    const liveSummary = await purgeExpiredMessagesForRetention(fake as never, {
+      dryRun: false,
+      retentionDays: 7,
+      now,
+      actor: {
+        userId: BigInt(1),
+        authSource: "admin_table",
+        username: "admin",
+      },
+    });
+    assert.equal(liveSummary.purgedMessages, 1);
+    assert.notEqual(fake.messages[0]!.deletedAt, null);
+    assert.equal(fake.messages[1]!.deletedAt, null);
+    assert.equal(fake.mailboxes[0]!.totalMessages, BigInt(1));
+    assert.equal(fake.mailboxes[0]!.unreadMessages, BigInt(0));
+    assert.ok(
+      fake.auditLogs.some((a) => a.action === "messages_retention_purged"),
+    );
+  });
+
+  it("12. Phase 04 BUG-18: pollLiveMessagesForUser enforces retention cutoff on messages, summary totals, and per-mailbox counters", async () => {
+    const fake = createFakeWorkspacePrisma();
+    const aliceActor = { userId: BigInt(101), isAdministrator: false };
+
+    // Set Message #1 old (expired) and Message #2 recent (within 7-day retention)
+    fake.messages[0]!.receivedAt = new Date("2020-01-01T00:00:00.000Z");
+    fake.messages[0]!.createdAt = new Date("2020-01-01T00:00:00.000Z");
+    fake.messages[0]!.isRead = false;
+    fake.messages[1]!.receivedAt = new Date();
+    fake.messages[1]!.createdAt = new Date();
+    fake.messages[1]!.isRead = false;
+
+    (fake.userAccessPolicy as { findUnique: unknown }).findUnique =
+      async () => ({
+        canCreateMailboxes: true,
+        canDeleteMessages: true,
+        canDeleteMailboxes: false,
+        maxMailboxes: 5,
+        allowedDomainUuids: [],
+        autoDeleteEnabled: true,
+        autoDeleteDays: 7,
+      });
+
+    const livePoll = await pollLiveMessagesForUser(
+      fake as never,
+      aliceActor,
+      {
+        bootstrap: false,
+        cursor: 0,
+        mailboxUuids: [MAILBOX_A_UUID],
+      },
+    );
+
+    assert.equal(livePoll.messages.length, 1);
+    assert.equal(livePoll.messages[0]?.uuid, MESSAGE_A2_UUID);
+    assert.equal(livePoll.summary.total_messages, 1);
+    assert.equal(livePoll.summary.total_unread, 1);
+    assert.equal(livePoll.mailboxes[0]?.total_messages, 1);
+    assert.equal(livePoll.mailboxes[0]?.unread_messages, 1);
+  });
+
+  it("13. Phase 04 BUG-19: resolves inline cid: attachment references to same-origin attachment URLs in message detail, HTML endpoint, and sanitizer", async () => {
+    const {
+      sanitizeHtmlEmail,
+      isSafeInternalAttachmentImagePath,
+    } = await import("@/core/ingestion/sanitizer");
+    const { resolveInlineCidAttachmentsInHtml } = await import(
+      "@/core/messages/service"
+    );
+
+    assert.equal(
+      isSafeInternalAttachmentImagePath(
+        `/api/messages/attachment/${ATTACHMENT_A1_UUID}`,
+      ),
+      true,
+    );
+    assert.equal(
+      isSafeInternalAttachmentImagePath("https://evil.example/track.png"),
+      false,
+    );
+
+    const sanitizedWithCidMap = sanitizeHtmlEmail(
+      '<p>Hello <img src="cid:logo-1@mailstack.local" alt="Logo"><img src="cid:unmapped-cid" alt="Drop"></p>',
+      {
+        cidMap: {
+          "logo-1@mailstack.local": `/api/messages/attachment/${ATTACHMENT_A1_UUID}`,
+        },
+      },
+    );
+    assert.match(
+      sanitizedWithCidMap,
+      new RegExp(`/api/messages/attachment/${ATTACHMENT_A1_UUID}`),
+    );
+    assert.doesNotMatch(sanitizedWithCidMap, /unmapped-cid/);
+
+    const resolvedBody = resolveInlineCidAttachmentsInHtml(
+      '<p><img src="cid:banner-cid" alt="Banner"></p>',
+      [
+        {
+          uuid: ATTACHMENT_A1_UUID,
+          contentId: "<banner-cid>",
+          originalFilename: "banner.png",
+          safeFilename: "banner.png",
+          isInline: true,
+        },
+      ],
+    );
+    assert.equal(
+      resolvedBody,
+      `<p><img src="/api/messages/attachment/${ATTACHMENT_A1_UUID}" alt="Banner"></p>`,
+    );
+  });
 });
+

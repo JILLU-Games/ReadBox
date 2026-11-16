@@ -9,13 +9,22 @@ import {
   resolveEffectiveUserPolicy,
   updateUserControlSettings,
 } from "@/core/accounts/user-control-policy";
+import { createManagedUser } from "@/core/accounts/users";
 import { authorizeCredentials } from "@/core/auth/credentials";
 import {
   authorizeDevDemoCredentials,
   clearDevDemoSessions,
+  getDevDemoSecuritySnapshot,
+  listDevDemoDynamicUsers,
+  updateDevDemoProfile,
 } from "@/core/auth/dev-demo-auth";
 import { createOpaqueToken } from "@/core/auth/opaque-token";
 import { hashPassword } from "@/core/auth/password";
+import {
+  clearAdminResetTokenStore,
+  completePasswordResetDetailed,
+  requestPasswordReset,
+} from "@/core/auth/password-reset";
 import {
   getActiveAppSession,
   registerAppSession,
@@ -24,6 +33,7 @@ import {
 import {
   registerUserAccount,
   updatePendingUserVerification,
+  upsertAdminAccountRecord,
   validateSignUpInput,
 } from "@/core/auth/sign-up";
 import type { PrismaClient } from "@prisma/client";
@@ -65,11 +75,17 @@ function makePhase1Prisma() {
       adminId: bigint;
       tokenHash: string;
       expiresAt: Date;
+      lastSeenAt?: Date | null;
+      ipAddress?: string | null;
+      userAgent?: string;
     }[],
     appSessions: [] as {
       userId: bigint;
       tokenHash: string;
       expiresAt: Date;
+      lastSeenAt?: Date | null;
+      ipAddress?: string | null;
+      userAgent?: string;
     }[],
     policies: [] as {
       userId: bigint;
@@ -146,13 +162,36 @@ function makePhase1Prisma() {
       },
     },
     adminAccount: {
-      findFirst: async (args: { where: { username?: { equals?: string } } }) => {
-        const target = args.where.username?.equals?.toLowerCase();
-        return (
-          state.admins.find(
-            (row) => row.username.toLowerCase() === target,
-          ) ?? null
-        );
+      findFirst: async (args: {
+        where: {
+          username?: { equals?: string };
+          OR?: Array<{
+            username?: { equals?: string };
+            email?: { equals?: string };
+          }>;
+        };
+      }) => {
+        const directTarget = args.where.username?.equals?.toLowerCase();
+        if (directTarget) {
+          return (
+            state.admins.find(
+              (row) => row.username.toLowerCase() === directTarget,
+            ) ?? null
+          );
+        }
+        if (args.where.OR) {
+          for (const cond of args.where.OR) {
+            const u = cond.username?.equals?.toLowerCase();
+            const e = cond.email?.equals?.toLowerCase();
+            const match = state.admins.find(
+              (row) =>
+                (u && row.username.toLowerCase() === u) ||
+                (e && row.email.toLowerCase() === e),
+            );
+            if (match) return match;
+          }
+        }
+        return null;
       },
       findUnique: async (args: { where: { id: bigint } }) =>
         state.admins.find((row) => row.id === args.where.id) ?? null,
@@ -165,10 +204,37 @@ function makePhase1Prisma() {
         Object.assign(row, args.data);
         return row;
       },
+      upsert: async (args: {
+        where: { username: string };
+        create: Omit<SyntheticAdminRow, "id" | "lastLogin">;
+        update: Partial<SyntheticAdminRow>;
+      }) => {
+        const existing = state.admins.find(
+          (item) => item.username === args.where.username,
+        );
+        if (existing) {
+          Object.assign(existing, args.update);
+          return existing;
+        }
+        const created: SyntheticAdminRow = {
+          id: state.nextAdminId++,
+          lastLogin: null,
+          ...args.create,
+        };
+        state.admins.push(created);
+        return created;
+      },
     },
     adminSession: {
       create: async (args: {
-        data: { adminId: bigint; tokenHash: string; expiresAt: Date };
+        data: {
+          adminId: bigint;
+          tokenHash: string;
+          expiresAt: Date;
+          lastSeenAt?: Date | null;
+          ipAddress?: string | null;
+          userAgent?: string;
+        };
       }) => {
         state.adminSessions.push(args.data);
         return args.data;
@@ -185,10 +251,31 @@ function makePhase1Prisma() {
           admin,
         };
       },
-      deleteMany: async (args: { where: { tokenHash?: string } }) => {
+      update: async (args: {
+        where: { tokenHash: string };
+        data: Partial<{
+          lastSeenAt: Date;
+          ipAddress: string | null;
+          userAgent: string;
+        }>;
+      }) => {
+        const session = state.adminSessions.find(
+          (row) => row.tokenHash === args.where.tokenHash,
+        );
+        if (!session) throw new Error("Admin session not found");
+        Object.assign(session, args.data);
+        return session;
+      },
+      deleteMany: async (args: {
+        where: { tokenHash?: string; adminId?: bigint };
+      }) => {
         const before = state.adminSessions.length;
         state.adminSessions = state.adminSessions.filter(
-          (row) => row.tokenHash !== args.where.tokenHash,
+          (row) =>
+            (args.where.tokenHash === undefined ||
+              row.tokenHash !== args.where.tokenHash) &&
+            (args.where.adminId === undefined ||
+              row.adminId !== args.where.adminId),
         );
         return { count: before - state.adminSessions.length };
       },
@@ -222,9 +309,9 @@ function makePhase1Prisma() {
           firstName: args.data.firstName,
           lastName: args.data.lastName,
           email: args.data.email,
-          phone: args.data.phone,
+          phone: args.data.phone ?? "",
           isActive: args.data.isActive,
-          verificationStatus: args.data.verificationStatus,
+          verificationStatus: args.data.verificationStatus ?? "verified",
           passwordResetRequired: args.data.passwordResetRequired,
           lastLogin: null,
         };
@@ -245,22 +332,39 @@ function makePhase1Prisma() {
       create: async (args: {
         data: {
           userId: bigint;
-          canCreateMailboxes: boolean;
+          canCreateMailboxes?: boolean;
           canDeleteMessages: boolean;
           canDeleteMailboxes: boolean;
-          maxMailboxes: number;
-          allowedDomainUuids: string[];
-          autoDeleteEnabled: boolean;
-          autoDeleteDays: number;
+          maxMailboxes?: number;
+          allowedDomainUuids?: string[];
+          autoDeleteEnabled?: boolean;
+          autoDeleteDays?: number;
         };
       }) => {
-        state.policies.push(args.data);
-        return args.data;
+        const policy = {
+          userId: args.data.userId,
+          canCreateMailboxes: args.data.canCreateMailboxes ?? true,
+          canDeleteMessages: args.data.canDeleteMessages,
+          canDeleteMailboxes: args.data.canDeleteMailboxes,
+          maxMailboxes: args.data.maxMailboxes ?? 3,
+          allowedDomainUuids: args.data.allowedDomainUuids ?? [],
+          autoDeleteEnabled: args.data.autoDeleteEnabled ?? false,
+          autoDeleteDays: args.data.autoDeleteDays ?? 0,
+        };
+        state.policies.push(policy);
+        return policy;
       },
     },
     appSession: {
       create: async (args: {
-        data: { userId: bigint; tokenHash: string; expiresAt: Date };
+        data: {
+          userId: bigint;
+          tokenHash: string;
+          expiresAt: Date;
+          lastSeenAt?: Date | null;
+          ipAddress?: string | null;
+          userAgent?: string;
+        };
       }) => {
         state.appSessions.push(args.data);
         return args.data;
@@ -279,6 +383,21 @@ function makePhase1Prisma() {
             administratorProfile: null,
           },
         };
+      },
+      update: async (args: {
+        where: { tokenHash: string };
+        data: Partial<{
+          lastSeenAt: Date;
+          ipAddress: string | null;
+          userAgent: string;
+        }>;
+      }) => {
+        const session = state.appSessions.find(
+          (row) => row.tokenHash === args.where.tokenHash,
+        );
+        if (!session) throw new Error("App session not found");
+        Object.assign(session, args.data);
+        return session;
       },
       deleteMany: async (args: { where: { tokenHash?: string } }) => {
         const before = state.appSessions.length;
@@ -363,7 +482,7 @@ test("separate admin_accounts and users tables enforce strict loginScope isolati
   assert.equal(userOnUserScope?.authSource, "user_table");
 });
 
-test("separate admin_sessions and app_sessions isolate session lifecycle", async () => {
+test("separate admin_sessions and app_sessions isolate session lifecycle and record IP/UA/lastSeenAt telemetry (BUG-10)", async () => {
   const { prisma, state } = makePhase1Prisma();
   state.admins.push({
     id: BigInt(101),
@@ -393,38 +512,66 @@ test("separate admin_sessions and app_sessions isolate session lifecycle", async
 
   const adminToken = createOpaqueToken();
   const userToken = createOpaqueToken();
+  const initialNow = new Date("2026-11-16T10:00:00.000Z");
+  const laterNow = new Date("2026-11-16T10:05:00.000Z");
   const expiresAt = new Date(Date.now() + 60_000);
 
   assert.equal(
     await registerAppSession(prisma, "101", adminToken, expiresAt, {
       authSource: "admin_table",
+      ipAddress: "198.51.100.1",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome/131.0",
+      now: initialNow,
     }),
     true,
   );
   assert.equal(state.adminSessions.length, 1);
+  assert.equal(state.adminSessions[0]?.ipAddress, "198.51.100.1");
+  assert.equal(
+    state.adminSessions[0]?.userAgent,
+    "Mozilla/5.0 (Windows NT 10.0) Chrome/131.0",
+  );
+  assert.equal(
+    state.adminSessions[0]?.lastSeenAt?.toISOString(),
+    initialNow.toISOString(),
+  );
   assert.equal(state.appSessions.length, 0);
 
   assert.equal(
     await registerAppSession(prisma, "501", userToken, expiresAt, {
       authSource: "user_table",
+      ipAddress: "203.0.113.5",
+      userAgent: "Mozilla/5.0 (Macintosh) Firefox/132.0",
+      now: initialNow,
     }),
     true,
   );
   assert.equal(state.appSessions.length, 1);
+  assert.equal(state.appSessions[0]?.ipAddress, "203.0.113.5");
 
   const activeAdmin = await getActiveAppSession(prisma, "101", adminToken, {
     authSource: "admin_table",
+    now: laterNow,
   });
   assert.equal(activeAdmin?.username, "ops.admin");
   assert.equal(activeAdmin?.isAdministrator, true);
   assert.equal(activeAdmin?.authSource, "admin_table");
+  assert.equal(
+    state.adminSessions[0]?.lastSeenAt?.toISOString(),
+    laterNow.toISOString(),
+  );
 
   const activeUser = await getActiveAppSession(prisma, "501", userToken, {
     authSource: "user_table",
+    now: laterNow,
   });
   assert.equal(activeUser?.username, "workspace.member");
   assert.equal(activeUser?.isAdministrator, false);
   assert.equal(activeUser?.authSource, "user_table");
+  assert.equal(
+    state.appSessions[0]?.lastSeenAt?.toISOString(),
+    laterNow.toISOString(),
+  );
 
   await revokeAppSession(prisma, adminToken);
   assert.equal(state.adminSessions.length, 0);
@@ -587,4 +734,162 @@ test("dev demo auth and policy helpers enforce scope, domain access, mailbox quo
   const now = new Date("2026-11-15T00:00:00.000Z");
   const cutoff = computeMessageRetentionCutoff(effective, now);
   assert.equal(cutoff?.toISOString(), "2026-11-08T00:00:00.000Z");
+});
+
+test("Phase-02 BUG-11, BUG-12, BUG-13, BUG-14: password reset, starter mailbox auto-provisioning, cross-table username uniqueness, and demo dynamic user overrides", async () => {
+  resetDemoUserControlSettings();
+  clearDevDemoSessions();
+  clearAdminResetTokenStore();
+
+  // BUG-12 & BUG-14: Demo sign-up with autoProvisionStarterMailbox enabled provisions starter mailbox & records user_self_signup event
+  const starterSettings = normalizeUserControlSettings({
+    ...DEFAULT_USER_CONTROL_SETTINGS,
+    autoProvisionStarterMailbox: true,
+  });
+  const demoRegistered = await registerUserAccount(
+    null,
+    {
+      username: "starter.user",
+      password: "StarterPass#2026",
+      passwordConfirmation: "StarterPass#2026",
+      firstName: "Starter",
+      lastName: "User",
+      email: "starter.user@example.com",
+    },
+    { settings: starterSettings, devDemoActive: true },
+  );
+  assert.equal(demoRegistered.ok, true);
+  if (demoRegistered.ok) {
+    assert.equal(
+      demoRegistered.starterMailboxEmail,
+      "starter.user@readbox.local",
+    );
+
+    // BUG-14: Profile update on dynamic demo user is reflected in listDevDemoDynamicUsers()
+    updateDevDemoProfile(demoRegistered.userId, {
+      firstName: "UpdatedFirst",
+      lastName: "UpdatedLast",
+      email: "updated@example.com",
+      phone: "+15550000",
+    });
+    const dynamicUsers = listDevDemoDynamicUsers();
+    const updatedDynamic = dynamicUsers.find(
+      (u) => u.id === demoRegistered.userId,
+    );
+    assert.equal(updatedDynamic?.firstName, "UpdatedFirst");
+
+    const snapshot = getDevDemoSecuritySnapshot(demoRegistered.userId);
+    assert.equal(
+      snapshot.recentEvents.some((e) => e.action === "user_self_signup"),
+      true,
+    );
+  }
+
+  // BUG-11: Self-service password reset for Demo Mode and AdminAccount with dynamic policy
+  const demoResetIssued = await requestPasswordReset(null, "starter.user", {
+    devDemoActive: true,
+  });
+  assert.equal(demoResetIssued.ok, true);
+  assert.ok(demoResetIssued.token);
+
+  const weakDemoReset = await completePasswordResetDetailed(
+    null,
+    demoResetIssued.token!,
+    "weakpass",
+    "weakpass",
+    {
+      devDemoActive: true,
+      policy: { minLength: 12, requireStrongPassword: true },
+    },
+  );
+  assert.equal(weakDemoReset.ok, false);
+
+  const validDemoReset = await completePasswordResetDetailed(
+    null,
+    demoResetIssued.token!,
+    "NewStrongPass#2026",
+    "NewStrongPass#2026",
+    {
+      devDemoActive: true,
+      policy: { minLength: 12, requireStrongPassword: true },
+    },
+  );
+  assert.equal(validDemoReset.ok, true);
+
+  // BUG-11 & BUG-13 on Prisma: AdminAccount password reset + cross-table username collision prevention
+  const { prisma, state } = makePhase1Prisma();
+  state.admins.push({
+    id: BigInt(101),
+    username: "ops.admin",
+    passwordHash: await hashPassword("AdminPass#2026!"),
+    firstName: "Ops",
+    lastName: "Admin",
+    email: "ops.admin@readbox.local",
+    isSuperuser: true,
+    isActive: true,
+    passwordResetRequired: false,
+    lastLogin: null,
+  });
+
+  // BUG-13: createManagedUser blocks creating a regular user with an admin's username
+  const collisionCreate = await createManagedUser(
+    prisma,
+    {
+      username: "OPS.ADMIN",
+      password: "ValidPassword#2026!",
+      passwordConfirmation: "ValidPassword#2026!",
+      firstName: "Duplicate",
+      lastName: "User",
+      email: "dup@readbox.local",
+      isActive: true,
+    },
+    {
+      actorId: BigInt(101),
+      authSource: "admin_table",
+      actorUsername: "ops.admin",
+    },
+  );
+  assert.equal(collisionCreate.ok, false);
+  if (!collisionCreate.ok) {
+    assert.equal(collisionCreate.code, "validation");
+  }
+
+  // Create a regular user and verify upsertAdminAccountRecord rejects colliding username
+  state.users.push({
+    id: BigInt(501),
+    username: "regular.member",
+    passwordHash: await hashPassword("UserPass#2026!"),
+    firstName: "Regular",
+    lastName: "Member",
+    email: "regular@readbox.local",
+    phone: "",
+    isActive: true,
+    verificationStatus: "verified",
+    passwordResetRequired: false,
+    lastLogin: null,
+  });
+  await assert.rejects(
+    upsertAdminAccountRecord(prisma, {
+      username: "REGULAR.MEMBER",
+      passwordHash: "hash",
+    }),
+  );
+
+  // BUG-11: AdminAccount self-service password reset updates admin_accounts and writes audit log
+  const adminResetReq = await requestPasswordReset(prisma, "ops.admin");
+  assert.equal(adminResetReq.ok, true);
+  assert.ok(adminResetReq.token);
+
+  const adminResetDone = await completePasswordResetDetailed(
+    prisma,
+    adminResetReq.token!,
+    "NextAdminPass#2026!",
+    "NextAdminPass#2026!",
+    { policy: { minLength: 12, requireStrongPassword: true } },
+  );
+  assert.equal(adminResetDone.ok, true);
+  assert.equal(
+    state.audits.some((a) => a.action === "password_reset_completed"),
+    true,
+  );
 });

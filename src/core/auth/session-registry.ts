@@ -4,6 +4,23 @@ import "server-only";
 
 export interface SessionRegistryOptions {
   readonly authSource?: "admin_table" | "user_table";
+  readonly ipAddress?: string | null;
+  readonly userAgent?: string | null;
+  readonly now?: Date;
+}
+
+function normalizeSessionIp(rawIp: string | null | undefined): string | null {
+  const trimmed = (rawIp ?? "").trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, 64);
+}
+
+function normalizeSessionUserAgent(
+  rawUserAgent: string | null | undefined,
+): string {
+  const trimmed = (rawUserAgent ?? "").trim();
+  if (!trimmed) return "";
+  return trimmed.slice(0, 500);
 }
 
 export async function registerAppSession(
@@ -16,6 +33,9 @@ export async function registerAppSession(
   if (!/^[1-9]\d*$/.test(userId) || !isOpaqueToken(sessionId)) return false;
 
   const id = BigInt(userId);
+  const now = options.now ?? new Date();
+  const ipAddress = normalizeSessionIp(options.ipAddress);
+  const userAgent = normalizeSessionUserAgent(options.userAgent);
 
   return prisma.$transaction(async (transaction) => {
     if (
@@ -35,6 +55,9 @@ export async function registerAppSession(
           adminId: id,
           tokenHash: hashOpaqueToken(sessionId),
           expiresAt,
+          lastSeenAt: now,
+          ...(ipAddress ? { ipAddress } : {}),
+          ...(userAgent ? { userAgent } : {}),
         },
       });
       return true;
@@ -52,6 +75,9 @@ export async function registerAppSession(
         userId: id,
         tokenHash: hashOpaqueToken(sessionId),
         expiresAt,
+        lastSeenAt: now,
+        ...(ipAddress ? { ipAddress } : {}),
+        ...(userAgent ? { userAgent } : {}),
       },
     });
     return true;
@@ -74,6 +100,9 @@ export async function getActiveAppSession(
   }
 
   const tokenHash = hashOpaqueToken(sessionId);
+  const now = options.now ?? new Date();
+  const ipAddress = normalizeSessionIp(options.ipAddress);
+  const userAgent = normalizeSessionUserAgent(options.userAgent);
 
   if (
     options.authSource === "admin_table" &&
@@ -85,6 +114,8 @@ export async function getActiveAppSession(
       select: {
         adminId: true,
         expiresAt: true,
+        ipAddress: true,
+        userAgent: true,
         admin: {
           select: {
             id: true,
@@ -103,11 +134,29 @@ export async function getActiveAppSession(
     if (
       !adminEntry ||
       adminEntry.adminId !== id ||
-      adminEntry.expiresAt <= new Date() ||
+      adminEntry.expiresAt <= now ||
       !adminEntry.admin.isActive ||
       adminEntry.admin.passwordResetRequired
     ) {
       return null;
+    }
+
+    if (
+      "update" in prisma.adminSession &&
+      typeof prisma.adminSession.update === "function"
+    ) {
+      try {
+        await prisma.adminSession.update({
+          where: { tokenHash },
+          data: {
+            lastSeenAt: now,
+            ...(!adminEntry.ipAddress && ipAddress ? { ipAddress } : {}),
+            ...(!adminEntry.userAgent && userAgent ? { userAgent } : {}),
+          },
+        });
+      } catch {
+        // Non-fatal session telemetry refresh
+      }
     }
 
     return {
@@ -129,6 +178,8 @@ export async function getActiveAppSession(
     select: {
       userId: true,
       expiresAt: true,
+      ipAddress: true,
+      userAgent: true,
       user: {
         select: {
           id: true,
@@ -149,11 +200,29 @@ export async function getActiveAppSession(
   if (
     !registryEntry ||
     registryEntry.userId !== id ||
-    registryEntry.expiresAt <= new Date() ||
+    registryEntry.expiresAt <= now ||
     !registryEntry.user.isActive ||
     registryEntry.user.passwordResetRequired
   ) {
     return null;
+  }
+
+  if (
+    "update" in prisma.appSession &&
+    typeof prisma.appSession.update === "function"
+  ) {
+    try {
+      await prisma.appSession.update({
+        where: { tokenHash },
+        data: {
+          lastSeenAt: now,
+          ...(!registryEntry.ipAddress && ipAddress ? { ipAddress } : {}),
+          ...(!registryEntry.userAgent && userAgent ? { userAgent } : {}),
+        },
+      });
+    } catch {
+      // Non-fatal session telemetry refresh
+    }
   }
 
   const { administratorProfile, ...user } = registryEntry.user;

@@ -145,6 +145,7 @@ export function useLiveMailPoller({
   const [syncDegraded, setSyncDegraded] = useState(false);
   const cursorRef = useRef<number>(0);
   const bootstrappedRef = useRef<boolean>(false);
+  const lastSnapshotSignatureRef = useRef<string | null>(null);
   const pollingRef = useRef<boolean>(false);
   const backoffRef = useRef<number>(5000);
   const consecutiveFailuresRef = useRef<number>(0);
@@ -289,12 +290,36 @@ export function useLiveMailPoller({
         cursorRef.current = Number(payload.cursor || 0);
         bootstrappedRef.current = true;
 
+        const nextSignature = JSON.stringify({
+          summary: payload.summary,
+          mailboxes: (payload.mailboxes ?? []).map((m) => [
+            m.uuid,
+            m.status,
+            m.total_messages,
+            m.unread_messages,
+          ]),
+        });
+        const stateChanged =
+          !firstPoll &&
+          lastSnapshotSignatureRef.current !== null &&
+          lastSnapshotSignatureRef.current !== nextSignature;
+        lastSnapshotSignatureRef.current = nextSignature;
+
         onLivePayloadRef.current?.(payload);
+        if (Array.isArray(payload.mailboxes)) {
+          window.dispatchEvent(
+            new CustomEvent("readbox:live-mailboxes-updated", {
+              detail: payload.mailboxes,
+            }),
+          );
+        }
 
         if (!firstPoll && payload.messages.length > 0) {
           for (const msg of payload.messages) {
             await dispatchMessageNotification(msg);
           }
+          router.refresh();
+        } else if (stateChanged) {
           router.refresh();
         }
 

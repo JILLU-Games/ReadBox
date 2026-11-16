@@ -102,6 +102,8 @@ export async function saveSiteSettingsAction(
     },
     {
       actorId: admin.id ? BigInt(admin.id) : null,
+      authSource: admin.authSource,
+      actorUsername: admin.username,
       headers: reqHeaders,
     },
   );

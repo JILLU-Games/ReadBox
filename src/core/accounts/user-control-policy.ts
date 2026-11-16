@@ -4,6 +4,7 @@ import {
   DEV_DEMO_ACCOUNTS,
   listDevDemoDynamicUsers,
 } from "@/core/auth/dev-demo-auth";
+import { logger } from "@/core/server/logger";
 import type { PrismaClient } from "@prisma/client";
 import "server-only";
 import { z } from "zod";
@@ -121,7 +122,7 @@ export const DEMO_VERIFIED_DOMAINS: readonly ControlDomainOption[] =
   Object.freeze([
     {
       uuid: "99999999-0000-4000-8000-000000000001",
-      name: "mailstack.local",
+      name: "readbox.local",
       isDefault: true,
     },
     {
@@ -536,6 +537,8 @@ export async function updateUserControlSettings(
   rawInput: unknown,
   auditContext?: {
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly clientIp?: string | null;
     readonly userAgent?: string | null;
   },
@@ -611,6 +614,8 @@ export async function updateUserControlSettings(
     if (prisma.auditLog) {
       await recordAudit(prisma as unknown as AuditWriteClient, {
         actorId: auditContext?.actorId ?? null,
+        authSource: auditContext?.authSource,
+        actorUsername: auditContext?.actorUsername,
         action: "user_control_settings_updated",
         targetType: "user_control_settings",
         targetIdentifier: "global",
@@ -628,9 +633,15 @@ export async function updateUserControlSettings(
 
     setDemoUserControlSettings(normalized);
     return { ok: true, settings: normalized };
-  } catch {
-    setDemoUserControlSettings(normalized);
-    return { ok: true, settings: normalized };
+  } catch (error) {
+    logger.error("user_control_settings_update_failed", {
+      reason: error instanceof Error ? error.name : "unknown_error",
+    });
+    return {
+      ok: false,
+      error:
+        "Could not save user control policy to database. Please try again.",
+    };
   }
 }
 
@@ -675,12 +686,17 @@ export async function getUserExtendedPolicy(
 
 export async function updateUserExtendedPolicy(
   prisma: Partial<
-    Pick<PrismaClient, "user" | "userAccessPolicy" | "auditLog">
+    Pick<
+      PrismaClient,
+      "user" | "userAccessPolicy" | "userControlSettings" | "auditLog"
+    >
   > | null,
   rawUserId: string,
   rawInput: unknown,
   auditContext?: {
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly clientIp?: string | null;
     readonly userAgent?: string | null;
   },
@@ -702,7 +718,7 @@ export async function updateUserExtendedPolicy(
     };
   }
 
-  const globalSettings = await getUserControlSettings(null);
+  const globalSettings = await getUserControlSettings(prisma);
   const normalized = normalizeExtendedUserAccessPolicy(
     parsed.data,
     globalSettings,
@@ -741,6 +757,8 @@ export async function updateUserExtendedPolicy(
     if (prisma.auditLog) {
       await recordAudit(prisma as unknown as AuditWriteClient, {
         actorId: auditContext?.actorId ?? null,
+        authSource: auditContext?.authSource,
+        actorUsername: auditContext?.actorUsername,
         action: "user_access_policy_updated",
         targetType: "user",
         targetIdentifier: trimmedId,
@@ -758,10 +776,41 @@ export async function updateUserExtendedPolicy(
 
     setDemoUserAccessPolicy(trimmedId, normalized);
     return { ok: true, policy: normalized };
-  } catch {
-    setDemoUserAccessPolicy(trimmedId, normalized);
-    return { ok: true, policy: normalized };
+  } catch (error) {
+    logger.error("user_access_policy_update_failed", {
+      user_id: trimmedId,
+      reason: error instanceof Error ? error.name : "unknown_error",
+    });
+    return {
+      ok: false,
+      error:
+        "Could not save user access policy to database. Please try again.",
+    };
   }
+}
+
+function countDemoMailboxesForAccount(account: {
+  readonly id: string;
+  readonly username: string;
+}): number {
+  const demoStoreMailboxes = (
+    globalThis as {
+      __readboxDemoUserStore?: {
+        mailboxes?: ReadonlyArray<{ ownerUserId?: string }>;
+      };
+    }
+  ).__readboxDemoUserStore?.mailboxes;
+
+  if (!demoStoreMailboxes) {
+    return account.username === "demo.user" ? 4 : 0;
+  }
+
+  return demoStoreMailboxes.filter((mbx) => {
+    if (mbx.ownerUserId) {
+      return mbx.ownerUserId === account.id;
+    }
+    return account.username === "demo.user";
+  }).length;
 }
 
 export async function listUsersControlSnapshot(
@@ -853,8 +902,7 @@ export async function listUsersControlSnapshot(
 
       return {
         settings,
-        domains:
-          dbDomains.length > 0 ? dbDomains : [...DEMO_VERIFIED_DOMAINS],
+        domains: dbDomains,
         pendingUsers,
         governedUsers,
         databaseConnected: true,
@@ -890,7 +938,7 @@ export async function listUsersControlSnapshot(
     phone: acc.phone ?? "",
     isActive: acc.isActive !== false,
     verificationStatus: acc.verificationStatus ?? "verified",
-    mailboxCount: acc.username === "demo.user" ? 3 : 0,
+    mailboxCount: countDemoMailboxesForAccount(acc),
     policy: resolveEffectiveUserPolicy(
       settings,
       getDemoUserAccessPolicy(acc.id),

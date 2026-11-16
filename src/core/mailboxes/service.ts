@@ -35,6 +35,8 @@ export type MailboxPrismaClient = PrismaClient & PrismaRawQueryable;
 
 export interface MailboxAuditContext {
   readonly actorId: bigint;
+  readonly authSource?: "admin_table" | "user_table";
+  readonly actorUsername?: string;
   readonly headers?: Pick<Headers, "get">;
   readonly clientIp?: string | null;
   readonly userAgent?: string | null;
@@ -129,7 +131,9 @@ export type MailboxActionResult<T = unknown> =
 async function resolveActorIdForDatabase(
   db: Pick<PrismaClient, "user">,
   actorId: bigint,
+  authSource?: "admin_table" | "user_table",
 ): Promise<bigint | null> {
+  if (authSource === "admin_table") return null;
   if (actorId <= BigInt(0)) return null;
   const user = await db.user.findUnique({
     where: { id: actorId },
@@ -435,7 +439,11 @@ export async function provisionMailbox(
   }
 
   const sqlExecutor = options.sqlExecutor ?? createPrismaSqlExecutor(prisma);
-  const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+  const resolvedActorId = await resolveActorIdForDatabase(
+    prisma,
+    ctx.actorId,
+    ctx.authSource,
+  );
   const lockKey =
     domain.name === config.mailDomain.toLowerCase()
       ? normalizedLocal
@@ -502,7 +510,9 @@ export async function provisionMailbox(
           createdPaths = tree.createdPaths;
         } catch (error) {
           await recordAudit(prisma as unknown as AuditWriteClient, {
-            actorId: resolvedActorId,
+            actorId: resolvedActorId ?? ctx.actorId,
+            authSource: ctx.authSource,
+            actorUsername: ctx.actorUsername,
             action: "mailbox_provisioning_failure",
             targetType: "mailbox",
             targetIdentifier: emailAddress,
@@ -578,7 +588,9 @@ export async function provisionMailbox(
           });
 
           await recordAudit(prisma as unknown as AuditWriteClient, {
-            actorId: resolvedActorId,
+            actorId: resolvedActorId ?? ctx.actorId,
+            authSource: ctx.authSource,
+            actorUsername: ctx.actorUsername,
             action: "mailbox_create",
             targetType: "mailbox",
             targetIdentifier: created.emailAddress,
@@ -616,7 +628,9 @@ export async function provisionMailbox(
           await rollbackCreatedMaildirPaths(createdPaths);
 
           await recordAudit(prisma as unknown as AuditWriteClient, {
-            actorId: resolvedActorId,
+            actorId: resolvedActorId ?? ctx.actorId,
+            authSource: ctx.authSource,
+            actorUsername: ctx.actorUsername,
             action: "mailbox_provisioning_failure",
             targetType: "mailbox",
             targetIdentifier: emailAddress,
@@ -651,7 +665,9 @@ export async function provisionMailbox(
   } catch (error) {
     if (error instanceof ProvisioningError) {
       await recordAudit(prisma as unknown as AuditWriteClient, {
-        actorId: resolvedActorId,
+        actorId: resolvedActorId ?? ctx.actorId,
+        authSource: ctx.authSource,
+        actorUsername: ctx.actorUsername,
         action: "mailbox_provisioning_failure",
         targetType: "mailbox",
         targetIdentifier: `${normalizedLocal}@${domain.name}`,
@@ -751,9 +767,15 @@ export async function setMailboxActive(
       };
     }
 
-    const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+    const resolvedActorId = await resolveActorIdForDatabase(
+      prisma,
+      ctx.actorId,
+      ctx.authSource,
+    );
     await recordAudit(prisma as unknown as AuditWriteClient, {
-      actorId: resolvedActorId,
+      actorId: resolvedActorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: active ? "mailbox_enable" : "mailbox_disable",
       targetType: "mailbox",
       targetIdentifier: mailbox.emailAddress,
@@ -842,9 +864,15 @@ async function executeMailboxPurge(
     pathBundle.localPart,
   );
 
-  const resolvedActorId = await resolveActorIdForDatabase(prisma, ctx.actorId);
+  const resolvedActorId = await resolveActorIdForDatabase(
+    prisma,
+    ctx.actorId,
+    ctx.authSource,
+  );
   await recordAudit(prisma as unknown as AuditWriteClient, {
-    actorId: resolvedActorId,
+    actorId: resolvedActorId ?? ctx.actorId,
+    authSource: ctx.authSource,
+    actorUsername: ctx.actorUsername,
     action: "mailbox_purged",
     targetType: "mailbox",
     targetIdentifier: mailbox.emailAddress,

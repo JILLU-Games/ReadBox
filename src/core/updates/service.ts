@@ -85,6 +85,8 @@ export interface UpdateRuntimeOptions {
   readonly preflightOverride?: () => Promise<UpdatePreflightResult>;
   readonly prisma?: AuditWriteClient | null;
   readonly actorId?: bigint | null;
+  readonly authSource?: "admin_table" | "user_table";
+  readonly actorUsername?: string;
   readonly headers?: Pick<Headers, "get">;
 }
 
@@ -656,6 +658,8 @@ export async function queueUpdateRequest(
   if (client) {
     await recordAudit(client, {
       actorId: options?.actorId ?? null,
+      authSource: options?.authSource,
+      actorUsername: options?.actorUsername,
       action: "system_update_requested",
       targetType: "system_update",
       targetIdentifier: input.archiveUrl,

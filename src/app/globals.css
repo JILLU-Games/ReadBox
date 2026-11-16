@@ -260,3 +260,32 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+@media print {
+  #workspace-sidebar,
+  [data-print-hide="true"] {
+    display: none !important;
+  }
+
+  [data-print-shell="true"] {
+    padding-left: 0 !important;
+  }
+
+  body,
+  [data-print-region="message-reader"] {
+    background: #ffffff !important;
+    color: #1b2733 !important;
+  }
+
+  [data-print-region="message-reader"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  .readbox-scrollable {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+}

@@ -267,6 +267,16 @@ export function formatSecurityEventLabel(action: string): {
       return { label: "Failed sign-in attempt", outcome: "warning" };
     case "user_password_changed":
       return { label: "Password updated", outcome: "success" };
+    case "password_reset_requested":
+      return { label: "Password reset token issued", outcome: "info" };
+    case "password_reset_completed":
+      return { label: "Password reset completed", outcome: "success" };
+    case "user_self_signup":
+      return { label: "Account registered", outcome: "success" };
+    case "user_signup_approved":
+      return { label: "Account registration approved", outcome: "success" };
+    case "user_signup_rejected":
+      return { label: "Account registration rejected", outcome: "warning" };
     case "user_profile_updated":
       return { label: "Profile updated", outcome: "info" };
     case "user_session_revoked":

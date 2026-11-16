@@ -56,6 +56,8 @@ export async function createUserAction(
   const requestHeaders = await headers();
   const result = await createManagedUser(getPrismaClient(), input, {
     actorId: actor.id,
+    authSource: actor.authSource,
+    actorUsername: actor.username,
     headers: requestHeaders,
     trustProxyHeaders: env.trustProxyHeaders,
   });
@@ -81,6 +83,8 @@ export async function updateUserAction(
   const requestHeaders = await headers();
   const result = await updateManagedUser(getPrismaClient(), userId, input, {
     actorId: actor.id,
+    authSource: actor.authSource,
+    actorUsername: actor.username,
     headers: requestHeaders,
     trustProxyHeaders: env.trustProxyHeaders,
   });
@@ -106,6 +110,8 @@ export async function deleteUserAction(
   const requestHeaders = await headers();
   const result = await deleteManagedUser(getPrismaClient(), userId, {
     actorId: actor.id,
+    authSource: actor.authSource,
+    actorUsername: actor.username,
     headers: requestHeaders,
     trustProxyHeaders: env.trustProxyHeaders,
   });

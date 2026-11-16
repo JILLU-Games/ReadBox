@@ -436,6 +436,8 @@ export async function updateSiteSettings(
     readonly prisma?: SiteSettingsPrismaLike | null;
     readonly mediaRoot?: string;
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly headers?: Pick<Headers, "get">;
   },
 ): Promise<UpdateSiteSettingsResult> {
@@ -545,24 +547,13 @@ export async function updateSiteSettings(
     let dbConnected = false;
 
     if (client) {
-      try {
-        savedRecord = await client.siteSettings.upsert({
-          where: { id: BigInt(1) },
-          create: payload,
-          update: payload,
-        });
-        dbConnected = true;
-        dbCheckCooldownUntil = 0;
-      } catch (dbError) {
-        if (env.nodeEnv === "production") {
-          throw dbError;
-        }
-        savedRecord = {
-          id: BigInt(1),
-          ...payload,
-          updatedAt: new Date(),
-        };
-      }
+      savedRecord = await client.siteSettings.upsert({
+        where: { id: BigInt(1) },
+        create: payload,
+        update: payload,
+      });
+      dbConnected = true;
+      dbCheckCooldownUntil = 0;
     } else {
       savedRecord = {
         id: BigInt(1),
@@ -592,6 +583,8 @@ export async function updateSiteSettings(
     if (client && dbConnected) {
       await recordAudit(client, {
         actorId: options?.actorId ?? null,
+        authSource: options?.authSource,
+        actorUsername: options?.actorUsername,
         action: "site_settings_updated",
         targetType: "site_settings",
         targetIdentifier: "singleton",

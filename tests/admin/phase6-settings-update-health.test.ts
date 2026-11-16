@@ -1,5 +1,10 @@
 import { parseEnvironment } from "@/config/env-schema";
 import {
+  listUsersControlSnapshot,
+  updateUserControlSettings,
+  updateUserExtendedPolicy,
+} from "@/core/accounts/user-control-policy";
+import {
   checkConfigurationReadiness,
   checkWritableStorageDirectory,
   getReadinessSnapshot,
@@ -564,4 +569,102 @@ test("Health readiness snapshot and PostgreSQL VPS templates verify production i
     await rm(tempMailRoot, { recursive: true, force: true });
     await rm(tempAttRoot, { recursive: true, force: true });
   }
+});
+
+test("Phase 03 BUG-05 & BUG-06: updateUserControlSettings, updateUserExtendedPolicy, and updateSiteSettings fail-closed on DB errors and listUsersControlSnapshot does not inject fake demo domains into connected DB", async () => {
+  // BUG-05: updateUserControlSettings fails closed when DB write throws
+  const failingControlPrisma = {
+    userControlSettings: {
+      async findFirst() {
+        throw new Error("PostgreSQL connection refused");
+      },
+      async update() {
+        throw new Error("PostgreSQL connection refused");
+      },
+      async create() {
+        throw new Error("PostgreSQL connection refused");
+      },
+    },
+  };
+  const controlRes = await updateUserControlSettings(
+    failingControlPrisma as never,
+    { signupEnabled: false },
+  );
+  assert.equal(controlRes.ok, false);
+  if (!controlRes.ok) {
+    assert.match(controlRes.error, /Could not save user control policy/i);
+  }
+
+  // BUG-05: updateUserExtendedPolicy fails closed when DB upsert throws
+  const failingPolicyPrisma = {
+    userAccessPolicy: {
+      async upsert() {
+        throw new Error("PostgreSQL write error");
+      },
+    },
+  };
+  const policyRes = await updateUserExtendedPolicy(
+    failingPolicyPrisma as never,
+    "10",
+    { canCreateMailboxes: false, maxMailboxes: 2 },
+  );
+  assert.equal(policyRes.ok, false);
+  if (!policyRes.ok) {
+    assert.match(policyRes.error, /Could not save user access policy/i);
+  }
+
+  // BUG-05: listUsersControlSnapshot returns empty domains array when DB is connected and 0 verified domains exist
+  const emptyDomainsPrisma = {
+    userControlSettings: {
+      async findFirst() {
+        return null;
+      },
+    },
+    domain: {
+      async findMany() {
+        return [];
+      },
+    },
+    user: {
+      async findMany() {
+        return [];
+      },
+    },
+  };
+  const connectedSnapshot = await listUsersControlSnapshot(
+    emptyDomainsPrisma as never,
+  );
+  assert.equal(connectedSnapshot.databaseConnected, true);
+  assert.equal(connectedSnapshot.domains.length, 0);
+
+  // Demo fallback snapshot computes accurate demo mailbox count (4)
+  const demoSnapshot = await listUsersControlSnapshot(null);
+  assert.equal(demoSnapshot.databaseConnected, false);
+  const demoUserItem = demoSnapshot.governedUsers.find(
+    (u) => u.username === "demo.user",
+  );
+  assert.ok(demoUserItem);
+  assert.equal(demoUserItem.mailboxCount, 4);
+
+  // BUG-06: updateSiteSettings fails closed when Prisma client upsert fails (regardless of NODE_ENV)
+  const failingSitePrisma: SiteSettingsPrismaLike = {
+    siteSettings: {
+      async findFirst() {
+        return null;
+      },
+      async upsert() {
+        throw new Error("PostgreSQL disk full");
+      },
+    },
+    auditLog: {
+      async create() {
+        return { id: BigInt(1) };
+      },
+    },
+  };
+  const siteRes = await updateSiteSettings(
+    { siteName: "ReadBox Fail-Closed Test" },
+    { prisma: failingSitePrisma },
+  );
+  assert.equal(siteRes.ok, false);
 });

@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
     },
     {
       actorId,
+      authSource: admin.authSource,
+      actorUsername: admin.username,
       headers: request.headers,
     },
   );

@@ -347,11 +347,45 @@ export function MessageReaderView({
     !fetchedHtml &&
     message.hasHtmlBody &&
     htmlFetchErrorKey === fetchCacheKey;
-  const scopedHtml = useMemo(
-    () =>
-      effectiveHtml ? extractAndScopeEmailHtml(effectiveHtml, scopeClass) : "",
-    [effectiveHtml, scopeClass],
-  );
+  const scopedHtml = useMemo(() => {
+    if (!effectiveHtml) return "";
+    let resolved = effectiveHtml;
+    if (message.attachments.length > 0 && /cid:/i.test(resolved)) {
+      const cidLookup = new Map<string, string>();
+      for (const att of message.attachments) {
+        if (!att.uuid) continue;
+        const url = `/api/messages/attachment/${att.uuid}`;
+        const cid = (att.contentId ?? "").replace(/^<|>$/g, "").trim();
+        if (cid) {
+          cidLookup.set(cid, url);
+          cidLookup.set(cid.toLowerCase(), url);
+        }
+        if (att.isInline) {
+          if (att.originalFilename) {
+            cidLookup.set(att.originalFilename, url);
+            cidLookup.set(att.originalFilename.toLowerCase(), url);
+          }
+          if (att.safeFilename) {
+            cidLookup.set(att.safeFilename, url);
+            cidLookup.set(att.safeFilename.toLowerCase(), url);
+          }
+        }
+      }
+      if (cidLookup.size > 0) {
+        resolved = resolved.replace(
+          /(<img\b[^>]*?\bsrc\s*=\s*["'])cid:([^"']+)(["'])/gi,
+          (fullMatch, prefix: string, rawCid: string, suffix: string) => {
+            const cleanedCid = rawCid.replace(/^<|>$/g, "").trim();
+            const mapped =
+              cidLookup.get(cleanedCid) ??
+              cidLookup.get(cleanedCid.toLowerCase());
+            return mapped ? `${prefix}${mapped}${suffix}` : fullMatch;
+          },
+        );
+      }
+    }
+    return extractAndScopeEmailHtml(resolved, scopeClass);
+  }, [effectiveHtml, message.attachments, scopeClass]);
 
   const { mailbox } = message;
   const senderDisplay =
@@ -423,13 +457,16 @@ export function MessageReaderView({
   return (
     <div className={embedded ? "space-y-0" : "space-y-3"}>
       {!embedded ? (
-        <LiveWorkspaceNavigationBar
-          visibleMailboxUuids={[mailbox.uuid]}
-          pollingEnabled={true}
-        />
+        <div data-print-hide="true">
+          <LiveWorkspaceNavigationBar
+            visibleMailboxUuids={[mailbox.uuid]}
+            pollingEnabled={true}
+          />
+        </div>
       ) : null}
 
       <article
+        data-print-region="message-reader"
         aria-labelledby="message-reader-subject"
         className={cn(
           "flex flex-col border border-border bg-card",
@@ -437,7 +474,10 @@ export function MessageReaderView({
         )}
       >
         {/* Gmail-style Top Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
+        <div
+          data-print-hide="true"
+          className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2"
+        >
           <div className="flex flex-wrap items-center gap-1.5">
             <Button
               asChild
@@ -833,7 +873,10 @@ export function MessageReaderView({
         ) : null}
 
         {/* Gmail-style Bottom Action Footer */}
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-4 py-2.5">
+        <footer
+          data-print-hide="true"
+          className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-4 py-2.5"
+        >
           <div className="flex flex-wrap items-center gap-1.5">
             {message.senderAddress ? (
               <CopyButton

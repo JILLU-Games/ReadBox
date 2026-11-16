@@ -313,7 +313,7 @@ describe("Phase 5 — User Workspace UI components", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders MailboxInboxView with search/filter controls and message rows", () => {
+  it("renders MailboxInboxView with compact search, filter tabs, sender initials, and clutter-free message rows", () => {
     render(
       <MailboxInboxView
         inboxResult={{
@@ -357,8 +357,26 @@ describe("Phase 5 — User Workspace UI components", () => {
     );
 
     expect(screen.getByText("TLS Certificate Renewed")).toBeInTheDocument();
+    expect(screen.getByText("SO")).toBeInTheDocument();
+    expect(screen.getByText("Nov 15, 10:00")).toBeInTheDocument();
+    expect(screen.queryByText("1.5 KB")).toBeNull();
     expect(screen.getByLabelText("Read state")).toBeInTheDocument();
-    expect(screen.getByLabelText("Attachment filter")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "All" })).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555",
+    );
+    expect(screen.getByRole("link", { name: "Unread" })).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555?read=unread",
+    );
+    expect(screen.getByRole("link", { name: "Read" })).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555?read=read",
+    );
+    expect(screen.getByLabelText("Attachment filter")).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555?attachments=yes",
+    );
   });
 
   it("renders MessageReaderView with unified Gmail-style email body, working links/buttons, attachments, and gated Delete button without HTML/Plain-text toggles", async () => {

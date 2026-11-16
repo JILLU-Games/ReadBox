@@ -31,6 +31,8 @@ export async function saveUserControlSettingsAction(
 
   const result = await updateUserControlSettings(prisma, input, {
     actorId: admin.id,
+    authSource: admin.authSource,
+    actorUsername: admin.username,
     clientIp: extractClientIp(reqHeaders, {
       trustProxyHeaders: env.trustProxyHeaders,
     }),
@@ -71,6 +73,8 @@ export async function decidePendingUserAction(
   const result = await updatePendingUserVerification(prisma, userId, decision, {
     devDemoActive,
     actorId: admin.id,
+    authSource: admin.authSource,
+    actorUsername: admin.username,
     clientIp: extractClientIp(reqHeaders, {
       trustProxyHeaders: env.trustProxyHeaders,
     }),
@@ -111,6 +115,8 @@ export async function saveUserPolicyOverrideAction(
 
   const result = await updateUserExtendedPolicy(prisma, userId, input, {
     actorId: admin.id,
+    authSource: admin.authSource,
+    actorUsername: admin.username,
     clientIp: extractClientIp(reqHeaders, {
       trustProxyHeaders: env.trustProxyHeaders,
     }),

@@ -118,6 +118,15 @@ function resolveUserAgent(input: RecordAuditInput): string {
   return raw.trim().slice(0, 500);
 }
 
+function isForeignKeyConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2003"
+  );
+}
+
 export async function recordAudit<TResult = unknown>(
   prisma: AuditWriteClient,
   input: RecordAuditInput,
@@ -125,20 +134,58 @@ export async function recordAudit<TResult = unknown>(
   const action = input.action.trim().slice(0, 80);
   if (!action) return null;
 
+  const normalizedActorId = normalizeActorId(input.actorId);
+  const isAdminTableActor = input.authSource === "admin_table";
+  const dbActorId = isAdminTableActor ? null : normalizedActorId;
+
+  const rawDetails: AuditDetails = {
+    ...(input.details ?? {}),
+    ...(isAdminTableActor && normalizedActorId !== null
+      ? {
+          actor_source: "admin_table",
+          admin_actor_id: normalizedActorId.toString(),
+        }
+      : {}),
+    ...(input.actorUsername && input.actorUsername.trim()
+      ? { actor_username: input.actorUsername.trim() }
+      : {}),
+  };
+
+  const payload = {
+    actorId: dbActorId,
+    action,
+    targetType: (input.targetType ?? "").trim().slice(0, 80),
+    targetIdentifier: (input.targetIdentifier ?? "").trim().slice(0, 255),
+    ipAddress: resolveAuditIp(input),
+    userAgent: resolveUserAgent(input),
+    details: sanitizeAuditDetails(
+      Object.keys(rawDetails).length > 0 ? rawDetails : input.details,
+    ),
+  };
+
   try {
     const record = await prisma.auditLog.create({
-      data: {
-        actorId: normalizeActorId(input.actorId),
-        action,
-        targetType: (input.targetType ?? "").trim().slice(0, 80),
-        targetIdentifier: (input.targetIdentifier ?? "").trim().slice(0, 255),
-        ipAddress: resolveAuditIp(input),
-        userAgent: resolveUserAgent(input),
-        details: sanitizeAuditDetails(input.details),
-      },
+      data: payload,
     });
     return record as TResult;
-  } catch {
+  } catch (error) {
+    if (payload.actorId !== null && isForeignKeyConstraintError(error)) {
+      try {
+        const fallbackRecord = await prisma.auditLog.create({
+          data: {
+            ...payload,
+            actorId: null,
+            details: sanitizeAuditDetails({
+              ...rawDetails,
+              unlinked_actor_id: payload.actorId.toString(),
+            }),
+          },
+        });
+        return fallbackRecord as TResult;
+      } catch {
+        // Fall through to standard audit persistence error logging
+      }
+    }
     logger.error("audit_persistence_failed", { auditAction: action });
     return null;
   }
