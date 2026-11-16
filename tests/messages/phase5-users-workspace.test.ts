@@ -1,4 +1,11 @@
 import {
+  DEFAULT_USER_CONTROL_SETTINGS,
+  resetDemoUserControlSettings,
+  setDemoUserAccessPolicy,
+  setDemoUserControlSettings,
+} from "@/core/accounts/user-control-policy";
+import {
+  createDemoMailbox,
   getDemoUserOverview,
   listDemoUserMailboxes,
 } from "@/core/messages/demo-workspace";
@@ -7,6 +14,7 @@ import {
   buildMessagePreview,
   buildSanitizedHtmlDocument,
   bulkDeleteUserMailboxes,
+  createUserSelfMailbox,
   deleteUserMailbox,
   getAttachmentForUserDownload,
   getMessageDetailForUser,
@@ -909,5 +917,90 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     assert.equal(userMailboxes.capabilities.canDeleteMailboxes, false);
     const adminMailboxes = listDemoUserMailboxes(true, {});
     assert.equal(adminMailboxes.capabilities.canDeleteMailboxes, true);
+  });
+
+  it("10. enforces User Control allowedDomainUuids, maxMailboxes quota, canCreateMailboxes, and autoDeleteDays retention in /users runtime", async () => {
+    try {
+      setDemoUserControlSettings({
+        ...DEFAULT_USER_CONTROL_SETTINGS,
+        allowedDomainUuids: ["99999999-0000-4000-8000-000000000001"],
+        defaultMaxMailboxes: 1,
+        defaultCanCreateMailboxes: true,
+        autoDeleteEnabled: true,
+        autoDeleteDays: 1,
+      });
+
+      const demoOverview = getDemoUserOverview(false, "2");
+      assert.equal(demoOverview.availableDomains.length, 1);
+      assert.equal(demoOverview.availableDomains[0]?.name, "mailstack.local");
+      assert.equal(demoOverview.capabilities.maxMailboxes, 1);
+      assert.equal(demoOverview.capabilities.autoDeleteEnabled, true);
+      assert.equal(demoOverview.capabilities.autoDeleteDays, 1);
+
+      // Quota reached (store has 4 demo mailboxes > maxMailboxes=1)
+      const blockedByQuota = createDemoMailbox(
+        { localPart: "quota.test" },
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(blockedByQuota.ok, false);
+      if (!blockedByQuota.ok) {
+        assert.match(blockedByQuota.error, /Mailbox limit reached/i);
+      }
+
+      // Per-user override disabling mailbox creation
+      setDemoUserAccessPolicy("2", {
+        canCreateMailboxes: false,
+        canDeleteMessages: false,
+        canDeleteMailboxes: false,
+        maxMailboxes: 10,
+        allowedDomainUuids: ["99999999-0000-4000-8000-000000000001"],
+        autoDeleteEnabled: true,
+        autoDeleteDays: 7,
+      });
+
+      const blockedByDisabled = createDemoMailbox(
+        { localPart: "disabled.test" },
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(blockedByDisabled.ok, false);
+      if (!blockedByDisabled.ok) {
+        assert.match(blockedByDisabled.error, /disabled for your account/i);
+      }
+
+      // Disallowed domain check in createUserSelfMailbox
+      const fake = createFakeWorkspacePrisma();
+      (fake.userAccessPolicy as { findUnique: unknown }).findUnique =
+        async () => ({
+          canCreateMailboxes: true,
+          canDeleteMessages: false,
+          canDeleteMailboxes: false,
+          maxMailboxes: 5,
+          allowedDomainUuids: ["99999999-0000-4000-8000-000000000001"],
+          autoDeleteEnabled: false,
+          autoDeleteDays: 0,
+        });
+
+      const blockedByDomain = await createUserSelfMailbox(
+        fake as never,
+        { userId: BigInt(101), isAdministrator: false },
+        {
+          localPart: "unpermitted",
+          domainUuid: "99999999-0000-4000-8000-000000000002",
+        },
+        {
+          mailDomain: "mailstack.local",
+          mailStorageRoot: "/tmp/mail",
+          attachmentStorageRoot: "/tmp/att",
+          mailboxProvisionLockRoot: "/tmp/lock",
+          defaultQuotaBytes: 1048576,
+        },
+      );
+      assert.equal(blockedByDomain.ok, false);
+      if (!blockedByDomain.ok) {
+        assert.match(blockedByDomain.error, /not permitted/i);
+      }
+    } finally {
+      resetDemoUserControlSettings();
+    }
   });
 });

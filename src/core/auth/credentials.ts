@@ -13,9 +13,12 @@ import { isIP } from "node:net";
 import "server-only";
 import { z } from "zod";
 
+export type LoginScope = "admin" | "user";
+
 const credentialsSchema = z.object({
   username: z.string().trim().min(1).max(150),
   password: z.string().min(1).max(1024),
+  loginScope: z.enum(["admin", "user"]).optional(),
 });
 
 export interface AuthorizeCredentialsOptions {
@@ -25,6 +28,7 @@ export interface AuthorizeCredentialsOptions {
   readonly failureWindowMs?: number;
   readonly lockoutMs?: number;
   readonly now?: Date;
+  readonly loginScope?: LoginScope;
 }
 
 function normalizeClientIp(value: string | null | undefined): string | null {
@@ -35,14 +39,24 @@ function normalizeClientIp(value: string | null | undefined): string | null {
 
 export async function authorizeCredentials(
   prisma: PrismaClient,
-  credentials: Partial<Record<"username" | "password", unknown>>,
+  credentials: Partial<
+    Record<"username" | "password" | "loginScope", unknown>
+  >,
   options: AuthorizeCredentialsOptions = {},
 ) {
-  const parsed = credentialsSchema.safeParse(credentials);
+  const parsed = credentialsSchema.safeParse({
+    username: credentials.username,
+    password: credentials.password,
+    loginScope:
+      credentials.loginScope === "admin" || credentials.loginScope === "user"
+        ? credentials.loginScope
+        : options.loginScope,
+  });
   if (!parsed.success) return null;
 
   const usernameNormalized = parsed.data.username.toLowerCase();
   const password = parsed.data.password;
+  const loginScope = parsed.data.loginScope;
   const ipAddress = normalizeClientIp(options.clientIp);
   const failureLimit = options.failureLimit ?? LOGIN_FAILURE_LIMIT;
   const failureWindowMs = options.failureWindowMs ?? LOGIN_FAILURE_WINDOW_MS;
@@ -90,7 +104,7 @@ export async function authorizeCredentials(
         if ("auditLog" in transaction && transaction.auditLog) {
           await recordAudit(transaction as unknown as AuditWriteClient, {
             action: "login_failure",
-            targetType: "user",
+            targetType: loginScope === "admin" ? "admin_account" : "user",
             targetIdentifier: usernameNormalized,
             clientIp: ipAddress,
             userAgent: options.userAgent,
@@ -100,6 +114,108 @@ export async function authorizeCredentials(
         return null;
       }
 
+      // 1. Check dedicated AdminAccount table (`admin_accounts`) when scope is "admin" or unspecified
+      if (
+        loginScope !== "user" &&
+        "adminAccount" in transaction &&
+        transaction.adminAccount
+      ) {
+        const adminAccount = await transaction.adminAccount.findFirst({
+          where: {
+            username: { equals: usernameNormalized, mode: "insensitive" },
+          },
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            isActive: true,
+            isSuperuser: true,
+            passwordResetRequired: true,
+          },
+        });
+
+        if (adminAccount) {
+          let adminStoredHash: string | null = null;
+          if (adminAccount.isActive && !adminAccount.passwordResetRequired) {
+            const adminCredential = await transaction.adminAccount.findUnique({
+              where: { id: adminAccount.id },
+              select: { passwordHash: true },
+            });
+            adminStoredHash = adminCredential?.passwordHash ?? null;
+          }
+
+          const adminPasswordMatches = await verifyPassword(
+            adminStoredHash,
+            password,
+          );
+          const adminSucceeded = Boolean(
+            adminAccount.isActive &&
+              !adminAccount.passwordResetRequired &&
+              adminPasswordMatches,
+          );
+
+          if (adminSucceeded) {
+            await transaction.loginAttempt.deleteMany({
+              where: { usernameNormalized, ipAddress, succeeded: false },
+            });
+            await transaction.adminAccount.update({
+              where: { id: adminAccount.id },
+              data: { lastLogin: now },
+            });
+          }
+
+          await transaction.loginAttempt.create({
+            data: {
+              usernameNormalized,
+              ipAddress,
+              succeeded: adminSucceeded,
+              createdAt: now,
+            },
+          });
+
+          if ("auditLog" in transaction && transaction.auditLog) {
+            await recordAudit(transaction as unknown as AuditWriteClient, {
+              actorId: null,
+              action: adminSucceeded ? "login_success" : "login_failure",
+              targetType: "admin_account",
+              targetIdentifier: adminAccount.username,
+              clientIp: ipAddress,
+              userAgent: options.userAgent,
+              details: adminSucceeded
+                ? {
+                    username: adminAccount.username,
+                    auth_source: "admin_table",
+                  }
+                : {
+                    reason: !adminAccount.isActive
+                      ? "inactive_account"
+                      : adminAccount.passwordResetRequired
+                        ? "password_reset_required"
+                        : "invalid_password",
+                    username: usernameNormalized,
+                  },
+            });
+          }
+
+          if (!adminSucceeded) return null;
+
+          return {
+            id: adminAccount.id.toString(),
+            username: adminAccount.username,
+            name: [adminAccount.firstName, adminAccount.lastName]
+              .filter(Boolean)
+              .join(" "),
+            email: adminAccount.email || null,
+            isAdministrator: true,
+            isSuperuser: adminAccount.isSuperuser,
+            authSource: "admin_table" as const,
+          };
+        }
+      }
+
+      // 2. Check User table (`users`)
       const account = await transaction.user.findFirst({
         where: {
           username: { equals: usernameNormalized, mode: "insensitive" },
@@ -118,8 +234,31 @@ export async function authorizeCredentials(
         },
       });
 
+      const roleFlags = getAccountRoleFlags(account);
+      const verificationStatus =
+        account &&
+        "verificationStatus" in account &&
+        typeof (account as { verificationStatus?: unknown })
+          .verificationStatus === "string"
+          ? ((account as { verificationStatus: string }).verificationStatus)
+          : "verified";
+
+      const scopeAllowed =
+        loginScope === "admin"
+          ? roleFlags.isAdministrator
+          : loginScope === "user"
+            ? !roleFlags.isAdministrator
+            : true;
+
+      const verificationAllowed = verificationStatus === "verified";
+
       let storedHash: string | null = null;
-      if (account?.isActive && !account.passwordResetRequired) {
+      if (
+        account?.isActive &&
+        !account.passwordResetRequired &&
+        scopeAllowed &&
+        verificationAllowed
+      ) {
         const credential = await transaction.user.findUnique({
           where: { id: account.id },
           select: { passwordHash: true },
@@ -129,7 +268,11 @@ export async function authorizeCredentials(
 
       const passwordMatches = await verifyPassword(storedHash, password);
       const succeeded = Boolean(
-        account?.isActive && !account.passwordResetRequired && passwordMatches,
+        account?.isActive &&
+          !account.passwordResetRequired &&
+          scopeAllowed &&
+          verificationAllowed &&
+          passwordMatches,
       );
 
       if (succeeded && account) {
@@ -159,19 +302,21 @@ export async function authorizeCredentials(
             : {
                 reason: !account
                   ? "unknown_user"
-                  : !account.isActive
-                    ? "inactive_account"
-                    : account.passwordResetRequired
-                      ? "password_reset_required"
-                      : "invalid_password",
+                  : !scopeAllowed
+                    ? "scope_mismatch"
+                    : !verificationAllowed
+                      ? "pending_approval"
+                      : !account.isActive
+                        ? "inactive_account"
+                        : account.passwordResetRequired
+                          ? "password_reset_required"
+                          : "invalid_password",
                 username: usernameNormalized,
               },
         });
       }
 
       if (!succeeded || !account) return null;
-
-      const roleFlags = getAccountRoleFlags(account);
 
       return {
         id: account.id.toString(),
@@ -180,6 +325,7 @@ export async function authorizeCredentials(
         email: account.email || null,
         isAdministrator: roleFlags.isAdministrator,
         isSuperuser: roleFlags.isSuperuser,
+        authSource: "user_table" as const,
       };
     });
   } catch {

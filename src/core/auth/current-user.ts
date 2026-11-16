@@ -37,8 +37,38 @@ export async function getCurrentUser() {
       return getDevDemoUserById(env.nodeEnv, sessionUserId);
     }
 
-    const user = await getPrismaClient().user.findUnique({
-      where: { id: BigInt(sessionUserId) },
+    const prisma = getPrismaClient();
+    const numericId = BigInt(sessionUserId);
+
+    if (
+      session?.user?.authSource === "admin_table" &&
+      "adminAccount" in prisma &&
+      prisma.adminAccount
+    ) {
+      const admin = await prisma.adminAccount.findUnique({
+        where: { id: numericId },
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          isActive: true,
+          isSuperuser: true,
+          passwordResetRequired: true,
+        },
+      });
+      if (!admin?.isActive || admin.passwordResetRequired) return null;
+      return {
+        ...admin,
+        isAdministrator: true,
+        isSuperuser: admin.isSuperuser,
+        authSource: "admin_table" as const,
+      };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: numericId },
       select: {
         id: true,
         username: true,
@@ -61,6 +91,7 @@ export async function getCurrentUser() {
       ...identity,
       isAdministrator: roleFlags.isAdministrator,
       isSuperuser: roleFlags.isSuperuser,
+      authSource: "user_table" as const,
     };
   } catch {
     logger.error("auth_current_user_lookup_failed");

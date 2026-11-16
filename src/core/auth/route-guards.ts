@@ -29,10 +29,11 @@ async function resolveWorkspaceAccess(adminOnly: boolean) {
 
 async function requireWorkspaceAccess(adminOnly: boolean) {
   const { user, decision } = await resolveWorkspaceAccess(adminOnly);
+  const signInTarget = adminOnly ? "/vcon/login" : "/sign-in";
 
-  if (decision === "sign-in") redirect("/sign-in");
+  if (decision === "sign-in") redirect(signInTarget);
   if (decision === "not-found") notFound();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInTarget);
 
   return user;
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { Button, Icon } from "@/components/ui";
+import { Badge, Button, Icon } from "@/components/ui";
 import { CreateUserMailboxModal } from "@/components/users/create-user-mailbox-modal";
 import { UsersLiveProvider } from "@/components/users/live-mail-notifier";
+import type { UserAccessCapabilities } from "@/core/accounts/policy";
 import type {
   MailboxActionResult,
   MailboxCreationDomainOption,
@@ -14,6 +15,7 @@ import { useMemo, useState, type ReactNode } from "react";
 export interface UsersWorkspaceShellProps {
   readonly mailboxes: readonly UserMailboxSummaryItem[];
   readonly domains: readonly MailboxCreationDomainOption[];
+  readonly capabilities?: UserAccessCapabilities;
   readonly databaseConfigured: boolean;
   readonly createMailboxAction: (input: {
     readonly localPart: string;
@@ -31,6 +33,7 @@ export interface UsersWorkspaceShellProps {
 export function UsersWorkspaceShell({
   mailboxes,
   domains,
+  capabilities,
   databaseConfigured,
   createMailboxAction,
   children,
@@ -42,11 +45,18 @@ export function UsersWorkspaceShell({
     [mailboxes],
   );
 
+  const maxMailboxes = capabilities?.maxMailboxes ?? 0;
+  const canCreate =
+    capabilities?.canCreateMailboxes !== false &&
+    (maxMailboxes <= 0 || mailboxes.length < maxMailboxes);
+
   return (
     <UsersLiveProvider
       visibleMailboxUuids={visibleUuids}
       pollingEnabled={databaseConfigured}
-      openCreateMailboxModal={() => setCreateOpen(true)}
+      openCreateMailboxModal={() => {
+        if (canCreate) setCreateOpen(true);
+      }}
     >
       {({ notificationPermission, handleEnableNotifications, syncDegraded }) => (
         <div className="border border-border bg-card">
@@ -56,16 +66,23 @@ export function UsersWorkspaceShell({
                 type="button"
                 size="sm"
                 variant="outline"
-                disabled={!databaseConfigured}
+                disabled={!databaseConfigured || !canCreate}
                 onClick={() => setCreateOpen(true)}
               >
                 <Icon glyph={Plus} />
                 Create mailbox
               </Button>
               <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                {mailboxes.length}{" "}
+                {mailboxes.length}
+                {maxMailboxes > 0 ? ` / ${maxMailboxes}` : ""}{" "}
                 {mailboxes.length === 1 ? "inbox" : "inboxes"}
               </span>
+              {capabilities?.autoDeleteEnabled &&
+              (capabilities?.autoDeleteDays ?? 0) > 0 ? (
+                <Badge variant="outline">
+                  Auto-delete: {capabilities.autoDeleteDays}d
+                </Badge>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

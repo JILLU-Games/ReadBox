@@ -24,9 +24,11 @@ export interface DemoAccountHint {
 export function SignInForm({
   enabled,
   demoAccounts,
+  loginScope = "user",
 }: {
   enabled: boolean;
   demoAccounts?: readonly DemoAccountHint[];
+  loginScope?: "admin" | "user";
 }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -59,6 +61,7 @@ export function SignInForm({
       const result = await signIn("credentials", {
         username: trimmedUsername,
         password,
+        loginScope,
         redirect: false,
       });
 
@@ -66,7 +69,12 @@ export function SignInForm({
         if (result?.error === "MissingCSRF") {
           setCookieBlocked(true);
         }
-        setError(getCredentialsSignInErrorMessage(result));
+        setError(
+          getCredentialsSignInErrorMessage(result) ??
+            (loginScope === "admin"
+              ? "Invalid administrator credentials."
+              : "Invalid user credentials."),
+        );
         return;
       }
 
@@ -91,7 +99,9 @@ export function SignInForm({
       setUsername("");
       setPassword("");
       window.location.assign(
-        sessionData.user.isAdministrator ? "/vcon" : "/users",
+        loginScope === "admin" || sessionData.user.isAdministrator
+          ? "/vcon"
+          : "/users",
       );
     } catch {
       setError("Sign-in is unavailable. Try again later.");
@@ -107,6 +117,8 @@ export function SignInForm({
       </AlertBanner>
     );
   }
+
+  const fallbackTabHref = loginScope === "admin" ? "/vcon/login" : "/sign-in";
 
   return (
     <div className="space-y-3">
@@ -143,7 +155,7 @@ export function SignInForm({
               <p className="mt-1">
                 <a
                   className="font-medium underline"
-                  href="/sign-in"
+                  href={fallbackTabHref}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
@@ -154,7 +166,11 @@ export function SignInForm({
           </AlertBanner>
         ) : null}
         <Button className="w-full" disabled={pending} type="submit">
-          {pending ? "Signing in..." : "Sign in"}
+          {pending
+            ? "Signing in..."
+            : loginScope === "admin"
+              ? "Admin sign in"
+              : "Sign in"}
         </Button>
       </form>
       {demoAccounts?.length ? (

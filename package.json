@@ -33,7 +33,7 @@
     "db:status": "prisma migrate status",
     "auth:operator": "node --conditions=react-server --import tsx scripts/auth/operator.ts",
     "test:auth": "npm run test:auth:core && npm run test:auth:guards",
-    "test:auth:core": "node --conditions=react-server --import tsx --test tests/auth/auth-flow.test.ts tests/auth/sign-in-result.test.ts tests/auth/route-access-policy.test.ts tests/auth/dual-mode-env.test.ts",
+    "test:auth:core": "node --conditions=react-server --import tsx --test tests/auth/auth-flow.test.ts tests/auth/sign-in-result.test.ts tests/auth/route-access-policy.test.ts tests/auth/dual-mode-env.test.ts tests/auth/phase1-separate-auth-and-control.test.ts",
     "test:auth:guards": "node --experimental-test-module-mocks --conditions=react-server --import tsx --test tests/auth/route-guards.test.ts"
   },
   "dependencies": {

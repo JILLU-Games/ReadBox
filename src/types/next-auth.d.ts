@@ -7,6 +7,7 @@ declare module "next-auth" {
       username: string;
       isAdministrator: boolean;
       isSuperuser: boolean;
+      authSource?: "admin_table" | "user_table";
     } & DefaultSession["user"];
   }
 
@@ -14,6 +15,7 @@ declare module "next-auth" {
     username: string;
     isAdministrator: boolean;
     isSuperuser: boolean;
+    authSource?: "admin_table" | "user_table";
   }
 }
 
@@ -23,5 +25,6 @@ declare module "next-auth/jwt" {
     username?: string;
     isAdministrator?: boolean;
     isSuperuser?: boolean;
+    authSource?: "admin_table" | "user_table";
   }
 }

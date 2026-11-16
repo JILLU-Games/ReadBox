@@ -46,7 +46,10 @@ export async function createUserMailboxAction(input: {
   const user = await requireWorkspaceUser();
   if (!env.databaseUrl) {
     if (isDemoPreviewWorkspaceActive()) {
-      const demoResult = createDemoMailbox(input);
+      const demoResult = createDemoMailbox(input, {
+        isAdministrator: user.isAdministrator,
+        userId: user.id,
+      });
       if (demoResult.ok) {
         revalidateUsersWorkspace();
       }

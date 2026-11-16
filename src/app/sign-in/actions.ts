@@ -39,12 +39,19 @@ export async function signOutAction(): Promise<void> {
   const encodedToken = chunks.map((cookie) => cookie.value).join("");
   const secret = devDemoActive ? getAuthSecret() : env.authSecret;
 
+  let wasAdministrator = false;
   if (encodedToken && secret) {
     const token = await decode({
       token: encodedToken,
       secret,
       salt: cookieName,
     }).catch(() => null);
+    if (
+      token?.isAdministrator === true ||
+      token?.authSource === "admin_table"
+    ) {
+      wasAdministrator = true;
+    }
     if (typeof token?.sid === "string") {
       try {
         if (devDemoActive) {
@@ -54,7 +61,7 @@ export async function signOutAction(): Promise<void> {
           await recordAppAudit({
             actorId: typeof token.sub === "string" ? token.sub : null,
             action: "logout",
-            targetType: "user",
+            targetType: wasAdministrator ? "admin_account" : "user",
             targetIdentifier:
               typeof token.username === "string"
                 ? token.username
@@ -85,5 +92,5 @@ export async function signOutAction(): Promise<void> {
     }
   }
 
-  redirect("/sign-in");
+  redirect(wasAdministrator ? "/vcon/login" : "/sign-in");
 }

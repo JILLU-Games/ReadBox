@@ -99,6 +99,10 @@ export function UserOverview({
   }
 
   const visibleMailboxUuids = snapshot.recentMailboxes.map((m) => m.uuid);
+  const maxMailboxes = snapshot.capabilities.maxMailboxes ?? 0;
+  const canCreate =
+    snapshot.capabilities.canCreateMailboxes !== false &&
+    (maxMailboxes <= 0 || liveSummary.totalMailboxes < maxMailboxes);
 
   return (
     <div className="space-y-3">
@@ -109,7 +113,20 @@ export function UserOverview({
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
-        <PageTitle>Inbox &amp; Mailbox Workspace</PageTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <PageTitle>Inbox &amp; Mailbox Workspace</PageTitle>
+          {maxMailboxes > 0 ? (
+            <Badge variant="outline">
+              Quota: {liveSummary.totalMailboxes} / {maxMailboxes}
+            </Badge>
+          ) : null}
+          {snapshot.capabilities.autoDeleteEnabled &&
+          (snapshot.capabilities.autoDeleteDays ?? 0) > 0 ? (
+            <Badge variant="outline">
+              Auto-delete: {snapshot.capabilities.autoDeleteDays}d
+            </Badge>
+          ) : null}
+        </div>
 
         {createMailboxAction ? (
           <Button
@@ -119,7 +136,7 @@ export function UserOverview({
                 ? liveContext.openCreateMailboxModal?.()
                 : setCreateOpen(true)
             }
-            disabled={!snapshot.databaseConfigured}
+            disabled={!snapshot.databaseConfigured || !canCreate}
           >
             <Icon glyph={Plus} />
             Create mailbox

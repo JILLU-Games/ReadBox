@@ -3,6 +3,7 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
   AlertBanner,
+  Badge,
   Button,
   Icon,
   PageTitle,
@@ -11,8 +12,10 @@ import {
   PanelHeader,
 } from "@/components/ui";
 import { env } from "@/config/env";
+import { getUserControlSettings } from "@/core/accounts/user-control-policy";
 import { getCurrentUser } from "@/core/auth/current-user";
 import { DEV_DEMO_ACCOUNTS } from "@/core/auth/dev-demo-auth";
+import { getPrismaClient } from "@/core/database/client";
 import { getSiteSettings } from "@/core/settings/service";
 import { Mail } from "lucide-react";
 import type { Metadata } from "next";
@@ -21,7 +24,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Sign in",
+  title: "User sign in",
   referrer: "same-origin",
 };
 
@@ -31,9 +34,11 @@ export default async function SignInPage() {
   const devDemoActive =
     env.nodeEnv === "development" && env.devAuthMode === "demo";
   const authActive = env.authEnabled || devDemoActive;
-  const [currentUser, settings] = await Promise.all([
+  const prisma = env.databaseUrl ? getPrismaClient() : null;
+  const [currentUser, settings, userControl] = await Promise.all([
     authActive ? getCurrentUser() : Promise.resolve(null),
     getSiteSettings(),
+    getUserControlSettings(prisma),
   ]);
   const siteName = settings.siteName || "MailStack";
 
@@ -54,7 +59,10 @@ export default async function SignInPage() {
 
       <Panel>
         <PanelHeader>
-          <PageTitle>Sign in</PageTitle>
+          <div className="flex items-center gap-2">
+            <PageTitle>User sign in</PageTitle>
+            <Badge variant="outline">Workspace</Badge>
+          </div>
           <span className="text-[11px] text-muted-foreground">{siteName}</span>
         </PanelHeader>
         <PanelBody className="space-y-3 p-4">
@@ -85,21 +93,33 @@ export default async function SignInPage() {
                 </span>
                 .
               </p>
-              <form action={signOutAction}>
-                <Button type="submit" size="sm" variant="outline">
-                  Sign out
+              <div className="flex flex-wrap items-center gap-2">
+                <Button asChild size="sm">
+                  <Link href={currentUser.isAdministrator ? "/vcon" : "/users"}>
+                    {currentUser.isAdministrator
+                      ? "Open admin panel"
+                      : "Open user panel"}
+                  </Link>
                 </Button>
-              </form>
+                <form action={signOutAction}>
+                  <Button type="submit" size="sm" variant="outline">
+                    Sign out
+                  </Button>
+                </form>
+              </div>
             </div>
           ) : (
             <SignInForm
               enabled={authActive}
+              loginScope="user"
               demoAccounts={
                 devDemoActive
-                  ? DEV_DEMO_ACCOUNTS.map((account) => ({
+                  ? DEV_DEMO_ACCOUNTS.filter(
+                      (account) => !account.isAdministrator,
+                    ).map((account) => ({
                       username: account.username,
                       password: account.password,
-                      roleLabel: account.isAdministrator ? "Admin" : "User",
+                      roleLabel: "User",
                     }))
                   : undefined
               }
@@ -109,11 +129,27 @@ export default async function SignInPage() {
       </Panel>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-3">
+          {userControl.signupEnabled ? (
+            <Link
+              className="font-medium text-foreground underline hover:text-primary"
+              href="/sign-up"
+            >
+              Create user account
+            </Link>
+          ) : null}
+          <Link
+            className="text-muted-foreground underline hover:text-foreground"
+            href="/reset-password"
+          >
+            Reset password
+          </Link>
+        </div>
         <Link
           className="text-muted-foreground underline hover:text-foreground"
-          href="/reset-password"
+          href="/vcon/login"
         >
-          Set a new password with an operator-issued reset token
+          Admin login
         </Link>
       </div>
     </main>

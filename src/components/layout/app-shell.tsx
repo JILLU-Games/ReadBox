@@ -21,6 +21,7 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   Users,
   Wrench,
   X,
@@ -87,6 +88,11 @@ const managementGroups = [
     icon: Users,
     items: [
       { href: "/vcon/users", label: "Users", icon: Users },
+      {
+        href: "/vcon/users/control",
+        label: "Users control",
+        icon: SlidersHorizontal,
+      },
       { href: "/vcon/audit", label: "Audit & security", icon: ScrollText },
     ],
   },
@@ -104,9 +110,15 @@ const managementGroups = [
 const menuButtonId = "workspace-menu-toggle";
 
 function isManagementItemActive(pathname: string, href: string): boolean {
-  return href === "/vcon"
-    ? pathname === "/vcon"
-    : pathname === href || pathname.startsWith(`${href}/`);
+  if (href === "/vcon") return pathname === "/vcon";
+  if (href === "/vcon/users") {
+    return (
+      pathname === "/vcon/users" ||
+      (pathname.startsWith("/vcon/users/") &&
+        !pathname.startsWith("/vcon/users/control"))
+    );
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function AppShell({

@@ -82,10 +82,13 @@ function makeUser(overrides: Partial<TestUser> = {}): TestUser {
   };
 }
 
-async function assertRedirect(action: () => Promise<unknown>) {
+async function assertRedirect(
+  action: () => Promise<unknown>,
+  expectedDestination = "/sign-in",
+) {
   await assert.rejects(action(), (error: unknown) => {
     assert.ok(error instanceof RedirectSignal);
-    assert.equal(error.destination, "/sign-in");
+    assert.equal(error.destination, expectedDestination);
     return true;
   });
 }
@@ -102,13 +105,16 @@ test("active authenticated users can access the workspace from server identity",
 test("anonymous and inactive users are redirected from workspace routes", async () => {
   testEnvironment.authEnabled = true;
   serverUser = null;
-  await assertRedirect(routeGuards.requireWorkspaceUser);
+  await assertRedirect(routeGuards.requireWorkspaceUser, "/sign-in");
+  await assertRedirect(routeGuards.requireAdminUser, "/vcon/login");
 
   serverUser = makeUser({ isActive: false });
-  await assertRedirect(routeGuards.requireWorkspaceUser);
+  await assertRedirect(routeGuards.requireWorkspaceUser, "/sign-in");
+  await assertRedirect(routeGuards.requireAdminUser, "/vcon/login");
 
   serverUser = makeUser({ passwordResetRequired: true });
-  await assertRedirect(routeGuards.requireWorkspaceUser);
+  await assertRedirect(routeGuards.requireWorkspaceUser, "/sign-in");
+  await assertRedirect(routeGuards.requireAdminUser, "/vcon/login");
 });
 
 test("regular users cannot access admin routes when legacy flags are client-supplied", async () => {
@@ -135,7 +141,7 @@ test("auth-disabled mode denies protected routes without trusting an available i
   serverUser = makeUser({ isAdministrator: true, isSuperuser: true });
   currentUserCalls = 0;
 
-  await assertRedirect(routeGuards.requireWorkspaceUser);
-  await assertRedirect(routeGuards.requireAdminUser);
+  await assertRedirect(routeGuards.requireWorkspaceUser, "/sign-in");
+  await assertRedirect(routeGuards.requireAdminUser, "/vcon/login");
   assert.equal(currentUserCalls, 0);
 });

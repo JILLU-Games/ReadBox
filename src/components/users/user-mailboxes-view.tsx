@@ -200,6 +200,10 @@ export function UserMailboxesView({
   const allSelected =
     listResult.items.length > 0 &&
     listResult.items.every((item) => selectedUuids.has(item.uuid));
+  const maxMailboxes = listResult.capabilities.maxMailboxes ?? 0;
+  const canCreate =
+    listResult.capabilities.canCreateMailboxes !== false &&
+    (maxMailboxes <= 0 || listResult.totalCount < maxMailboxes);
 
   return (
     <div className="space-y-3">
@@ -211,7 +215,20 @@ export function UserMailboxesView({
 
       <div className="border border-border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <PageTitle>My Mailboxes</PageTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <PageTitle>My Mailboxes</PageTitle>
+            {maxMailboxes > 0 ? (
+              <Badge variant="outline">
+                Quota: {listResult.totalCount} / {maxMailboxes}
+              </Badge>
+            ) : null}
+            {listResult.capabilities.autoDeleteEnabled &&
+            (listResult.capabilities.autoDeleteDays ?? 0) > 0 ? (
+              <Badge variant="outline">
+                Auto-delete: {listResult.capabilities.autoDeleteDays}d
+              </Badge>
+            ) : null}
+          </div>
           <Button
             type="button"
             onClick={() =>
@@ -219,7 +236,7 @@ export function UserMailboxesView({
                 ? liveContext.openCreateMailboxModal?.()
                 : setCreateOpen(true)
             }
-            disabled={!listResult.databaseConfigured}
+            disabled={!listResult.databaseConfigured || !canCreate}
           >
             <Icon glyph={Plus} />
             Create mailbox
