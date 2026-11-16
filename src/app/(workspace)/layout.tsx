@@ -1,7 +1,7 @@
 import { signOutAction } from "@/app/sign-in/actions";
 import { AppShell, type AppShellMailboxLink } from "@/components/layout/app-shell";
 import { env } from "@/config/env";
-import { requireWorkspaceUser } from "@/core/auth/route-guards";
+import { getAuthorizedWorkspaceUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
 import {
   isDemoPreviewWorkspaceActive,
@@ -44,31 +44,33 @@ async function loadSidebarMailboxes(user: {
   }));
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function WorkspaceLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const user = await requireWorkspaceUser();
+  const user = await getAuthorizedWorkspaceUser();
   const [settings, mailboxes] = await Promise.all([
     getSiteSettings(),
-    loadSidebarMailboxes(user),
+    user ? loadSidebarMailboxes(user) : Promise.resolve([]),
   ]);
   const devBypassActive =
     env.nodeEnv === "development" && env.devAuthMode === "bypass";
 
   return (
     <AppShell
-      user={{
-        username: user.username,
-        isAdministrator: user.isAdministrator,
-      }}
+      user={
+        user
+          ? {
+              username: user.username,
+              isAdministrator: user.isAdministrator,
+            }
+          : null
+      }
       branding={{
-        siteName: settings.siteName,
+        siteName: settings.siteName || "ReadBox",
         siteTagline: settings.siteTagline,
         logoUrl: settings.logoUrl,
-        statusLabel: settings.databaseConnected
-          ? "PostgreSQL workspace"
-          : "Workspace ready",
-        statusDescription: settings.siteTagline,
       }}
       mailboxes={mailboxes}
       signOutAction={devBypassActive ? undefined : signOutAction}

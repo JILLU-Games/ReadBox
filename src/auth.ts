@@ -103,6 +103,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
             credentials: {
               username: { label: "Username", type: "text" },
               password: { label: "Password", type: "password" },
+              loginScope: { label: "Scope", type: "text" },
             },
             authorize: (credentials, request) =>
               devDemoActive
@@ -127,6 +128,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
       if (user && !token.sid && typeof user.id === "string") {
         const sessionId = randomBytes(32).toString("base64url");
         const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+        const authSource =
+          user.authSource === "admin_table" ? "admin_table" : "user_table";
         let registered = false;
         try {
           registered = devDemoActive
@@ -136,6 +139,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
                 user.id,
                 sessionId,
                 expiresAt,
+                { authSource },
               );
         } catch {
           appLogger.error("auth_session_registration_failed");
@@ -144,17 +148,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
 
         token.sid = sessionId;
         token.sub = user.id;
+        token.authSource = authSource;
       }
 
       const sessionId = typeof token.sid === "string" ? token.sid : null;
       const userId = typeof token.sub === "string" ? token.sub : null;
       if (!sessionId || !userId) return null;
 
+      const authSource =
+        token.authSource === "admin_table" ? "admin_table" : "user_table";
+
       let currentUser;
       try {
         currentUser = devDemoActive
           ? getActiveDevDemoSession(env.nodeEnv, userId, sessionId)
-          : await getActiveAppSession(getPrismaClient(), userId, sessionId);
+          : await getActiveAppSession(getPrismaClient(), userId, sessionId, {
+              authSource,
+            });
       } catch {
         appLogger.error("auth_session_validation_failed");
         return null;
@@ -165,6 +175,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
       token.username = currentUser.username;
       token.isAdministrator = currentUser.isAdministrator;
       token.isSuperuser = currentUser.isSuperuser;
+      token.authSource =
+        "authSource" in currentUser && currentUser.authSource === "admin_table"
+          ? "admin_table"
+          : "user_table";
       return token;
     },
     async session({ session, token }) {
@@ -177,6 +191,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
       session.user.name = typeof token.name === "string" ? token.name : null;
       session.user.isAdministrator = token.isAdministrator === true;
       session.user.isSuperuser = token.isSuperuser === true;
+      session.user.authSource =
+        token.authSource === "admin_table" ? "admin_table" : "user_table";
       if (typeof token.email === "string") session.user.email = token.email;
       return session;
     },

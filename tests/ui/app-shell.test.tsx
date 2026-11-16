@@ -154,10 +154,16 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(usersGroupBtn).toHaveAttribute("aria-expanded", "false");
     await user.click(usersGroupBtn);
     expect(usersGroupBtn).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute(
+      "href",
+      "/vcon/users",
+    );
+    expect(
+      screen.getByRole("link", { name: "Users control" }),
+    ).toHaveAttribute("href", "/vcon/users/control");
     expect(
       screen.getByRole("link", { name: "Audit & security" }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("href", "/vcon/audit");
 
     expect(systemGroupBtn).toHaveAttribute("aria-expanded", "false");
     await user.click(systemGroupBtn);
@@ -323,3 +329,4 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(toggle).not.toHaveFocus();
   });
 });
+

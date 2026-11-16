@@ -200,6 +200,10 @@ export function UserMailboxesView({
   const allSelected =
     listResult.items.length > 0 &&
     listResult.items.every((item) => selectedUuids.has(item.uuid));
+  const maxMailboxes = listResult.capabilities.maxMailboxes ?? 0;
+  const canCreate =
+    listResult.capabilities.canCreateMailboxes !== false &&
+    (maxMailboxes <= 0 || listResult.totalCount < maxMailboxes);
 
   return (
     <div className="space-y-3">
@@ -219,7 +223,7 @@ export function UserMailboxesView({
                 ? liveContext.openCreateMailboxModal?.()
                 : setCreateOpen(true)
             }
-            disabled={!listResult.databaseConfigured}
+            disabled={!listResult.databaseConfigured || !canCreate}
           >
             <Icon glyph={Plus} />
             Create mailbox
@@ -547,8 +551,8 @@ export function UserMailboxesView({
             Delete {selectedUuids.size} selected mailbox(es)?
           </DialogTitle>
           <DialogDescription>
-            Selected mailboxes, indexed messages, attachments, and Maildir data
-            will be permanently purged.
+            Selected mailboxes and all of their messages and attachments will
+            be permanently deleted.
           </DialogDescription>
           <DialogFooter>
             <Button

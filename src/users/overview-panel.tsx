@@ -99,6 +99,10 @@ export function UserOverview({
   }
 
   const visibleMailboxUuids = snapshot.recentMailboxes.map((m) => m.uuid);
+  const maxMailboxes = snapshot.capabilities.maxMailboxes ?? 0;
+  const canCreate =
+    snapshot.capabilities.canCreateMailboxes !== false &&
+    (maxMailboxes <= 0 || liveSummary.totalMailboxes < maxMailboxes);
 
   return (
     <div className="space-y-3">
@@ -119,7 +123,7 @@ export function UserOverview({
                 ? liveContext.openCreateMailboxModal?.()
                 : setCreateOpen(true)
             }
-            disabled={!snapshot.databaseConfigured}
+            disabled={!snapshot.databaseConfigured || !canCreate}
           >
             <Icon glyph={Plus} />
             Create mailbox

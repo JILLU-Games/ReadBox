@@ -16,7 +16,7 @@ export interface SiteSettingsSnapshot {
 
 export const DEFAULT_SITE_SETTINGS: SiteSettingsSnapshot = Object.freeze({
   id: BigInt(1),
-  siteName: "MailStack",
+  siteName: "ReadBox",
   siteTagline: "Self-hosted mail server and shared team inbox.",
   logoPath: "",
   faviconPath: "",
@@ -25,25 +25,32 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsSnapshot = Object.freeze({
   officeAddress: "",
   footerDescription: "",
   copyrightText: "Authorized team use only.",
-  sourceCodeUrl: "https://github.com/vibtools/MailStack",
+  sourceCodeUrl: "https://github.com/vibtools/ReadBox",
   privacyUrl: "/privacy/",
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
 });
 
-let cachedSiteSettings: SiteSettingsSnapshot = {
-  ...DEFAULT_SITE_SETTINGS,
+const globalForSiteSettings = globalThis as typeof globalThis & {
+  __readboxSiteSettingsSnapshot?: SiteSettingsSnapshot;
 };
 
 export function resetDevFallbackSiteSettings(): void {
-  cachedSiteSettings = { ...DEFAULT_SITE_SETTINGS };
+  globalForSiteSettings.__readboxSiteSettingsSnapshot = {
+    ...DEFAULT_SITE_SETTINGS,
+  };
 }
 
 export function getCachedSiteSettingsSnapshot(): SiteSettingsSnapshot {
-  return cachedSiteSettings;
+  if (!globalForSiteSettings.__readboxSiteSettingsSnapshot) {
+    globalForSiteSettings.__readboxSiteSettingsSnapshot = {
+      ...DEFAULT_SITE_SETTINGS,
+    };
+  }
+  return globalForSiteSettings.__readboxSiteSettingsSnapshot;
 }
 
 export function setCachedSiteSettingsSnapshot(
   snapshot: SiteSettingsSnapshot,
 ): void {
-  cachedSiteSettings = snapshot;
+  globalForSiteSettings.__readboxSiteSettingsSnapshot = snapshot;
 }

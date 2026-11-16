@@ -1,4 +1,13 @@
 import { env } from "@/config/env";
+import type { UserAccessCapabilities } from "@/core/accounts/policy";
+import {
+  canUserCreateMoreMailboxes,
+  computeMessageRetentionCutoff,
+  getDemoUserAccessPolicy,
+  getDemoUserControlSettings,
+  isDomainAllowedForUser,
+  resolveEffectiveUserPolicy,
+} from "@/core/accounts/user-control-policy";
 import type { MailboxActionResult } from "@/core/mailboxes/service";
 import {
   buildSanitizedHtmlDocument,
@@ -143,7 +152,7 @@ function createInitialDemoStore(): DemoStoreState {
         senderAddress: "billing@vendor.example",
         recipientAddresses: ["billing.ops@mailstack.local"],
         ccAddresses: ["finance@mailstack.local"],
-        subject: "Invoice #9021 — November Infrastructure Statement",
+        subject: "Invoice #9021 — November Monthly Statement",
         preview:
           "Your November billing summary is ready. Total due: $184.00 on Nov 30.",
         receivedAt: "2026-11-15T12:42:00.000Z",
@@ -154,7 +163,7 @@ function createInitialDemoStore(): DemoStoreState {
         parseWarning: "",
         textBody:
           "Hello team,\n\nYour November billing summary (Invoice #9021) is attached.\nTotal amount: $184.00\nDue date: 2026-11-30\n\nRegards,\nVendor Billing",
-        htmlBody: `<h3 style="margin:0 0 8px 0;font-size:15px;font-weight:600">Invoice #9021</h3><p style="margin:0 0 10px 0;font-size:13px;line-height:1.5">Your November infrastructure statement is ready for review.</p><table style="border-collapse:collapse;width:100%;max-width:420px;font-size:12px"><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Period</td><td style="padding:6px;border-width:1px;border-style:solid">Nov 01 – Nov 30, 2026</td></tr><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Amount</td><td style="padding:6px;border-width:1px;border-style:solid">$184.00</td></tr></table>`,
+        htmlBody: `<h3 style="margin:0 0 8px 0;font-size:15px;font-weight:600">Invoice #9021</h3><p style="margin:0 0 10px 0;font-size:13px;line-height:1.5">Your November monthly statement is ready for review.</p><table style="border-collapse:collapse;width:100%;max-width:420px;font-size:12px"><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Period</td><td style="padding:6px;border-width:1px;border-style:solid">Nov 01 – Nov 30, 2026</td></tr><tr><td style="padding:6px;border-width:1px;border-style:solid;opacity:0.75">Amount</td><td style="padding:6px;border-width:1px;border-style:solid">$184.00</td></tr></table>`,
         attachments: [
           {
             uuid: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001",
@@ -174,14 +183,14 @@ function createInitialDemoStore(): DemoStoreState {
         id: "5002",
         uuid: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa002",
         mailboxUuid: "11111111-1111-4111-8111-111111111101",
-        messageIdHeader: "<tls-renew@letsencrypt.org>",
-        senderName: "Security Ops",
-        senderAddress: "secops@cloudnode.example",
+        messageIdHeader: "<sub-renewal@workspace.example>",
+        senderName: "Account Services",
+        senderAddress: "accounts@workspace.example",
         recipientAddresses: ["billing.ops@mailstack.local"],
         ccAddresses: [],
-        subject: "TLS Certificate Renewed for mail.mailstack.local",
+        subject: "Annual workspace plan renewal confirmation",
         preview:
-          "Automated ACME renewal succeeded. Valid through Feb 13, 2027.",
+          "Your annual workspace subscription has been renewed through Feb 13, 2027.",
         receivedAt: "2026-11-15T10:15:00.000Z",
         parsedAt: "2026-11-15T10:15:01.000Z",
         sizeBytes: 3420,
@@ -189,7 +198,7 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Automated certificate renewal completed for mail.mailstack.local.\nExpiry: 2027-02-13 UTC\nSerial: 04:9A:2F:18:C2",
+          "Your annual workspace plan renewal is complete.\nNext renewal date: 2027-02-13\nReference: SUB-2026-049",
         htmlBody: null,
         attachments: [],
         deleted: false,
@@ -250,9 +259,9 @@ function createInitialDemoStore(): DemoStoreState {
         senderAddress: "care@client-org.example",
         recipientAddresses: ["support.desk@teambox.dev"],
         ccAddresses: [],
-        subject: "Re: Domain DNS cutover confirmation",
+        subject: "Re: Team onboarding schedule confirmation",
         preview:
-          "MX and SPF records have propagated across all authoritative nameservers.",
+          "All team members have been added to the shared support workspace.",
         receivedAt: "2026-11-15T09:20:00.000Z",
         parsedAt: "2026-11-15T09:20:02.000Z",
         sizeBytes: 9120,
@@ -260,18 +269,18 @@ function createInitialDemoStore(): DemoStoreState {
         parseStatus: "ok",
         parseWarning: "",
         textBody:
-          "Hi Support,\n\nMX and SPF records propagated cleanly across our resolvers.\n\nThanks!",
-        htmlBody: `<p style="margin:0 0 8px 0;font-size:13px">Hi Support,</p><p style="margin:0;font-size:13px">MX and SPF records propagated cleanly across our resolvers.</p>`,
+          "Hi Support,\n\nAll team members have completed onboarding and can now access the shared inbox.\n\nThanks!",
+        htmlBody: `<p style="margin:0 0 8px 0;font-size:13px">Hi Support,</p><p style="margin:0;font-size:13px">All team members have completed onboarding and can now access the shared inbox.</p>`,
         attachments: [
           {
             uuid: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb002",
-            originalFilename: "dns-check-report.txt",
-            safeFilename: "dns-check-report.txt",
+            originalFilename: "onboarding-summary.txt",
+            safeFilename: "onboarding-summary.txt",
             declaredMimeType: "text/plain",
             detectedMimeType: "text/plain",
             sizeBytes: 98,
             isInline: false,
-            content: "MX: mail.mailstack.local (10) OK\nSPF: v=spf1 a:mail.mailstack.local -all OK\n",
+            content: "Workspace: support.desk@teambox.dev\nStatus: Active\n",
           },
         ],
         deleted: false,
@@ -288,9 +297,76 @@ function getDemoStore(): DemoStoreState {
   return globalForDemo.__readboxDemoUserStore;
 }
 
-function computeMailboxStats(store: DemoStoreState, mailboxUuid: string) {
+function resolveDemoCapabilities(
+  isAdministrator: boolean,
+  userId: string | bigint = "2",
+): UserAccessCapabilities {
+  if (isAdministrator) {
+    return {
+      canDeleteMessages: true,
+      canDeleteMailboxes: true,
+      canCreateMailboxes: true,
+      maxMailboxes: 0,
+      allowedDomainUuids: [],
+      autoDeleteEnabled: false,
+      autoDeleteDays: 0,
+    };
+  }
+  const globalSettings = getDemoUserControlSettings();
+  const userPolicy = getDemoUserAccessPolicy(String(userId));
+  const effective = resolveEffectiveUserPolicy(globalSettings, userPolicy);
+  return {
+    canDeleteMessages: true,
+    canDeleteMailboxes: effective.canDeleteMailboxes,
+    canCreateMailboxes: effective.canCreateMailboxes,
+    maxMailboxes: effective.maxMailboxes,
+    allowedDomainUuids: effective.allowedDomainUuids,
+    autoDeleteEnabled: effective.autoDeleteEnabled,
+    autoDeleteDays: effective.autoDeleteDays,
+  };
+}
+
+function isDemoMessageRetained(
+  receivedAtIso: string,
+  capabilities: UserAccessCapabilities,
+  isAdministrator: boolean,
+): boolean {
+  if (isAdministrator) return true;
+  const cutoff = computeMessageRetentionCutoff({
+    autoDeleteEnabled: Boolean(capabilities.autoDeleteEnabled),
+    autoDeleteDays: capabilities.autoDeleteDays ?? 0,
+  });
+  if (!cutoff) return true;
+  const receivedTime = Date.parse(receivedAtIso);
+  if (!Number.isFinite(receivedTime)) return true;
+  return receivedTime >= cutoff.getTime();
+}
+
+function filterDemoDomains(
+  domains: DemoStoreState["domains"],
+  capabilities: UserAccessCapabilities,
+  isAdministrator: boolean,
+) {
+  if (isAdministrator) return domains;
+  const allowedDomainUuids = capabilities.allowedDomainUuids ?? [];
+  if (allowedDomainUuids.length === 0) return domains;
+  return domains.filter((d) =>
+    isDomainAllowedForUser(d.uuid, { allowedDomainUuids }),
+  );
+}
+
+function computeMailboxStats(
+  store: DemoStoreState,
+  mailboxUuid: string,
+  capabilities?: UserAccessCapabilities,
+  isAdministrator = true,
+) {
   const active = store.messages.filter(
-    (m) => m.mailboxUuid === mailboxUuid && !m.deleted,
+    (m) =>
+      m.mailboxUuid === mailboxUuid &&
+      !m.deleted &&
+      (!capabilities ||
+        isDemoMessageRetained(m.receivedAt, capabilities, isAdministrator)),
   );
   const unread = active.filter((m) => !m.isRead).length;
   const sorted = [...active].sort((a, b) =>
@@ -305,12 +381,20 @@ function computeMailboxStats(store: DemoStoreState, mailboxUuid: string) {
 
 export function getDemoUserOverview(
   isAdministrator: boolean,
+  userId: string | bigint = "2",
 ): UserWorkspaceOverviewSnapshot {
   const store = getDemoStore();
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
   const recentMailboxes = [...store.mailboxes]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map((mbx) => {
-      const stats = computeMailboxStats(store, mbx.uuid);
+      const stats = computeMailboxStats(
+        store,
+        mbx.uuid,
+        capabilities,
+        isAdministrator,
+      );
       return {
         ...mbx,
         totalMessages: String(stats.totalMessages),
@@ -320,7 +404,11 @@ export function getDemoUserOverview(
     });
 
   const activeMessages = store.messages
-    .filter((m) => !m.deleted)
+    .filter(
+      (m) =>
+        !m.deleted &&
+        isDemoMessageRetained(m.receivedAt, capabilities, isAdministrator),
+    )
     .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 
   const mailboxByUuid = new Map(store.mailboxes.map((m) => [m.uuid, m]));
@@ -351,19 +439,22 @@ export function getDemoUserOverview(
     lastReceivedAt: activeMessages[0]?.receivedAt ?? null,
     recentMessages,
     recentMailboxes: recentMailboxes.slice(0, 8),
-    availableDomains: store.domains,
-    capabilities: {
-      canDeleteMessages: true,
-      canDeleteMailboxes: isAdministrator,
-    },
+    availableDomains: filterDemoDomains(
+      store.domains,
+      capabilities,
+      isAdministrator,
+    ),
+    capabilities,
   };
 }
 
 export function listDemoUserMailboxes(
   isAdministrator: boolean,
   filters: { query?: string; status?: string; page?: number },
+  userId: string | bigint = "2",
 ): UserMailboxListResult {
   const store = getDemoStore();
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
   const q = (filters.query ?? "").trim().toLowerCase();
   const statusFilter: "all" | "active" | "disabled" =
     filters.status === "active" || filters.status === "disabled"
@@ -391,7 +482,12 @@ export function listDemoUserMailboxes(
   const items = filtered
     .slice((page - 1) * pageSize, page * pageSize)
     .map((mbx) => {
-      const stats = computeMailboxStats(store, mbx.uuid);
+      const stats = computeMailboxStats(
+        store,
+        mbx.uuid,
+        capabilities,
+        isAdministrator,
+      );
       return {
         ...mbx,
         totalMessages: String(stats.totalMessages),
@@ -409,11 +505,12 @@ export function listDemoUserMailboxes(
     totalPages,
     query: filters.query?.trim() ?? "",
     statusFilter,
-    availableDomains: store.domains,
-    capabilities: {
-      canDeleteMessages: true,
-      canDeleteMailboxes: isAdministrator,
-    },
+    availableDomains: filterDemoDomains(
+      store.domains,
+      capabilities,
+      isAdministrator,
+    ),
+    capabilities,
   };
 }
 
@@ -425,10 +522,14 @@ export function listDemoMailboxMessages(
     attachments?: string;
     page?: number;
   },
+  isAdministrator = false,
+  userId: string | bigint = "2",
 ): UserInboxListResult | null {
   const store = getDemoStore();
   const mailbox = store.mailboxes.find((m) => m.uuid === mailboxUuid);
   if (!mailbox) return null;
+
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
 
   const q = (filters.query ?? "").trim().toLowerCase();
   const readFilter =
@@ -439,7 +540,12 @@ export function listDemoMailboxMessages(
       : "all";
 
   const allActive = store.messages
-    .filter((m) => m.mailboxUuid === mailbox.uuid && !m.deleted)
+    .filter(
+      (m) =>
+        m.mailboxUuid === mailbox.uuid &&
+        !m.deleted &&
+        isDemoMessageRetained(m.receivedAt, capabilities, isAdministrator),
+    )
     .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 
   const filtered = allActive.filter((m) => {
@@ -458,7 +564,12 @@ export function listDemoMailboxMessages(
   const totalCount = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const page = Math.min(Math.max(1, filters.page || 1), totalPages);
-  const stats = computeMailboxStats(store, mailbox.uuid);
+  const stats = computeMailboxStats(
+    store,
+    mailbox.uuid,
+    capabilities,
+    isAdministrator,
+  );
 
   return {
     mailbox: {
@@ -494,7 +605,7 @@ export function listDemoMailboxMessages(
     attachmentFilter,
     liveUnfilteredFirstPage:
       !q && readFilter === "all" && attachmentFilter === "all" && page === 1,
-    canDeleteMailbox: true,
+    canDeleteMailbox: isAdministrator ? true : capabilities.canDeleteMailboxes,
   };
 }
 
@@ -580,15 +691,42 @@ export function getDemoAttachmentDownload(attachmentUuid: string): {
   return null;
 }
 
-export function createDemoMailbox(input: {
-  localPart: string;
-  domainUuid?: string;
-}): MailboxActionResult<{
+export function createDemoMailbox(
+  input: {
+    localPart: string;
+    domainUuid?: string;
+  },
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
+): MailboxActionResult<{
   uuid: string;
   emailAddress: string;
   localPart: string;
 }> {
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
+  if (actorOptions && !isAdministrator) {
+    const quotaCheck = canUserCreateMoreMailboxes(store.mailboxes.length, {
+      canCreateMailboxes: capabilities.canCreateMailboxes !== false,
+      maxMailboxes: capabilities.maxMailboxes ?? 0,
+    });
+    if (!quotaCheck.allowed) {
+      return {
+        ok: false,
+        code: "validation",
+        error:
+          quotaCheck.reason === "disabled"
+            ? "Mailbox creation is disabled for your account by User Control policy."
+            : `Mailbox limit reached (${store.mailboxes.length}/${capabilities.maxMailboxes}). Contact an administrator to increase your quota.`,
+      };
+    }
+  }
+
   const localPart = input.localPart.trim().toLowerCase();
   if (!/^[a-z0-9._+-]{1,64}$/.test(localPart)) {
     return {
@@ -598,10 +736,30 @@ export function createDemoMailbox(input: {
     };
   }
 
+  const allowedDomainUuids = capabilities.allowedDomainUuids ?? [];
+  if (
+    !isAdministrator &&
+    allowedDomainUuids.length > 0 &&
+    input.domainUuid &&
+    !isDomainAllowedForUser(input.domainUuid, { allowedDomainUuids })
+  ) {
+    return {
+      ok: false,
+      code: "validation",
+      error: "Selected domain is not permitted for your account.",
+    };
+  }
+
+  const availableDomains = filterDemoDomains(
+    store.domains,
+    capabilities,
+    isAdministrator,
+  );
+
   const domain =
-    store.domains.find((d) => d.uuid === input.domainUuid) ??
-    store.domains.find((d) => d.isDefault) ??
-    store.domains[0];
+    availableDomains.find((d) => d.uuid === input.domainUuid) ??
+    availableDomains.find((d) => d.isDefault) ??
+    availableDomains[0];
 
   if (!domain) {
     return { ok: false, code: "validation", error: "No active domain available." };
@@ -722,7 +880,7 @@ export function softDeleteDemoMessage(
   return {
     ok: true,
     data: { uuid: msg.uuid },
-    message: "Message deleted. The source email remains preserved.",
+    message: "Message deleted.",
   };
 }
 

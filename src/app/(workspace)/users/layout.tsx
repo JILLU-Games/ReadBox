@@ -45,13 +45,18 @@ export default async function UsersWorkspaceLayout({
       });
     }
   } else if (isDemoPreviewWorkspaceActive()) {
-    listResult = listDemoUserMailboxes(user.isAdministrator, { page: 1 });
+    listResult = listDemoUserMailboxes(
+      user.isAdministrator,
+      { page: 1 },
+      user.id,
+    );
   }
 
   return (
     <UsersWorkspaceShell
       mailboxes={listResult.items}
       domains={listResult.availableDomains}
+      capabilities={listResult.capabilities}
       databaseConfigured={listResult.databaseConfigured}
       createMailboxAction={createUserMailboxAction}
     >

@@ -47,11 +47,14 @@ test("dev bypass allows workspace routes only when explicitly active with a user
   );
 });
 
-test("public sign-in, reset, auth, and health routes stay outside workspace guard", () => {
+test("public sign-in, sign-up, admin login, reset, auth, and health routes stay outside workspace guard", () => {
   const publicRoutes = [
     "src/app/page.tsx",
     "src/app/sign-in/page.tsx",
     "src/app/sign-in/actions.ts",
+    "src/app/sign-up/page.tsx",
+    "src/app/sign-up/actions.ts",
+    "src/app/vcon/login/page.tsx",
     "src/app/reset-password/page.tsx",
     "src/app/reset-password/actions.ts",
     "src/app/api/auth/[...nextauth]/route.ts",

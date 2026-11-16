@@ -13,10 +13,10 @@ export const MIN_FORM_AGE_MS = 2_500;
 export const MAX_FORM_AGE_MS = 86_400_000;
 
 export const SERVICE_LABELS: Readonly<Record<string, string>> = Object.freeze({
-  personal: "Personal Private Mailbox",
-  team: "Team Mailbox Access",
-  business: "Business Mailbox Operations",
-  other: "Custom / Other Requirement",
+  personal: "Account & Personal Workspace",
+  team: "Team Mailboxes & Quota Policy",
+  business: "Custom Domain & Enterprise Setup",
+  other: "Technical Support & General Inquiry",
 });
 
 export const TEAM_SIZE_VALUES = new Set(["", "1", "2-5", "6-20", "21-50", "50+"]);

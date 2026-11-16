@@ -1,8 +1,9 @@
 import { PublicSiteFooter } from "@/components/public/public-site-footer";
 import { PublicSiteHeader } from "@/components/public/public-site-header";
-import { PageTitle, Panel, PanelBody } from "@/components/ui";
+import { Button, Icon, PageTitle, Panel, PanelBody } from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
+import { LogIn, UserPlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -17,9 +18,9 @@ function resolvePublicBaseUrl(): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
   const title = `Privacy Policy — ${siteName}`;
-  const description = `Learn how ${siteName} handles contact inquiries, mailbox data, security logs, and privacy controls.`;
+  const description = `Learn how ${siteName} handles workspace accounts, mailboxes, automated message retention, and support inquiries.`;
   const baseUrl = resolvePublicBaseUrl();
 
   return {
@@ -43,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PublicPrivacyPage() {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -56,14 +57,31 @@ export default async function PublicPrivacyPage() {
       <main id="main" className="flex-1">
         <section className="border-b border-border bg-card py-5 sm:py-6">
           <div className="mx-auto max-w-4xl px-3 sm:px-5">
-            <PageTitle className="text-lg font-medium sm:text-xl">
-              Privacy Policy — How {siteName} handles inquiries and operational
-              data
-            </PageTitle>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {siteName} is designed around minimal data collection, strict
-              access control, and transparent operational logging.
-            </p>
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <PageTitle className="text-lg font-medium sm:text-xl">
+                  Privacy Policy
+                </PageTitle>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {siteName} is designed around minimal data collection, private
+                  workspace access, and configurable message retention.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button size="sm" asChild>
+                  <Link href="/sign-up">
+                    <Icon glyph={UserPlus} className="size-3" />
+                    <span>Sign up</span>
+                  </Link>
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href="/sign-in">
+                    <Icon glyph={LogIn} className="size-3" />
+                    <span>Sign in</span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -78,9 +96,8 @@ export default async function PublicPrivacyPage() {
                     </h2>
                     <p className="mt-1">
                       This Privacy Notice explains what information {siteName}{" "}
-                      collects when you visit our public website, submit a
-                      service inquiry through our contact form, or use
-                      authorized {siteName} mailbox services.
+                      collects when you register a workspace account, manage
+                      mailboxes, or submit a support inquiry.
                     </p>
                   </section>
 
@@ -91,43 +108,40 @@ export default async function PublicPrivacyPage() {
                     <ul className="mt-1.5 list-disc space-y-1 pl-5">
                       <li>
                         <strong className="font-medium text-foreground">
-                          Contact inquiries:
+                          Workspace account registration:
+                        </strong>{" "}
+                        When you create an account, we store your username,
+                        encrypted credentials, optional profile details, and
+                        your workspace mailbox preferences.
+                      </li>
+                      <li>
+                        <strong className="font-medium text-foreground">
+                          Support &amp; onboarding inquiries:
                         </strong>{" "}
                         When you submit the contact form, we collect your name,
                         email address, optional organization and phone number,
-                        selected service requirement, and message content.
+                        selected inquiry topic, and message details.
                       </li>
                       <li>
                         <strong className="font-medium text-foreground">
-                          Abuse-prevention metadata:
+                          Service protection:
                         </strong>{" "}
-                        To protect our mail infrastructure from automated spam,
-                        we process a one-way cryptographic hash of the
-                        submitting IP address and email address along with
-                        submission timestamps.
-                      </li>
-                      <li>
-                        <strong className="font-medium text-foreground">
-                          Operational audit logs:
-                        </strong>{" "}
-                        For authorized platform users, {siteName} records
-                        authentication events, mailbox permission changes, and
-                        domain configuration actions for security auditing.
+                        To protect our service from abuse, we record basic
+                        security events and rate-limit automated submissions.
                       </li>
                     </ul>
                   </section>
 
                   <section>
                     <h2 className="text-xs font-medium text-foreground">
-                      3. How Information Is Used
+                      3. Automated Message Retention
                     </h2>
                     <p className="mt-1">
-                      We use the information you provide solely to respond to
-                      your inquiry, provision and maintain requested mailbox
-                      services, verify custom-domain DNS configurations, and
-                      protect the security and reliability of the platform. We
-                      do not sell personal data or use mailbox contents for
-                      advertising.
+                      {siteName} supports automated message retention. When
+                      retention is enabled for your workspace, messages older
+                      than your configured retention window are automatically
+                      expired from your inbox view. We never scan mailbox
+                      contents for advertising.
                     </p>
                   </section>
 
@@ -136,67 +150,24 @@ export default async function PublicPrivacyPage() {
                       4. Security and Access Controls
                     </h2>
                     <p className="mt-1">
-                      {siteName} enforces TLS encryption in transit, CSRF
-                      protection on interactive forms, rate limiting,
-                      server-side HTML sanitization, and role-based access
-                      control so that only explicitly authorized accounts can
-                      view assigned mailboxes.
+                      {siteName} protects your account with encrypted
+                      connections, isolated workspace sessions, tracker-free
+                      message viewing, and strict domain and mailbox permissions.
                     </p>
                   </section>
 
                   <section>
                     <h2 className="text-xs font-medium text-foreground">
-                      5. Data Retention
+                      5. Contact &amp; Data Requests
                     </h2>
                     <p className="mt-1">
-                      Contact inquiries and security logs are retained only as
-                      long as necessary to fulfill onboarding requests, maintain
-                      customer support records, and comply with operational
-                      security requirements.
-                    </p>
-                  </section>
-
-                  <section>
-                    <h2 className="text-xs font-medium text-foreground">
-                      6. Sharing and Third Parties
-                    </h2>
-                    <p className="mt-1">
-                      We do not share your inquiry details or mailbox data with
-                      third-party marketers. Data is only disclosed when required
-                      to operate the underlying infrastructure requested by the
-                      customer or when required by applicable law.
-                    </p>
-                  </section>
-
-                  <section>
-                    <h2 className="text-xs font-medium text-foreground">
-                      7. Your Choices
-                    </h2>
-                    <p className="mt-1">
-                      You may request access to, correction of, or deletion of a
-                      contact inquiry you submitted by reaching out through our{" "}
+                      For privacy, account deletion, or support questions
+                      regarding {siteName}, please submit a request via our{" "}
                       <Link
                         href="/contact"
                         className="font-medium text-foreground underline decoration-border underline-offset-2 hover:text-primary"
                       >
-                        contact page
-                      </Link>
-                      .
-                    </p>
-                  </section>
-
-                  <section>
-                    <h2 className="text-xs font-medium text-foreground">
-                      8. Contact
-                    </h2>
-                    <p className="mt-1">
-                      For privacy or security questions regarding {siteName},
-                      please submit a request via{" "}
-                      <Link
-                        href="/contact"
-                        className="font-medium text-foreground underline decoration-border underline-offset-2 hover:text-primary"
-                      >
-                        /contact
+                        Contact page
                       </Link>
                       {settings.supportEmail ? (
                         <>
@@ -227,7 +198,6 @@ export default async function PublicPrivacyPage() {
         footerDescription={settings.footerDescription}
         copyrightText={settings.copyrightText}
         privacyUrl={settings.privacyUrl}
-        sourceCodeUrl={settings.sourceCodeUrl}
         supportEmail={settings.supportEmail}
       />
     </div>

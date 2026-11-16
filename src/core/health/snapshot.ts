@@ -1,5 +1,5 @@
 import { env } from "@/config/env";
-import type { MailStackEnv } from "@/config/env-schema";
+import type { ReadBoxEnv } from "@/config/env-schema";
 import { getPrismaClient } from "@/core/database/client";
 import { randomBytes } from "node:crypto";
 import { statSync } from "node:fs";
@@ -43,7 +43,7 @@ export async function checkWritableStorageDirectory(
 }
 
 export function checkConfigurationReadiness(
-  runtimeEnv: MailStackEnv = env,
+  runtimeEnv: ReadBoxEnv = env,
 ): { readonly ok: boolean } {
   const baseComplete =
     Boolean(runtimeEnv.mailDomain?.trim()) &&
@@ -68,7 +68,7 @@ export function checkConfigurationReadiness(
 
 export async function getReadinessSnapshot(options?: {
   readonly prisma?: ReadinessProbePrismaLike | null;
-  readonly runtimeEnv?: MailStackEnv;
+  readonly runtimeEnv?: ReadBoxEnv;
   readonly now?: Date;
 }) {
   const runtimeEnv = options?.runtimeEnv ?? env;

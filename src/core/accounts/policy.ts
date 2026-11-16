@@ -13,6 +13,11 @@ export interface AccountRoleFlags {
 export interface UserAccessCapabilities {
   readonly canDeleteMessages: boolean;
   readonly canDeleteMailboxes: boolean;
+  readonly canCreateMailboxes?: boolean;
+  readonly maxMailboxes?: number;
+  readonly allowedDomainUuids?: readonly string[];
+  readonly autoDeleteEnabled?: boolean;
+  readonly autoDeleteDays?: number;
 }
 
 /**

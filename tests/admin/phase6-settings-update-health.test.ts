@@ -153,7 +153,7 @@ test("SiteSettings service persists singleton settings, confined media files, an
       prisma,
       baseOrigin: "https://app.mailstack.local",
     });
-    assert.equal(initial.siteName, "MailStack");
+    assert.equal(initial.siteName, "ReadBox");
     assert.equal(initial.databaseConnected, true);
 
     const badPrivacyResult = await updateSiteSettings(
@@ -180,7 +180,7 @@ test("SiteSettings service persists singleton settings, confined media files, an
         officeAddress: "100 Mail Way",
         footerDescription: "Internal mail portal",
         copyrightText: "2026 ReadBox",
-        sourceCodeUrl: "https://github.com/vibtools/MailStack",
+        sourceCodeUrl: "https://github.com/vibtools/ReadBox",
         privacyUrl: "/privacy-policy",
         logoUpload: {
           filename: "logo.svg",
@@ -269,36 +269,36 @@ test("SiteSettings service persists singleton settings, confined media files, an
 test("System Update validates official GitHub release URLs, checks release assets, and writes 0640 hard-linked update_request.json", async () => {
   assert.equal(
     isOfficialReleaseUrl(
-      "https://github.com/vibtools/MailStack/releases/download/v1.3.5.5/mailstack-1.3.5.5-source.zip",
-      "vibtools/MailStack",
+      "https://github.com/vibtools/ReadBox/releases/download/v1.3.5.5/readbox-1.3.5.5-source.zip",
+      "vibtools/ReadBox",
     ),
     true,
   );
   assert.equal(
     isOfficialReleaseUrl(
-      "https://github.com/vibtools/MailStack/releases/download/v1.3.5.5/mailstack-1.3.5.5-source.zip?token=1",
-      "vibtools/MailStack",
+      "https://github.com/vibtools/ReadBox/releases/download/v1.3.5.5/readbox-1.3.5.5-source.zip?token=1",
+      "vibtools/ReadBox",
     ),
     false,
   );
   assert.equal(
     isOfficialReleaseUrl(
       "https://github.com/other/repo/releases/download/v1.0.0/source.zip",
-      "vibtools/MailStack",
+      "vibtools/ReadBox",
     ),
     false,
   );
   assert.equal(
     isOfficialReleaseUrl(
-      "http://github.com/vibtools/MailStack/releases/download/v1.0.0/source.zip",
-      "vibtools/MailStack",
+      "http://github.com/vibtools/ReadBox/releases/download/v1.0.0/source.zip",
+      "vibtools/ReadBox",
     ),
     false,
   );
 
   // Mock fetch for checkLatestRelease
   const releaseRes = await checkLatestRelease({
-    githubRepo: "vibtools/MailStack",
+    githubRepo: "vibtools/ReadBox",
     fetchImpl: (async () =>
       new Response(
         JSON.stringify({
@@ -309,14 +309,14 @@ test("System Update validates official GitHub release URLs, checks release asset
           published_at: "2026-11-15T00:00:00Z",
           assets: [
             {
-              name: "mailstack-1.4.0-source.zip",
+              name: "readbox-1.4.0-source.zip",
               browser_download_url:
-                "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip",
+                "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip",
             },
             {
-              name: "mailstack-1.4.0-source.zip.sha256",
+              name: "readbox-1.4.0-source.zip.sha256",
               browser_download_url:
-                "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip.sha256",
+                "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip.sha256",
             },
           ],
         }),
@@ -351,9 +351,9 @@ test("System Update validates official GitHub release URLs, checks release asset
     const blockedRes = await queueUpdateRequest(
       {
         archiveUrl:
-          "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip",
+          "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip",
         checksumUrl:
-          "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip.sha256",
+          "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip.sha256",
       },
       {
         runtimeDir: tempRuntimeDir,
@@ -373,9 +373,9 @@ test("System Update validates official GitHub release URLs, checks release asset
     const startedRes = await queueUpdateRequest(
       {
         archiveUrl:
-          "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip",
+          "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip",
         checksumUrl:
-          "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip.sha256",
+          "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip.sha256",
       },
       {
         runtimeDir: tempRuntimeDir,
@@ -411,9 +411,9 @@ test("System Update validates official GitHub release URLs, checks release asset
     const duplicateRes = await queueUpdateRequest(
       {
         archiveUrl:
-          "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip",
+          "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip",
         checksumUrl:
-          "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip.sha256",
+          "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip.sha256",
       },
       {
         runtimeDir: tempRuntimeDir,

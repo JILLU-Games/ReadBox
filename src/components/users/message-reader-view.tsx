@@ -117,10 +117,7 @@ export function MessageReaderView({
         return;
       }
 
-      notify.success(
-        result.message ??
-          "Message deleted. The source email remains preserved.",
-      );
+      notify.success(result.message ?? "Message deleted.");
       setDeleteDialogOpen(false);
       router.push(backToInboxUrl);
       router.refresh();
@@ -287,20 +284,12 @@ export function MessageReaderView({
                           : "Unknown"}
                       </dd>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                     <div className="flex flex-wrap gap-2">
                       <dt className="w-16 font-medium text-muted-foreground">
                         Size:
                       </dt>
                       <dd className="tabular-nums text-foreground">
                         {formatMessageByteSize(message.sizeBytes)}
-                      </dd>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <dt className="w-16 font-medium text-muted-foreground">
-                        Status:
-                      </dt>
-                      <dd className="uppercase text-foreground">
-                        {message.parseStatus}
                       </dd>
                     </div>
                   </dl>
@@ -384,9 +373,6 @@ export function MessageReaderView({
                 Attachments ({message.attachments.length})
               </h2>
             </div>
-            <span className="text-[11px] text-muted-foreground">
-              Not antivirus scanned
-            </span>
           </div>
 
           {message.attachments.length === 0 ? (
@@ -440,8 +426,7 @@ export function MessageReaderView({
             <strong className="text-foreground">
               {message.subject || "(No subject)"}
             </strong>{" "}
-            from your inbox view. The source Maildir file remains preserved on
-            disk.
+            from your inbox.
           </DialogDescription>
           <DialogFooter>
             <Button

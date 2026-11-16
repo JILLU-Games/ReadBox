@@ -426,7 +426,6 @@ describe("Phase 5 — User Workspace UI components", () => {
     );
 
     expect(screen.getByText("statement.pdf")).toBeInTheDocument();
-    expect(screen.getByText("Not antivirus scanned")).toBeInTheDocument();
 
     // Switch to plain text view
     await user.click(screen.getByRole("button", { name: /Plain text/i }));

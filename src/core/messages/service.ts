@@ -2,6 +2,13 @@ import {
   getUserAccessCapabilities,
   type UserAccessCapabilities,
 } from "@/core/accounts/policy";
+import {
+  canUserCreateMoreMailboxes,
+  computeMessageRetentionCutoff,
+  getUserControlSettings,
+  getUserExtendedPolicy,
+  isDomainAllowedForUser,
+} from "@/core/accounts/user-control-policy";
 import { recordAudit } from "@/core/audit/record";
 import type { AuditWriteClient } from "@/core/audit/types";
 import { recalculateMailboxCounters } from "@/core/ingestion/counters";
@@ -23,7 +30,7 @@ import type { PrismaClient } from "@prisma/client";
 import { lstat } from "node:fs/promises";
 import "server-only";
 
-export const LIVE_UPDATE_HEADER = "X-MailStack-Live-Request";
+export const LIVE_UPDATE_HEADER = "X-ReadBox-Live-Request";
 export const LIVE_UPDATE_MESSAGE_LIMIT = 20;
 export const LIVE_UPDATE_MAILBOX_LIMIT = 50;
 export const LIVE_UPDATE_VISIBLE_MAILBOX_LIMIT = 50;
@@ -329,9 +336,60 @@ async function resolveActorCapabilities(
     return {
       canDeleteMessages: true,
       canDeleteMailboxes: true,
+      canCreateMailboxes: true,
+      maxMailboxes: 0,
+      allowedDomainUuids: [],
+      autoDeleteEnabled: false,
+      autoDeleteDays: 0,
     };
   }
-  return getUserAccessCapabilities(prisma, actor.userId);
+  const [baseCaps, globalSettings] = await Promise.all([
+    getUserAccessCapabilities(prisma, actor.userId),
+    getUserControlSettings(
+      prisma as Partial<Pick<PrismaClient, "userControlSettings">>,
+    ),
+  ]);
+  const effective = await getUserExtendedPolicy(
+    prisma,
+    actor.userId,
+    globalSettings,
+  );
+  return {
+    canDeleteMessages: baseCaps.canDeleteMessages || effective.canDeleteMessages,
+    canDeleteMailboxes:
+      baseCaps.canDeleteMailboxes || effective.canDeleteMailboxes,
+    canCreateMailboxes: effective.canCreateMailboxes,
+    maxMailboxes: effective.maxMailboxes,
+    allowedDomainUuids: effective.allowedDomainUuids,
+    autoDeleteEnabled: effective.autoDeleteEnabled,
+    autoDeleteDays: effective.autoDeleteDays,
+  };
+}
+
+function resolveActorRetentionCutoff(
+  capabilities: UserAccessCapabilities,
+  isAdministrator: boolean,
+): Date | null {
+  if (isAdministrator) return null;
+  return computeMessageRetentionCutoff({
+    autoDeleteEnabled: Boolean(capabilities.autoDeleteEnabled),
+    autoDeleteDays: capabilities.autoDeleteDays ?? 0,
+  });
+}
+
+function filterDomainsForCapabilities<
+  T extends { readonly uuid: string },
+>(
+  domains: readonly T[],
+  capabilities: UserAccessCapabilities,
+  isAdministrator: boolean,
+): T[] {
+  if (isAdministrator) return [...domains];
+  const allowedDomainUuids = capabilities.allowedDomainUuids ?? [];
+  if (allowedDomainUuids.length === 0) return [...domains];
+  return domains.filter((d) =>
+    isDomainAllowedForUser(d.uuid, { allowedDomainUuids }),
+  );
 }
 
 async function resolveActorIdForDatabase(
@@ -366,6 +424,11 @@ export function createUnconfiguredUserWorkspaceOverview(
     capabilities: {
       canDeleteMessages: actor.isAdministrator,
       canDeleteMailboxes: actor.isAdministrator,
+      canCreateMailboxes: true,
+      maxMailboxes: actor.isAdministrator ? 0 : 3,
+      allowedDomainUuids: [],
+      autoDeleteEnabled: false,
+      autoDeleteDays: 0,
     },
   };
 }
@@ -386,6 +449,11 @@ export function createUnconfiguredUserMailboxList(
     capabilities: {
       canDeleteMessages: actor.isAdministrator,
       canDeleteMailboxes: actor.isAdministrator,
+      canCreateMailboxes: true,
+      maxMailboxes: actor.isAdministrator ? 0 : 3,
+      allowedDomainUuids: [],
+      autoDeleteEnabled: false,
+      autoDeleteDays: 0,
     },
   };
 }
@@ -397,8 +465,16 @@ export async function getUserWorkspaceOverview(
   >,
   actor: UserWorkspaceActor,
 ): Promise<UserWorkspaceOverviewSnapshot> {
+  const capabilities = await resolveActorCapabilities(prisma, actor);
+  const retentionCutoff = resolveActorRetentionCutoff(
+    capabilities,
+    actor.isAdministrator,
+  );
   const mailboxWhere = buildAccessibleMailboxWhere(actor);
-  const messageWhere = buildAccessibleMessageWhere(actor);
+  const messageWhere = buildAccessibleMessageWhere(
+    actor,
+    retentionCutoff ? { receivedAt: { gte: retentionCutoff } } : {},
+  );
 
   const [
     totalMailboxes,
@@ -407,10 +483,9 @@ export async function getUserWorkspaceOverview(
     totalMessages,
     totalUnread,
     latestAggregate,
-    recentMessages,
+    recentMessagesRaw,
     recentMailboxes,
     domains,
-    capabilities,
   ] = await Promise.all([
     prisma.mailbox.count({ where: mailboxWhere }),
     prisma.mailbox.count({
@@ -482,8 +557,18 @@ export async function getUserWorkspaceOverview(
       orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       select: { id: true, uuid: true, name: true, isDefault: true },
     }),
-    resolveActorCapabilities(prisma, actor),
   ]);
+
+  const recentMessages = retentionCutoff
+    ? recentMessagesRaw.filter(
+        (msg) => !msg.receivedAt || msg.receivedAt >= retentionCutoff,
+      )
+    : recentMessagesRaw;
+  const filteredDomains = filterDomainsForCapabilities(
+    domains,
+    capabilities,
+    actor.isAdministrator,
+  );
 
   return {
     databaseConfigured: true,
@@ -524,7 +609,7 @@ export async function getUserWorkspaceOverview(
         : null,
       createdAt: mbx.createdAt.toISOString(),
     })),
-    availableDomains: domains.map((d) => ({
+    availableDomains: filteredDomains.map((d) => ({
       id: d.id.toString(),
       uuid: d.uuid,
       name: d.name,
@@ -603,6 +688,12 @@ export async function listUserMailboxes(
     },
   });
 
+  const filteredDomains = filterDomainsForCapabilities(
+    domains,
+    capabilities,
+    actor.isAdministrator,
+  );
+
   return {
     databaseConfigured: true,
     items: rows.map((row) => ({
@@ -626,7 +717,7 @@ export async function listUserMailboxes(
     totalPages,
     query,
     statusFilter,
-    availableDomains: domains.map((d) => ({
+    availableDomains: filteredDomains.map((d) => ({
       id: d.id.toString(),
       uuid: d.uuid,
       name: d.name,
@@ -651,11 +742,58 @@ export async function createUserSelfMailbox(
 ): Promise<
   MailboxActionResult<{ uuid: string; emailAddress: string; localPart: string }>
 > {
+  let effectiveDomainUuid = input.domainUuid;
+
+  if (!actor.isAdministrator) {
+    const [capabilities, currentMailboxCount] = await Promise.all([
+      resolveActorCapabilities(
+        prisma as unknown as Pick<PrismaClient, "userAccessPolicy">,
+        actor,
+      ),
+      prisma.mailbox.count({
+        where: buildAccessibleMailboxWhere(actor),
+      }),
+    ]);
+
+    const quotaCheck = canUserCreateMoreMailboxes(currentMailboxCount, {
+      canCreateMailboxes: capabilities.canCreateMailboxes !== false,
+      maxMailboxes: capabilities.maxMailboxes ?? 0,
+    });
+
+    if (!quotaCheck.allowed) {
+      return {
+        ok: false,
+        code: "validation",
+        error:
+          quotaCheck.reason === "disabled"
+            ? "Mailbox creation is disabled for your account by User Control policy."
+            : `Mailbox limit reached (${currentMailboxCount}/${capabilities.maxMailboxes}). Contact an administrator to increase your quota.`,
+      };
+    }
+
+    const allowedDomainUuids = capabilities.allowedDomainUuids ?? [];
+    if (allowedDomainUuids.length > 0) {
+      if (effectiveDomainUuid) {
+        if (
+          !isDomainAllowedForUser(effectiveDomainUuid, { allowedDomainUuids })
+        ) {
+          return {
+            ok: false,
+            code: "validation",
+            error: "Selected domain is not permitted for your account.",
+          };
+        }
+      } else {
+        effectiveDomainUuid = allowedDomainUuids[0];
+      }
+    }
+  }
+
   return provisionMailbox(
     prisma,
     {
       localPart: input.localPart,
-      domainUuid: input.domainUuid,
+      domainUuid: effectiveDomainUuid,
       assignedUserIds: actor.isAdministrator ? [] : [actor.userId.toString()],
       allowReserved: false,
     },
@@ -803,24 +941,32 @@ export async function listMailboxMessagesForUser(
     return null;
   }
 
-  const mailbox = await prisma.mailbox.findFirst({
-    where: buildAccessibleMailboxWhere(actor, { uuid: mailboxUuid.trim() }),
-    select: {
-      id: true,
-      uuid: true,
-      localPart: true,
-      emailAddress: true,
-      status: true,
-      totalMessages: true,
-      unreadMessages: true,
-      lastReceivedAt: true,
-      domain: { select: { name: true } },
-    },
-  });
+  const [mailbox, capabilities] = await Promise.all([
+    prisma.mailbox.findFirst({
+      where: buildAccessibleMailboxWhere(actor, { uuid: mailboxUuid.trim() }),
+      select: {
+        id: true,
+        uuid: true,
+        localPart: true,
+        emailAddress: true,
+        status: true,
+        totalMessages: true,
+        unreadMessages: true,
+        lastReceivedAt: true,
+        domain: { select: { name: true } },
+      },
+    }),
+    resolveActorCapabilities(prisma, actor),
+  ]);
 
   if (!mailbox) {
     return null;
   }
+
+  const retentionCutoff = resolveActorRetentionCutoff(
+    capabilities,
+    actor.isAdministrator,
+  );
 
   const query = (filter.query ?? "").trim();
   const readFilter = normalizeReadFilter(filter.read);
@@ -831,6 +977,7 @@ export async function listMailboxMessagesForUser(
   const messageWhere: Record<string, unknown> = {
     mailboxId: mailbox.id,
     deletedAt: null,
+    ...(retentionCutoff ? { receivedAt: { gte: retentionCutoff } } : {}),
   };
 
   if (query.length > 0) {
@@ -853,16 +1000,13 @@ export async function listMailboxMessagesForUser(
     messageWhere.hasAttachments = false;
   }
 
-  const [totalCount, capabilities] = await Promise.all([
-    prisma.message.count({ where: messageWhere }),
-    resolveActorCapabilities(prisma, actor),
-  ]);
+  const totalCount = await prisma.message.count({ where: messageWhere });
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const page = Math.min(requestedPage, totalPages);
   const skip = (page - 1) * pageSize;
 
-  const rows = await prisma.message.findMany({
+  const rowsRaw = await prisma.message.findMany({
     where: messageWhere,
     orderBy: [
       { receivedAt: { sort: "desc", nulls: "last" } },
@@ -886,6 +1030,12 @@ export async function listMailboxMessagesForUser(
       parseStatus: true,
     },
   });
+
+  const rows = retentionCutoff
+    ? rowsRaw.filter(
+        (row) => !row.receivedAt || row.receivedAt >= retentionCutoff,
+      )
+    : rowsRaw;
 
   if (options.recordAccessAudit !== false) {
     const resolvedActorId = await resolveActorIdForDatabase(
@@ -962,30 +1112,39 @@ export async function getMessageDetailForUser(
     return null;
   }
 
-  const mailbox = await prisma.mailbox.findFirst({
-    where: buildAccessibleMailboxWhere(actor, { uuid: mailboxUuid.trim() }),
-    select: {
-      id: true,
-      uuid: true,
-      localPart: true,
-      emailAddress: true,
-      status: true,
-      totalMessages: true,
-      unreadMessages: true,
-      lastReceivedAt: true,
-      domain: { select: { name: true } },
-    },
-  });
+  const [mailbox, capabilities] = await Promise.all([
+    prisma.mailbox.findFirst({
+      where: buildAccessibleMailboxWhere(actor, { uuid: mailboxUuid.trim() }),
+      select: {
+        id: true,
+        uuid: true,
+        localPart: true,
+        emailAddress: true,
+        status: true,
+        totalMessages: true,
+        unreadMessages: true,
+        lastReceivedAt: true,
+        domain: { select: { name: true } },
+      },
+    }),
+    resolveActorCapabilities(prisma, actor),
+  ]);
 
   if (!mailbox) {
     return null;
   }
+
+  const retentionCutoff = resolveActorRetentionCutoff(
+    capabilities,
+    actor.isAdministrator,
+  );
 
   const message = await prisma.message.findFirst({
     where: {
       uuid: messageUuid.trim(),
       mailboxId: mailbox.id,
       deletedAt: null,
+      ...(retentionCutoff ? { receivedAt: { gte: retentionCutoff } } : {}),
     },
     select: {
       id: true,
@@ -1021,7 +1180,12 @@ export async function getMessageDetailForUser(
     },
   });
 
-  if (!message) {
+  if (
+    !message ||
+    (retentionCutoff &&
+      message.receivedAt &&
+      message.receivedAt < retentionCutoff)
+  ) {
     return null;
   }
 
@@ -1064,8 +1228,6 @@ export async function getMessageDetailForUser(
     trustProxyHeaders: actor.trustProxyHeaders,
     details: { mailbox: mailbox.emailAddress },
   });
-
-  const capabilities = await resolveActorCapabilities(prisma, actor);
 
   return {
     id: message.id.toString(),

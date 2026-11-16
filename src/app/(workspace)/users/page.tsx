@@ -38,7 +38,7 @@ export default async function UserWorkspacePage() {
       });
     }
   } else if (isDemoPreviewWorkspaceActive()) {
-    snapshot = getDemoUserOverview(user.isAdministrator);
+    snapshot = getDemoUserOverview(user.isAdministrator, user.id);
   }
 
   return (

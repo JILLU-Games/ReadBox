@@ -14,7 +14,7 @@ import {
   Select,
   Textarea,
 } from "@/components/ui";
-import { Send } from "lucide-react";
+import { RotateCcw, Send } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -24,16 +24,41 @@ export interface ContactInquiryFormProps {
   readonly privacyUrl?: string;
 }
 
-const VALID_SERVICE_TYPES = new Set(["personal", "team", "business", "other"]);
+const INQUIRY_TOPICS = [
+  {
+    value: "personal",
+    shortLabel: "Account & Workspace",
+    optionLabel: "Account & Personal Workspace",
+  },
+  {
+    value: "team",
+    shortLabel: "Team & Quotas",
+    optionLabel: "Team Mailboxes & Quota Policy",
+  },
+  {
+    value: "business",
+    shortLabel: "Custom Domain",
+    optionLabel: "Custom Domain & Enterprise Setup",
+  },
+  {
+    value: "other",
+    shortLabel: "Technical Support",
+    optionLabel: "Technical Support & General Inquiry",
+  },
+] as const;
+
+const VALID_SERVICE_TYPES = new Set(INQUIRY_TOPICS.map((item) => item.value));
 
 export function ContactInquiryForm({
   initialServiceType = "",
   siteName,
   privacyUrl = "/privacy",
 }: ContactInquiryFormProps) {
-  const normalizedInitialService = VALID_SERVICE_TYPES.has(initialServiceType)
+  const normalizedInitialService = VALID_SERVICE_TYPES.has(
+    initialServiceType as (typeof INQUIRY_TOPICS)[number]["value"],
+  )
     ? initialServiceType
-    : "";
+    : "business";
 
   const [fullName, setFullName] = useState("");
   const [workEmail, setWorkEmail] = useState("");
@@ -52,6 +77,7 @@ export function ContactInquiryForm({
   const [statusBanner, setStatusBanner] = useState<{
     readonly type: "success" | "error";
     readonly text: string;
+    readonly requestId?: string;
   } | null>(null);
 
   const csrfPromiseRef = useRef<Promise<string> | null>(null);
@@ -91,6 +117,19 @@ export function ContactInquiryForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleReset = () => {
+    setFullName("");
+    setWorkEmail("");
+    setCompany("");
+    setPhone("");
+    setServiceType(normalizedInitialService);
+    setTeamSize("");
+    setMessage("");
+    setConsent(false);
+    setFieldErrors({});
+    setStatusBanner(null);
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFieldErrors({});
@@ -103,8 +142,12 @@ export function ContactInquiryForm({
     if (!workEmail.trim() || !workEmail.includes("@")) {
       localErrors.work_email = "Enter a valid email address.";
     }
-    if (!VALID_SERVICE_TYPES.has(serviceType)) {
-      localErrors.service_type = "Select a valid mailbox requirement.";
+    if (
+      !VALID_SERVICE_TYPES.has(
+        serviceType as (typeof INQUIRY_TOPICS)[number]["value"],
+      )
+    ) {
+      localErrors.service_type = "Select an inquiry topic.";
     }
     if (message.trim().length < 20) {
       localErrors.message = "Enter at least 20 characters.";
@@ -143,12 +186,15 @@ export function ContactInquiryForm({
           message,
           consent,
           website: websiteHoneypot,
-          form_started_at: String(formStartedAtRef.current || Date.now() - 3_000),
+          form_started_at: String(
+            formStartedAtRef.current || Date.now() - 3_000,
+          ),
         }),
       });
 
       const data = (await response.json().catch(() => ({}))) as {
         message?: string;
+        request_id?: string;
         errors?: Record<string, string>;
       };
 
@@ -161,9 +207,10 @@ export function ContactInquiryForm({
         );
       }
 
-      setStatusBanner({
+        setStatusBanner({
         type: "success",
-        text: `Thank you. Your inquiry has been sent to the ${siteName} administration team.`,
+        text: `Thank you. Your inquiry has been received by the ${siteName} support team.`,
+        requestId: data.request_id,
       });
       setFullName("");
       setWorkEmail("");
@@ -192,13 +239,10 @@ export function ContactInquiryForm({
   return (
     <Panel>
       <PanelHeader>
-        <SectionTitle>Mailbox &amp; Service Inquiry</SectionTitle>
-        <span className="text-[11px] text-muted-foreground">
-          Fields marked with <span aria-hidden="true">*</span> are required
-        </span>
+        <SectionTitle>Support &amp; Onboarding Inquiry</SectionTitle>
       </PanelHeader>
 
-      <PanelBody>
+      <PanelBody className="p-4">
         <form data-contact-form noValidate onSubmit={handleSubmit}>
           {statusBanner ? (
             <AlertBanner
@@ -208,9 +252,40 @@ export function ContactInquiryForm({
               aria-live="polite"
               className="mb-3"
             >
-              {statusBanner.text}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>{statusBanner.text}</span>
+                {statusBanner.requestId ? (
+                  <span className="font-mono text-[11px]">
+                    Ref: {statusBanner.requestId.slice(0, 12)}
+                  </span>
+                ) : null}
+              </div>
             </AlertBanner>
           ) : null}
+
+          {/* Quick Inquiry Topic Selector */}
+          <div className="mb-3 border-b border-border pb-3">
+            <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+              Quick topic selection
+            </p>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              {INQUIRY_TOPICS.map((topic) => {
+                const isSelected = serviceType === topic.value;
+                return (
+                  <Button
+                    key={topic.value}
+                    type="button"
+                    size="sm"
+                    variant={isSelected ? "default" : "outline"}
+                    onClick={() => setServiceType(topic.value)}
+                    className="w-full justify-center whitespace-nowrap"
+                  >
+                    {topic.shortLabel}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="grid gap-1">
@@ -314,7 +389,7 @@ export function ContactInquiryForm({
 
             <div className="grid gap-1">
               <Label htmlFor="service_type">
-                Mailbox requirement <span aria-hidden="true">*</span>
+                Inquiry topic <span aria-hidden="true">*</span>
               </Label>
               <Select
                 id="service_type"
@@ -325,11 +400,12 @@ export function ContactInquiryForm({
                 aria-invalid={Boolean(fieldErrors.service_type)}
                 className="w-full"
               >
-                <option value="">Select a service</option>
-                <option value="personal">Personal Private Mailbox</option>
-                <option value="team">Team Mailbox Access</option>
-                <option value="business">Business Mailbox Operations</option>
-                <option value="other">Custom / Other Requirement</option>
+                <option value="">Select a topic</option>
+                {INQUIRY_TOPICS.map((topic) => (
+                  <option key={topic.value} value={topic.value}>
+                    {topic.optionLabel}
+                  </option>
+                ))}
               </Select>
               {fieldErrors.service_type ? (
                 <p
@@ -342,7 +418,7 @@ export function ContactInquiryForm({
             </div>
 
             <div className="grid gap-1">
-              <Label htmlFor="team_size">Expected users</Label>
+              <Label htmlFor="team_size">Team or workspace size</Label>
               <Select
                 id="team_size"
                 name="team_size"
@@ -371,13 +447,13 @@ export function ContactInquiryForm({
             <div className="grid gap-1 sm:col-span-2">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor="message">
-                  Project or mailbox details <span aria-hidden="true">*</span>
+                  Message or technical details <span aria-hidden="true">*</span>
                 </Label>
                 <span
                   id="message-help"
-                  className="font-mono text-[11px] text-muted-foreground"
+                  className="font-mono text-[11px] tabular-nums text-muted-foreground"
                 >
-                  <span data-message-count>{message.length}</span> / 2000
+                  <span data-message-count>{message.length}</span> / 2000 (min 20)
                 </span>
               </div>
               <Textarea
@@ -388,7 +464,7 @@ export function ContactInquiryForm({
                 minLength={20}
                 maxLength={2000}
                 aria-describedby="message-help"
-                placeholder="Tell us which domain(s), mailbox addresses, or team workflows you need to set up."
+                placeholder="Describe your custom domain setup, workspace quota requirements, or technical support question."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.message)}
@@ -455,15 +531,23 @@ export function ContactInquiryForm({
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-            <Button type="submit" disabled={loading}>
-              <Icon glyph={Send} className="size-3" />
-              <span data-submit-label>
-                {loading ? "Sending inquiry…" : "Send inquiry"}
-              </span>
-            </Button>
-            <span className="text-[11px] text-muted-foreground">
-              Protected against automated spam &amp; rate abuse.
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" disabled={loading}>
+                <Icon glyph={Send} className="size-3" />
+                <span data-submit-label>
+                  {loading ? "Sending inquiry…" : "Send inquiry"}
+                </span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                onClick={handleReset}
+              >
+                <Icon glyph={RotateCcw} className="size-3" />
+                <span>Clear</span>
+              </Button>
+            </div>
           </div>
         </form>
       </PanelBody>

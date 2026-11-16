@@ -216,7 +216,7 @@ const environmentSchema = z
         .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, {
           message: "UPDATE_GITHUB_REPO must be in owner/repo format",
         })
-        .default("vibtools/MailStack"),
+        .default("vibtools/ReadBox"),
     ),
   })
   .superRefine((value, context) => {
@@ -242,7 +242,7 @@ const environmentSchema = z
     }
   });
 
-export type MailStackEnv = Readonly<{
+export type ReadBoxEnv = Readonly<{
   nodeEnv: "development" | "test" | "production";
   databaseUrl: string | undefined;
   authEnabled: boolean;
@@ -281,7 +281,7 @@ export type MailStackEnv = Readonly<{
 
 export function parseEnvironment(
   rawEnv: Record<string, string | undefined>,
-): MailStackEnv {
+): ReadBoxEnv {
   const result = environmentSchema.safeParse(rawEnv);
 
   if (!result.success) {
@@ -289,7 +289,7 @@ export function parseEnvironment(
       .map((issue) => issue.path.join("."))
       .join(", ");
     throw new Error(
-      `Invalid MailStack environment configuration: ${invalidKeys}`,
+      `Invalid ReadBox environment configuration: ${invalidKeys}`,
     );
   }
 

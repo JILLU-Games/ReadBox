@@ -19,15 +19,14 @@ export function PublicSiteFooter({
   footerDescription,
   copyrightText,
   privacyUrl,
-  sourceCodeUrl,
   supportEmail,
 }: PublicSiteFooterProps) {
   const year = new Date().getFullYear();
   const resolvedDescription =
     footerDescription?.trim() ||
-    "Managed private mailbox hosting, shared team inbox access, and auditable business mail operations.";
+    "Self-service custom-domain mailboxes, shared team inboxes, and private webmail workspaces.";
   const resolvedCopyright =
-    copyrightText?.trim() || "Managed private email infrastructure.";
+    copyrightText?.trim() || "All rights reserved.";
   const resolvedPrivacyHref = privacyUrl?.trim() || "/privacy";
 
   return (
@@ -79,46 +78,50 @@ export function PublicSiteFooter({
           </div>
 
           <div>
-            <h2 className="text-xs font-medium text-foreground">Services</h2>
+            <h2 className="text-xs font-medium text-foreground">Workspace</h2>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link
-                  href="/contact?service=personal"
-                  className="hover:text-foreground"
+                  href="/sign-up"
+                  className="font-medium text-foreground hover:text-primary"
                 >
-                  Personal Mailbox
+                  Create account (Sign up)
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/contact?service=team"
-                  className="hover:text-foreground"
-                >
-                  Team Mailboxes
+                <Link href="/sign-in" className="hover:text-foreground">
+                  User sign in
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/contact?service=business"
-                  className="hover:text-foreground"
-                >
-                  Business Operations
+                <Link href="/users" className="hover:text-foreground">
+                  Webmail inbox
+                </Link>
+              </li>
+              <li>
+                <Link href="/users/mailboxes" className="hover:text-foreground">
+                  My mailboxes
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h2 className="text-xs font-medium text-foreground">Platform</h2>
+            <h2 className="text-xs font-medium text-foreground">Features</h2>
             <ul className="mt-2 space-y-1.5">
               <li>
-                <Link href="/#features" className="hover:text-foreground">
-                  Platform features
+                <Link href="/#capabilities" className="hover:text-foreground">
+                  Core capabilities
+                </Link>
+              </li>
+              <li>
+                <Link href="/#workspaces" className="hover:text-foreground">
+                  Workspace plans
                 </Link>
               </li>
               <li>
                 <Link href="/#security" className="hover:text-foreground">
-                  Security posture
+                  Privacy &amp; security
                 </Link>
               </li>
               <li>
@@ -126,29 +129,21 @@ export function PublicSiteFooter({
                   Common questions
                 </Link>
               </li>
-              <li>
-                <Link href="/contact" className="hover:text-foreground">
-                  Request a mailbox
-                </Link>
-              </li>
             </ul>
           </div>
 
           <div>
-            <h2 className="text-xs font-medium text-foreground">Resources</h2>
+            <h2 className="text-xs font-medium text-foreground">
+              Support &amp; Legal
+            </h2>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link
-                  href="/sign-in"
+                  href="/contact"
                   className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary"
                 >
-                  <span>Client portal</span>
+                  <span>Contact &amp; support</span>
                   <Icon glyph={ArrowUpRight} className="size-3" />
-                </Link>
-              </li>
-              <li>
-                <Link href="/users" className="hover:text-foreground">
-                  Webmail workspace
                 </Link>
               </li>
               <li>
@@ -160,20 +155,6 @@ export function PublicSiteFooter({
                   Privacy policy
                 </Link>
               </li>
-              {sourceCodeUrl ? (
-                <li>
-                  <a
-                    href={sourceCodeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-source-code-url
-                    className="inline-flex items-center gap-1 hover:text-foreground"
-                  >
-                    <span>Source code</span>
-                    <Icon glyph={ArrowUpRight} className="size-3" />
-                  </a>
-                </li>
-              ) : null}
             </ul>
           </div>
         </div>
@@ -182,9 +163,6 @@ export function PublicSiteFooter({
           <p>
             © <span data-year>{year}</span> {siteName}.{" "}
             <span data-footer-copyright>{resolvedCopyright}</span>
-          </p>
-          <p className="font-mono text-[11px] text-muted-foreground">
-            SPF · DKIM · DMARC · TLS · Audited Access
           </p>
         </div>
       </div>

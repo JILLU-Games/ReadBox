@@ -54,11 +54,15 @@ export default async function UserMailboxesPage(props: {
       });
     }
   } else if (isDemoPreviewWorkspaceActive()) {
-    listResult = listDemoUserMailboxes(user.isAdministrator, {
-      query: searchParams.q,
-      status: searchParams.status,
-      page: Number(searchParams.page) || 1,
-    });
+    listResult = listDemoUserMailboxes(
+      user.isAdministrator,
+      {
+        query: searchParams.q,
+        status: searchParams.status,
+        page: Number(searchParams.page) || 1,
+      },
+      user.id,
+    );
   }
 
   return (

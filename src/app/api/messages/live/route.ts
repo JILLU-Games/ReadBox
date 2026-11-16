@@ -32,7 +32,7 @@ const EMPTY_LIVE_PAYLOAD: LiveUpdatePayload = {
 export async function GET(request: NextRequest) {
   if (!isLiveBackgroundRequest(request.headers)) {
     return NextResponse.json(
-      { error: "X-MailStack-Live-Request: 1 header is required." },
+      { error: "X-ReadBox-Live-Request: 1 header is required." },
       {
         status: 400,
         headers: {

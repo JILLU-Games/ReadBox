@@ -14,32 +14,36 @@ vi.mock("next-themes", () => ({
 }));
 
 describe("Public Website UI Components", () => {
-  it("renders PublicSiteHeader with brand, navigation links, and Client login / Request a mailbox CTAs", () => {
+  it("renders PublicSiteHeader with brand, navigation links, and Sign in / Sign up CTAs without Request a mailbox", () => {
     const { container } = render(
       <PublicSiteHeader
-        siteName="MailStack"
+        siteName="ReadBox"
         logoUrl="/api/media/branding/logo.png"
         activePage="home"
       />,
     );
 
-    expect(screen.getByText("MailStack")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Client login/i })).toHaveAttribute(
+    expect(screen.getByText("ReadBox")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Sign in/i })).toHaveAttribute(
       "href",
       "/sign-in",
     );
+    expect(screen.getByRole("link", { name: /Sign up/i })).toHaveAttribute(
+      "href",
+      "/sign-up",
+    );
     expect(
-      screen.getByRole("link", { name: /Request a mailbox/i }),
-    ).toHaveAttribute("href", "/contact");
+      screen.queryByRole("link", { name: /Request a mailbox/i }),
+    ).toBeNull();
     const logoImg = container.querySelector("img");
     expect(logoImg).not.toBeNull();
     expect(logoImg).toHaveAttribute("referrerpolicy", "no-referrer");
   });
 
-  it("renders PublicSiteFooter with dynamic support email, privacy policy, and copyright", () => {
+  it("renders PublicSiteFooter with Sign up, Sign in, dynamic support email, privacy policy, and copyright", () => {
     render(
       <PublicSiteFooter
-        siteName="MailStack"
+        siteName="ReadBox"
         supportEmail="ops@mailstack.io"
         footerDescription="Hardened custom-domain email operations."
         copyrightText="All rights reserved."
@@ -50,6 +54,9 @@ describe("Public Website UI Components", () => {
     expect(
       screen.getByText("Hardened custom-domain email operations."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Create account \(Sign up\)/i }),
+    ).toHaveAttribute("href", "/sign-up");
     expect(
       screen.getByRole("link", { name: "ops@mailstack.io" }),
     ).toHaveAttribute("href", "mailto:ops@mailstack.io");
@@ -74,22 +81,27 @@ describe("Public Website UI Components", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders ContactInquiryForm with preselected service, live character counter, and validation AlertBanner", async () => {
+  it("renders ContactInquiryForm with preselected topic, quick selector, live character counter, and validation AlertBanner", async () => {
     const user = userEvent.setup();
     render(
       <ContactInquiryForm
-        siteName="MailStack"
+        siteName="ReadBox"
         initialServiceType="team"
         privacyUrl="/privacy"
       />,
     );
 
     const serviceSelect = screen.getByLabelText(
-      /Mailbox requirement/i,
+      /Inquiry topic/i,
     ) as HTMLSelectElement;
     expect(serviceSelect.value).toBe("team");
 
-    const messageInput = screen.getByLabelText(/Project or mailbox details/i);
+    await user.click(screen.getByRole("button", { name: /Custom Domain/i }));
+    expect(serviceSelect.value).toBe("business");
+
+    const messageInput = screen.getByLabelText(
+      /Message or technical details/i,
+    );
     await user.type(messageInput, "Shared support mailbox setup");
     expect(screen.getByText("28")).toBeInTheDocument();
 

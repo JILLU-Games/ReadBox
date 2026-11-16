@@ -2,6 +2,7 @@ import { ContactInquiryForm } from "@/components/public/contact-inquiry-form";
 import { PublicSiteFooter } from "@/components/public/public-site-footer";
 import { PublicSiteHeader } from "@/components/public/public-site-header";
 import {
+  Button,
   Icon,
   PageTitle,
   Panel,
@@ -11,8 +12,17 @@ import {
 } from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
-import { CheckCircle2, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  LogIn,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  UserPlus,
+} from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +35,9 @@ function resolvePublicBaseUrl(): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
-  const title = `Contact ${siteName} — Request Private, Team or Business Mailboxes`;
-  const description = `Contact the ${siteName} team to request a private mailbox, configure shared team inbox access, or onboard your business domain.`;
+  const siteName = settings.siteName || "ReadBox";
+  const title = `Contact & Support — ${siteName}`;
+  const description = `Contact the ${siteName} team for custom domain onboarding, team workspace setup, or support.`;
   const baseUrl = resolvePublicBaseUrl();
 
   return {
@@ -58,7 +68,7 @@ export default async function PublicContactPage(props: {
   readonly searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
   const resolvedSearchParams = (await props.searchParams) ?? {};
   const rawService = resolvedSearchParams.service;
   const initialServiceType = Array.isArray(rawService)
@@ -76,14 +86,32 @@ export default async function PublicContactPage(props: {
       <main id="main" className="flex-1">
         <section className="border-b border-border bg-card py-5 sm:py-6">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
-            <PageTitle className="text-lg font-medium sm:text-xl">
-              Request a private, team, or business mailbox
-            </PageTitle>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Share your domain requirements, expected mailbox count, or
-              operational questions. Every inquiry is reviewed directly by our
-              administration team.
-            </p>
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <PageTitle className="text-lg font-medium sm:text-xl">
+                  Contact &amp; Support
+                </PageTitle>
+                <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                  Reach out for custom domain onboarding, team workspace setup,
+                  or general support. Need immediate mailbox access? Create your
+                  account directly via sign-up.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button asChild>
+                  <Link href="/sign-up">
+                    <Icon glyph={UserPlus} className="size-3.5" />
+                    <span>Sign up</span>
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/sign-in">
+                    <Icon glyph={LogIn} className="size-3.5" />
+                    <span>Sign in</span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -93,7 +121,34 @@ export default async function PublicContactPage(props: {
               <aside className="space-y-4 lg:col-span-5">
                 <Panel>
                   <PanelHeader>
-                    <SectionTitle>What happens next</SectionTitle>
+                    <SectionTitle>Self-Service Workspace</SectionTitle>
+                  </PanelHeader>
+                  <PanelBody className="space-y-3">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Individual users and teams can register directly, access
+                      available domains, and create mailboxes right from their
+                      workspace.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" asChild>
+                        <Link href="/sign-up">
+                          <Icon glyph={UserPlus} className="size-3" />
+                          <span>Create account</span>
+                        </Link>
+                      </Button>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href="/sign-in">
+                          <Icon glyph={LogIn} className="size-3" />
+                          <span>Sign in</span>
+                        </Link>
+                      </Button>
+                    </div>
+                  </PanelBody>
+                </Panel>
+
+                <Panel>
+                  <PanelHeader>
+                    <SectionTitle>Custom Domain Onboarding</SectionTitle>
                   </PanelHeader>
                   <PanelBody>
                     <ol className="space-y-2.5 text-xs">
@@ -103,11 +158,11 @@ export default async function PublicContactPage(props: {
                         </span>
                         <div>
                           <p className="font-medium text-foreground">
-                            Requirement review
+                            Share your requirements
                           </p>
                           <p className="mt-0.5 text-muted-foreground">
-                            We review your domain, mailbox addresses, and team
-                            access model.
+                            Tell us about your custom domain, team size, and
+                            workspace preferences.
                           </p>
                         </div>
                       </li>
@@ -117,11 +172,11 @@ export default async function PublicContactPage(props: {
                         </span>
                         <div>
                           <p className="font-medium text-foreground">
-                            DNS &amp; DKIM preparation
+                            Domain verification
                           </p>
                           <p className="mt-0.5 text-muted-foreground">
-                            We prepare exact MX, SPF, DKIM, and DMARC records for
-                            your domain.
+                            Our team provides simple verification steps to
+                            connect your domain.
                           </p>
                         </div>
                       </li>
@@ -131,11 +186,11 @@ export default async function PublicContactPage(props: {
                         </span>
                         <div>
                           <p className="font-medium text-foreground">
-                            Mailbox activation
+                            Workspace activation
                           </p>
                           <p className="mt-0.5 text-muted-foreground">
-                            Your accounts and shared inbox permissions are
-                            activated and verified.
+                            Your custom domain and mailbox limits are enabled
+                            for your workspace users.
                           </p>
                         </div>
                       </li>
@@ -150,7 +205,7 @@ export default async function PublicContactPage(props: {
                         glyph={ShieldCheck}
                         className="size-4 text-success"
                       />
-                      <SectionTitle>Included with every setup</SectionTitle>
+                      <SectionTitle>Workspace Highlights</SectionTitle>
                     </div>
                   </PanelHeader>
                   <PanelBody>
@@ -160,21 +215,21 @@ export default async function PublicContactPage(props: {
                           glyph={CheckCircle2}
                           className="size-3.5 text-success"
                         />
-                        <span>SPF, DKIM, and DMARC verification</span>
+                        <span>Dedicated custom domains for teams</span>
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Icon
                           glyph={CheckCircle2}
                           className="size-3.5 text-success"
                         />
-                        <span>Role-based shared mailbox access</span>
+                        <span>Flexible mailbox limits per account</span>
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Icon
                           glyph={CheckCircle2}
                           className="size-3.5 text-success"
                         />
-                        <span>Direct administrative support</span>
+                        <span>Automated message retention options</span>
                       </li>
                     </ul>
 
@@ -243,7 +298,6 @@ export default async function PublicContactPage(props: {
         footerDescription={settings.footerDescription}
         copyrightText={settings.copyrightText}
         privacyUrl={settings.privacyUrl}
-        sourceCodeUrl={settings.sourceCodeUrl}
         supportEmail={settings.supportEmail}
       />
     </div>

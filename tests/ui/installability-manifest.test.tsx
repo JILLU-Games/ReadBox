@@ -8,8 +8,8 @@ describe("app installability manifest", () => {
 
   it("declares standalone launch behavior and the authenticated workspace start URL", () => {
     expect(appManifest).toMatchObject({
-      name: "MailStack",
-      short_name: "MailStack",
+      name: "ReadBox",
+      short_name: "ReadBox",
       start_url: "/users",
       display: "standalone",
       background_color: "#f6f8fa",

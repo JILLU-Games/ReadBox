@@ -11,8 +11,10 @@ import {
   PanelHeader,
 } from "@/components/ui";
 import { env } from "@/config/env";
+import { getUserControlSettings } from "@/core/accounts/user-control-policy";
 import { getCurrentUser } from "@/core/auth/current-user";
 import { DEV_DEMO_ACCOUNTS } from "@/core/auth/dev-demo-auth";
+import { getPrismaClient } from "@/core/database/client";
 import { getSiteSettings } from "@/core/settings/service";
 import { Mail } from "lucide-react";
 import type { Metadata } from "next";
@@ -20,10 +22,16 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Sign in",
-  referrer: "same-origin",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteName = settings.siteName || "ReadBox";
+  return {
+    title: {
+      absolute: `User sign in | ${siteName}`,
+    },
+    referrer: "same-origin",
+  };
+}
 
 export default async function SignInPage() {
   const devBypassActive =
@@ -31,11 +39,13 @@ export default async function SignInPage() {
   const devDemoActive =
     env.nodeEnv === "development" && env.devAuthMode === "demo";
   const authActive = env.authEnabled || devDemoActive;
-  const [currentUser, settings] = await Promise.all([
+  const prisma = env.databaseUrl ? getPrismaClient() : null;
+  const [currentUser, settings, userControl] = await Promise.all([
     authActive ? getCurrentUser() : Promise.resolve(null),
     getSiteSettings(),
+    getUserControlSettings(prisma),
   ]);
-  const siteName = settings.siteName || "MailStack";
+  const siteName = settings.siteName || "ReadBox";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
@@ -54,8 +64,7 @@ export default async function SignInPage() {
 
       <Panel>
         <PanelHeader>
-          <PageTitle>Sign in</PageTitle>
-          <span className="text-[11px] text-muted-foreground">{siteName}</span>
+          <PageTitle>User sign in</PageTitle>
         </PanelHeader>
         <PanelBody className="space-y-3 p-4">
           {devBypassActive ? (
@@ -63,16 +72,13 @@ export default async function SignInPage() {
               <AlertBanner
                 variant="info"
                 role="status"
-                title={`Development auth bypass is active (${env.devAuthRole}).`}
+                title="Local workspace preview is active."
               >
-                Protected workspace routes are open locally without signing in.
+                You can open the user workspace directly without signing in.
               </AlertBanner>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm">
-                  <Link href="/users">Open user panel</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/vcon">Open admin panel</Link>
+                  <Link href="/users">Open workspace</Link>
                 </Button>
               </div>
             </div>
@@ -85,21 +91,29 @@ export default async function SignInPage() {
                 </span>
                 .
               </p>
-              <form action={signOutAction}>
-                <Button type="submit" size="sm" variant="outline">
-                  Sign out
+              <div className="flex flex-wrap items-center gap-2">
+                <Button asChild size="sm">
+                  <Link href="/users">Open workspace</Link>
                 </Button>
-              </form>
+                <form action={signOutAction}>
+                  <Button type="submit" size="sm" variant="outline">
+                    Sign out
+                  </Button>
+                </form>
+              </div>
             </div>
           ) : (
             <SignInForm
               enabled={authActive}
+              loginScope="user"
               demoAccounts={
                 devDemoActive
-                  ? DEV_DEMO_ACCOUNTS.map((account) => ({
+                  ? DEV_DEMO_ACCOUNTS.filter(
+                      (account) => !account.isAdministrator,
+                    ).map((account) => ({
                       username: account.username,
                       password: account.password,
-                      roleLabel: account.isAdministrator ? "Admin" : "User",
+                      roleLabel: "User",
                     }))
                   : undefined
               }
@@ -109,11 +123,19 @@ export default async function SignInPage() {
       </Panel>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        {userControl.signupEnabled ? (
+          <Link
+            className="font-medium text-foreground underline hover:text-primary"
+            href="/sign-up"
+          >
+            Create user account
+          </Link>
+        ) : null}
         <Link
           className="text-muted-foreground underline hover:text-foreground"
           href="/reset-password"
         >
-          Set a new password with an operator-issued reset token
+          Reset password
         </Link>
       </div>
     </main>

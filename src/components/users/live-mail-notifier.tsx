@@ -7,7 +7,7 @@ import type {
   LiveUpdateMessageItem,
   LiveUpdatePayload,
 } from "@/core/messages/service";
-import { Bell, BellRing, LayoutDashboard, Mail } from "lucide-react";
+import { Bell, LayoutDashboard, Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -258,7 +258,7 @@ export function useLiveMailPoller({
             credentials: "same-origin",
             headers: {
               Accept: "application/json",
-              "X-MailStack-Live-Request": "1",
+              "X-ReadBox-Live-Request": "1",
             },
             cache: "no-store",
             signal: controller.signal,
@@ -405,7 +405,7 @@ export function LiveWorkspaceNavigationBar({
     onLivePayloadRef.current = onLivePayload;
   }, [onLivePayload]);
 
-  const { notificationPermission, handleEnableNotifications, syncDegraded } =
+  const { notificationPermission, handleEnableNotifications } =
     useLiveMailPoller({
       visibleMailboxUuids,
       pollingEnabled: pollingEnabled && !liveContext.active,
@@ -458,14 +458,8 @@ export function LiveWorkspaceNavigationBar({
         </Button>
       </nav>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {syncDegraded ? (
-          <span className="text-[11px] font-medium text-warning">
-            Live sync paused
-          </span>
-        ) : null}
-        <span className="text-[11px] text-muted-foreground">Receive-only</span>
-        {notificationPermission === "default" ? (
+      {notificationPermission === "default" ? (
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="outline"
@@ -475,13 +469,8 @@ export function LiveWorkspaceNavigationBar({
             <Icon glyph={Bell} />
             Enable notifications
           </Button>
-        ) : notificationPermission === "granted" ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
-            <Icon glyph={BellRing} />
-            Alerts on
-          </span>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

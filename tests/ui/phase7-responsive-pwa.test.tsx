@@ -51,7 +51,7 @@ describe("Phase 7 — 320px Responsive Containment & PWA Cache Privacy Contract"
     const { container } = render(
       <SystemUpdateConsole
         currentVersion="1.3.5.5"
-        githubRepo="vibtools/MailStack"
+        githubRepo="vibtools/ReadBox"
         runtimeDir="/run/vibmail"
         initialPreflight={{
           status: "blocked",

@@ -34,7 +34,7 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
         officeAddress: "Suite 200",
         footerDescription: "Internal team workspace",
         copyrightText: "Authorized use only",
-        sourceCodeUrl: "https://github.com/vibtools/MailStack",
+        sourceCodeUrl: "https://github.com/vibtools/ReadBox",
         privacyUrl: "/privacy/",
         updatedAtIso: "2026-11-15T12:00:00.000Z",
         databaseConnected: true,
@@ -44,7 +44,7 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
     render(
       <SettingsConsole
         initialSettings={{
-          siteName: "MailStack",
+          siteName: "ReadBox",
           siteTagline: "Self-hosted mail server and shared team inbox.",
           logoPath: "",
           faviconPath: "",
@@ -55,7 +55,7 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
           officeAddress: "",
           footerDescription: "",
           copyrightText: "Authorized team use only.",
-          sourceCodeUrl: "https://github.com/vibtools/MailStack",
+          sourceCodeUrl: "https://github.com/vibtools/ReadBox",
           privacyUrl: "/privacy/",
           updatedAtIso: "2026-11-15T10:00:00.000Z",
           databaseConnected: true,
@@ -98,9 +98,9 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
             latest_version: "1.4.0",
             release_notes: "Security and PostgreSQL improvements",
             archive_url:
-              "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip",
+              "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip",
             checksum_url:
-              "https://github.com/vibtools/MailStack/releases/download/v1.4.0/mailstack-1.4.0-source.zip.sha256",
+              "https://github.com/vibtools/ReadBox/releases/download/v1.4.0/readbox-1.4.0-source.zip.sha256",
             published_at: "2026-11-15T00:00:00Z",
           }),
           { status: 200 },
@@ -137,7 +137,7 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
     render(
       <SystemUpdateConsole
         currentVersion="1.3.5.5"
-        githubRepo="vibtools/MailStack"
+        githubRepo="vibtools/ReadBox"
         runtimeDir="/run/vibmail"
         initialPreflight={{
           status: "ready",
@@ -249,7 +249,7 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
     render(
       <SystemUpdateConsole
         currentVersion="1.3.5.5"
-        githubRepo="vibtools/MailStack"
+        githubRepo="vibtools/ReadBox"
         runtimeDir="/run/vibmail"
         initialPreflight={{
           status: "ready",
