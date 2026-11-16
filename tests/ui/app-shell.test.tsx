@@ -79,6 +79,19 @@ describe("AppShell navigation, role gating, and sign-out", () => {
       "href",
       "/users/mailboxes",
     );
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/users/settings",
+    );
+
+    const openSpy = vi.fn();
+    window.addEventListener("readbox:open-create-mailbox", openSpy);
+    const addMailboxBtn = screen.getByRole("button", { name: /Add mailbox/i });
+    expect(addMailboxBtn).toBeInTheDocument();
+    addMailboxBtn.click();
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    window.removeEventListener("readbox:open-create-mailbox", openSpy);
+
     expect(
       screen.getByRole("link", { name: /alice@mailstack\.local/i }),
     ).toHaveAttribute(

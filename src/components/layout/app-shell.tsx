@@ -21,6 +21,7 @@ import {
   LogOut,
   Mail,
   Menu,
+  Plus,
   ScrollText,
   Settings,
   ShieldCheck,
@@ -63,6 +64,7 @@ export interface AppShellProps {
 const workspaceNavigation = [
   { href: "/users", label: "Overview", icon: LayoutDashboard },
   { href: "/users/mailboxes", label: "My mailboxes", icon: Mail },
+  { href: "/users/settings", label: "Settings", icon: Settings },
 ] as const;
 
 const managementGroups = [
@@ -412,6 +414,26 @@ export function AppShell({
                   );
                 })}
               </nav>
+
+              {!isAdminRoute ? (
+                <div className="px-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2.5"
+                    onClick={() => {
+                      closeMobileNavigation();
+                      window.dispatchEvent(
+                        new CustomEvent("readbox:open-create-mailbox"),
+                      );
+                    }}
+                  >
+                    <Icon glyph={Plus} />
+                    <span>Add mailbox</span>
+                  </Button>
+                </div>
+              ) : null}
 
               {!isAdminRoute && mailboxes.length > 0 ? (
                 <>

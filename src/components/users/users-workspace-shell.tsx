@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Icon } from "@/components/ui";
+import { Button, Icon, notify } from "@/components/ui";
 import { CreateUserMailboxModal } from "@/components/users/create-user-mailbox-modal";
 import { UsersLiveProvider } from "@/components/users/live-mail-notifier";
 import type { UserAccessCapabilities } from "@/core/accounts/policy";
@@ -10,7 +10,7 @@ import type {
 } from "@/core/mailboxes/service";
 import type { UserMailboxSummaryItem } from "@/core/messages/service";
 import { Bell } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export interface UsersWorkspaceShellProps {
   readonly mailboxes: readonly UserMailboxSummaryItem[];
@@ -53,13 +53,44 @@ export function UsersWorkspaceShell({
     capabilities?.canCreateMailboxes !== false &&
     (maxMailboxes <= 0 || effectiveMailboxCount < maxMailboxes);
 
+  const openCreateModal = useCallback(() => {
+    if (canCreate) {
+      setCreateOpen(true);
+      return;
+    }
+
+    const message =
+      capabilities?.canCreateMailboxes === false
+        ? "Mailbox creation is disabled for your account by User Control policy."
+        : `Mailbox limit reached (${effectiveMailboxCount}/${maxMailboxes}). Contact an administrator to increase your quota.`;
+    notify.error(message);
+  }, [
+    canCreate,
+    capabilities?.canCreateMailboxes,
+    effectiveMailboxCount,
+    maxMailboxes,
+  ]);
+
+  useEffect(() => {
+    function handleOpenCreateMailbox() {
+      openCreateModal();
+    }
+    window.addEventListener(
+      "readbox:open-create-mailbox",
+      handleOpenCreateMailbox,
+    );
+    return () =>
+      window.removeEventListener(
+        "readbox:open-create-mailbox",
+        handleOpenCreateMailbox,
+      );
+  }, [openCreateModal]);
+
   return (
     <UsersLiveProvider
       visibleMailboxUuids={visibleUuids}
       pollingEnabled={databaseConfigured}
-      openCreateMailboxModal={() => {
-        if (canCreate) setCreateOpen(true);
-      }}
+      openCreateMailboxModal={openCreateModal}
     >
       {({ notificationPermission, handleEnableNotifications }) => (
         <div className="border border-border bg-card">

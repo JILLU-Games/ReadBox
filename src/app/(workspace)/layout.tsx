@@ -33,7 +33,11 @@ async function loadSidebarMailboxes(user: {
       items = [];
     }
   } else if (isDemoPreviewWorkspaceActive()) {
-    items = listDemoUserMailboxes(user.isAdministrator, { page: 1 }).items;
+    items = listDemoUserMailboxes(
+      user.isAdministrator,
+      { page: 1 },
+      user.id,
+    ).items;
   }
 
   return items.map((mbx) => ({
