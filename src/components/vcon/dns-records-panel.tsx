@@ -1,24 +1,24 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import {
+  Badge,
+  Button,
+  CopyButton,
+  Icon,
+  notify,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui";
 import {
   buildCloudflareZoneFile,
   type ExpectedDnsRecord,
 } from "@/core/dns/records";
 import type { CheckedDnsRecordStatus } from "@/core/dns/resolver";
-import { Check, Copy, Download } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { Download } from "lucide-react";
 
 export interface DisplayDnsRecord extends ExpectedDnsRecord {
   readonly status?: CheckedDnsRecordStatus;
@@ -47,21 +47,6 @@ export function DnsRecordsPanel({
   readonly records: readonly DisplayDnsRecord[];
   readonly showCloudflareExport?: boolean;
 }) {
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
-  async function handleCopy(value: string, index: number) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedIndex(index);
-      toast.success("DNS record value copied.");
-      setTimeout(() => {
-        setCopiedIndex((current) => (current === index ? null : current));
-      }, 1500);
-    } catch {
-      toast.error("Clipboard copy is unavailable in this browser.");
-    }
-  }
-
   function handleDownloadZone() {
     if (!domainName) return;
     const zoneText = buildCloudflareZoneFile(domainName, records);
@@ -74,23 +59,27 @@ export function DnsRecordsPanel({
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    toast.success(`Downloaded ${domainName}-cloudflare-dns.txt`);
+    notify.success(`Downloaded ${domainName}-cloudflare-dns.txt`);
   }
 
   const hasStatus = records.some((record) => record.status !== undefined);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {showCloudflareExport && records.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="space-y-0.5 text-xs text-muted-foreground">
             <p>
-              <strong className="text-foreground">Required for routing:</strong>{" "}
+              <span className="font-medium text-foreground">
+                Required for routing:
+              </span>{" "}
               MX and mail-host A/AAAA must resolve before enabling a domain.
             </p>
             <p>
-              <strong className="text-foreground">Deliverability:</strong> SPF,
-              OpenDKIM, and DMARC strengthen sender reputation.
+              <span className="font-medium text-foreground">
+                Deliverability:
+              </span>{" "}
+              SPF, OpenDKIM, and DMARC strengthen sender reputation.
             </p>
           </div>
           <Button
@@ -105,74 +94,69 @@ export function DnsRecordsPanel({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Purpose</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Host</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Value</TableHead>
-              {hasStatus ? <TableHead>Status</TableHead> : null}
-              <TableHead className="text-right">Copy</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.map((record, index) => (
-              <TableRow key={`${record.type}-${record.host}-${index}`}>
-                <TableCell>
-                  <Badge
-                    variant={
-                      record.category === "routing" ? "default" : "outline"
-                    }
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Purpose</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Host</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Value</TableHead>
+            {hasStatus ? <TableHead>Status</TableHead> : null}
+            <TableHead className="text-right">Copy</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {records.map((record, index) => (
+            <TableRow key={`${record.type}-${record.host}-${index}`}>
+              <TableCell>
+                <Badge
+                  variant={record.category === "routing" ? "default" : "outline"}
+                >
+                  {record.category === "routing"
+                    ? "Required routing"
+                    : "Deliverability"}
+                </Badge>
+              </TableCell>
+              <TableCell className="font-mono text-xs font-medium">
+                {record.type}
+              </TableCell>
+              <TableCell className="font-mono text-xs">
+                <div>{record.host}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  CF name: {record.cfHost}
+                </div>
+              </TableCell>
+              <TableCell className="font-mono text-xs">
+                {record.priority}
+              </TableCell>
+              <TableCell className="max-w-md font-mono text-xs [overflow-wrap:anywhere]">
+                {record.value}
+              </TableCell>
+              {hasStatus ? (
+                <TableCell>{statusBadge(record.status)}</TableCell>
+              ) : null}
+              <TableCell className="text-right">
+                {record.copyable ? (
+                  <CopyButton
+                    value={record.value}
+                    label={`Copy ${record.type} value for ${record.host}`}
+                    successMessage="DNS record value copied."
+                    errorMessage="Clipboard copy is unavailable in this browser."
+                    className="px-2 py-1 hover:bg-accent hover:text-accent-foreground"
                   >
-                    {record.category === "routing"
-                      ? "Required routing"
-                      : "Deliverability"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-mono text-xs font-medium">
-                  {record.type}
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  <div>{record.host}</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    CF name: {record.cfHost}
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {record.priority}
-                </TableCell>
-                <TableCell className="max-w-md font-mono text-xs [overflow-wrap:anywhere]">
-                  {record.value}
-                </TableCell>
-                {hasStatus ? (
-                  <TableCell>{statusBadge(record.status)}</TableCell>
-                ) : null}
-                <TableCell className="text-right">
-                  {record.copyable ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      aria-label={`Copy ${record.type} value for ${record.host}`}
-                      onClick={() => void handleCopy(record.value, index)}
-                    >
-                      <Icon glyph={copiedIndex === index ? Check : Copy} />
-                      <span>{copiedIndex === index ? "Copied" : "Copy"}</span>
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Not configured
-                    </span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                    <span>Copy</span>
+                  </CopyButton>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    Not configured
+                  </span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

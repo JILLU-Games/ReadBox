@@ -8,6 +8,12 @@ import type {
   MailboxPrismaClient,
 } from "@/core/mailboxes/service";
 import {
+  bulkDeleteDemoMailboxes,
+  createDemoMailbox,
+  deleteDemoMailbox,
+  isDemoPreviewWorkspaceActive,
+} from "@/core/messages/demo-workspace";
+import {
   bulkDeleteUserMailboxes,
   createUserSelfMailbox,
   deleteUserMailbox,
@@ -25,6 +31,12 @@ function getRuntimeConfig() {
   };
 }
 
+function revalidateUsersWorkspace() {
+  revalidatePath("/users", "layout");
+  revalidatePath("/users");
+  revalidatePath("/users/mailboxes");
+}
+
 export async function createUserMailboxAction(input: {
   readonly localPart: string;
   readonly domainUuid?: string;
@@ -33,6 +45,13 @@ export async function createUserMailboxAction(input: {
 > {
   const user = await requireWorkspaceUser();
   if (!env.databaseUrl) {
+    if (isDemoPreviewWorkspaceActive()) {
+      const demoResult = createDemoMailbox(input);
+      if (demoResult.ok) {
+        revalidateUsersWorkspace();
+      }
+      return demoResult;
+    }
     return {
       ok: false,
       code: "unavailable",
@@ -62,8 +81,7 @@ export async function createUserMailboxAction(input: {
   );
 
   if (result.ok) {
-    revalidatePath("/users");
-    revalidatePath("/users/mailboxes");
+    revalidateUsersWorkspace();
   }
 
   return result;
@@ -75,6 +93,16 @@ export async function deleteUserMailboxAction(input: {
 }): Promise<MailboxActionResult<{ emailAddress: string }>> {
   const user = await requireWorkspaceUser();
   if (!env.databaseUrl) {
+    if (isDemoPreviewWorkspaceActive()) {
+      const demoResult = deleteDemoMailbox(
+        input.mailboxUuid,
+        input.confirmationEmail,
+      );
+      if (demoResult.ok) {
+        revalidateUsersWorkspace();
+      }
+      return demoResult;
+    }
     return {
       ok: false,
       code: "unavailable",
@@ -105,8 +133,7 @@ export async function deleteUserMailboxAction(input: {
   );
 
   if (result.ok) {
-    revalidatePath("/users");
-    revalidatePath("/users/mailboxes");
+    revalidateUsersWorkspace();
   }
 
   return result;
@@ -120,6 +147,16 @@ export async function bulkDeleteUserMailboxesAction(input: {
 > {
   const user = await requireWorkspaceUser();
   if (!env.databaseUrl) {
+    if (isDemoPreviewWorkspaceActive()) {
+      const demoResult = bulkDeleteDemoMailboxes(
+        input.mailboxUuids,
+        input.confirmed,
+      );
+      if (demoResult.ok) {
+        revalidateUsersWorkspace();
+      }
+      return demoResult;
+    }
     return {
       ok: false,
       code: "unavailable",
@@ -150,8 +187,7 @@ export async function bulkDeleteUserMailboxesAction(input: {
   );
 
   if (result.ok) {
-    revalidatePath("/users");
-    revalidatePath("/users/mailboxes");
+    revalidateUsersWorkspace();
   }
 
   return result;

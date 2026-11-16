@@ -1,4 +1,6 @@
+import { Icon } from "@/components/ui";
 import { ArrowUpRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export interface PublicSiteFooterProps {
@@ -30,22 +32,25 @@ export function PublicSiteFooter({
 
   return (
     <footer className="border-t border-border bg-card text-xs text-muted-foreground">
-      <div className="mx-auto max-w-6xl px-3 py-8 sm:px-5">
+      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-5">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-foreground"
+              className="inline-flex items-center gap-2 text-xs font-medium text-foreground"
             >
               <span
                 aria-hidden="true"
-                className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded bg-primary text-[11px] font-bold text-primary-foreground"
+                className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-none border border-border bg-primary text-[11px] font-medium text-primary-foreground"
               >
                 {logoUrl ? (
-                  <img
+                  <Image
                     src={logoUrl}
                     alt=""
-                    className="h-full w-full object-contain"
+                    width={24}
+                    height={24}
+                    referrerPolicy="no-referrer"
+                    className="size-full object-contain"
                   />
                 ) : (
                   siteName.slice(0, 1).toUpperCase() || "M"
@@ -74,9 +79,7 @@ export function PublicSiteFooter({
           </div>
 
           <div>
-            <h2 className="text-[11px] font-semibold tracking-wider text-foreground uppercase">
-              Services
-            </h2>
+            <h2 className="text-xs font-medium text-foreground">Services</h2>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link
@@ -106,9 +109,7 @@ export function PublicSiteFooter({
           </div>
 
           <div>
-            <h2 className="text-[11px] font-semibold tracking-wider text-foreground uppercase">
-              Platform
-            </h2>
+            <h2 className="text-xs font-medium text-foreground">Platform</h2>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link href="/#features" className="hover:text-foreground">
@@ -134,9 +135,7 @@ export function PublicSiteFooter({
           </div>
 
           <div>
-            <h2 className="text-[11px] font-semibold tracking-wider text-foreground uppercase">
-              Resources
-            </h2>
+            <h2 className="text-xs font-medium text-foreground">Resources</h2>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link
@@ -144,7 +143,7 @@ export function PublicSiteFooter({
                   className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary"
                 >
                   <span>Client portal</span>
-                  <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                  <Icon glyph={ArrowUpRight} className="size-3" />
                 </Link>
               </li>
               <li>
@@ -171,7 +170,7 @@ export function PublicSiteFooter({
                     className="inline-flex items-center gap-1 hover:text-foreground"
                   >
                     <span>Source code</span>
-                    <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                    <Icon glyph={ArrowUpRight} className="size-3" />
                   </a>
                 </li>
               ) : null}

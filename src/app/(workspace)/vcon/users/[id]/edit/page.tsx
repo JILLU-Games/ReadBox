@@ -1,5 +1,11 @@
 import { updateUserAction } from "@/app/(workspace)/vcon/users/actions";
-import { Button } from "@/components/ui/button";
+import {
+  AlertBanner,
+  Button,
+  PageTitle,
+  Panel,
+  PanelBody,
+} from "@/components/ui";
 import { UserForm } from "@/components/vcon/user-form";
 import { env } from "@/config/env";
 import {
@@ -23,17 +29,19 @@ export default async function AdminEditUserPage({
 
   if (!env.databaseUrl) {
     return (
-      <section className="mx-auto max-w-xl rounded-lg border border-border bg-card p-5">
-        <h1 className="text-base font-semibold">Database not configured</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Configure DATABASE_URL before editing persistent user accounts.
-        </p>
-        <div className="mt-4">
-          <Button asChild variant="outline">
-            <Link href="/vcon/users">Back to users</Link>
-          </Button>
-        </div>
-      </section>
+      <Panel className="mx-auto max-w-xl">
+        <PanelBody className="space-y-3 p-4">
+          <PageTitle>Database not configured</PageTitle>
+          <AlertBanner variant="warning" role="status">
+            Configure DATABASE_URL before editing persistent user accounts.
+          </AlertBanner>
+          <div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/vcon/users">Back to users</Link>
+            </Button>
+          </div>
+        </PanelBody>
+      </Panel>
     );
   }
 
@@ -47,25 +55,18 @@ export default async function AdminEditUserPage({
     if (userResult.code === "not_found") {
       notFound();
     }
-
     return (
-      <section
-        className="mx-auto max-w-xl rounded-lg border border-border bg-card p-5"
-        role="alert"
-      >
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Protected account
-        </p>
-        <h1 className="mt-1 text-base font-semibold">Edit not permitted</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {userResult.error}
-        </p>
-        <div className="mt-4">
-          <Button asChild variant="outline">
-            <Link href="/vcon/users">Back to users</Link>
-          </Button>
-        </div>
-      </section>
+      <Panel className="mx-auto max-w-xl">
+        <PanelBody className="space-y-3 p-4">
+          <PageTitle>Edit not permitted</PageTitle>
+          <AlertBanner variant="error">{userResult.error}</AlertBanner>
+          <div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/vcon/users">Back to users</Link>
+            </Button>
+          </div>
+        </PanelBody>
+      </Panel>
     );
   }
 

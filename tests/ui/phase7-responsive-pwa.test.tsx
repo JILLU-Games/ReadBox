@@ -89,4 +89,16 @@ describe("Phase 7 — 320px Responsive Containment & PWA Cache Privacy Contract"
     expect(swSource).not.toContain('cache.put("/users"');
     expect(swSource).not.toContain('cache.put("/vcon"');
   });
+
+  it("hides all visual scrollbars globally in globals.css while keeping layouts clean", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "src", "app", "globals.css"),
+      "utf8",
+    );
+
+    expect(css).toContain("scrollbar-width: none");
+    expect(css).toContain("-ms-overflow-style: none");
+    expect(css).toContain("*::-webkit-scrollbar");
+    expect(css).toContain("display: none");
+  });
 });

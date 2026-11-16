@@ -41,10 +41,7 @@ function createMockPrismaClient(): PrismaClient {
 
 export function getPrismaClient(): PrismaClient {
   if (!env.databaseUrl) {
-    if (env.nodeEnv === "production") {
-      throw new Error("DATABASE_URL is required in production");
-    }
-    console.info("[AI Studio] Database not connected — using mock");
+    console.warn("[AI Studio] Database not connected — using mock");
     return createMockPrismaClient();
   }
 
@@ -52,11 +49,8 @@ export function getPrismaClient(): PrismaClient {
     try {
       const adapter = new PrismaPg({ connectionString: env.databaseUrl });
       globalForPrisma.mailstackPrisma = new PrismaClient({ adapter });
-    } catch (error) {
-      if (env.nodeEnv === "production") {
-        throw error;
-      }
-      console.info("[AI Studio] Database not connected — using mock");
+    } catch {
+      console.warn("[AI Studio] Database not connected — using mock");
       return createMockPrismaClient();
     }
   }

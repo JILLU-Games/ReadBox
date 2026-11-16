@@ -1,28 +1,38 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
+  AlertBanner,
+  Badge,
+  Button,
+  Checkbox,
+  CopyButton,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { FormField } from "@/components/ui/form-field";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
+  FormField,
+  Icon,
+  Input,
+  Label,
+  notify,
+  PageTitle,
+  Panel,
+  PanelBody,
+  PanelHeader,
+  SectionTitle,
+  Select,
+} from "@/components/ui";
 import { generateRandomUsername } from "@/core/accounts/credentials-generator";
 import type {
   MailboxActionResult,
   MailboxCreationDomainOption,
   MailboxCreationUserOption,
 } from "@/core/mailboxes/service";
-import { Check, Copy, RefreshCw, Search } from "lucide-react";
+import { Copy, RefreshCw, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
-import { toast } from "sonner";
 
 export interface MailboxFormProps {
   readonly domains: readonly MailboxCreationDomainOption[];
@@ -55,7 +65,6 @@ export function MailboxForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [createdEmail, setCreatedEmail] = useState<string | null>(null);
-  const [copiedEmail, setCopiedEmail] = useState(false);
 
   const selectedDomain = useMemo(
     () => domains.find((domain) => domain.uuid === domainUuid) ?? defaultDomain,
@@ -99,30 +108,30 @@ export function MailboxForm({
       if (!result.ok) {
         setFormError(result.error);
         if (result.fieldErrors) setFieldErrors(result.fieldErrors);
-        toast.error(result.error);
+        notify.error(result.error);
         return;
       }
 
       if (copyAfterCreate) {
         try {
           await navigator.clipboard.writeText(result.data.emailAddress);
-          setCopiedEmail(true);
-          toast.success(
+          notify.success(
             `Mailbox ${result.data.emailAddress} created and copied.`,
           );
         } catch {
-          setCopiedEmail(false);
-          toast.success(`Mailbox ${result.data.emailAddress} created.`);
+          notify.success(`Mailbox ${result.data.emailAddress} created.`);
         }
         setCreatedEmail(result.data.emailAddress);
         return;
       }
 
-      toast.success(`Mailbox ${result.data.emailAddress} created.`);
+      notify.success(`Mailbox ${result.data.emailAddress} created.`);
       router.push("/vcon/mailboxes");
       router.refresh();
     } catch {
-      setFormError("Unable to provision mailbox right now.");
+      const msg = "Unable to provision mailbox right now.";
+      setFormError(msg);
+      notify.error(msg);
     } finally {
       setPending(false);
     }
@@ -134,183 +143,166 @@ export function MailboxForm({
   }
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Mailboxes
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">Provision mailbox</h1>
-        </div>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <PageTitle>Provision mailbox</PageTitle>
         <Button asChild size="sm" variant="outline">
           <Link href="/vcon/mailboxes">Back to mailboxes</Link>
         </Button>
       </header>
 
       {!databaseConfigured ? (
-        <section
-          className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"
-          role="status"
-        >
+        <AlertBanner variant="warning" role="status">
           Database is not configured in this local environment. Connect
           PostgreSQL to provision persistent mailboxes and Maildir directories.
-        </section>
+        </AlertBanner>
       ) : domains.length === 0 ? (
-        <section
-          className="rounded-lg border border-warning/40 bg-card p-4 text-sm text-foreground"
-          role="status"
-        >
+        <AlertBanner variant="warning" role="status">
           No active, DNS-verified domain is available yet.{" "}
           <Link href="/vcon/domains" className="underline">
             Verify and enable a domain
           </Link>{" "}
           before provisioning mailboxes.
-        </section>
+        </AlertBanner>
       ) : null}
 
-      {formError ? (
-        <div
-          className="rounded-md border border-destructive/40 bg-destructive-bg px-4 py-3 text-sm text-destructive-muted"
-          role="alert"
-        >
-          {formError}
-        </div>
-      ) : null}
+      {formError ? <AlertBanner variant="error">{formError}</AlertBanner> : null}
 
-      <form onSubmit={handleFormSubmit} className="space-y-6">
-        <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-            <FormField
-              id="mailbox-domain"
-              label="Domain"
-              hint="Only active, DNS-verified domains can receive mail."
-              error={fieldErrors.domainUuid}
-            >
-              <select
+      <form onSubmit={handleFormSubmit} className="space-y-4">
+        <Panel>
+          <PanelBody className="p-4">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+              <FormField
                 id="mailbox-domain"
-                name="domainUuid"
-                value={domainUuid}
-                onChange={(event) => setDomainUuid(event.target.value)}
-                disabled={domains.length === 0}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                label="Domain"
+                hint="Only active, DNS-verified domains can receive mail."
+                error={fieldErrors.domainUuid}
               >
-                {domains.map((domain) => (
-                  <option key={domain.uuid} value={domain.uuid}>
-                    {domain.name}
-                    {domain.isDefault ? " (Default)" : ""}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-
-            <FormField
-              id="mailbox-local-part"
-              label="Mailbox local part"
-              hint={
-                selectedDomain
-                  ? `Full address: ${localPart.trim().toLowerCase() || "local"}@${selectedDomain.name}`
-                  : "Lowercase letters, numbers, dot, underscore, or hyphen."
-              }
-              error={fieldErrors.localPart}
-            >
-              <div className="flex gap-2">
-                <Input
-                  id="mailbox-local-part"
-                  name="localPart"
-                  value={localPart}
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="e.g. logan.rodriguez"
-                  onChange={(event) => setLocalPart(event.target.value)}
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGenerateLocalPart}
+                <Select
+                  id="mailbox-domain"
+                  name="domainUuid"
+                  value={domainUuid}
+                  onChange={(event) => setDomainUuid(event.target.value)}
+                  disabled={domains.length === 0}
+                  className="w-full"
                 >
-                  <Icon glyph={RefreshCw} />
-                  <span>Generate</span>
-                </Button>
-              </div>
-            </FormField>
-          </div>
-        </section>
+                  {domains.map((domain) => (
+                    <option key={domain.uuid} value={domain.uuid}>
+                      {domain.name}
+                      {domain.isDefault ? " (Default)" : ""}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
 
-        <section className="space-y-3 rounded-lg border border-border bg-card p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold">Assign to users</h2>
-              <p className="text-xs text-muted-foreground">
-                Active non-administrator users granted access to this inbox.
-              </p>
-            </div>
-            <Badge variant="outline">{selectedUserIds.length} selected</Badge>
-          </div>
-
-          <div className="relative">
-            <label htmlFor="mailbox-user-filter" className="sr-only">
-              Filter assignable users
-            </label>
-            <Icon
-              glyph={Search}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              id="mailbox-user-filter"
-              value={userQuery}
-              placeholder="Filter users by username or email"
-              className="pl-9"
-              onChange={(event) => setUserQuery(event.target.value)}
-            />
-          </div>
-
-          <div className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border">
-            {filteredUsers.length === 0 ? (
-              <p className="p-3 text-xs text-muted-foreground">
-                {users.length === 0
-                  ? "No active standard users available yet."
-                  : "No users match the filter."}
-              </p>
-            ) : (
-              filteredUsers.map((user) => {
-                const checkboxId = `assign-user-${user.id}`;
-                const checked = selectedUserIds.includes(user.id);
-                return (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-muted/50"
+              <FormField
+                id="mailbox-local-part"
+                label="Mailbox local part"
+                hint={
+                  selectedDomain
+                    ? `Full address: ${localPart.trim().toLowerCase() || "local"}@${selectedDomain.name}`
+                    : "Lowercase letters, numbers, dot, underscore, or hyphen."
+                }
+                error={fieldErrors.localPart}
+              >
+                <div className="flex gap-2">
+                  <Input
+                    id="mailbox-local-part"
+                    name="localPart"
+                    value={localPart}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="e.g. logan.rodriguez"
+                    onChange={(event) => setLocalPart(event.target.value)}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleGenerateLocalPart}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        id={checkboxId}
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleUser(user.id)}
-                        className="size-4 rounded border-input accent-primary"
-                      />
-                      <label htmlFor={checkboxId} className="font-medium">
-                        {user.username}
-                      </label>
+                    <Icon glyph={RefreshCw} />
+                    <span>Generate</span>
+                  </Button>
+                </div>
+              </FormField>
+            </div>
+          </PanelBody>
+        </Panel>
+
+        <Panel>
+          <PanelHeader>
+            <SectionTitle>Assign to users</SectionTitle>
+            <Badge variant="outline">{selectedUserIds.length} selected</Badge>
+          </PanelHeader>
+          <PanelBody className="space-y-3 p-4">
+            <div className="relative">
+              <Label htmlFor="mailbox-user-filter" className="sr-only">
+                Filter assignable users
+              </Label>
+              <Icon
+                glyph={Search}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                id="mailbox-user-filter"
+                value={userQuery}
+                placeholder="Filter users by username or email"
+                className="pl-8"
+                onChange={(event) => setUserQuery(event.target.value)}
+              />
+            </div>
+
+            <div className="max-h-56 divide-y divide-border overflow-y-auto border border-border">
+              {filteredUsers.length === 0 ? (
+                <p className="p-3 text-xs text-muted-foreground">
+                  {users.length === 0
+                    ? "No active standard users available yet."
+                    : "No users match the filter."}
+                </p>
+              ) : (
+                filteredUsers.map((user) => {
+                  const checkboxId = `assign-user-${user.id}`;
+                  const checked = selectedUserIds.includes(user.id);
+                  return (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between gap-3 px-3 py-2 text-xs hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={checkboxId}
+                          checked={checked}
+                          onChange={() => toggleUser(user.id)}
+                        />
+                        <Label
+                          htmlFor={checkboxId}
+                          className="cursor-pointer font-medium"
+                        >
+                          {user.username}
+                        </Label>
+                      </div>
+                      {user.email ? (
+                        <span className="truncate text-xs text-muted-foreground">
+                          {user.email}
+                        </span>
+                      ) : null}
                     </div>
-                    {user.email ? (
-                      <span className="truncate text-xs text-muted-foreground">
-                        {user.email}
-                      </span>
-                    ) : null}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
+                  );
+                })
+              )}
+            </div>
+          </PanelBody>
+        </Panel>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button asChild type="button" variant="outline">
+          <Button asChild type="button" size="sm" variant="outline">
             <Link href="/vcon/mailboxes">Cancel</Link>
           </Button>
           <Button
             type="button"
+            size="sm"
             variant="outline"
             disabled={pending || !databaseConfigured || domains.length === 0}
             onClick={() => void submitCreation(true)}
@@ -320,6 +312,7 @@ export function MailboxForm({
           </Button>
           <Button
             type="submit"
+            size="sm"
             disabled={pending || !databaseConfigured || domains.length === 0}
           >
             {pending ? "Provisioning..." : "Create mailbox"}
@@ -345,30 +338,23 @@ export function MailboxForm({
               : ""}
           </DialogDescription>
           {createdEmail ? (
-            <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 font-mono text-sm">
+            <div className="flex items-center justify-between gap-2 border border-border bg-muted/40 px-3 py-2 font-mono text-xs">
               <span className="truncate">{createdEmail}</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(createdEmail);
-                    setCopiedEmail(true);
-                    toast.success("Email address copied.");
-                  } catch {
-                    toast.error("Clipboard copy is unavailable.");
-                  }
-                }}
+              <CopyButton
+                value={createdEmail}
+                label={`Copy ${createdEmail}`}
+                successMessage="Email address copied."
+                errorMessage="Clipboard copy is unavailable."
+                className="border border-border bg-card px-2 py-1 hover:bg-accent hover:text-accent-foreground"
               >
-                <Icon glyph={copiedEmail ? Check : Copy} />
-                <span>{copiedEmail ? "Copied" : "Copy"}</span>
-              </Button>
+                <span>Copy</span>
+              </CopyButton>
             </div>
           ) : null}
           <DialogFooter>
             <Button
               type="button"
+              size="sm"
               onClick={() => {
                 setCreatedEmail(null);
                 router.push("/vcon/mailboxes");

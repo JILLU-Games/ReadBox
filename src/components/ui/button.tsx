@@ -4,21 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-none text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:opacity-90",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-muted",
-        outline: "border border-border bg-card hover:bg-muted",
-        ghost: "hover:bg-muted",
+        secondary: "border border-border bg-secondary text-secondary-foreground hover:bg-muted",
+        outline: "border border-border bg-card text-foreground hover:bg-muted",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         destructive: "bg-destructive text-destructive-foreground hover:opacity-90",
       },
       size: {
-        default: "min-h-9 px-3.5",
-        sm: "min-h-8 px-2.5 text-xs",
-        lg: "min-h-10 px-4",
-        icon: "size-9",
+        default: "h-8 px-3",
+        sm: "h-7 px-2.5 text-xs",
+        xs: "h-6 px-2 text-[11px]",
+        lg: "h-9 px-4 text-sm",
+        icon: "size-8",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

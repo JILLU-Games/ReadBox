@@ -1,24 +1,26 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
+  AlertBanner,
+  Badge,
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
-import {
+  Icon,
+  Input,
+  Label,
+  notify,
+  PageTitle,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui";
 import type {
   ManagedUserListItem,
   ManagedUserListResult,
@@ -28,7 +30,6 @@ import { Search, Trash2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 
 function formatShortDate(iso: string | null, fallback: string): string {
   if (!iso) return fallback;
@@ -70,31 +71,26 @@ export function UsersDirectory({
     try {
       const result = await onDeleteUser(deleteTarget.id);
       if (!result.ok) {
-        toast.error(result.error);
+        notify.error(result.error);
         setDeleteTarget(null);
         return;
       }
-      toast.success(
+      notify.success(
         `User ${result.data.username} deleted. Mailboxes and messages were preserved.`,
       );
       setDeleteTarget(null);
       router.refresh();
     } catch {
-      toast.error("Could not delete user. Try again later.");
+      notify.error("Could not delete user. Try again later.");
     } finally {
       setDeleting(false);
     }
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Admin panel
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">User management</h1>
-        </div>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <PageTitle>User management</PageTitle>
         <Button asChild size="sm">
           <Link href="/vcon/users/new">
             <Icon glyph={UserPlus} />
@@ -104,20 +100,14 @@ export function UsersDirectory({
       </header>
 
       {!databaseConfigured ? (
-        <section
-          className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"
-          role="status"
-        >
+        <AlertBanner variant="warning" role="status">
           Database is not configured in this local environment. User accounts
           stored in PostgreSQL will appear here once DATABASE_URL is set.
-        </section>
+        </AlertBanner>
       ) : !databaseConnected ? (
-        <section
-          className="rounded-lg border border-destructive/40 bg-destructive-bg p-4 text-sm text-destructive-muted"
-          role="alert"
-        >
+        <AlertBanner variant="error">
           Unable to load users from PostgreSQL right now.
-        </section>
+        </AlertBanner>
       ) : null}
 
       <form
@@ -127,26 +117,26 @@ export function UsersDirectory({
         className="flex flex-wrap items-center gap-2"
       >
         <div className="relative min-w-56 flex-1">
-          <label className="sr-only" htmlFor="users-search">
+          <Label className="sr-only" htmlFor="users-search">
             Search users
-          </label>
+          </Label>
           <Icon
             glyph={Search}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             id="users-search"
             name="q"
             defaultValue={list.query}
             placeholder="Search username, name, or email"
-            className="pl-9"
+            className="pl-8"
           />
         </div>
-        <Button type="submit" variant="outline">
+        <Button type="submit" size="sm" variant="outline">
           Search
         </Button>
         {list.query ? (
-          <Button asChild variant="ghost">
+          <Button asChild size="sm" variant="ghost">
             <Link href="/vcon/users">Clear</Link>
           </Button>
         ) : null}
@@ -179,7 +169,9 @@ export function UsersDirectory({
                         {item.username}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {fullName || item.email || `Joined ${item.dateJoined.slice(0, 10)}`}
+                        {fullName ||
+                          item.email ||
+                          `Joined ${item.dateJoined.slice(0, 10)}`}
                       </p>
                     </div>
                   </TableCell>
@@ -234,7 +226,7 @@ export function UsersDirectory({
             <TableRow>
               <TableCell
                 colSpan={8}
-                className="py-10 text-center text-sm text-muted-foreground"
+                className="py-8 text-center text-xs text-muted-foreground"
               >
                 No users found.
               </TableCell>
@@ -286,6 +278,7 @@ export function UsersDirectory({
           <DialogFooter>
             <Button
               type="button"
+              size="sm"
               variant="outline"
               disabled={deleting}
               onClick={() => setDeleteTarget(null)}
@@ -294,6 +287,7 @@ export function UsersDirectory({
             </Button>
             <Button
               type="button"
+              size="sm"
               variant="destructive"
               disabled={deleting}
               onClick={() => void handleConfirmDelete()}

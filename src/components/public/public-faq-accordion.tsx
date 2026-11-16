@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon, Panel } from "@/components/ui";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { PUBLIC_FAQ_ITEMS, type PublicFaqItem } from "./public-faq-data";
@@ -14,23 +15,23 @@ export function PublicFaqAccordion({
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <div className="divide-y divide-border rounded-lg border border-border bg-card">
+    <Panel className="divide-y divide-border">
       {items.map((item, index) => {
         const isOpen = openIndex === index;
         return (
-          <div key={item.question} className="px-4 py-3">
+          <div key={item.question} className="px-3 py-2.5">
             <button
               type="button"
               aria-expanded={isOpen}
               onClick={() =>
                 setOpenIndex((current) => (current === index ? null : index))
               }
-              className="flex w-full items-center justify-between gap-3 text-left text-xs font-semibold text-foreground sm:text-sm"
+              className="flex w-full items-center justify-between gap-3 text-left text-xs font-medium text-foreground"
             >
               <span>{item.question}</span>
-              <ChevronDown
-                aria-hidden="true"
-                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 ${
+              <Icon
+                glyph={ChevronDown}
+                className={`size-4 shrink-0 text-muted-foreground transition-transform duration-150 ${
                   isOpen ? "rotate-180 text-primary" : ""
                 }`}
               />
@@ -43,6 +44,6 @@ export function PublicFaqAccordion({
           </div>
         );
       })}
-    </div>
+    </Panel>
   );
 }

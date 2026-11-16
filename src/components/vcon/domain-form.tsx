@@ -1,17 +1,27 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
+  AlertBanner,
+  Badge,
+  Button,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { FormField } from "@/components/ui/form-field";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
+  FormField,
+  Icon,
+  Input,
+  Label,
+  notify,
+  PageTitle,
+  Panel,
+  PanelBody,
+  PanelHeader,
+  SectionTitle,
+  Select,
+} from "@/components/ui";
 import {
   DnsRecordsPanel,
   type DisplayDnsRecord,
@@ -29,7 +39,6 @@ import { RefreshCw, ShieldCheck, Star, Trash2, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { toast } from "sonner";
 
 export interface DomainFormProps {
   readonly mode: "create" | "edit";
@@ -153,14 +162,14 @@ export function DomainForm({
         const message =
           response.error ?? "Enter a valid domain name before previewing DNS.";
         setFieldErrors({ name: message });
-        toast.error(message);
+        notify.error(message);
         return;
       }
       setRecords(response.records);
       setPreviewedDomain(name.trim().replace(/\.+$/, "").toLowerCase());
-      toast.success("DNS records generated.");
+      notify.success("DNS records generated.");
     } catch {
-      toast.error("Unable to generate DNS preview right now.");
+      notify.error("Unable to generate DNS preview right now.");
     } finally {
       setPreviewLoading(false);
     }
@@ -187,14 +196,16 @@ export function DomainForm({
         if (!result.ok) {
           setFormError(result.error);
           if (result.fieldErrors) setFieldErrors(result.fieldErrors);
-          toast.error(result.error);
+          notify.error(result.error);
           return;
         }
-        toast.success(result.message ?? `Domain ${result.data.name} added.`);
+        notify.success(result.message ?? `Domain ${result.data.name} added.`);
         router.push(`/vcon/domains/${result.data.uuid}/edit`);
         router.refresh();
       } catch {
-        setFormError("Unable to create domain right now.");
+        const msg = "Unable to create domain right now.";
+        setFormError(msg);
+        notify.error(msg);
       } finally {
         setPending(false);
       }
@@ -211,16 +222,18 @@ export function DomainForm({
       if (!result.ok) {
         setFormError(result.error);
         if (result.fieldErrors) setFieldErrors(result.fieldErrors);
-        toast.error(result.error);
+        notify.error(result.error);
         return;
       }
-      toast.success(
+      notify.success(
         result.message ?? `Domain ${initialDomain.name} updated.`,
       );
       router.push("/vcon/domains");
       router.refresh();
     } catch {
-      setFormError("Unable to update domain right now.");
+      const msg = "Unable to update domain right now.";
+      setFormError(msg);
+      notify.error(msg);
     } finally {
       setPending(false);
     }
@@ -232,18 +245,18 @@ export function DomainForm({
     try {
       const result = await onCheckDns(initialDomain.uuid);
       if (!result.ok) {
-        toast.error(result.error);
+        notify.error(result.error);
         return;
       }
       if (result.data.verified) {
-        toast.success(result.data.message);
+        notify.success(result.data.message);
       } else {
         setStatus("disabled");
-        toast.error(result.data.message);
+        notify.error(result.data.message);
       }
       router.refresh();
     } catch {
-      toast.error("Unable to run routing verification right now.");
+      notify.error("Unable to run routing verification right now.");
     } finally {
       setPending(false);
     }
@@ -278,18 +291,18 @@ export function DomainForm({
     try {
       const result = await onDelete(initialDomain.uuid);
       if (!result.ok) {
-        toast.error(result.error);
+        notify.error(result.error);
         setDeleteDialogOpen(false);
         return;
       }
-      toast.success(
+      notify.success(
         result.message ?? `Domain ${initialDomain.name} removed.`,
       );
       setDeleteDialogOpen(false);
       router.push("/vcon/domains");
       router.refresh();
     } catch {
-      toast.error("Unable to delete domain right now.");
+      notify.error("Unable to delete domain right now.");
     } finally {
       setPending(false);
     }
@@ -304,262 +317,255 @@ export function DomainForm({
         : null;
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Domains
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">
-            {isCreate
-              ? "Add mail domain"
-              : `Manage ${initialDomain?.name ?? "domain"}`}
-          </h1>
-        </div>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <PageTitle>
+          {isCreate
+            ? "Add mail domain"
+            : `Manage ${initialDomain?.name ?? "domain"}`}
+        </PageTitle>
         <Button asChild size="sm" variant="outline">
           <Link href="/vcon/domains">Back to domains</Link>
         </Button>
       </header>
 
       {!databaseConfigured ? (
-        <section
-          className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"
-          role="status"
-        >
+        <AlertBanner variant="warning" role="status">
           Database is not configured in this local environment. You can still
           preview and download Cloudflare DNS zone records below.
-        </section>
+        </AlertBanner>
       ) : null}
 
-      {formError ? (
-        <div
-          className="rounded-md border border-destructive/40 bg-destructive-bg px-4 py-3 text-sm text-destructive-muted"
-          role="alert"
-        >
-          {formError}
-        </div>
-      ) : null}
+      {formError ? <AlertBanner variant="error">{formError}</AlertBanner> : null}
 
       {!isCreate && initialDomain ? (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              variant={
-                initialDomain.status === "active" ? "success" : "warning"
-              }
-            >
-              {initialDomain.status === "active" ? "Active" : "Disabled"}
-            </Badge>
-            <Badge
-              variant={
-                initialDomain.verificationStatus === "verified"
-                  ? "success"
-                  : initialDomain.verificationStatus === "failed"
-                    ? "destructive"
-                    : "warning"
-              }
-            >
-              DNS: {initialDomain.verificationStatus}
-            </Badge>
-            {initialDomain.isDefault ? (
-              <Badge variant="default">Default domain</Badge>
-            ) : null}
-            <span className="text-xs text-muted-foreground">
-              {initialDomain.mailboxCount} active mailbox
-              {initialDomain.mailboxCount === 1 ? "" : "es"}
-            </span>
-          </div>
+        <Panel>
+          <PanelBody className="flex flex-wrap items-center justify-between gap-3 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant={
+                  initialDomain.status === "active" ? "success" : "warning"
+                }
+              >
+                {initialDomain.status === "active" ? "Active" : "Disabled"}
+              </Badge>
+              <Badge
+                variant={
+                  initialDomain.verificationStatus === "verified"
+                    ? "success"
+                    : initialDomain.verificationStatus === "failed"
+                      ? "destructive"
+                      : "warning"
+                }
+              >
+                DNS: {initialDomain.verificationStatus}
+              </Badge>
+              {initialDomain.isDefault ? (
+                <Badge variant="default">Default domain</Badge>
+              ) : null}
+              <span className="text-xs text-muted-foreground">
+                {initialDomain.mailboxCount} active mailbox
+                {initialDomain.mailboxCount === 1 ? "" : "es"}
+              </span>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              onClick={() => void handleRunRoutingCheck()}
-            >
-              <Icon glyph={RefreshCw} />
-              <span>Run routing check</span>
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              onClick={() => void handleOpenLiveDnsModal()}
-            >
-              <Icon glyph={ShieldCheck} />
-              <span>Inspect all DNS records</span>
-            </Button>
-            {!initialDomain.isDefault &&
-            initialDomain.status === "active" &&
-            initialDomain.verificationStatus === "verified" &&
-            onMakeDefault ? (
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 disabled={pending}
-                onClick={async () => {
-                  const res = await onMakeDefault(initialDomain.uuid);
-                  if (res.ok) {
-                    toast.success(
-                      res.message ?? `${initialDomain.name} is now default.`,
-                    );
-                    router.refresh();
-                  } else {
-                    toast.error(res.error);
-                  }
-                }}
+                onClick={() => void handleRunRoutingCheck()}
               >
-                <Icon glyph={Star} />
-                <span>Make default</span>
+                <Icon glyph={RefreshCw} />
+                <span>Run routing check</span>
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={pending || deleteBlockedReason !== null}
-              title={deleteBlockedReason ?? `Delete ${initialDomain.name}`}
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Icon glyph={Trash2} />
-              <span>Delete</span>
-            </Button>
-          </div>
-        </section>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => void handleOpenLiveDnsModal()}
+              >
+                <Icon glyph={ShieldCheck} />
+                <span>Inspect all DNS records</span>
+              </Button>
+              {!initialDomain.isDefault &&
+              initialDomain.status === "active" &&
+              initialDomain.verificationStatus === "verified" &&
+              onMakeDefault ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={async () => {
+                    try {
+                      const res = await onMakeDefault(initialDomain.uuid);
+                      if (res.ok) {
+                        notify.success(
+                          res.message ?? `${initialDomain.name} is now default.`,
+                        );
+                        router.refresh();
+                      } else {
+                        notify.error(res.error);
+                      }
+                    } catch {
+                      notify.error("Unable to set default domain right now.");
+                    }
+                  }}
+                >
+                  <Icon glyph={Star} />
+                  <span>Make default</span>
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={pending || deleteBlockedReason !== null}
+                title={deleteBlockedReason ?? `Delete ${initialDomain.name}`}
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Icon glyph={Trash2} />
+                <span>Delete</span>
+              </Button>
+            </div>
+          </PanelBody>
+        </Panel>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-lg border border-border bg-card p-5">
-          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
-            <FormField
-              id="domain-name"
-              label="Domain name"
-              hint={
-                isCreate
-                  ? "Enter a domain name without protocol, then generate DNS records."
-                  : "Domain names cannot be changed after creation; add a new domain instead."
-              }
-              error={fieldErrors.name}
-            >
-              <div className="flex gap-2">
-                <Input
-                  id="domain-name"
-                  name="name"
-                  value={name}
-                  disabled={!isCreate}
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="example.com"
-                  onChange={(event) => setName(event.target.value)}
-                  required={isCreate}
-                />
-                {isCreate ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={previewLoading || !name.trim()}
-                    onClick={() => void handlePreviewDns()}
-                  >
-                    <Icon glyph={Zap} />
-                    <span>{previewLoading ? "Generating..." : "Preview DNS"}</span>
-                  </Button>
-                ) : null}
-              </div>
-            </FormField>
-
-            {!isCreate && initialDomain ? (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Panel>
+          <PanelBody className="p-4">
+            <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
               <FormField
-                id="domain-status"
-                label="Mail delivery status"
+                id="domain-name"
+                label="Domain name"
                 hint={
-                  initialDomain.verificationStatus !== "verified"
-                    ? "Domain must pass routing DNS verification (MX + A/AAAA) before it can be activated."
-                    : "Controls whether Postfix accepts incoming mail for this domain."
+                  isCreate
+                    ? "Enter a domain name without protocol, then generate DNS records."
+                    : "Domain names cannot be changed after creation; add a new domain instead."
                 }
-                error={fieldErrors.status}
+                error={fieldErrors.name}
               >
-                <select
-                  id="domain-status"
-                  name="status"
-                  value={status}
-                  onChange={(event) =>
-                    setStatus(
-                      event.target.value === "active" ? "active" : "disabled",
-                    )
-                  }
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="disabled">Disabled</option>
-                  <option
-                    value="active"
-                    disabled={initialDomain.verificationStatus !== "verified"}
-                  >
-                    Active
-                  </option>
-                </select>
+                <div className="flex gap-2">
+                  <Input
+                    id="domain-name"
+                    name="name"
+                    value={name}
+                    disabled={!isCreate}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="example.com"
+                    onChange={(event) => setName(event.target.value)}
+                    required={isCreate}
+                  />
+                  {isCreate ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={previewLoading || !name.trim()}
+                      onClick={() => void handlePreviewDns()}
+                    >
+                      <Icon glyph={Zap} />
+                      <span>
+                        {previewLoading ? "Generating..." : "Preview DNS"}
+                      </span>
+                    </Button>
+                  ) : null}
+                </div>
               </FormField>
-            ) : null}
-          </div>
-        </section>
 
-        <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold">Required &amp; recommended DNS records</h2>
-              <p className="text-xs text-muted-foreground">
-                Publish these records at your DNS provider before running verification.
-              </p>
-            </div>
-          </div>
-
-          {records.length === 0 ? (
-            <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              No DNS records generated yet. Enter a domain name above and click{" "}
-              <strong className="text-foreground">Preview DNS</strong>.
-            </div>
-          ) : (
-            <DnsRecordsPanel
-              domainName={previewedDomain || name}
-              records={records}
-            />
-          )}
-
-          {isCreate ? (
-            <div className="space-y-1.5 border-t border-border pt-4">
-              <div className="flex items-start gap-2.5">
-                <input
-                  id="domain-dns-confirmed"
-                  type="checkbox"
-                  checked={dnsConfirmed}
-                  onChange={(event) => setDnsConfirmed(event.target.checked)}
-                  className="mt-0.5 size-4 rounded border-input accent-primary"
-                />
-                <label
-                  htmlFor="domain-dns-confirmed"
-                  className="text-sm font-medium text-foreground"
+              {!isCreate && initialDomain ? (
+                <FormField
+                  id="domain-status"
+                  label="Mail delivery status"
+                  hint={
+                    initialDomain.verificationStatus !== "verified"
+                      ? "Domain must pass routing DNS verification (MX + A/AAAA) before it can be activated."
+                      : "Controls whether Postfix accepts incoming mail for this domain."
+                  }
+                  error={fieldErrors.status}
                 >
-                  I have reviewed the DNS records above and understand routing
-                  verification is required before enabling mail delivery.
-                </label>
-              </div>
-              {fieldErrors.dnsConfirmed ? (
-                <p className="text-xs text-destructive" role="alert">
-                  {fieldErrors.dnsConfirmed}
-                </p>
+                  <Select
+                    id="domain-status"
+                    name="status"
+                    value={status}
+                    onChange={(event) =>
+                      setStatus(
+                        event.target.value === "active" ? "active" : "disabled",
+                      )
+                    }
+                    className="w-full"
+                  >
+                    <option value="disabled">Disabled</option>
+                    <option
+                      value="active"
+                      disabled={initialDomain.verificationStatus !== "verified"}
+                    >
+                      Active
+                    </option>
+                  </Select>
+                </FormField>
               ) : null}
             </div>
-          ) : null}
-        </section>
+          </PanelBody>
+        </Panel>
+
+        <Panel>
+          <PanelHeader>
+            <SectionTitle>Required &amp; recommended DNS records</SectionTitle>
+          </PanelHeader>
+          <PanelBody className="space-y-4 p-4">
+            {records.length === 0 ? (
+              <div className="border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
+                No DNS records generated yet. Enter a domain name above and
+                click{" "}
+                <span className="font-medium text-foreground">Preview DNS</span>.
+              </div>
+            ) : (
+              <DnsRecordsPanel
+                domainName={previewedDomain || name}
+                records={records}
+              />
+            )}
+
+            {isCreate ? (
+              <div className="space-y-1.5 border-t border-border pt-3">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="domain-dns-confirmed"
+                    checked={dnsConfirmed}
+                    onChange={(event) => setDnsConfirmed(event.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <Label
+                    htmlFor="domain-dns-confirmed"
+                    className="cursor-pointer font-normal"
+                  >
+                    I have reviewed the DNS records above and understand routing
+                    verification is required before enabling mail delivery.
+                  </Label>
+                </div>
+                {fieldErrors.dnsConfirmed ? (
+                  <p className="text-xs text-destructive" role="alert">
+                    {fieldErrors.dnsConfirmed}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </PanelBody>
+        </Panel>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button asChild type="button" variant="outline">
+          <Button asChild type="button" size="sm" variant="outline">
             <Link href="/vcon/domains">Cancel</Link>
           </Button>
           <Button
             type="submit"
+            size="sm"
             disabled={pending || (isCreate && !databaseConfigured)}
           >
             {pending
@@ -575,24 +581,19 @@ export function DomainForm({
         <DialogContent className="max-w-3xl">
           <DialogTitle>Live DNS inspection — {initialDomain?.name}</DialogTitle>
           <DialogDescription>
-            Required routing records (MX + A/AAAA) must pass before mail delivery
-            can be enabled. Deliverability records (SPF, DKIM, DMARC) are checked
-            separately.
+            Required routing records (MX + A/AAAA) must pass before mail
+            delivery can be enabled. Deliverability records (SPF, DKIM, DMARC)
+            are checked separately.
           </DialogDescription>
 
           {dnsModalLoading ? (
-            <p className="py-6 text-sm text-muted-foreground">
+            <p className="py-5 text-xs text-muted-foreground">
               Querying authoritative DNS records...
             </p>
           ) : dnsInspectionError ? (
-            <div
-              className="rounded-md border border-destructive/40 bg-destructive-bg p-3 text-sm text-destructive-muted"
-              role="alert"
-            >
-              {dnsInspectionError}
-            </div>
+            <AlertBanner variant="error">{dnsInspectionError}</AlertBanner>
           ) : dnsInspection ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant={
@@ -623,6 +624,7 @@ export function DomainForm({
           <DialogFooter>
             <Button
               type="button"
+              size="sm"
               variant="outline"
               onClick={() => setDnsModalOpen(false)}
             >
@@ -631,6 +633,7 @@ export function DomainForm({
             {dnsInspection?.routingVerified && onCheckDns ? (
               <Button
                 type="button"
+                size="sm"
                 disabled={pending}
                 onClick={() => {
                   setDnsModalOpen(false);
@@ -655,6 +658,7 @@ export function DomainForm({
           <DialogFooter>
             <Button
               type="button"
+              size="sm"
               variant="outline"
               disabled={pending}
               onClick={() => setDeleteDialogOpen(false)}
@@ -663,6 +667,7 @@ export function DomainForm({
             </Button>
             <Button
               type="button"
+              size="sm"
               variant="destructive"
               disabled={pending}
               onClick={() => void handleConfirmDelete()}

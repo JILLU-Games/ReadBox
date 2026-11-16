@@ -8,6 +8,10 @@ import { env } from "@/config/env";
 import { requireWorkspaceUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
 import {
+  isDemoPreviewWorkspaceActive,
+  listDemoUserMailboxes,
+} from "@/core/messages/demo-workspace";
+import {
   createUnconfiguredUserMailboxList,
   listUserMailboxes,
 } from "@/core/messages/service";
@@ -49,6 +53,12 @@ export default async function UserMailboxesPage(props: {
         isAdministrator: user.isAdministrator,
       });
     }
+  } else if (isDemoPreviewWorkspaceActive()) {
+    listResult = listDemoUserMailboxes(user.isAdministrator, {
+      query: searchParams.q,
+      status: searchParams.status,
+      page: Number(searchParams.page) || 1,
+    });
   }
 
   return (

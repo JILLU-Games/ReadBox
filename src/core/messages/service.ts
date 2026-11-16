@@ -35,7 +35,6 @@ export const SAFE_HTML_CSP_POLICY = [
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'self'",
-  "navigate-to 'none'",
 ].join("; ");
 
 export interface UserWorkspaceActor {
@@ -1250,22 +1249,44 @@ export async function softDeleteMessageForUser(
   };
 }
 
-export function buildSanitizedHtmlDocument(sanitizedHtmlBody: string): string {
+export interface SanitizedHtmlRenderOptions {
+  readonly theme?: "light" | "dark";
+}
+
+export function buildSanitizedHtmlDocument(
+  sanitizedHtmlBody: string,
+  options?: SanitizedHtmlRenderOptions,
+): string {
   const body =
     sanitizedHtmlBody && sanitizedHtmlBody.trim().length > 0
       ? sanitizedHtmlBody
       : "<p>No HTML body is available.</p>";
 
+  const lightCss =
+    "*{scrollbar-width:none;-ms-overflow-style:none;}*::-webkit-scrollbar{display:none;width:0;height:0;}" +
+    "html{color-scheme:light;color:#1b2733;background:#ffffff;font-family:\"Segoe UI\",\"Segoe UI Web\",system-ui,-apple-system,\"Helvetica Neue\",sans-serif;}" +
+    "body{margin:0;padding:16px;font-size:13px;line-height:1.55;overflow-wrap:anywhere;}" +
+    "img{max-width:100%;height:auto;}table{max-width:100%;border-collapse:collapse;}" +
+    "th,td{border-color:#dce3e8;}" +
+    "pre{white-space:pre-wrap;overflow-wrap:anywhere;}blockquote{margin-left:0;padding-left:14px;" +
+    "border-left:3px solid #dce3e8;color:#5c6c7a;}a{color:#2558bf;}";
+
+  const darkRules =
+    "html{color-scheme:dark;color:#e3ebf0;background:#151e26;}" +
+    "th,td{border-color:#283540;color:#e3ebf0;}" +
+    "blockquote{border-left-color:#283540;color:#96a6b3;}a{color:#6b96f2;}";
+
+  const themeCss =
+    options?.theme === "dark"
+      ? `${lightCss}${darkRules}`
+      : options?.theme === "light"
+        ? lightCss
+        : `${lightCss}@media (prefers-color-scheme: dark){${darkRules}}`;
+
   return (
     "<!doctype html><html><head><meta charset='utf-8'>" +
     "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
-    "<style>" +
-    "html{color:#172033;background:#fff;font-family:Arial,Helvetica,sans-serif;}" +
-    "body{margin:0;padding:20px;line-height:1.55;overflow-wrap:anywhere;}" +
-    "img{max-width:100%;height:auto;}table{max-width:100%;border-collapse:collapse;}" +
-    "pre{white-space:pre-wrap;overflow-wrap:anywhere;}blockquote{margin-left:0;padding-left:14px;" +
-    "border-left:3px solid #d9e1ee;color:#475467;}a{color:#0b4ff5;}" +
-    "</style></head><body>" +
+    `<style>${themeCss}</style></head><body>` +
     body +
     "</body></html>"
   );
@@ -1275,6 +1296,7 @@ export async function getSanitizedMessageHtmlForUser(
   prisma: Pick<PrismaClient, "message" | "user" | "auditLog">,
   actor: UserWorkspaceActor,
   messageUuid: string,
+  options?: SanitizedHtmlRenderOptions,
 ): Promise<string | null> {
   if (!isValidUuid(messageUuid)) {
     return null;
@@ -1304,7 +1326,7 @@ export async function getSanitizedMessageHtmlForUser(
     trustProxyHeaders: actor.trustProxyHeaders,
   });
 
-  return buildSanitizedHtmlDocument(message.sanitizedHtmlBody);
+  return buildSanitizedHtmlDocument(message.sanitizedHtmlBody, options);
 }
 
 export function buildAttachmentContentDisposition(

@@ -79,6 +79,9 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
     await waitFor(() => {
       expect(onSaveSettings).toHaveBeenCalledTimes(1);
     });
+    const submittedFormData = onSaveSettings.mock.calls[0]?.[0];
+    expect(submittedFormData?.get("logo")).toBeNull();
+    expect(submittedFormData?.get("favicon")).toBeNull();
     expect(
       await screen.findByText("Settings saved successfully."),
     ).toBeInTheDocument();
@@ -177,4 +180,107 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
     await user.click(checkbox);
     expect(confirmBtn).not.toBeDisabled();
   });
+
+  it("shows error AlertBanner when SettingsConsole onSaveSettings rejects", async () => {
+    const user = userEvent.setup();
+    const onSaveSettings = vi.fn(async () => {
+      throw new Error("Network connection interrupted");
+    });
+
+    render(
+      <SettingsConsole
+        initialSettings={{
+          siteName: "ReadBox",
+          siteTagline: "",
+          logoPath: "",
+          faviconPath: "",
+          logoUrl: "",
+          faviconUrl: "",
+          supportEmail: "",
+          contactPhone: "",
+          officeAddress: "",
+          footerDescription: "",
+          copyrightText: "",
+          sourceCodeUrl: "",
+          privacyUrl: "",
+          updatedAtIso: "2026-11-15T10:00:00.000Z",
+          databaseConnected: true,
+        }}
+        publicSiteOrigin=""
+        mediaRoot="/var/lib/readbox/media"
+        onSaveSettings={onSaveSettings}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Save Changes/i }));
+    expect(
+      await screen.findByText("Network connection interrupted"),
+    ).toBeInTheDocument();
+  });
+
+  it("opens System is Up to Date and Update Logs Radix dialogs cleanly", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/vcon/update/check")) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            latest_version: "1.3.5.5",
+            release_notes: "Already latest.",
+            archive_url: "https://example.test/a.zip",
+            checksum_url: "https://example.test/a.zip.sha256",
+            published_at: "2026-11-15T00:00:00Z",
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          status: "ready",
+          checks: [],
+          message: "Updater is ready.",
+        }),
+        { status: 200 },
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <SystemUpdateConsole
+        currentVersion="1.3.5.5"
+        githubRepo="vibtools/MailStack"
+        runtimeDir="/run/vibmail"
+        initialPreflight={{
+          status: "ready",
+          checks: [],
+          message: "Updater is ready.",
+        }}
+        initialStatus={{
+          step: "idle",
+          message: "No update in progress",
+          progress: 0,
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Update Logs/i }));
+    expect(
+      await screen.findByRole("dialog", { name: /System Update Stream/i }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Close/i }));
+
+    await user.click(
+      screen.getByRole("button", { name: /Check for Updates/i }),
+    );
+    const upToDateDialog = await screen.findByRole("dialog", {
+      name: /System is Up to Date/i,
+    });
+    expect(upToDateDialog).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "OK" }));
+    expect(
+      screen.queryByRole("dialog", { name: /System is Up to Date/i }),
+    ).not.toBeInTheDocument();
+  });
 });
+

@@ -5,7 +5,20 @@ import { Toaster as SonnerToaster, toast } from "sonner";
 
 export function NotificationToaster() {
   const { resolvedTheme } = useTheme();
-  return <SonnerToaster theme={resolvedTheme === "dark" ? "dark" : "light"} position="top-right" richColors />;
+  return (
+    <SonnerToaster
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
+      position="top-right"
+      toastOptions={{
+        classNames: {
+          toast:
+            "!rounded-none !border !border-border !bg-card !text-card-foreground !shadow-none !text-xs !py-2.5 !px-3",
+          title: "!text-xs !font-medium",
+          description: "!text-xs !text-muted-foreground",
+        },
+      }}
+    />
+  );
 }
 
 export const notify = {

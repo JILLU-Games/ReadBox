@@ -1,15 +1,22 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
 import {
+  AlertBanner,
+  Badge,
+  Button,
+  Icon,
+  Input,
+  Label,
+  PageTitle,
+  Panel,
+  PanelBody,
+  SectionTitle,
+  Select,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui";
 import type { AuditMonitorBundle } from "@/core/audit/queries";
 import { Search, ShieldAlert } from "lucide-react";
 import Link from "next/link";
@@ -43,14 +50,9 @@ export function AuditConsole({
   const { logs, security } = bundle;
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Admin panel
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">Audit &amp; security</h1>
-        </div>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <PageTitle>Audit &amp; security</PageTitle>
         <div className="flex flex-wrap items-center gap-2">
           <Badge
             variant={security.activeLockouts.length > 0 ? "warning" : "success"}
@@ -62,59 +64,59 @@ export function AuditConsole({
       </header>
 
       {!bundle.databaseConfigured ? (
-        <section
-          className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"
-          role="status"
-        >
+        <AlertBanner variant="warning" role="status">
           Database is not configured in this local environment. Redacted
           AuditLog records and LoginAttempt lockout telemetry will appear once
           DATABASE_URL is configured.
-        </section>
+        </AlertBanner>
       ) : !bundle.databaseConnected ? (
-        <section
-          className="rounded-lg border border-destructive/40 bg-destructive-bg p-4 text-sm text-destructive-muted"
-          role="alert"
-        >
+        <AlertBanner variant="error">
           Unable to load audit and login security events from PostgreSQL.
-        </section>
+        </AlertBanner>
       ) : null}
 
       <section
         aria-label="Security summary"
         className="grid grid-cols-1 gap-3 sm:grid-cols-3"
       >
-        <article className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">
-            Matching audit events
-          </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums">
-            {logs.totalCount}
-          </p>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">
-            Active IP / username lockouts
-          </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums">
-            {security.activeLockouts.length}
-          </p>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">
-            Recent failed sign-ins (window)
-          </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums">
-            {security.recentFailureCount}
-          </p>
-        </article>
+        <Panel>
+          <PanelBody className="space-y-1 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Matching audit events
+            </p>
+            <p className="text-xl font-medium tabular-nums">
+              {logs.totalCount}
+            </p>
+          </PanelBody>
+        </Panel>
+        <Panel>
+          <PanelBody className="space-y-1 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Active IP / username lockouts
+            </p>
+            <p className="text-xl font-medium tabular-nums">
+              {security.activeLockouts.length}
+            </p>
+          </PanelBody>
+        </Panel>
+        <Panel>
+          <PanelBody className="space-y-1 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Recent failed sign-ins (window)
+            </p>
+            <p className="text-xl font-medium tabular-nums">
+              {security.recentFailureCount}
+            </p>
+          </PanelBody>
+        </Panel>
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-2.5">
         <div className="flex items-center gap-2">
           <Icon glyph={ShieldAlert} className="text-muted-foreground" />
-          <h2 className="text-sm font-semibold">
+          <SectionTitle>
             Active lockouts &amp; recent sign-in attempts
-          </h2>
+          </SectionTitle>
         </div>
 
         {security.activeLockouts.length > 0 ? (
@@ -159,9 +161,11 @@ export function AuditConsole({
             </TableBody>
           </Table>
         ) : (
-          <div className="rounded-lg border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
-            No active username/IP sign-in lockouts.
-          </div>
+          <Panel>
+            <PanelBody className="p-3 text-xs text-muted-foreground">
+              No active username/IP sign-in lockouts.
+            </PanelBody>
+          </Panel>
         )}
 
         {security.recentAttempts.length > 0 ? (
@@ -198,9 +202,9 @@ export function AuditConsole({
         ) : null}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Audit log</h2>
+          <SectionTitle>Audit log</SectionTitle>
           <span className="text-xs text-muted-foreground">
             Sensitive keys are automatically redacted
           </span>
@@ -213,14 +217,13 @@ export function AuditConsole({
           className="flex flex-wrap items-center gap-2"
         >
           <div>
-            <label className="sr-only" htmlFor="audit-action-filter">
+            <Label className="sr-only" htmlFor="audit-action-filter">
               Filter by action
-            </label>
-            <select
+            </Label>
+            <Select
               id="audit-action-filter"
               name="action"
               defaultValue={logs.actionFilter || "all"}
-              className="min-h-9 rounded-md border border-input bg-card px-3 text-sm text-foreground"
             >
               <option value="all">All actions</option>
               {logs.availableActions.map((action) => (
@@ -228,29 +231,29 @@ export function AuditConsole({
                   {action}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="relative min-w-56 flex-1">
-            <label className="sr-only" htmlFor="audit-search">
+            <Label className="sr-only" htmlFor="audit-search">
               Search audit logs
-            </label>
+            </Label>
             <Icon
               glyph={Search}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
             <Input
               id="audit-search"
               name="q"
               defaultValue={logs.query}
               placeholder="Search actor, target, action, or exact IP"
-              className="pl-9"
+              className="pl-8"
             />
           </div>
-          <Button type="submit" variant="outline">
+          <Button type="submit" size="sm" variant="outline">
             Filter
           </Button>
           {logs.actionFilter || logs.query ? (
-            <Button asChild variant="ghost">
+            <Button asChild size="sm" variant="ghost">
               <Link href="/vcon/audit">Reset</Link>
             </Button>
           ) : null}
@@ -296,7 +299,7 @@ export function AuditConsole({
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className="py-10 text-center text-sm text-muted-foreground"
+                  className="py-8 text-center text-xs text-muted-foreground"
                 >
                   No audit events match the current filter.
                 </TableCell>

@@ -1,29 +1,53 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { notify } from "@/components/ui/notifications";
+import {
+  AlertBanner,
+  Badge,
+  Button,
+  Checkbox,
+  CopyButton,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  Icon,
+  Input,
+  Label,
+  notify,
+  PageTitle,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui";
 import { CreateUserMailboxModal } from "@/components/users/create-user-mailbox-modal";
-import { LiveWorkspaceNavigationBar } from "@/components/users/live-mail-notifier";
+import {
+  LiveWorkspaceNavigationBar,
+  useUsersLiveUpdates,
+} from "@/components/users/live-mail-notifier";
+import {
+  buildMailboxesUrl,
+  formatCompactTimestamp,
+} from "@/components/users/user-workspace-helpers";
 import type { MailboxActionResult } from "@/core/mailboxes/service";
 import type {
   LiveUpdatePayload,
   UserMailboxListResult,
   UserMailboxSummaryItem,
 } from "@/core/messages/service";
-import { cn } from "@/lib/utils";
 import {
-  AlertTriangle,
   ArrowRight,
-  Copy,
-  Database,
-  Mail,
   Plus,
+  RotateCcw,
   Search,
   Trash2,
-  X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 export interface UserMailboxesViewProps {
@@ -56,6 +80,11 @@ export function UserMailboxesView({
   deleteMailboxAction,
   bulkDeleteMailboxesAction,
 }: UserMailboxesViewProps) {
+  const router = useRouter();
+  const liveContext = useUsersLiveUpdates();
+  const usesShellModal = Boolean(
+    liveContext.active && liveContext.openCreateMailboxModal,
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedUuids, setSelectedUuids] = useState<Set<string>>(new Set());
   const [purgeTarget, setPurgeTarget] = useState<UserMailboxSummaryItem | null>(
@@ -78,6 +107,8 @@ export function UserMailboxesView({
   const [isPending, startTransition] = useTransition();
 
   const canDeleteMailboxes = listResult.capabilities.canDeleteMailboxes;
+  const hasFilters =
+    listResult.query.length > 0 || listResult.statusFilter !== "all";
 
   function handleLivePayload(payload: LiveUpdatePayload) {
     if (!payload.mailboxes?.length) return;
@@ -93,15 +124,6 @@ export function UserMailboxesView({
       }
       return next;
     });
-  }
-
-  async function handleCopyEmail(emailAddress: string) {
-    try {
-      await navigator.clipboard?.writeText(emailAddress);
-      notify.success(`Copied ${emailAddress}`);
-    } catch {
-      notify.error("Unable to copy address.");
-    }
   }
 
   function toggleSelectAll(checked: boolean) {
@@ -147,6 +169,7 @@ export function UserMailboxesView({
         next.delete(purgeTarget.uuid);
         return next;
       });
+      router.refresh();
     });
   }
 
@@ -170,6 +193,7 @@ export function UserMailboxesView({
       );
       setSelectedUuids(new Set());
       setBulkConfirmOpen(false);
+      router.refresh();
     });
   }
 
@@ -178,32 +202,23 @@ export function UserMailboxesView({
     listResult.items.every((item) => selectedUuids.has(item.uuid));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <LiveWorkspaceNavigationBar
         visibleMailboxUuids={listResult.items.map((item) => item.uuid)}
         pollingEnabled={listResult.databaseConfigured}
         onLivePayload={handleLivePayload}
       />
 
-      <section className="rounded-lg border border-border bg-card p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Icon glyph={Mail} />
-              <span>Workspace Mailboxes</span>
-            </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-              My Mailboxes
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Access your assigned receive-only mailboxes or create a new
-              mailbox on an active verified domain.
-            </p>
-          </div>
-
+      <div className="border border-border bg-card p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <PageTitle>My Mailboxes</PageTitle>
           <Button
             type="button"
-            onClick={() => setCreateOpen(true)}
+            onClick={() =>
+              usesShellModal
+                ? liveContext.openCreateMailboxModal?.()
+                : setCreateOpen(true)
+            }
             disabled={!listResult.databaseConfigured}
           >
             <Icon glyph={Plus} />
@@ -212,75 +227,78 @@ export function UserMailboxesView({
         </div>
 
         {!listResult.databaseConfigured ? (
-          <div className="mt-4 flex items-center gap-2.5 rounded-md border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-xs text-foreground">
-            <Icon glyph={Database} className="text-warning" />
-            <span>
-              Database connection is not configured in this preview environment.
-            </span>
-          </div>
+          <AlertBanner variant="warning" className="mt-2.5">
+            Database connection is not configured.
+          </AlertBanner>
         ) : null}
 
         <form
           method="get"
           action="/users/mailboxes"
           role="search"
-          className="mt-5 flex flex-wrap items-center gap-2.5"
+          className="mt-2.5 flex flex-wrap items-center gap-2"
         >
-          <div className="relative min-w-56 flex-1">
-            <label htmlFor="user-mailboxes-q" className="sr-only">
+          <div className="min-w-48 flex-1">
+            <Label htmlFor="user-mailboxes-q" className="sr-only">
               Search mailboxes
-            </label>
-            <input
+            </Label>
+            <Input
               id="user-mailboxes-q"
               name="q"
               defaultValue={listResult.query}
-              placeholder="Search local part or full address"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              placeholder="Search local part or address"
             />
           </div>
 
           <div>
-            <label htmlFor="user-mailboxes-status" className="sr-only">
+            <Label htmlFor="user-mailboxes-status" className="sr-only">
               Filter by status
-            </label>
-            <select
+            </Label>
+            <Select
               id="user-mailboxes-status"
               name="status"
               defaultValue={
                 listResult.statusFilter === "all" ? "" : listResult.statusFilter
               }
-              className="flex h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
               <option value="">All statuses</option>
               <option value="active">Active</option>
               <option value="disabled">Disabled</option>
-            </select>
+            </Select>
           </div>
 
           <Button type="submit" variant="secondary">
             <Icon glyph={Search} />
             Filter
           </Button>
+
+          {hasFilters ? (
+            <Button asChild variant="outline">
+              <Link href="/users/mailboxes">
+                <Icon glyph={RotateCcw} className="size-3" />
+                Reset
+              </Link>
+            </Button>
+          ) : null}
         </form>
-      </section>
+      </div>
 
       {canDeleteMailboxes && listResult.items.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-xs">
-          <label className="inline-flex items-center gap-2 font-medium text-foreground">
-            <input
-              type="checkbox"
+        <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2 text-xs">
+          <Label className="inline-flex cursor-pointer items-center gap-2">
+            <Checkbox
               checked={allSelected}
               onChange={(e) => toggleSelectAll(e.target.checked)}
-              className="size-4 rounded border-input"
             />
             Select all on page
-          </label>
-          <div className="flex items-center gap-3">
-            <span className="text-muted-foreground">
+          </Label>
+          <div className="flex items-center gap-2.5">
+            <span className="tabular-nums text-muted-foreground">
               {selectedUuids.size} selected
             </span>
             <Button
               type="button"
+              size="sm"
               variant="destructive"
               disabled={selectedUuids.size === 0 || isPending}
               onClick={() => setBulkConfirmOpen(true)}
@@ -292,302 +310,267 @@ export function UserMailboxesView({
         </div>
       ) : null}
 
-      <section className="overflow-hidden rounded-lg border border-border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {canDeleteMailboxes ? (
-                  <th className="w-10 px-4 py-3">
-                    <span className="sr-only">Select</span>
-                  </th>
-                ) : null}
-                <th className="px-4 py-3">Mailbox</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Messages</th>
-                <th className="px-4 py-3">Unread</th>
-                <th className="px-4 py-3">Last received</th>
-                <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {listResult.items.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={canDeleteMailboxes ? 8 : 7}
-                    className="px-4 py-10 text-center text-sm text-muted-foreground"
-                  >
-                    No matching mailboxes found in your workspace.
-                  </td>
-                </tr>
-              ) : (
-                listResult.items.map((mailbox) => {
-                  const live = liveMailboxCounts[mailbox.uuid];
-                  const status = live?.status ?? mailbox.status;
-                  const totalMessages =
-                    live !== undefined
-                      ? String(live.total)
-                      : mailbox.totalMessages;
-                  const unreadMessages =
-                    live !== undefined
-                      ? String(live.unread)
-                      : mailbox.unreadMessages;
-                  const lastReceivedAt =
-                    live !== undefined
-                      ? live.lastReceivedAt
-                      : mailbox.lastReceivedAt;
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            {canDeleteMailboxes ? (
+              <TableHead className="w-8">
+                <span className="sr-only">Select</span>
+              </TableHead>
+            ) : null}
+            <TableHead>Mailbox</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Messages</TableHead>
+            <TableHead className="text-right">Unread</TableHead>
+            <TableHead>Last received</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {listResult.items.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={canDeleteMailboxes ? 8 : 7}
+                className="py-8 text-center text-muted-foreground"
+              >
+                No matching mailboxes found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            listResult.items.map((mailbox) => {
+              const live = liveMailboxCounts[mailbox.uuid];
+              const status = live?.status ?? mailbox.status;
+              const totalMessages =
+                live !== undefined
+                  ? String(live.total)
+                  : mailbox.totalMessages;
+              const unreadMessages =
+                live !== undefined
+                  ? String(live.unread)
+                  : mailbox.unreadMessages;
+              const lastReceivedAt =
+                live !== undefined
+                  ? live.lastReceivedAt
+                  : mailbox.lastReceivedAt;
 
-                  return (
-                    <tr key={mailbox.uuid} className="hover:bg-muted/30">
+              return (
+                <TableRow key={mailbox.uuid}>
+                  {canDeleteMailboxes ? (
+                    <TableCell>
+                      <Checkbox
+                        aria-label={`Select ${mailbox.emailAddress}`}
+                        checked={selectedUuids.has(mailbox.uuid)}
+                        onChange={(e) =>
+                          toggleSelectOne(mailbox.uuid, e.target.checked)
+                        }
+                      />
+                    </TableCell>
+                  ) : null}
+                  <TableCell>
+                    <CopyButton
+                      value={mailbox.emailAddress}
+                      title="Copy email address"
+                      successMessage={`Copied ${mailbox.emailAddress}`}
+                      errorMessage="Unable to copy address."
+                      className="font-mono"
+                    >
+                      <span>{mailbox.emailAddress}</span>
+                    </CopyButton>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={status === "active" ? "success" : "default"}
+                    >
+                      {status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono tabular-nums text-foreground">
+                    {totalMessages}
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-medium tabular-nums text-primary">
+                    {unreadMessages}
+                  </TableCell>
+                  <TableCell className="font-mono tabular-nums text-muted-foreground">
+                    {formatCompactTimestamp(lastReceivedAt, "—")}
+                  </TableCell>
+                  <TableCell className="font-mono tabular-nums text-muted-foreground">
+                    {mailbox.createdAt.slice(0, 10)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/users/inbox/${mailbox.uuid}`}>
+                          Open inbox
+                          <Icon glyph={ArrowRight} className="size-3" />
+                        </Link>
+                      </Button>
                       {canDeleteMailboxes ? (
-                        <td className="px-4 py-3">
-                          <input
-                            type="checkbox"
-                            aria-label={`Select ${mailbox.emailAddress}`}
-                            checked={selectedUuids.has(mailbox.uuid)}
-                            onChange={(e) =>
-                              toggleSelectOne(mailbox.uuid, e.target.checked)
-                            }
-                            className="size-4 rounded border-input"
-                          />
-                        </td>
-                      ) : null}
-                      <td className="px-4 py-3">
-                        <button
+                        <Button
                           type="button"
-                          onClick={() => handleCopyEmail(mailbox.emailAddress)}
-                          className="inline-flex items-center gap-1.5 font-mono text-sm font-medium text-foreground hover:text-primary"
-                          title="Copy email address"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPurgeTarget(mailbox);
+                            setPurgeConfirmation("");
+                            setPurgeError(null);
+                          }}
+                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         >
-                          <span>{mailbox.emailAddress}</span>
-                          <Icon glyph={Copy} className="size-3.5" />
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            "inline-flex rounded px-2 py-0.5 text-xs font-medium capitalize",
-                            status === "active"
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-foreground">
-                        {totalMessages}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">
-                        {unreadMessages}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {lastReceivedAt
-                          ? lastReceivedAt.slice(0, 16).replace("T", " ")
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {mailbox.createdAt.slice(0, 10)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <Link
-                            href={`/users/inbox/${mailbox.uuid}`}
-                            className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                          >
-                            Open inbox
-                            <Icon glyph={ArrowRight} className="size-3.5" />
-                          </Link>
-                          {canDeleteMailboxes ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPurgeTarget(mailbox);
-                                setPurgeConfirmation("");
-                                setPurgeError(null);
-                              }}
-                              className="inline-flex min-h-8 items-center gap-1 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
-                            >
-                              <Icon glyph={Trash2} className="size-3.5" />
-                              Delete
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                          <Icon glyph={Trash2} />
+                          Delete
+                        </Button>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
 
-        {listResult.totalPages > 1 ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted-foreground">
-            <span>
-              Page {listResult.page} of {listResult.totalPages} (
-              {listResult.totalCount} total)
-            </span>
-            <div className="flex items-center gap-2">
-              {listResult.page > 1 ? (
+      {listResult.totalPages > 1 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+          <span className="tabular-nums">
+            Page {listResult.page} of {listResult.totalPages} (
+            {listResult.totalCount})
+          </span>
+          <div className="flex items-center gap-1.5">
+            {listResult.page > 1 ? (
+              <Button asChild size="sm" variant="outline">
                 <Link
-                  href={`/users/mailboxes?page=${listResult.page - 1}&q=${encodeURIComponent(listResult.query)}&status=${listResult.statusFilter === "all" ? "" : listResult.statusFilter}`}
-                  className="inline-flex min-h-8 items-center rounded-md border border-border bg-background px-3 font-medium text-foreground hover:bg-muted"
+                  href={buildMailboxesUrl({
+                    page: listResult.page - 1,
+                    q: listResult.query,
+                    status: listResult.statusFilter,
+                  })}
                 >
                   Previous
                 </Link>
-              ) : null}
-              {listResult.page < listResult.totalPages ? (
+              </Button>
+            ) : null}
+            {listResult.page < listResult.totalPages ? (
+              <Button asChild size="sm" variant="outline">
                 <Link
-                  href={`/users/mailboxes?page=${listResult.page + 1}&q=${encodeURIComponent(listResult.query)}&status=${listResult.statusFilter === "all" ? "" : listResult.statusFilter}`}
-                  className="inline-flex min-h-8 items-center rounded-md border border-border bg-background px-3 font-medium text-foreground hover:bg-muted"
+                  href={buildMailboxesUrl({
+                    page: listResult.page + 1,
+                    q: listResult.query,
+                    status: listResult.statusFilter,
+                  })}
                 >
                   Next
                 </Link>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <CreateUserMailboxModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        domains={listResult.availableDomains}
-        createAction={createMailboxAction}
-      />
-
-      {purgeTarget ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="purge-user-mailbox-title"
-        >
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 text-destructive">
-                <Icon glyph={AlertTriangle} />
-                <h2
-                  id="purge-user-mailbox-title"
-                  className="text-base font-semibold"
-                >
-                  Permanently delete mailbox
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPurgeTarget(null)}
-                aria-label="Close delete mailbox dialog"
-                className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted"
-              >
-                <Icon glyph={X} />
-              </button>
-            </div>
-
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              This permanently removes{" "}
-              <strong className="font-mono text-foreground">
-                {purgeTarget.emailAddress}
-              </strong>
-              , all indexed messages, stored attachments, and its Maildir folder.
-              Type the full mailbox address to confirm.
-            </p>
-
-            <div className="mt-4">
-              <label
-                htmlFor="confirm-user-mailbox-delete"
-                className="block text-xs font-medium text-foreground"
-              >
-                Confirm address
-              </label>
-              <input
-                id="confirm-user-mailbox-delete"
-                type="text"
-                value={purgeConfirmation}
-                onChange={(e) => {
-                  setPurgeConfirmation(e.target.value);
-                  setPurgeError(null);
-                }}
-                placeholder={purgeTarget.emailAddress}
-                autoComplete="off"
-                className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 font-mono text-sm text-foreground"
-              />
-            </div>
-
-            {purgeError ? (
-              <div
-                role="alert"
-                className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-              >
-                {purgeError}
-              </div>
+              </Button>
             ) : null}
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setPurgeTarget(null)}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={isPending}
-                onClick={handleConfirmSinglePurge}
-              >
-                <Icon glyph={Trash2} />
-                Permanently delete
-              </Button>
-            </div>
           </div>
         </div>
       ) : null}
 
-      {bulkConfirmOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bulk-purge-user-mailbox-title"
-        >
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
-            <h2
-              id="bulk-purge-user-mailbox-title"
-              className="text-base font-semibold text-foreground"
+      {!usesShellModal ? (
+        <CreateUserMailboxModal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          domains={listResult.availableDomains}
+          createAction={createMailboxAction}
+        />
+      ) : null}
+
+      <Dialog
+        open={Boolean(purgeTarget)}
+        onOpenChange={(open) => (!open ? setPurgeTarget(null) : undefined)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogTitle>Permanently delete mailbox</DialogTitle>
+          {purgeTarget ? (
+            <>
+              <DialogDescription>
+                Type{" "}
+                <strong className="font-mono text-foreground">
+                  {purgeTarget.emailAddress}
+                </strong>{" "}
+                to permanently remove this mailbox and all stored messages.
+              </DialogDescription>
+              <div>
+                <Label
+                  htmlFor="confirm-user-mailbox-delete"
+                  className="mb-1 block"
+                >
+                  Confirm address
+                </Label>
+                <Input
+                  id="confirm-user-mailbox-delete"
+                  type="text"
+                  value={purgeConfirmation}
+                  onChange={(e) => {
+                    setPurgeConfirmation(e.target.value);
+                    setPurgeError(null);
+                  }}
+                  placeholder={purgeTarget.emailAddress}
+                  autoComplete="off"
+                  className="font-mono"
+                />
+              </div>
+              {purgeError ? (
+                <AlertBanner variant="error">{purgeError}</AlertBanner>
+              ) : null}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setPurgeTarget(null)}
+                  disabled={isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isPending}
+                  onClick={handleConfirmSinglePurge}
+                >
+                  <Icon glyph={Trash2} />
+                  Permanently delete
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={bulkConfirmOpen}
+        onOpenChange={(open) => (!open ? setBulkConfirmOpen(false) : undefined)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogTitle>
+            Delete {selectedUuids.size} selected mailbox(es)?
+          </DialogTitle>
+          <DialogDescription>
+            Selected mailboxes, indexed messages, attachments, and Maildir data
+            will be permanently purged.
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setBulkConfirmOpen(false)}
+              disabled={isPending}
             >
-              Delete {selectedUuids.size} selected mailbox(es)?
-            </h2>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              Selected mailboxes, their indexed messages, extracted attachments,
-              and Maildir storage will be permanently purged.
-            </p>
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setBulkConfirmOpen(false)}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleConfirmBulkPurge}
-                disabled={isPending}
-              >
-                <Icon glyph={Trash2} />
-                Confirm bulk purge
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmBulkPurge}
+              disabled={isPending}
+            >
+              <Icon glyph={Trash2} />
+              Confirm bulk purge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

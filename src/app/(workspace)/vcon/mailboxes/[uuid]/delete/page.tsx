@@ -1,4 +1,5 @@
 import { purgeMailboxAction } from "@/app/(workspace)/vcon/mailboxes/actions";
+import { AlertBanner } from "@/components/ui";
 import { MailboxPurgeConfirm } from "@/components/vcon/mailbox-purge-confirm";
 import { env } from "@/config/env";
 import { requireAdminUser } from "@/core/auth/route-guards";
@@ -22,13 +23,10 @@ export default async function AdminPurgeMailboxPage({
 
   if (!env.databaseUrl) {
     return (
-      <section
-        className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"
-        role="status"
-      >
+      <AlertBanner variant="warning" role="status">
         Database is not configured in this local environment. Configure
         DATABASE_URL to manage persistent mailboxes.
-      </section>
+      </AlertBanner>
     );
   }
 
@@ -44,12 +42,9 @@ export default async function AdminPurgeMailboxPage({
 
   if (loadFailed) {
     return (
-      <section
-        className="rounded-lg border border-destructive/40 bg-destructive-bg p-4 text-sm text-destructive-muted"
-        role="alert"
-      >
+      <AlertBanner variant="error">
         Unable to load mailbox details right now.
-      </section>
+      </AlertBanner>
     );
   }
 

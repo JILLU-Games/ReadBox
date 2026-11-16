@@ -1,4 +1,8 @@
 import {
+  getDemoUserOverview,
+  listDemoUserMailboxes,
+} from "@/core/messages/demo-workspace";
+import {
   buildAttachmentContentDisposition,
   buildMessagePreview,
   buildSanitizedHtmlDocument,
@@ -761,7 +765,7 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     assert.match(SAFE_HTML_CSP_POLICY, /base-uri 'none'/);
     assert.match(SAFE_HTML_CSP_POLICY, /form-action 'none'/);
     assert.match(SAFE_HTML_CSP_POLICY, /frame-ancestors 'self'/);
-    assert.match(SAFE_HTML_CSP_POLICY, /navigate-to 'none'/);
+    assert.doesNotMatch(SAFE_HTML_CSP_POLICY, /navigate-to/);
 
     const fake = createFakeWorkspacePrisma();
     const html = await getSanitizedMessageHtmlForUser(
@@ -886,5 +890,24 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
 
     const preview = buildMessagePreview("", "<p>Hello <b>world</b></p>", 10);
     assert.equal(preview, "Hello wor…");
+  });
+
+  it("9. renders dark-mode sanitized HTML document and gates demo non-admin mailbox deletion", () => {
+    const darkDoc = buildSanitizedHtmlDocument("<p>Dark body</p>", {
+      theme: "dark",
+    });
+    assert.match(darkDoc, /#151e26/);
+    assert.match(darkDoc, /#e3ebf0/);
+    assert.match(darkDoc, /Dark body/);
+
+    const userOverview = getDemoUserOverview(false);
+    assert.equal(userOverview.capabilities.canDeleteMailboxes, false);
+    const adminOverview = getDemoUserOverview(true);
+    assert.equal(adminOverview.capabilities.canDeleteMailboxes, true);
+
+    const userMailboxes = listDemoUserMailboxes(false, {});
+    assert.equal(userMailboxes.capabilities.canDeleteMailboxes, false);
+    const adminMailboxes = listDemoUserMailboxes(true, {});
+    assert.equal(adminMailboxes.capabilities.canDeleteMailboxes, true);
   });
 });

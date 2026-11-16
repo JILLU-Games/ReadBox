@@ -1,6 +1,14 @@
 "use client";
 
 import {
+  AlertBanner,
+  Button,
+  Input,
+  Label,
+  Panel,
+  PanelBody,
+} from "@/components/ui";
+import {
   getCredentialsSignInErrorMessage,
   isSuccessfulCredentialsSignIn,
 } from "@/core/auth/sign-in-result";
@@ -94,25 +102,19 @@ export function SignInForm({
 
   if (!enabled) {
     return (
-      <p
-        className="mt-6 rounded-md border border-border p-4 text-sm"
-        role="status"
-      >
+      <AlertBanner variant="warning" role="status">
         Authentication is disabled in this local environment.
-      </p>
+      </AlertBanner>
     );
   }
 
   return (
-    <>
-      <form className="mt-8 space-y-5" method="post" onSubmit={submit}>
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="username">
-            Username
-          </label>
-          <input
+    <div className="space-y-3">
+      <form className="space-y-3" method="post" onSubmit={submit}>
+        <div className="space-y-1">
+          <Label htmlFor="username">Username</Label>
+          <Input
             autoComplete="username"
-            className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
             id="username"
             maxLength={150}
             name="username"
@@ -121,13 +123,10 @@ export function SignInForm({
             value={username}
           />
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="password">
-            Password
-          </label>
-          <input
+        <div className="space-y-1">
+          <Label htmlFor="password">Password</Label>
+          <Input
             autoComplete="current-password"
-            className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
             id="password"
             maxLength={1024}
             name="password"
@@ -138,10 +137,7 @@ export function SignInForm({
           />
         </div>
         {error ? (
-          <div
-            className="rounded-md border border-destructive/40 bg-destructive-bg px-3 py-2 text-sm text-destructive-muted"
-            role="alert"
-          >
+          <AlertBanner variant="error">
             <p>{error}</p>
             {cookieBlocked ? (
               <p className="mt-1">
@@ -155,46 +151,48 @@ export function SignInForm({
                 </a>
               </p>
             ) : null}
-          </div>
+          </AlertBanner>
         ) : null}
-        <button
-          className="min-h-11 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
-          disabled={pending}
-          type="submit"
-        >
+        <Button className="w-full" disabled={pending} type="submit">
           {pending ? "Signing in..." : "Sign in"}
-        </button>
+        </Button>
       </form>
       {demoAccounts?.length ? (
-        <div className="mt-6 rounded-md border border-border bg-card p-4 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground">
-            Development demo accounts
-          </p>
-          <ul className="mt-2 space-y-2">
-            {demoAccounts.map((account) => (
-              <li
-                key={account.username}
-                className="flex flex-wrap items-center justify-between gap-2"
-              >
-                <span className="min-w-0 [overflow-wrap:anywhere]">
-                  <span className="font-medium text-foreground">
-                    {account.username}
-                  </span>{" "}
-                  / <code className="break-all">{account.password}</code> (
-                  {account.roleLabel})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => fillDemoAccount(account)}
-                  className="rounded border border-border px-2 py-1 text-xs font-medium text-foreground hover:bg-muted"
+        <Panel>
+          <PanelBody className="space-y-2 p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">
+              Development demo accounts
+            </p>
+            <ul className="space-y-2">
+              {demoAccounts.map((account) => (
+                <li
+                  key={account.username}
+                  className="flex flex-wrap items-center justify-between gap-2"
                 >
-                  Fill {account.roleLabel}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    <span className="font-medium text-foreground">
+                      {account.username}
+                    </span>{" "}
+                    /{" "}
+                    <code className="break-all font-mono">
+                      {account.password}
+                    </code>{" "}
+                    ({account.roleLabel})
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fillDemoAccount(account)}
+                  >
+                    Fill {account.roleLabel}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </PanelBody>
+        </Panel>
       ) : null}
-    </>
+    </div>
   );
 }

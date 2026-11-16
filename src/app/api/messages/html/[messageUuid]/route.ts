@@ -2,9 +2,14 @@ import { env } from "@/config/env";
 import { getAuthorizedWorkspaceUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
 import {
+  getDemoMessageHtml,
+  isDemoPreviewWorkspaceActive,
+} from "@/core/messages/demo-workspace";
+import {
   getSanitizedMessageHtmlForUser,
   SAFE_HTML_CSP_POLICY,
 } from "@/core/messages/service";
+import { logger } from "@/core/server/logger";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(
@@ -12,7 +17,8 @@ export async function GET(
   context: { params: Promise<{ messageUuid: string }> },
 ) {
   const user = await getAuthorizedWorkspaceUser();
-  if (!user || !env.databaseUrl) {
+  const demoActive = isDemoPreviewWorkspaceActive();
+  if (!user || (!env.databaseUrl && !demoActive)) {
     return new NextResponse("Not found", {
       status: 404,
       headers: {
@@ -31,18 +37,25 @@ export async function GET(
     userId = BigInt(0);
   }
 
+  const rawTheme = request.nextUrl.searchParams.get("theme");
+  const theme =
+    rawTheme === "dark" ? "dark" : rawTheme === "light" ? "light" : undefined;
+
   try {
-    const htmlDocument = await getSanitizedMessageHtmlForUser(
-      getPrismaClient(),
-      {
-        userId,
-        username: user.username,
-        isAdministrator: user.isAdministrator,
-        headers: request.headers,
-        trustProxyHeaders: env.trustProxyHeaders,
-      },
-      messageUuid,
-    );
+    const htmlDocument = env.databaseUrl
+      ? await getSanitizedMessageHtmlForUser(
+          getPrismaClient(),
+          {
+            userId,
+            username: user.username,
+            isAdministrator: user.isAdministrator,
+            headers: request.headers,
+            trustProxyHeaders: env.trustProxyHeaders,
+          },
+          messageUuid,
+          theme ? { theme } : undefined,
+        )
+      : getDemoMessageHtml(messageUuid, theme ? { theme } : undefined);
 
     if (!htmlDocument) {
       return new NextResponse("Not found", {
@@ -65,7 +78,10 @@ export async function GET(
         "Cache-Control": "private, no-store",
       },
     });
-  } catch {
+  } catch (error) {
+    logger.error("message_html_fetch_failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new NextResponse("Not found", {
       status: 404,
       headers: {

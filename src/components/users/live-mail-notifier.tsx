@@ -1,13 +1,24 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { notify } from "@/components/ui/notifications";
-import type { LiveUpdateMessageItem, LiveUpdatePayload } from "@/core/messages/service";
-import { cn } from "@/lib/utils";
-import { Bell, BellRing, Inbox, LayoutDashboard, Mail } from "lucide-react";
+import type {
+  LiveUpdateMessageItem,
+  LiveUpdatePayload,
+} from "@/core/messages/service";
+import { Bell, BellRing, LayoutDashboard, Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 export const MAX_NOTIFIED_MESSAGE_UUIDS = 200;
 export const NOTIFIED_STORAGE_KEY = "vibmail-notified-message-uuids";
@@ -97,18 +108,32 @@ export async function claimMessageNotification(
   return attemptClaim();
 }
 
-export interface LiveWorkspaceNavigationBarProps {
-  readonly visibleMailboxUuids?: readonly string[];
-  readonly pollingEnabled?: boolean;
-  readonly onLivePayload?: (payload: LiveUpdatePayload) => void;
+interface UsersLiveContextValue {
+  readonly active: boolean;
+  readonly latestPayload: LiveUpdatePayload | null;
+  readonly syncDegraded: boolean;
+  readonly openCreateMailboxModal?: () => void;
 }
 
-export function LiveWorkspaceNavigationBar({
+const UsersLiveContext = createContext<UsersLiveContextValue>({
+  active: false,
+  latestPayload: null,
+  syncDegraded: false,
+});
+
+export function useUsersLiveUpdates(): UsersLiveContextValue {
+  return useContext(UsersLiveContext);
+}
+
+export function useLiveMailPoller({
   visibleMailboxUuids = [],
   pollingEnabled = true,
   onLivePayload,
-}: LiveWorkspaceNavigationBarProps) {
-  const pathname = usePathname();
+}: {
+  readonly visibleMailboxUuids?: readonly string[];
+  readonly pollingEnabled?: boolean;
+  readonly onLivePayload?: (payload: LiveUpdatePayload) => void;
+}) {
   const router = useRouter();
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
@@ -117,10 +142,12 @@ export function LiveWorkspaceNavigationBar({
       ? window.Notification.permission
       : "unsupported",
   );
+  const [syncDegraded, setSyncDegraded] = useState(false);
   const cursorRef = useRef<number>(0);
   const bootstrappedRef = useRef<boolean>(false);
   const pollingRef = useRef<boolean>(false);
   const backoffRef = useRef<number>(5000);
+  const consecutiveFailuresRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const onLivePayloadRef = useRef(onLivePayload);
@@ -258,6 +285,8 @@ export function LiveWorkspaceNavigationBar({
           router.refresh();
         }
 
+        consecutiveFailuresRef.current = 0;
+        setSyncDegraded(false);
         backoffRef.current = 5000;
         const nextDelay = payload.has_more
           ? 250
@@ -266,6 +295,10 @@ export function LiveWorkspaceNavigationBar({
             : 5000;
         scheduleNext(nextDelay);
       } catch {
+        consecutiveFailuresRef.current += 1;
+        if (!cancelled && consecutiveFailuresRef.current >= 2) {
+          setSyncDegraded(true);
+        }
         backoffRef.current = Math.min(backoffRef.current * 2, 60_000);
         scheduleNext(backoffRef.current);
       } finally {
@@ -289,7 +322,7 @@ export function LiveWorkspaceNavigationBar({
     visibleMailboxesKey,
   ]);
 
-  async function handleEnableNotifications() {
+  const handleEnableNotifications = useCallback(async () => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     try {
       const result = await window.Notification.requestPermission();
@@ -302,6 +335,92 @@ export function LiveWorkspaceNavigationBar({
     } catch {
       notify.error("Unable to request browser notification permission.");
     }
+  }, []);
+
+  return {
+    notificationPermission,
+    handleEnableNotifications,
+    syncDegraded,
+  };
+}
+
+export function UsersLiveProvider({
+  visibleMailboxUuids,
+  pollingEnabled,
+  openCreateMailboxModal,
+  children,
+}: {
+  readonly visibleMailboxUuids: readonly string[];
+  readonly pollingEnabled: boolean;
+  readonly openCreateMailboxModal?: () => void;
+  readonly children: (controls: {
+    notificationPermission: NotificationPermission | "unsupported";
+    handleEnableNotifications: () => Promise<void>;
+    syncDegraded: boolean;
+  }) => ReactNode;
+}) {
+  const [latestPayload, setLatestPayload] = useState<LiveUpdatePayload | null>(
+    null,
+  );
+  const { notificationPermission, handleEnableNotifications, syncDegraded } =
+    useLiveMailPoller({
+      visibleMailboxUuids,
+      pollingEnabled,
+      onLivePayload: setLatestPayload,
+    });
+
+  return (
+    <UsersLiveContext.Provider
+      value={{
+        active: true,
+        latestPayload,
+        syncDegraded,
+        openCreateMailboxModal,
+      }}
+    >
+      {children({
+        notificationPermission,
+        handleEnableNotifications,
+        syncDegraded,
+      })}
+    </UsersLiveContext.Provider>
+  );
+}
+
+export interface LiveWorkspaceNavigationBarProps {
+  readonly visibleMailboxUuids?: readonly string[];
+  readonly pollingEnabled?: boolean;
+  readonly onLivePayload?: (payload: LiveUpdatePayload) => void;
+}
+
+export function LiveWorkspaceNavigationBar({
+  visibleMailboxUuids = [],
+  pollingEnabled = true,
+  onLivePayload,
+}: LiveWorkspaceNavigationBarProps) {
+  const pathname = usePathname();
+  const liveContext = useUsersLiveUpdates();
+  const onLivePayloadRef = useRef(onLivePayload);
+  useEffect(() => {
+    onLivePayloadRef.current = onLivePayload;
+  }, [onLivePayload]);
+
+  const { notificationPermission, handleEnableNotifications, syncDegraded } =
+    useLiveMailPoller({
+      visibleMailboxUuids,
+      pollingEnabled: pollingEnabled && !liveContext.active,
+      onLivePayload,
+    });
+
+  useEffect(() => {
+    if (liveContext.active && liveContext.latestPayload) {
+      onLivePayloadRef.current?.(liveContext.latestPayload);
+    }
+  }, [liveContext.active, liveContext.latestPayload]);
+
+  // When mounted inside UsersWorkspaceShell, the unified top bar handles nav & notifications.
+  if (liveContext.active) {
+    return null;
   }
 
   const isOverview = pathname === "/users";
@@ -309,60 +428,57 @@ export function LiveWorkspaceNavigationBar({
     pathname === "/users/mailboxes" || pathname.startsWith("/users/inbox/");
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5">
+    <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-2.5 py-1.5">
       <nav
         aria-label="User workspace sections"
-        className="flex flex-wrap items-center gap-1.5"
+        className="flex flex-wrap items-center gap-1"
       >
-        <Link
-          href="/users"
-          aria-current={isOverview ? "page" : undefined}
-          className={cn(
-            "inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-xs font-medium transition-colors",
-            isOverview
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-          )}
+        <Button
+          asChild
+          size="sm"
+          variant={isOverview ? "default" : "ghost"}
         >
-          <Icon glyph={LayoutDashboard} />
-          Overview
-        </Link>
-        <Link
-          href="/users/mailboxes"
-          aria-current={isMailboxes ? "page" : undefined}
-          className={cn(
-            "inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-xs font-medium transition-colors",
-            isMailboxes
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-          )}
+          <Link href="/users" aria-current={isOverview ? "page" : undefined}>
+            <Icon glyph={LayoutDashboard} />
+            Overview
+          </Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={isMailboxes ? "default" : "ghost"}
         >
-          <Icon glyph={Mail} />
-          My Mailboxes
-        </Link>
+          <Link
+            href="/users/mailboxes"
+            aria-current={isMailboxes ? "page" : undefined}
+          >
+            <Icon glyph={Mail} />
+            My Mailboxes
+          </Link>
+        </Button>
       </nav>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-          <Icon glyph={Inbox} className="size-3.5" />
-          Receive-only mode
-        </span>
+        {syncDegraded ? (
+          <span className="text-[11px] font-medium text-warning">
+            Live sync paused
+          </span>
+        ) : null}
+        <span className="text-[11px] text-muted-foreground">Receive-only</span>
         {notificationPermission === "default" ? (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={handleEnableNotifications}
-            className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
-            <Icon glyph={Bell} className="size-3.5" />
+            <Icon glyph={Bell} />
             Enable notifications
-          </button>
+          </Button>
         ) : notificationPermission === "granted" ? (
-          <span
-            className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-success/30 bg-success/10 px-2.5 text-xs font-medium text-success"
-            title="Desktop notifications active"
-          >
-            <Icon glyph={BellRing} className="size-3.5" />
-            Notifications active
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
+            <Icon glyph={BellRing} />
+            Alerts on
           </span>
         ) : null}
       </div>

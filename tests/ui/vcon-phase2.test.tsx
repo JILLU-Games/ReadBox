@@ -84,6 +84,12 @@ describe("Phase 2 /vcon overview, user management, and audit UI", () => {
               status: "active",
               totalMessages: "19",
             },
+            {
+              uuid: "b2",
+              emailAddress: "alerts@readbox.test",
+              status: "disabled",
+              totalMessages: "1",
+            },
           ],
         }}
       />,
@@ -93,6 +99,8 @@ describe("Phase 2 /vcon overview, user management, and audit UI", () => {
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByText("Healthy")).toBeInTheDocument();
     expect(screen.getByText("Test delivery")).toBeInTheDocument();
+    expect(screen.getByText("19 messages")).toBeInTheDocument();
+    expect(screen.getByText("1 message")).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: /support@readbox\.test/i }),

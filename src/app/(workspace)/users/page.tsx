@@ -3,6 +3,10 @@ import { env } from "@/config/env";
 import { requireWorkspaceUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
 import {
+  getDemoUserOverview,
+  isDemoPreviewWorkspaceActive,
+} from "@/core/messages/demo-workspace";
+import {
   createUnconfiguredUserWorkspaceOverview,
   getUserWorkspaceOverview,
 } from "@/core/messages/service";
@@ -33,6 +37,8 @@ export default async function UserWorkspacePage() {
         isAdministrator: user.isAdministrator,
       });
     }
+  } else if (isDemoPreviewWorkspaceActive()) {
+    snapshot = getDemoUserOverview(user.isAdministrator);
   }
 
   return (
