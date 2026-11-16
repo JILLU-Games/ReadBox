@@ -30,7 +30,11 @@ vi.mock("@/components/ui/notifications", () => ({
   },
 }));
 
-import { claimMessageNotification } from "@/components/users/live-mail-notifier";
+import {
+  claimMessageNotification,
+  LIVE_BROADCAST_CHANNEL_NAME,
+  NOTIFIED_STORAGE_KEY,
+} from "@/components/users/live-mail-notifier";
 import { MailboxInboxView } from "@/components/users/mailbox-inbox-view";
 import { MessageReaderView } from "@/components/users/message-reader-view";
 import { UserMailboxesView } from "@/components/users/user-mailboxes-view";
@@ -472,5 +476,7 @@ describe("Phase 5 — User Workspace UI components", () => {
     expect(firstClaim).toBe(true);
     expect(secondClaim).toBe(false);
     expect(posted.length).toBe(1);
+    expect(NOTIFIED_STORAGE_KEY).toBe("readbox-notified-message-uuids");
+    expect(LIVE_BROADCAST_CHANNEL_NAME).toBe("readbox-live-notifications");
   });
 });

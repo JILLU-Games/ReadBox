@@ -1,6 +1,5 @@
-import { Icon } from "@/components/ui";
+import { BrandLogo, CaptionText, Icon, SectionTitle } from "@/components/ui";
 import { ArrowUpRight } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 export interface PublicSiteFooterProps {
@@ -34,28 +33,8 @@ export function PublicSiteFooter({
       <div className="mx-auto max-w-6xl px-3 py-6 sm:px-5">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-xs font-medium text-foreground"
-            >
-              <span
-                aria-hidden="true"
-                className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-none border border-border bg-primary text-[11px] font-medium text-primary-foreground"
-              >
-                {logoUrl ? (
-                  <Image
-                    src={logoUrl}
-                    alt=""
-                    width={24}
-                    height={24}
-                    referrerPolicy="no-referrer"
-                    className="size-full object-contain"
-                  />
-                ) : (
-                  siteName.slice(0, 1).toUpperCase() || "M"
-                )}
-              </span>
-              <span>{siteName}</span>
+            <Link href="/" className="inline-flex items-center">
+              <BrandLogo siteName={siteName} logoUrl={logoUrl} size="sm" />
             </Link>
             <p
               data-footer-description
@@ -78,7 +57,7 @@ export function PublicSiteFooter({
           </div>
 
           <div>
-            <h2 className="text-xs font-medium text-foreground">Workspace</h2>
+            <SectionTitle>Workspace</SectionTitle>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link
@@ -107,7 +86,7 @@ export function PublicSiteFooter({
           </div>
 
           <div>
-            <h2 className="text-xs font-medium text-foreground">Features</h2>
+            <SectionTitle>Features</SectionTitle>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link href="/#capabilities" className="hover:text-foreground">
@@ -133,9 +112,7 @@ export function PublicSiteFooter({
           </div>
 
           <div>
-            <h2 className="text-xs font-medium text-foreground">
-              Support &amp; Legal
-            </h2>
+            <SectionTitle>Support &amp; Legal</SectionTitle>
             <ul className="mt-2 space-y-1.5">
               <li>
                 <Link
@@ -159,11 +136,11 @@ export function PublicSiteFooter({
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col justify-between gap-2 border-t border-border pt-4 text-[11px] text-muted-foreground sm:flex-row sm:items-center">
-          <p>
+        <div className="mt-6 flex flex-col justify-between gap-2 border-t border-border pt-4 sm:flex-row sm:items-center">
+          <CaptionText>
             © <span data-year>{year}</span> {siteName}.{" "}
             <span data-footer-copyright>{resolvedCopyright}</span>
-          </p>
+          </CaptionText>
         </div>
       </div>
     </footer>

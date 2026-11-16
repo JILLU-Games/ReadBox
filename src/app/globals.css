@@ -178,6 +178,78 @@ button {
   outline-offset: 1px;
 }
 
+.readbox-mail-body {
+  font-family: var(--font-segoe);
+  font-size: 13px;
+  line-height: 1.6;
+  color: inherit;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.readbox-mail-body img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
+
+.readbox-mail-body table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.readbox-mail-body th,
+.readbox-mail-body td {
+  border-color: var(--border);
+}
+
+.readbox-mail-body a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.readbox-mail-body blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+.readbox-mail-body pre,
+.readbox-mail-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.readbox-mail-body pre {
+  white-space: pre-wrap;
+  overflow-x: auto;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+}
+
+.readbox-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.readbox-scrollable::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+  height: 6px;
+}
+
+.readbox-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.readbox-scrollable::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

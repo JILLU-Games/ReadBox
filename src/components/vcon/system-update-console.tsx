@@ -4,6 +4,7 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   Checkbox,
   Dialog,
   DialogContent,
@@ -13,10 +14,11 @@ import {
   Icon,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   PanelHeader,
+  ProgressBar,
   SectionTitle,
   Table,
   TableBody,
@@ -298,7 +300,7 @@ export function SystemUpdateConsole({
       setShowLogModal(true);
       appendLog(
         "info",
-        "Update request queued at /run/vibmail/update_request.json (mode 0640).",
+        "Update request queued for root updater worker (mode 0640).",
       );
       setStatus({
         step: "queued",
@@ -332,31 +334,34 @@ export function SystemUpdateConsole({
 
   return (
     <section className="space-y-3" aria-labelledby="system-update-title">
-      <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
-        <PageTitle id="system-update-title">System Update</PageTitle>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setShowLogModal(true)}
-          >
-            <Icon glyph={Terminal} />
-            Update Logs
-          </Button>
-          <Button
-            type="button"
-            id="btn-check-update"
-            disabled={isCheckingRelease}
-            onClick={() => void performReleaseCheck(true)}
-          >
-            <Icon
-              glyph={RefreshCw}
-              className={isCheckingRelease ? "animate-spin" : undefined}
-            />
-            {isCheckingRelease ? "Checking..." : "Check for Updates"}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        id="system-update-title"
+        title="System Update"
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowLogModal(true)}
+            >
+              <Icon glyph={Terminal} />
+              Update Logs
+            </Button>
+            <Button
+              type="button"
+              id="btn-check-update"
+              disabled={isCheckingRelease}
+              onClick={() => void performReleaseCheck(true)}
+            >
+              <Icon
+                glyph={RefreshCw}
+                className={isCheckingRelease ? "animate-spin" : undefined}
+              />
+              {isCheckingRelease ? "Checking..." : "Check for Updates"}
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Panel className="min-w-0">
@@ -369,9 +374,7 @@ export function SystemUpdateConsole({
           <PanelBody className="space-y-2.5">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div className="border border-border bg-background p-2.5">
-                <span className="block text-[11px] text-muted-foreground">
-                  Current Version
-                </span>
+                <CaptionText className="block">Current Version</CaptionText>
                 <strong
                   id="current-version"
                   className="mt-1 block font-mono text-sm font-medium tabular-nums text-foreground"
@@ -381,27 +384,21 @@ export function SystemUpdateConsole({
               </div>
 
               <div className="border border-border bg-background p-2.5">
-                <span className="block text-[11px] text-muted-foreground">
-                  Update Channel
-                </span>
+                <CaptionText className="block">Update Channel</CaptionText>
                 <strong className="mt-1 block text-sm font-medium text-foreground">
                   Stable
                 </strong>
               </div>
 
               <div className="border border-border bg-background p-2.5">
-                <span className="block text-[11px] text-muted-foreground">
-                  Update System
-                </span>
+                <CaptionText className="block">Update System</CaptionText>
                 <strong className="mt-1 block text-sm font-medium text-foreground">
                   Signed / Resumable
                 </strong>
               </div>
 
               <div className="border border-border bg-background p-2.5">
-                <span className="block text-[11px] text-muted-foreground">
-                  Status
-                </span>
+                <CaptionText className="block">Status</CaptionText>
                 <strong
                   id="last-checked"
                   className="mt-1 block font-mono text-sm font-medium tabular-nums text-foreground"
@@ -558,15 +555,13 @@ export function SystemUpdateConsole({
                   System Upgrade ({status.step})
                 </strong>
               </div>
-              <div className="mt-2 h-2 w-full overflow-hidden bg-muted">
-                <div
-                  id="progress-bar"
-                  className="h-full bg-primary transition-all"
-                  style={{
-                    width: `${Math.max(0, Math.min(100, status.progress))}%`,
-                  }}
-                />
-              </div>
+              <ProgressBar
+                id="progress-bar"
+                value={status.progress}
+                max={100}
+                label={`System upgrade progress (${status.step})`}
+                className="mt-2"
+              />
               <div className="mt-2 flex items-center justify-between font-mono text-xs tabular-nums text-muted-foreground">
                 <span id="active-job-stage">{status.message}</span>
                 <span id="active-job-percent">
@@ -702,12 +697,12 @@ export function SystemUpdateConsole({
 
       <Dialog open={showLogModal} onOpenChange={setShowLogModal}>
         <DialogContent
-          id="licora-update-log-modal"
-          aria-labelledby="licora-update-log-title"
+          id="readbox-update-log-modal"
+          aria-labelledby="readbox-update-log-title"
           className="max-w-2xl"
         >
           <div>
-            <DialogTitle id="licora-update-log-title">
+            <DialogTitle id="readbox-update-log-title">
               System Update Stream
             </DialogTitle>
             <DialogDescription id="update-log-description" className="mt-0.5">

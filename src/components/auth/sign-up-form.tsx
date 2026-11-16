@@ -3,8 +3,8 @@
 import {
   AlertBanner,
   Button,
+  FormField,
   Input,
-  Label,
 } from "@/components/ui";
 import type { UserControlSettingsShape } from "@/core/accounts/user-control-policy";
 import {
@@ -133,8 +133,11 @@ export function SignUpForm({
 
   return (
     <form className="space-y-3" method="post" onSubmit={handleSubmit}>
-      <div className="space-y-1">
-        <Label htmlFor="signup-username">Username</Label>
+      <FormField
+        id="signup-username"
+        label="Username"
+        error={fieldErrors.username}
+      >
         <Input
           autoComplete="username"
           id="signup-username"
@@ -142,23 +145,24 @@ export function SignUpForm({
           name="username"
           onChange={(event) => setUsername(event.target.value)}
           required
+          aria-invalid={Boolean(fieldErrors.username)}
+          aria-describedby={
+            fieldErrors.username ? "signup-username-error" : undefined
+          }
           value={username}
         />
-        {fieldErrors.username ? (
-          <p className="text-[11px] text-destructive">{fieldErrors.username}</p>
-        ) : null}
-      </div>
+      </FormField>
 
       {showFirstName || showLastName ? (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {showFirstName ? (
-            <div className="space-y-1">
-              <Label htmlFor="signup-first-name">
-                First name
-                {settings.firstNameRequirement === "optional"
-                  ? " (optional)"
-                  : ""}
-              </Label>
+            <FormField
+              id="signup-first-name"
+              label={`First name${
+                settings.firstNameRequirement === "optional" ? " (optional)" : ""
+              }`}
+              error={fieldErrors.firstName}
+            >
               <Input
                 autoComplete="given-name"
                 id="signup-first-name"
@@ -166,24 +170,23 @@ export function SignUpForm({
                 name="firstName"
                 onChange={(event) => setFirstName(event.target.value)}
                 required={settings.firstNameRequirement === "required"}
+                aria-invalid={Boolean(fieldErrors.firstName)}
+                aria-describedby={
+                  fieldErrors.firstName ? "signup-first-name-error" : undefined
+                }
                 value={firstName}
               />
-              {fieldErrors.firstName ? (
-                <p className="text-[11px] text-destructive">
-                  {fieldErrors.firstName}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
           ) : null}
 
           {showLastName ? (
-            <div className="space-y-1">
-              <Label htmlFor="signup-last-name">
-                Last name
-                {settings.lastNameRequirement === "optional"
-                  ? " (optional)"
-                  : ""}
-              </Label>
+            <FormField
+              id="signup-last-name"
+              label={`Last name${
+                settings.lastNameRequirement === "optional" ? " (optional)" : ""
+              }`}
+              error={fieldErrors.lastName}
+            >
               <Input
                 autoComplete="family-name"
                 id="signup-last-name"
@@ -191,24 +194,25 @@ export function SignUpForm({
                 name="lastName"
                 onChange={(event) => setLastName(event.target.value)}
                 required={settings.lastNameRequirement === "required"}
+                aria-invalid={Boolean(fieldErrors.lastName)}
+                aria-describedby={
+                  fieldErrors.lastName ? "signup-last-name-error" : undefined
+                }
                 value={lastName}
               />
-              {fieldErrors.lastName ? (
-                <p className="text-[11px] text-destructive">
-                  {fieldErrors.lastName}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
           ) : null}
         </div>
       ) : null}
 
       {showEmail ? (
-        <div className="space-y-1">
-          <Label htmlFor="signup-email">
-            Email address
-            {settings.emailRequirement === "optional" ? " (optional)" : ""}
-          </Label>
+        <FormField
+          id="signup-email"
+          label={`Email address${
+            settings.emailRequirement === "optional" ? " (optional)" : ""
+          }`}
+          error={fieldErrors.email}
+        >
           <Input
             autoComplete="email"
             id="signup-email"
@@ -217,20 +221,23 @@ export function SignUpForm({
             onChange={(event) => setEmail(event.target.value)}
             required={settings.emailRequirement === "required"}
             type="email"
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={
+              fieldErrors.email ? "signup-email-error" : undefined
+            }
             value={email}
           />
-          {fieldErrors.email ? (
-            <p className="text-[11px] text-destructive">{fieldErrors.email}</p>
-          ) : null}
-        </div>
+        </FormField>
       ) : null}
 
       {showPhone ? (
-        <div className="space-y-1">
-          <Label htmlFor="signup-phone">
-            Phone number
-            {settings.phoneRequirement === "optional" ? " (optional)" : ""}
-          </Label>
+        <FormField
+          id="signup-phone"
+          label={`Phone number${
+            settings.phoneRequirement === "optional" ? " (optional)" : ""
+          }`}
+          error={fieldErrors.phone}
+        >
           <Input
             autoComplete="tel"
             id="signup-phone"
@@ -239,19 +246,21 @@ export function SignUpForm({
             onChange={(event) => setPhone(event.target.value)}
             required={settings.phoneRequirement === "required"}
             type="tel"
+            aria-invalid={Boolean(fieldErrors.phone)}
+            aria-describedby={
+              fieldErrors.phone ? "signup-phone-error" : undefined
+            }
             value={phone}
           />
-          {fieldErrors.phone ? (
-            <p className="text-[11px] text-destructive">{fieldErrors.phone}</p>
-          ) : null}
-        </div>
+        </FormField>
       ) : null}
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label htmlFor="signup-password">
-            Password (min {settings.minPasswordLength})
-          </Label>
+        <FormField
+          id="signup-password"
+          label={`Password (min ${settings.minPasswordLength})`}
+          error={fieldErrors.password}
+        >
           <Input
             autoComplete="new-password"
             id="signup-password"
@@ -261,17 +270,19 @@ export function SignUpForm({
             onChange={(event) => setPassword(event.target.value)}
             required
             type="password"
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={
+              fieldErrors.password ? "signup-password-error" : undefined
+            }
             value={password}
           />
-          {fieldErrors.password ? (
-            <p className="text-[11px] text-destructive">
-              {fieldErrors.password}
-            </p>
-          ) : null}
-        </div>
+        </FormField>
 
-        <div className="space-y-1">
-          <Label htmlFor="signup-password-confirm">Confirm password</Label>
+        <FormField
+          id="signup-password-confirm"
+          label="Confirm password"
+          error={fieldErrors.passwordConfirmation}
+        >
           <Input
             autoComplete="new-password"
             id="signup-password-confirm"
@@ -281,19 +292,23 @@ export function SignUpForm({
             onChange={(event) => setPasswordConfirmation(event.target.value)}
             required
             type="password"
+            aria-invalid={Boolean(fieldErrors.passwordConfirmation)}
+            aria-describedby={
+              fieldErrors.passwordConfirmation
+                ? "signup-password-confirm-error"
+                : undefined
+            }
             value={passwordConfirmation}
           />
-          {fieldErrors.passwordConfirmation ? (
-            <p className="text-[11px] text-destructive">
-              {fieldErrors.passwordConfirmation}
-            </p>
-          ) : null}
-        </div>
+        </FormField>
       </div>
 
       {showInviteCode ? (
-        <div className="space-y-1">
-          <Label htmlFor="signup-invite-code">Invite code</Label>
+        <FormField
+          id="signup-invite-code"
+          label="Invite code"
+          error={fieldErrors.inviteCode}
+        >
           <Input
             autoComplete="off"
             id="signup-invite-code"
@@ -301,14 +316,13 @@ export function SignUpForm({
             name="inviteCode"
             onChange={(event) => setInviteCode(event.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.inviteCode)}
+            aria-describedby={
+              fieldErrors.inviteCode ? "signup-invite-code-error" : undefined
+            }
             value={inviteCode}
           />
-          {fieldErrors.inviteCode ? (
-            <p className="text-[11px] text-destructive">
-              {fieldErrors.inviteCode}
-            </p>
-          ) : null}
-        </div>
+        </FormField>
       ) : null}
 
       {error ? <AlertBanner variant="error">{error}</AlertBanner> : null}

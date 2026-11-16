@@ -87,7 +87,7 @@ test("installation caches only the generic offline fallback and activation remov
   });
   await Promise.all(installWaits);
 
-  assert.deepEqual(harness.openCalls, ["mailstack-public-static-v2"]);
+  assert.deepEqual(harness.openCalls, ["readbox-public-static-v2"]);
   assert.deepEqual([...harness.entries.keys()], ["/offline.html"]);
 
   const activationWaits = [];

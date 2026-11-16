@@ -4,6 +4,7 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   CopyButton,
   Dialog,
   DialogContent,
@@ -11,6 +12,8 @@ import {
   DialogFooter,
   DialogTitle,
   Icon,
+  PageTitle,
+  SectionTitle,
   notify,
 } from "@/components/ui";
 import { LiveWorkspaceNavigationBar } from "@/components/users/live-mail-notifier";
@@ -27,6 +30,7 @@ import type {
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -35,8 +39,10 @@ import {
   Minimize2,
   Paperclip,
   Printer,
+  RotateCcw,
   Trash2,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useId, useMemo, useState, useTransition } from "react";
@@ -65,6 +71,80 @@ export interface MessageReaderViewProps {
   readonly navigation?: MessageReaderNavigation | null;
 }
 
+function scopeCssSelectors(selectorGroup: string, scopeClass: string): string {
+  return selectorGroup
+    .split(",")
+    .map((sel) => {
+      const s = sel.trim();
+      if (!s) return "";
+      if (/^(html|body|:root)\b/i.test(s)) {
+        return s.replace(/^(html|body|:root)\b/i, `.${scopeClass}`);
+      }
+      if (s === "*") {
+        return `.${scopeClass} *`;
+      }
+      return `.${scopeClass} ${s}`;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
+function scopeCssText(cssText: string, scopeClass: string): string {
+  let out = "";
+  let i = 0;
+  const len = cssText.length;
+
+  while (i < len) {
+    // Preserve CSS comments without breaking braces inside them
+    if (cssText[i] === "/" && cssText[i + 1] === "*") {
+      const endComment = cssText.indexOf("*/", i + 2);
+      if (endComment === -1) break;
+      i = endComment + 2;
+      continue;
+    }
+
+    const openBrace = cssText.indexOf("{", i);
+    if (openBrace === -1) {
+      out += cssText.slice(i);
+      break;
+    }
+
+    const prelude = cssText.slice(i, openBrace).trim();
+    // Find matching closing brace accounting for nesting
+    let depth = 1;
+    let j = openBrace + 1;
+    while (j < len && depth > 0) {
+      if (cssText[j] === "{") depth += 1;
+      else if (cssText[j] === "}") depth -= 1;
+      j += 1;
+    }
+
+    const inner = cssText.slice(openBrace + 1, Math.max(openBrace + 1, j - 1));
+    if (!prelude) {
+      i = j;
+      continue;
+    }
+
+    if (prelude.startsWith("@")) {
+      const lowered = prelude.toLowerCase();
+      if (lowered.startsWith("@media") || lowered.startsWith("@supports")) {
+        out += `${prelude}{${scopeCssText(inner, scopeClass)}}`;
+      } else {
+        out += `${prelude}{${inner}}`;
+      }
+    } else {
+      const scoped = scopeCssSelectors(prelude, scopeClass);
+      if (scoped) {
+        out += `${scoped}{${inner}}`;
+      }
+    }
+
+    i = j;
+  }
+
+  return out;
+}
+
 function extractAndScopeEmailHtml(rawHtml: string, scopeClass: string): string {
   if (!rawHtml || !rawHtml.trim()) {
     return "";
@@ -72,41 +152,27 @@ function extractAndScopeEmailHtml(rawHtml: string, scopeClass: string): string {
 
   let working = rawHtml.trim();
 
-  // If full HTML document was returned by API endpoint, extract style tags and body innerHTML
+  // If full HTML document was returned by API endpoint, extract email style tags and body innerHTML
+  // while skipping buildSanitizedHtmlDocument's iframe-only base wrapper stylesheet (avoids double padding).
   const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(working);
   if (bodyMatch) {
-    const styleMatches = working.match(/<style[^>]*>[\s\S]*?<\/style>/gi) ?? [];
+    const isReadBoxIframeWrapper = (styleTag: string) =>
+      styleTag.includes("scrollbar-width:none") &&
+      styleTag.includes("padding:16px") &&
+      styleTag.includes("overflow-wrap:anywhere");
+    const styleMatches = (working.match(/<style[^>]*>[\s\S]*?<\/style>/gi) ?? []).filter(
+      (styleTag) => !isReadBoxIframeWrapper(styleTag),
+    );
     const bodyInner = bodyMatch[1] ?? "";
     working = `${styleMatches.join("\n")}${bodyInner}`;
   }
 
-  // Scope <style> rules to the email container class so email styles never leak outside
+  // Scope <style> rules cleanly (including nested @media blocks) so email styles never leak outside
   working = working.replace(
     /<style[^>]*>([\s\S]*?)<\/style>/gi,
     (_full, cssText: string) => {
-      const scopedCss = cssText.replace(
-        /(^|\}|\{)\s*([^{}@]+?)\s*\{/g,
-        (match, delimiter: string, selectorGroup: string) => {
-          const trimmedGroup = selectorGroup.trim();
-          if (!trimmedGroup || trimmedGroup.startsWith("@")) {
-            return match;
-          }
-          const scopedSelectors = trimmedGroup
-            .split(",")
-            .map((sel) => {
-              const s = sel.trim();
-              if (!s) return "";
-              if (/^(html|body)\b/i.test(s)) {
-                return s.replace(/^(html|body)\b/i, `.${scopeClass}`);
-              }
-              return `.${scopeClass} ${s}`;
-            })
-            .filter(Boolean)
-            .join(", ");
-          return `${delimiter} ${scopedSelectors} {`;
-        },
-      );
-      return `<style>${scopedCss}</style>`;
+      const scopedCss = scopeCssText(cssText, scopeClass);
+      return scopedCss.trim() ? `<style>${scopedCss}</style>` : "";
     },
   );
 
@@ -136,6 +202,17 @@ function extractAndScopeEmailHtml(rawHtml: string, scopeClass: string): string {
         cleanedAttrs = `${cleanedAttrs} target="_blank" rel="noopener noreferrer"`.trim();
       }
       return `<a ${cleanedAttrs}>`;
+    },
+  );
+
+  // Prevent email <button> elements without type from acting as submit buttons
+  working = working.replace(
+    /<button\b([^>]*?)>/gi,
+    (fullTag, attrs: string) => {
+      if (/\btype\s*=/i.test(attrs)) {
+        return fullTag;
+      }
+      return `<button type="button"${attrs}>`;
     },
   );
 
@@ -199,17 +276,24 @@ export function MessageReaderView({
   navigation = null,
 }: MessageReaderViewProps) {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const activeTheme = resolvedTheme === "dark" ? "dark" : "light";
   const rawScopeId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const scopeClass = `readbox-mail-scope-${rawScopeId}`;
 
-  const [fetchedHtmlByUuid, setFetchedHtmlByUuid] = useState<
+  const [fetchedHtmlByKey, setFetchedHtmlByKey] = useState<
     Record<string, string>
   >({});
+  const [htmlFetchErrorKey, setHtmlFetchErrorKey] = useState<string | null>(
+    null,
+  );
+  const [retryCounter, setRetryCounter] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const directHtml = (message.htmlBody ?? "").trim();
-  const fetchedHtml = (fetchedHtmlByUuid[message.uuid] ?? "").trim();
+  const fetchCacheKey = `${message.uuid}:${activeTheme}`;
+  const fetchedHtml = (fetchedHtmlByKey[fetchCacheKey] ?? "").trim();
 
   useEffect(() => {
     if (directHtml.length > 0 || !message.hasHtmlBody) {
@@ -223,34 +307,46 @@ export function MessageReaderView({
     const controller = new AbortController();
 
     window
-      .fetch(`/api/messages/html/${message.uuid}`, {
+      .fetch(`/api/messages/html/${message.uuid}?theme=${activeTheme}`, {
         method: "GET",
         credentials: "same-origin",
         signal: controller.signal,
       })
       .then(async (res) => {
-        if (!res.ok) return "";
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         return res.text();
       })
       .then((htmlText) => {
         if (!cancelled && htmlText && htmlText.trim().length > 0) {
-          setFetchedHtmlByUuid((prev) => ({
+          setHtmlFetchErrorKey(null);
+          setFetchedHtmlByKey((prev) => ({
             ...prev,
-            [message.uuid]: htmlText,
+            [fetchCacheKey]: htmlText,
           }));
         }
       })
-      .catch(() => {
-        // Fallback to textBody if HTML endpoint is unreachable
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setHtmlFetchErrorKey(fetchCacheKey);
       });
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [directHtml, message.hasHtmlBody, message.uuid]);
+  }, [activeTheme, directHtml, fetchCacheKey, message.hasHtmlBody, message.uuid, retryCounter]);
 
   const effectiveHtml = directHtml || fetchedHtml;
+  const htmlFetchFailed =
+    !directHtml &&
+    !fetchedHtml &&
+    message.hasHtmlBody &&
+    htmlFetchErrorKey === fetchCacheKey;
   const scopedHtml = useMemo(
     () =>
       effectiveHtml ? extractAndScopeEmailHtml(effectiveHtml, scopeClass) : "",
@@ -341,7 +437,7 @@ export function MessageReaderView({
         )}
       >
         {/* Gmail-style Top Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/20 px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
           <div className="flex flex-wrap items-center gap-1.5">
             <Button
               asChild
@@ -386,10 +482,12 @@ export function MessageReaderView({
 
             <CopyButton
               value={plainTextCopyValue}
+              variant="outline"
+              size="sm"
               label="Copy email content"
               successMessage="Copied email content"
               errorMessage="Unable to copy content."
-              className="inline-flex h-7 items-center gap-1 border border-border bg-background px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="font-normal"
             >
               <span>Copy text</span>
             </CopyButton>
@@ -410,9 +508,9 @@ export function MessageReaderView({
           <div className="flex items-center gap-1.5">
             {navigation && navigation.totalCount > 0 ? (
               <div className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
-                <span className="px-1 font-mono text-[11px]">
+                <CaptionText className="px-1 font-mono text-muted-foreground">
                   {navigation.currentIndex} of {navigation.totalCount}
-                </span>
+                </CaptionText>
                 {navigation.prevHref ? (
                   <Button
                     asChild
@@ -482,12 +580,21 @@ export function MessageReaderView({
         {/* Gmail-style Subject + Sender Header */}
         <header className="space-y-3 border-b border-border px-4 py-3.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1
-              id="message-reader-subject"
-              className="break-words text-base font-medium leading-snug text-foreground"
-            >
-              {message.subject || "(No subject)"}
-            </h1>
+            {embedded ? (
+              <SectionTitle
+                id="message-reader-subject"
+                className="break-words text-base leading-snug"
+              >
+                {message.subject || "(No subject)"}
+              </SectionTitle>
+            ) : (
+              <PageTitle
+                id="message-reader-subject"
+                className="break-words leading-snug"
+              >
+                {message.subject || "(No subject)"}
+              </PageTitle>
+            )}
             <Badge variant="default" className="font-normal">
               Inbox
             </Badge>
@@ -503,7 +610,7 @@ export function MessageReaderView({
             <div className="flex min-w-0 flex-1 items-start gap-2.5">
               <div
                 aria-hidden="true"
-                className="grid size-8 shrink-0 place-items-center border border-border bg-primary/10 text-xs font-medium text-primary"
+                className="grid size-8 shrink-0 place-items-center border border-border bg-accent text-xs font-medium text-accent-foreground"
               >
                 {avatarInitial}
               </div>
@@ -514,31 +621,34 @@ export function MessageReaderView({
                     {senderDisplay}
                   </strong>
                   {message.senderAddress && message.senderName ? (
-                    <span className="break-all font-mono text-[11px] text-muted-foreground">
+                    <CaptionText className="break-all font-mono">
                       &lt;{message.senderAddress}&gt;
-                    </span>
+                    </CaptionText>
                   ) : null}
                   {message.senderAddress ? (
                     <CopyButton
                       value={message.senderAddress}
+                      variant="outline"
+                      size="xs"
                       label={`Copy ${message.senderAddress}`}
                       successMessage={`Copied ${message.senderAddress}`}
                       errorMessage="Unable to copy address."
-                      className="border border-border bg-background px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+                      className="font-normal"
                     >
                       Copy
                     </CopyButton>
                   ) : null}
                 </div>
 
-                <details className="group text-[11px] text-muted-foreground">
-                  <summary className="inline-flex cursor-pointer select-none items-center gap-1 hover:text-foreground">
+                <details className="group text-xs text-muted-foreground">
+                  <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-[11px] hover:text-foreground">
                     <span>to {primaryRecipients}</span>
-                    <span aria-hidden="true" className="text-[10px]">
-                      ▾
-                    </span>
+                    <Icon
+                      glyph={ChevronDown}
+                      className="size-3 transition-transform group-open:rotate-180"
+                    />
                   </summary>
-                  <dl className="mt-2 grid max-w-xl gap-1.5 border border-border bg-muted/30 p-2.5 font-mono text-[11px]">
+                  <dl className="mt-2 grid max-w-xl gap-1.5 border border-border bg-muted p-2.5 font-mono text-[11px]">
                     <div className="flex flex-wrap gap-2">
                       <dt className="w-16 shrink-0 text-muted-foreground">
                         from:
@@ -616,67 +726,45 @@ export function MessageReaderView({
           ) : null}
         </header>
 
-        {/* Unified Gmail-style Email Content Canvas (No HTML/Plain Text toggle, No broken sub-iframe) */}
+        {/* Unified Gmail-style Email Content Canvas (Global CSS tokens + safe scoping) */}
         <section
           aria-label="Email body"
           data-testid="email-body-content"
           className="min-h-[260px] flex-1 select-text bg-card px-4 py-4 text-foreground"
         >
-          <style>{`
-            .${scopeClass} {
-              font-family: "Segoe UI", "Segoe UI Web", system-ui, -apple-system, "Helvetica Neue", sans-serif;
-              font-size: 13px;
-              line-height: 1.6;
-              color: inherit;
-              overflow-wrap: anywhere;
-              word-break: break-word;
-            }
-            .${scopeClass} img {
-              max-width: 100%;
-              height: auto;
-              display: inline-block;
-            }
-            .${scopeClass} table {
-              max-width: 100%;
-              border-collapse: collapse;
-            }
-            .${scopeClass} a {
-              color: var(--primary);
-              text-decoration: underline;
-              text-underline-offset: 2px;
-              cursor: pointer;
-            }
-            .${scopeClass} blockquote {
-              margin: 8px 0;
-              padding-left: 12px;
-              border-left: 2px solid var(--border);
-              color: var(--muted-foreground);
-            }
-            .${scopeClass} pre, .${scopeClass} code {
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              font-size: 12px;
-            }
-            .${scopeClass} pre {
-              white-space: pre-wrap;
-              overflow-x: auto;
-              padding: 10px;
-              border: 1px solid var(--border);
-              background: var(--muted);
-            }
-          `}</style>
+          {htmlFetchFailed ? (
+            <AlertBanner
+              variant="warning"
+              className="mb-3"
+              action={
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="outline"
+                  onClick={() => {
+                    setHtmlFetchErrorKey(null);
+                    setRetryCounter((c) => c + 1);
+                  }}
+                >
+                  <Icon glyph={RotateCcw} className="size-3" />
+                  Retry
+                </Button>
+              }
+            >
+              Formatted HTML body could not be loaded. Displaying text fallback.
+            </AlertBanner>
+          ) : null}
 
           {scopedHtml ? (
             <div
-              className={cn(scopeClass, "max-w-full overflow-x-auto")}
+              className={cn(
+                "readbox-mail-body readbox-scrollable max-w-full overflow-x-auto",
+                scopeClass,
+              )}
               dangerouslySetInnerHTML={{ __html: scopedHtml }}
             />
           ) : message.textBody.trim().length > 0 ? (
-            <div
-              className={cn(
-                scopeClass,
-                "space-y-2 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground",
-              )}
-            >
+            <div className="readbox-mail-body space-y-2 whitespace-pre-wrap break-words text-foreground">
               {message.textBody.split("\n").map((line, index) => (
                 <div key={`line-${index}`} className="min-h-[1.25rem]">
                   {renderLinkifiedTextLine(line, `l-${index}`)}
@@ -684,7 +772,7 @@ export function MessageReaderView({
               ))}
             </div>
           ) : (
-            <div className="border border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+            <div className="border border-border bg-muted p-6 text-center text-xs text-muted-foreground">
               No readable message body is available.
             </div>
           )}
@@ -694,20 +782,17 @@ export function MessageReaderView({
         {message.attachments.length > 0 ? (
           <section
             aria-labelledby="attachments-heading"
-            className="space-y-2 border-t border-border bg-muted/15 px-4 py-3"
+            className="space-y-2 border-t border-border bg-muted px-4 py-3"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <Icon glyph={Paperclip} className="size-3.5 text-muted-foreground" />
-                <h2
-                  id="attachments-heading"
-                  className="text-xs font-medium text-foreground"
-                >
+                <SectionTitle id="attachments-heading">
                   {message.attachments.length}{" "}
                   {message.attachments.length === 1
                     ? "Attachment"
                     : "Attachments"}
-                </h2>
+                </SectionTitle>
               </div>
             </div>
 
@@ -748,33 +833,37 @@ export function MessageReaderView({
         ) : null}
 
         {/* Gmail-style Bottom Action Footer */}
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/10 px-4 py-2.5">
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             {message.senderAddress ? (
               <CopyButton
                 value={message.senderAddress}
+                variant="secondary"
+                size="sm"
                 label={`Copy sender ${message.senderAddress}`}
                 successMessage={`Copied ${message.senderAddress}`}
                 errorMessage="Unable to copy sender address."
-                className="inline-flex h-7 items-center gap-1.5 border border-border bg-background px-2.5 text-xs text-foreground hover:bg-muted"
+                className="font-normal"
               >
                 <span>Copy sender address</span>
               </CopyButton>
             ) : null}
             <CopyButton
               value={plainTextCopyValue}
+              variant="secondary"
+              size="sm"
               label="Copy message text"
               successMessage="Copied message text"
               errorMessage="Unable to copy message text."
-              className="inline-flex h-7 items-center gap-1.5 border border-border bg-background px-2.5 text-xs text-foreground hover:bg-muted"
+              className="font-normal"
             >
               <span>Copy message text</span>
             </CopyButton>
           </div>
 
-          <span className="font-mono text-[11px] text-muted-foreground">
+          <CaptionText className="font-mono">
             Delivered to {mailbox.emailAddress}
-          </span>
+          </CaptionText>
         </footer>
       </article>
 

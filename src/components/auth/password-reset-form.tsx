@@ -4,7 +4,7 @@ import {
   completePasswordResetAction,
   type PasswordResetState,
 } from "@/app/reset-password/actions";
-import { AlertBanner, Button, Input, Label } from "@/components/ui";
+import { AlertBanner, Button, FormField, Input } from "@/components/ui";
 import { passwordConfirmationMatches } from "@/core/auth/password-policy";
 import { useActionState, useState, type FormEvent } from "react";
 
@@ -45,8 +45,7 @@ export function PasswordResetForm() {
       onInput={(event) => updatePasswordMismatch(event.currentTarget)}
       onSubmit={validatePasswordConfirmation}
     >
-      <div className="space-y-1">
-        <Label htmlFor="reset-token">Reset token</Label>
+      <FormField id="reset-token" label="Reset token">
         <Input
           autoComplete="off"
           id="reset-token"
@@ -55,9 +54,8 @@ export function PasswordResetForm() {
           required
           spellCheck={false}
         />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="new-password">New password</Label>
+      </FormField>
+      <FormField id="new-password" label="New password">
         <Input
           autoComplete="new-password"
           id="new-password"
@@ -67,9 +65,8 @@ export function PasswordResetForm() {
           required
           type="password"
         />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="confirm-password">Confirm new password</Label>
+      </FormField>
+      <FormField id="confirm-password" label="Confirm new password">
         <Input
           autoComplete="new-password"
           id="confirm-password"
@@ -81,7 +78,7 @@ export function PasswordResetForm() {
           required
           type="password"
         />
-      </div>
+      </FormField>
       {passwordMismatch ? (
         <AlertBanner id="password-mismatch" variant="error">
           Passwords do not match.

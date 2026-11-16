@@ -16,7 +16,7 @@ import {
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   PanelHeader,
@@ -144,12 +144,14 @@ export function MailboxForm({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>Provision mailbox</PageTitle>
-        <Button asChild size="sm" variant="outline">
-          <Link href="/vcon/mailboxes">Back to mailboxes</Link>
-        </Button>
-      </header>
+      <PageHeader
+        title="Provision mailbox"
+        actions={
+          <Button asChild size="sm" variant="outline">
+            <Link href="/vcon/mailboxes">Back to mailboxes</Link>
+          </Button>
+        }
+      />
 
       {!databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -182,6 +184,12 @@ export function MailboxForm({
                   id="mailbox-domain"
                   name="domainUuid"
                   value={domainUuid}
+                  aria-invalid={Boolean(fieldErrors.domainUuid)}
+                  aria-describedby={
+                    fieldErrors.domainUuid
+                      ? "mailbox-domain-error"
+                      : "mailbox-domain-hint"
+                  }
                   onChange={(event) => setDomainUuid(event.target.value)}
                   disabled={domains.length === 0}
                   className="w-full"
@@ -213,6 +221,12 @@ export function MailboxForm({
                     autoComplete="off"
                     spellCheck={false}
                     placeholder="e.g. logan.rodriguez"
+                    aria-invalid={Boolean(fieldErrors.localPart)}
+                    aria-describedby={
+                      fieldErrors.localPart
+                        ? "mailbox-local-part-error"
+                        : "mailbox-local-part-hint"
+                    }
                     onChange={(event) => setLocalPart(event.target.value)}
                     required
                   />
@@ -345,7 +359,8 @@ export function MailboxForm({
                 label={`Copy ${createdEmail}`}
                 successMessage="Email address copied."
                 errorMessage="Clipboard copy is unavailable."
-                className="border border-border bg-card px-2 py-1 hover:bg-accent hover:text-accent-foreground"
+                variant="outline"
+                size="xs"
               >
                 <span>Copy</span>
               </CopyButton>

@@ -90,7 +90,7 @@ function createInitialDemoStore(): DemoStoreState {
       {
         id: "1",
         uuid: "99999999-0000-4000-8000-000000000001",
-        name: "mailstack.local",
+        name: "readbox.local",
         isDefault: true,
       },
       {
@@ -105,9 +105,9 @@ function createInitialDemoStore(): DemoStoreState {
         id: "101",
         uuid: "11111111-1111-4111-8111-111111111101",
         localPart: "billing.ops",
-        emailAddress: "billing.ops@mailstack.local",
+        emailAddress: "billing.ops@readbox.local",
         domainUuid: "99999999-0000-4000-8000-000000000001",
-        domainName: "mailstack.local",
+        domainName: "readbox.local",
         status: "active",
         createdAt: "2026-11-10T08:15:00.000Z",
       },
@@ -115,9 +115,9 @@ function createInitialDemoStore(): DemoStoreState {
         id: "102",
         uuid: "11111111-1111-4111-8111-111111111102",
         localPart: "olivia.martin",
-        emailAddress: "olivia.martin@mailstack.local",
+        emailAddress: "olivia.martin@readbox.local",
         domainUuid: "99999999-0000-4000-8000-000000000001",
-        domainName: "mailstack.local",
+        domainName: "readbox.local",
         status: "active",
         createdAt: "2026-11-12T10:30:00.000Z",
       },
@@ -135,9 +135,9 @@ function createInitialDemoStore(): DemoStoreState {
         id: "104",
         uuid: "11111111-1111-4111-8111-111111111104",
         localPart: "alerts.archive",
-        emailAddress: "alerts.archive@mailstack.local",
+        emailAddress: "alerts.archive@readbox.local",
         domainUuid: "99999999-0000-4000-8000-000000000001",
-        domainName: "mailstack.local",
+        domainName: "readbox.local",
         status: "disabled",
         createdAt: "2026-11-01T09:00:00.000Z",
       },
@@ -150,8 +150,8 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<inv-9021@vendor.example>",
         senderName: "Vendor Billing",
         senderAddress: "billing@vendor.example",
-        recipientAddresses: ["billing.ops@mailstack.local"],
-        ccAddresses: ["finance@mailstack.local"],
+        recipientAddresses: ["billing.ops@readbox.local"],
+        ccAddresses: ["finance@readbox.local"],
         subject: "Invoice #9021 — November Monthly Statement",
         preview:
           "Your November billing summary is ready. Total due: $184.00 on Nov 30.",
@@ -211,7 +211,7 @@ function createInitialDemoStore(): DemoStoreState {
             sizeBytes: 142,
             isInline: false,
             content:
-              "Invoice #9021\nPeriod: 2026-11\nAccount: billing.ops@mailstack.local\nTotal: $184.00\n",
+              "Invoice #9021\nPeriod: 2026-11\nAccount: billing.ops@readbox.local\nTotal: $184.00\n",
           },
         ],
         deleted: false,
@@ -223,7 +223,7 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<sub-renewal@workspace.example>",
         senderName: "Account Services",
         senderAddress: "accounts@workspace.example",
-        recipientAddresses: ["billing.ops@mailstack.local"],
+        recipientAddresses: ["billing.ops@readbox.local"],
         ccAddresses: [],
         subject: "Annual workspace plan renewal confirmation",
         preview:
@@ -245,7 +245,7 @@ function createInitialDemoStore(): DemoStoreState {
   <ul style="margin:0 0 16px 18px;padding:0;font-size:13px">
     <li style="margin-bottom:4px">Plan Tier: <strong>Enterprise Multi-Domain Workspace</strong></li>
     <li style="margin-bottom:4px">Next Renewal Date: <strong>February 13, 2027</strong></li>
-    <li style="margin-bottom:4px">Assigned Mailbox: <code>billing.ops@mailstack.local</code></li>
+    <li style="margin-bottom:4px">Assigned Mailbox: <code>billing.ops@readbox.local</code></li>
   </ul>
   <p style="margin:0 0 14px 0">
     <a href="https://workspace.example/account/subscriptions/SUB-2026-049" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#2558bf;color:#ffffff;text-decoration:none;padding:8px 16px;font-size:13px;font-weight:500">Manage Subscription Settings</a>
@@ -261,7 +261,7 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<payout-confirm@stripe-demo.example>",
         senderName: "Merchant Payouts",
         senderAddress: "payouts@merchant.example",
-        recipientAddresses: ["billing.ops@mailstack.local"],
+        recipientAddresses: ["billing.ops@readbox.local"],
         ccAddresses: [],
         subject: "Settlement batch #441 deposited",
         preview:
@@ -293,7 +293,7 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<verify-code@portal.example>",
         senderName: "Account Security",
         senderAddress: "security@portal.example",
-        recipientAddresses: ["olivia.martin@mailstack.local"],
+        recipientAddresses: ["olivia.martin@readbox.local"],
         ccAddresses: [],
         subject: "One-time verification code: 482910",
         preview:

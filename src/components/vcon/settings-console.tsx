@@ -6,21 +6,24 @@ import type {
 } from "@/app/(workspace)/vcon/settings/actions";
 import {
   AlertBanner,
+  BrandLogo,
   Button,
+  CaptionText,
   Checkbox,
+  FileInput,
   FormField,
   Icon,
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   PanelHeader,
   SectionTitle,
   Textarea,
 } from "@/components/ui";
-import { Check, ExternalLink, RefreshCw } from "lucide-react";
+import { Check, ExternalLink, Globe, RefreshCw } from "lucide-react";
 import { useState, useTransition } from "react";
 
 export interface SettingsConsoleProps {
@@ -155,16 +158,19 @@ export function SettingsConsole({
 
   return (
     <section className="space-y-3" aria-labelledby="site-settings-title">
-      <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
-        <PageTitle id="site-settings-title">Site Settings</PageTitle>
-        <Button type="submit" form="site-settings-form" disabled={isPending}>
-          <Icon
-            glyph={isPending ? RefreshCw : Check}
-            className={isPending ? "animate-spin" : undefined}
-          />
-          {isPending ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
+      <PageHeader
+        id="site-settings-title"
+        title="Site Settings"
+        actions={
+          <Button type="submit" form="site-settings-form" disabled={isPending}>
+            <Icon
+              glyph={isPending ? RefreshCw : Check}
+              className={isPending ? "animate-spin" : undefined}
+            />
+            {isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        }
+      />
 
       {errorBanner ? (
         <AlertBanner variant="error">{errorBanner}</AlertBanner>
@@ -198,6 +204,10 @@ export function SettingsConsole({
                   required
                   maxLength={120}
                   value={siteName}
+                  aria-invalid={Boolean(fieldErrors.siteName)}
+                  aria-describedby={
+                    fieldErrors.siteName ? "id_site_name-error" : undefined
+                  }
                   onChange={(e) => setSiteName(e.target.value)}
                 />
               </FormField>
@@ -213,6 +223,12 @@ export function SettingsConsole({
                   type="text"
                   maxLength={200}
                   value={siteTagline}
+                  aria-invalid={Boolean(fieldErrors.siteTagline)}
+                  aria-describedby={
+                    fieldErrors.siteTagline
+                      ? "id_site_tagline-error"
+                      : undefined
+                  }
                   onChange={(e) => setSiteTagline(e.target.value)}
                 />
               </FormField>
@@ -222,39 +238,33 @@ export function SettingsConsole({
               <div className="border border-border bg-background p-3">
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor="id_logo">Site Logo</Label>
-                  <span className="text-[11px] text-muted-foreground">
-                    Max 5 MB · GIF, JPEG, PNG, SVG, WEBP
-                  </span>
+                  <CaptionText>Max 5 MB · GIF, JPEG, PNG, SVG, WEBP</CaptionText>
                 </div>
                 <div className="mt-2.5 flex items-center gap-3">
-                  {settings.logoUrl && !clearLogo ? (
-                    <img
-                      src={settings.logoUrl}
-                      alt="Current site logo"
-                      referrerPolicy="no-referrer"
-                      className="h-10 w-10 shrink-0 border border-border object-contain p-1"
-                    />
-                  ) : (
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center border border-border bg-muted font-mono text-[11px] font-medium text-muted-foreground">
-                      SVG
-                    </span>
-                  )}
+                  <BrandLogo
+                    siteName={siteName}
+                    logoUrl={!clearLogo ? settings.logoUrl : undefined}
+                    size="md"
+                    showName={false}
+                  />
                   <div className="min-w-0 flex-1">
-                    <input
+                    <FileInput
                       id="id_logo"
                       name="logo"
-                      type="file"
                       accept="image/gif,image/jpeg,image/png,image/svg+xml,image/webp"
                       aria-label="Site Logo"
-                      className="block w-full text-xs text-muted-foreground file:mr-2.5 file:rounded-none file:border file:border-border file:bg-card file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted"
+                      aria-invalid={Boolean(fieldErrors.logo)}
+                      aria-describedby={
+                        fieldErrors.logo ? "id_logo-error" : undefined
+                      }
                     />
                   </div>
                 </div>
                 {settings.logoPath ? (
                   <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="truncate font-mono text-[11px]">
+                    <CaptionText className="truncate font-mono">
                       {settings.logoPath}
-                    </span>
+                    </CaptionText>
                     <Label className="inline-flex cursor-pointer items-center gap-1.5 font-normal">
                       <Checkbox
                         checked={clearLogo}
@@ -265,7 +275,11 @@ export function SettingsConsole({
                   </div>
                 ) : null}
                 {fieldErrors.logo ? (
-                  <p className="mt-1.5 text-xs text-destructive" role="alert">
+                  <p
+                    id="id_logo-error"
+                    className="mt-1.5 text-xs text-destructive"
+                    role="alert"
+                  >
                     {fieldErrors.logo}
                   </p>
                 ) : null}
@@ -274,39 +288,34 @@ export function SettingsConsole({
               <div className="border border-border bg-background p-3">
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor="id_favicon">Favicon</Label>
-                  <span className="text-[11px] text-muted-foreground">
-                    Max 512 KB · GIF, ICO, PNG, SVG, WEBP
-                  </span>
+                  <CaptionText>Max 512 KB · GIF, ICO, PNG, SVG, WEBP</CaptionText>
                 </div>
                 <div className="mt-2.5 flex items-center gap-3">
-                  {settings.faviconUrl && !clearFavicon ? (
-                    <img
-                      src={settings.faviconUrl}
-                      alt="Current site favicon"
-                      referrerPolicy="no-referrer"
-                      className="h-10 w-10 shrink-0 border border-border object-contain p-1.5"
-                    />
-                  ) : (
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center border border-border bg-muted font-mono text-[11px] font-medium text-muted-foreground">
-                      ICO
-                    </span>
-                  )}
+                  <BrandLogo
+                    siteName={siteName}
+                    logoUrl={!clearFavicon ? settings.faviconUrl : undefined}
+                    size="md"
+                    fallbackIcon={Globe}
+                    showName={false}
+                  />
                   <div className="min-w-0 flex-1">
-                    <input
+                    <FileInput
                       id="id_favicon"
                       name="favicon"
-                      type="file"
                       accept="image/gif,image/x-icon,image/png,image/svg+xml,image/webp"
                       aria-label="Favicon"
-                      className="block w-full text-xs text-muted-foreground file:mr-2.5 file:rounded-none file:border file:border-border file:bg-card file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted"
+                      aria-invalid={Boolean(fieldErrors.favicon)}
+                      aria-describedby={
+                        fieldErrors.favicon ? "id_favicon-error" : undefined
+                      }
                     />
                   </div>
                 </div>
                 {settings.faviconPath ? (
                   <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="truncate font-mono text-[11px]">
+                    <CaptionText className="truncate font-mono">
                       {settings.faviconPath}
-                    </span>
+                    </CaptionText>
                     <Label className="inline-flex cursor-pointer items-center gap-1.5 font-normal">
                       <Checkbox
                         checked={clearFavicon}
@@ -317,7 +326,11 @@ export function SettingsConsole({
                   </div>
                 ) : null}
                 {fieldErrors.favicon ? (
-                  <p className="mt-1.5 text-xs text-destructive" role="alert">
+                  <p
+                    id="id_favicon-error"
+                    className="mt-1.5 text-xs text-destructive"
+                    role="alert"
+                  >
                     {fieldErrors.favicon}
                   </p>
                 ) : null}
@@ -344,6 +357,12 @@ export function SettingsConsole({
                   maxLength={254}
                   placeholder="support@example.com"
                   value={supportEmail}
+                  aria-invalid={Boolean(fieldErrors.supportEmail)}
+                  aria-describedby={
+                    fieldErrors.supportEmail
+                      ? "id_support_email-error"
+                      : undefined
+                  }
                   onChange={(e) => setSupportEmail(e.target.value)}
                 />
               </FormField>
@@ -360,6 +379,12 @@ export function SettingsConsole({
                   maxLength={40}
                   placeholder="+1 (555) 010-2000"
                   value={contactPhone}
+                  aria-invalid={Boolean(fieldErrors.contactPhone)}
+                  aria-describedby={
+                    fieldErrors.contactPhone
+                      ? "id_contact_phone-error"
+                      : undefined
+                  }
                   onChange={(e) => setContactPhone(e.target.value)}
                 />
               </FormField>
@@ -376,6 +401,12 @@ export function SettingsConsole({
                 type="text"
                 maxLength={255}
                 value={officeAddress}
+                aria-invalid={Boolean(fieldErrors.officeAddress)}
+                aria-describedby={
+                  fieldErrors.officeAddress
+                    ? "id_office_address-error"
+                    : undefined
+                }
                 onChange={(e) => setOfficeAddress(e.target.value)}
               />
             </FormField>
@@ -397,6 +428,12 @@ export function SettingsConsole({
                 name="footer_description"
                 rows={2}
                 value={footerDescription}
+                aria-invalid={Boolean(fieldErrors.footerDescription)}
+                aria-describedby={
+                  fieldErrors.footerDescription
+                    ? "id_footer_description-error"
+                    : undefined
+                }
                 onChange={(e) => setFooterDescription(e.target.value)}
               />
             </FormField>
@@ -412,6 +449,12 @@ export function SettingsConsole({
                 type="text"
                 maxLength={255}
                 value={copyrightText}
+                aria-invalid={Boolean(fieldErrors.copyrightText)}
+                aria-describedby={
+                  fieldErrors.copyrightText
+                    ? "id_copyright_text-error"
+                    : undefined
+                }
                 onChange={(e) => setCopyrightText(e.target.value)}
               />
             </FormField>
@@ -428,6 +471,12 @@ export function SettingsConsole({
                   type="url"
                   maxLength={200}
                   value={sourceCodeUrl}
+                  aria-invalid={Boolean(fieldErrors.sourceCodeUrl)}
+                  aria-describedby={
+                    fieldErrors.sourceCodeUrl
+                      ? "id_source_code_url-error"
+                      : undefined
+                  }
                   onChange={(e) => setSourceCodeUrl(e.target.value)}
                 />
               </FormField>
@@ -444,6 +493,12 @@ export function SettingsConsole({
                   maxLength={500}
                   placeholder="/privacy/"
                   value={privacyUrl}
+                  aria-invalid={Boolean(fieldErrors.privacyUrl)}
+                  aria-describedby={
+                    fieldErrors.privacyUrl
+                      ? "id_privacy_url-error"
+                      : undefined
+                  }
                   onChange={(e) => setPrivacyUrl(e.target.value)}
                 />
               </FormField>
@@ -466,25 +521,21 @@ export function SettingsConsole({
         </PanelHeader>
         <PanelBody className="grid gap-2 text-xs sm:grid-cols-3">
           <div className="border border-border bg-background p-2.5">
-            <span className="block text-[11px] text-muted-foreground">
-              Confined Media Root
-            </span>
+            <CaptionText className="block">Confined Media Root</CaptionText>
             <strong className="mt-1 block truncate font-mono font-medium text-foreground">
               {mediaRoot}
             </strong>
           </div>
           <div className="border border-border bg-background p-2.5">
-            <span className="block text-[11px] text-muted-foreground">
+            <CaptionText className="block">
               Allowed CORS Origin (PUBLIC_SITE_ORIGIN)
-            </span>
+            </CaptionText>
             <strong className="mt-1 block truncate font-mono font-medium text-foreground">
               {publicSiteOrigin || "Same-origin only (not set)"}
             </strong>
           </div>
           <div className="border border-border bg-background p-2.5">
-            <span className="block text-[11px] text-muted-foreground">
-              Last Updated
-            </span>
+            <CaptionText className="block">Last Updated</CaptionText>
             <strong className="mt-1 block font-mono font-medium tabular-nums text-foreground">
               {new Date(settings.updatedAtIso).toUTCString()}
             </strong>

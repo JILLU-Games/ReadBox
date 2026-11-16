@@ -3,6 +3,7 @@
 import {
   AlertBanner,
   Button,
+  CaptionText,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -154,9 +155,7 @@ export function CreateUserMailboxModal({
                 <Label htmlFor="user-mailbox-local-part">Mailbox address</Label>
 
                 <div className="flex flex-wrap items-center gap-1">
-                  <span className="text-[11px] text-muted-foreground">
-                    Quick:
-                  </span>
+                  <CaptionText>Quick:</CaptionText>
                   {suggestions.map((suggestion) => (
                     <Button
                       key={suggestion}
@@ -200,6 +199,7 @@ export function CreateUserMailboxModal({
                     autoComplete="off"
                     spellCheck={false}
                     disabled={isPending}
+                    aria-invalid={Boolean(errorMessage)}
                     className="min-w-0 flex-1 font-mono"
                   />
                   <Button
@@ -236,9 +236,9 @@ export function CreateUserMailboxModal({
                 </div>
               </div>
 
-              <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
+              <CaptionText className="mt-1.5 block font-mono">
                 {previewAddress}
-              </p>
+              </CaptionText>
             </div>
 
             {errorMessage ? (

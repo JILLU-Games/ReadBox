@@ -6,7 +6,7 @@ import { logger } from "@/core/server/logger";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const CSRF_COOKIE_NAME = "vm_contact_session";
-export const CSRF_HEADER_NAME = "x-vibmail-csrf";
+export const CSRF_HEADER_NAME = "x-readbox-csrf";
 export const CSRF_TTL_SECONDS = 1200; // 20 minutes
 export const MAX_BODY_BYTES = 32 * 1024; // 32 KiB
 export const MIN_FORM_AGE_MS = 2_500;

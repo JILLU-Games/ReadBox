@@ -18,8 +18,8 @@ describe("app installability manifest", () => {
   });
 
   it.each([
-    ["/icons/mailstack-192.png", 192],
-    ["/icons/mailstack-512.png", 512],
+    ["/icons/readbox-192.png", 192],
+    ["/icons/readbox-512.png", 512],
   ])("provides a valid %i-pixel PNG manifest icon", (src, size) => {
     const icon = appManifest.icons?.find((candidate) => candidate.src === src);
     expect(icon).toMatchObject({

@@ -4,17 +4,20 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   Checkbox,
   Icon,
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   PanelHeader,
   SectionTitle,
   Select,
+  StatCard,
+  StatGrid,
 } from "@/components/ui";
 import type { BodyRepairBatchSummary } from "@/core/ingestion/repair";
 import type { IngestionRunSummary } from "@/core/ingestion/service";
@@ -154,21 +157,23 @@ export function OperationsConsole({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>Operations &amp; ingestion diagnostics</PageTitle>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={stateBadgeVariant(overview.health.ingestion.state)}>
-            Worker: {overview.health.ingestion.detail}
-          </Badge>
-          <Badge
-            variant={overview.postfixContract.verified ? "success" : "warning"}
-          >
-            {overview.postfixContract.verified
-              ? "Postfix contract OK"
-              : "Postfix contract attention"}
-          </Badge>
-        </div>
-      </header>
+      <PageHeader
+        title="Operations & ingestion diagnostics"
+        actions={
+          <>
+            <Badge variant={stateBadgeVariant(overview.health.ingestion.state)}>
+              Worker: {overview.health.ingestion.detail}
+            </Badge>
+            <Badge
+              variant={overview.postfixContract.verified ? "success" : "warning"}
+            >
+              {overview.postfixContract.verified
+                ? "Postfix contract OK"
+                : "Postfix contract attention"}
+            </Badge>
+          </>
+        }
+      />
 
       {!overview.databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -182,73 +187,74 @@ export function OperationsConsole({
         </AlertBanner>
       ) : null}
 
-      <section
+      <StatGrid
         aria-label="Operations telemetry summary"
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="sm:grid-cols-2 lg:grid-cols-4"
       >
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Ingestion heartbeat
-            </p>
-            <p className="text-sm font-medium">
-              {overview.health.ingestion.detail}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Last seen: {formatTimestamp(overview.health.ingestion.meta)}
-            </p>
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Postfix virtual views
-            </p>
-            <p className="text-sm font-medium tabular-nums">
-              {overview.postfixContract.postfixRows} routing row(s)
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {overview.postfixContract.domains} active domain(s) ·{" "}
-              {overview.postfixContract.mailboxes} mailserver box(es)
-            </p>
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Schema sync drift
-            </p>
-            <p className="text-sm font-medium tabular-nums">
-              {overview.syncDrift.missingInApp +
-                overview.syncDrift.missingInMailserver +
-                overview.syncDrift.statusMismatches}{" "}
-              diff(s)
-            </p>
-            <p className="text-xs text-muted-foreground">
-              App {overview.syncDrift.appMailboxes} vs mailserver{" "}
-              {overview.syncDrift.mailserverMailboxes}
-            </p>
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Indexed message corpus
-            </p>
-            <p className="text-sm font-medium tabular-nums">
-              {overview.indexingStats.totalMessages} indexed
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {overview.indexingStats.warningMessages} warning ·{" "}
-              {overview.indexingStats.oversizedMessages} oversized ·{" "}
-              {overview.indexingStats.failedMessages} failed
-            </p>
-          </PanelBody>
-        </Panel>
-      </section>
+        <StatCard
+          compact
+          label="Ingestion heartbeat"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.health.ingestion.detail}
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                Last seen: {formatTimestamp(overview.health.ingestion.meta)}
+              </CaptionText>
+            </>
+          }
+        />
+        <StatCard
+          compact
+          label="Postfix virtual views"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.postfixContract.postfixRows} routing row(s)
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                {overview.postfixContract.domains} active domain(s) ·{" "}
+                {overview.postfixContract.mailboxes} mailserver box(es)
+              </CaptionText>
+            </>
+          }
+        />
+        <StatCard
+          compact
+          label="Schema sync drift"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.syncDrift.missingInApp +
+                  overview.syncDrift.missingInMailserver +
+                  overview.syncDrift.statusMismatches}{" "}
+                diff(s)
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                App {overview.syncDrift.appMailboxes} vs mailserver{" "}
+                {overview.syncDrift.mailserverMailboxes}
+              </CaptionText>
+            </>
+          }
+        />
+        <StatCard
+          compact
+          label="Indexed message corpus"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.indexingStats.totalMessages} indexed
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                {overview.indexingStats.warningMessages} warning ·{" "}
+                {overview.indexingStats.oversizedMessages} oversized ·{" "}
+                {overview.indexingStats.failedMessages} failed
+              </CaptionText>
+            </>
+          }
+        />
+      </StatGrid>
 
       <Panel aria-label="Storage readiness and mailbox scope">
         <PanelBody className="flex flex-wrap items-center justify-between gap-3 p-3">

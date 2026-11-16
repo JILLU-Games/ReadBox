@@ -55,6 +55,7 @@ export default async function UsersWorkspaceLayout({
   return (
     <UsersWorkspaceShell
       mailboxes={listResult.items}
+      totalMailboxCount={listResult.totalCount}
       domains={listResult.availableDomains}
       capabilities={listResult.capabilities}
       databaseConfigured={listResult.databaseConfigured}

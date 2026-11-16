@@ -3,6 +3,7 @@
 import {
   Badge,
   Button,
+  CaptionText,
   CopyButton,
   Icon,
   notify,
@@ -123,9 +124,9 @@ export function DnsRecordsPanel({
               </TableCell>
               <TableCell className="font-mono text-xs">
                 <div>{record.host}</div>
-                <div className="text-[11px] text-muted-foreground">
+                <CaptionText className="block">
                   CF name: {record.cfHost}
-                </div>
+                </CaptionText>
               </TableCell>
               <TableCell className="font-mono text-xs">
                 {record.priority}
@@ -143,7 +144,8 @@ export function DnsRecordsPanel({
                     label={`Copy ${record.type} value for ${record.host}`}
                     successMessage="DNS record value copied."
                     errorMessage="Clipboard copy is unavailable in this browser."
-                    className="px-2 py-1 hover:bg-accent hover:text-accent-foreground"
+                    variant="outline"
+                    size="xs"
                   >
                     <span>Copy</span>
                   </CopyButton>

@@ -3,10 +3,13 @@
 import {
   Badge,
   Button,
+  CaptionText,
   CopyButton,
   Icon,
   Input,
   Label,
+  PageTitle,
+  Pagination,
   Select,
 } from "@/components/ui";
 import { LiveWorkspaceNavigationBar } from "@/components/users/live-mail-notifier";
@@ -178,20 +181,21 @@ export function MailboxInboxView({
             </div>
 
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <h1
+              <PageTitle
                 id="mailbox-inbox-title"
-                className="text-sm font-medium text-foreground"
+                className="max-w-full break-all font-mono text-sm"
               >
-                <CopyButton
-                  value={mailbox.emailAddress}
-                  title="Copy email address"
-                  successMessage={`Copied ${mailbox.emailAddress}`}
-                  errorMessage="Unable to copy address."
-                  className="max-w-full break-all text-left font-mono text-sm"
-                >
-                  <span>{mailbox.emailAddress}</span>
-                </CopyButton>
-              </h1>
+                {mailbox.emailAddress}
+              </PageTitle>
+              <CopyButton
+                value={mailbox.emailAddress}
+                variant="outline"
+                size="xs"
+                label={`Copy ${mailbox.emailAddress}`}
+                title="Copy email address"
+                successMessage={`Copied ${mailbox.emailAddress}`}
+                errorMessage="Unable to copy address."
+              />
               <Badge
                 variant={liveCounts.status === "active" ? "success" : "default"}
               >
@@ -276,7 +280,7 @@ export function MailboxInboxView({
 
           <div
             aria-label="Inbox message list"
-            className="flex-1 divide-y divide-border overflow-y-auto xl:max-h-[calc(100dvh-16rem)]"
+            className="readbox-scrollable flex-1 divide-y divide-border overflow-y-auto xl:max-h-[calc(100dvh-16rem)]"
           >
             {inboxResult.items.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-12 text-center">
@@ -364,40 +368,28 @@ export function MailboxInboxView({
             )}
           </div>
 
-          {inboxResult.totalPages > 1 ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
-              <span className="tabular-nums">
-                Page {inboxResult.page} / {inboxResult.totalPages} (
-                {inboxResult.totalCount})
-              </span>
-              <div className="flex items-center gap-1.5">
-                {inboxResult.page > 1 ? (
-                  <Button asChild size="sm" variant="outline">
-                    <Link
-                      href={buildInboxUrl(mailbox.uuid, {
-                        ...filterParams,
-                        page: inboxResult.page - 1,
-                      })}
-                    >
-                      Previous
-                    </Link>
-                  </Button>
-                ) : null}
-                {inboxResult.page < inboxResult.totalPages ? (
-                  <Button asChild size="sm" variant="outline">
-                    <Link
-                      href={buildInboxUrl(mailbox.uuid, {
-                        ...filterParams,
-                        page: inboxResult.page + 1,
-                      })}
-                    >
-                      Next
-                    </Link>
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
+          <Pagination
+            variant="flush"
+            page={inboxResult.page}
+            totalPages={inboxResult.totalPages}
+            totalCount={inboxResult.totalCount}
+            prevHref={
+              inboxResult.page > 1
+                ? buildInboxUrl(mailbox.uuid, {
+                    ...filterParams,
+                    page: inboxResult.page - 1,
+                  })
+                : null
+            }
+            nextHref={
+              inboxResult.page < inboxResult.totalPages
+                ? buildInboxUrl(mailbox.uuid, {
+                    ...filterParams,
+                    page: inboxResult.page + 1,
+                  })
+                : null
+            }
+          />
         </section>
 
         {hasActiveReader && activeMessage && markUnreadAction && deleteMessageAction ? (
@@ -419,10 +411,10 @@ export function MailboxInboxView({
             <p className="text-xs font-medium text-foreground">
               Select a message to read
             </p>
-            <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            <CaptionText className="font-mono tabular-nums">
               {liveCounts.unreadMessages} unread · {liveCounts.totalMessages}{" "}
               total
-            </p>
+            </CaptionText>
           </div>
         )}
       </div>

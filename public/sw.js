@@ -1,4 +1,4 @@
-const CACHE_NAME = "mailstack-public-static-v2";
+const CACHE_NAME = "readbox-public-static-v2";
 const OFFLINE_PAGE = "/offline.html";
 
 self.addEventListener("install", (event) => {
@@ -17,7 +17,8 @@ self.addEventListener("activate", (event) => {
           keys
             .filter(
               (key) =>
-                key.startsWith("mailstack-public-static-") &&
+                (key.startsWith("mailstack-public-static-") ||
+                  key.startsWith("readbox-public-static-")) &&
                 key !== CACHE_NAME,
             )
             .map((key) => caches.delete(key)),

@@ -15,7 +15,7 @@ import {
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   PanelHeader,
@@ -318,16 +318,18 @@ export function DomainForm({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>
-          {isCreate
+      <PageHeader
+        title={
+          isCreate
             ? "Add mail domain"
-            : `Manage ${initialDomain?.name ?? "domain"}`}
-        </PageTitle>
-        <Button asChild size="sm" variant="outline">
-          <Link href="/vcon/domains">Back to domains</Link>
-        </Button>
-      </header>
+            : `Manage ${initialDomain?.name ?? "domain"}`
+        }
+        actions={
+          <Button asChild size="sm" variant="outline">
+            <Link href="/vcon/domains">Back to domains</Link>
+          </Button>
+        }
+      />
 
       {!databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -459,6 +461,10 @@ export function DomainForm({
                     spellCheck={false}
                     placeholder="example.com"
                     onChange={(event) => setName(event.target.value)}
+                    aria-invalid={Boolean(fieldErrors.name)}
+                    aria-describedby={
+                      fieldErrors.name ? "domain-name-error" : "domain-name-hint"
+                    }
                     required={isCreate}
                   />
                   {isCreate ? (
@@ -493,6 +499,12 @@ export function DomainForm({
                     id="domain-status"
                     name="status"
                     value={status}
+                    aria-invalid={Boolean(fieldErrors.status)}
+                    aria-describedby={
+                      fieldErrors.status
+                        ? "domain-status-error"
+                        : "domain-status-hint"
+                    }
                     onChange={(event) =>
                       setStatus(
                         event.target.value === "active" ? "active" : "disabled",
@@ -538,6 +550,12 @@ export function DomainForm({
                   <Checkbox
                     id="domain-dns-confirmed"
                     checked={dnsConfirmed}
+                    aria-invalid={Boolean(fieldErrors.dnsConfirmed)}
+                    aria-describedby={
+                      fieldErrors.dnsConfirmed
+                        ? "domain-dns-confirmed-error"
+                        : undefined
+                    }
                     onChange={(event) => setDnsConfirmed(event.target.checked)}
                     className="mt-0.5"
                   />
@@ -550,7 +568,11 @@ export function DomainForm({
                   </Label>
                 </div>
                 {fieldErrors.dnsConfirmed ? (
-                  <p className="text-xs text-destructive" role="alert">
+                  <p
+                    id="domain-dns-confirmed-error"
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
                     {fieldErrors.dnsConfirmed}
                   </p>
                 ) : null}

@@ -9,11 +9,12 @@ import type {
   MailboxCreationDomainOption,
 } from "@/core/mailboxes/service";
 import type { UserMailboxSummaryItem } from "@/core/messages/service";
-import { Bell, Plus } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
 export interface UsersWorkspaceShellProps {
   readonly mailboxes: readonly UserMailboxSummaryItem[];
+  readonly totalMailboxCount?: number;
   readonly domains: readonly MailboxCreationDomainOption[];
   readonly capabilities?: UserAccessCapabilities;
   readonly databaseConfigured: boolean;
@@ -32,6 +33,7 @@ export interface UsersWorkspaceShellProps {
 
 export function UsersWorkspaceShell({
   mailboxes,
+  totalMailboxCount,
   domains,
   capabilities,
   databaseConfigured,
@@ -45,10 +47,11 @@ export function UsersWorkspaceShell({
     [mailboxes],
   );
 
+  const effectiveMailboxCount = totalMailboxCount ?? mailboxes.length;
   const maxMailboxes = capabilities?.maxMailboxes ?? 0;
   const canCreate =
     capabilities?.canCreateMailboxes !== false &&
-    (maxMailboxes <= 0 || mailboxes.length < maxMailboxes);
+    (maxMailboxes <= 0 || effectiveMailboxCount < maxMailboxes);
 
   return (
     <UsersLiveProvider
@@ -60,34 +63,19 @@ export function UsersWorkspaceShell({
     >
       {({ notificationPermission, handleEnableNotifications }) => (
         <div className="border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5">
-            <div className="flex flex-wrap items-center gap-2">
+          {notificationPermission === "default" ? (
+            <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border bg-card px-3 py-1.5">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                disabled={!databaseConfigured || !canCreate}
-                onClick={() => setCreateOpen(true)}
+                onClick={handleEnableNotifications}
               >
-                <Icon glyph={Plus} />
-                Create mailbox
+                <Icon glyph={Bell} />
+                Enable notifications
               </Button>
             </div>
-
-            {notificationPermission === "default" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleEnableNotifications}
-                >
-                  <Icon glyph={Bell} />
-                  Enable notifications
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          ) : null}
 
           <div className="min-w-0 bg-background p-3">{children}</div>
 

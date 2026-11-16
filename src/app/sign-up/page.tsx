@@ -3,8 +3,8 @@ import { registerUserSignupAction } from "@/app/sign-up/actions";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
+  BrandLogo,
   Button,
-  Icon,
   PageTitle,
   Panel,
   PanelBody,
@@ -15,7 +15,6 @@ import { getUserControlSettings } from "@/core/accounts/user-control-policy";
 import { getCurrentUser } from "@/core/auth/current-user";
 import { getPrismaClient } from "@/core/database/client";
 import { getSiteSettings } from "@/core/settings/service";
-import { Mail } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -47,14 +46,8 @@ export default async function SignUpPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
       <div className="flex items-center justify-between gap-2">
-        <Link
-          href="/"
-          className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-foreground hover:text-primary"
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center bg-primary text-primary-foreground">
-            <Icon glyph={Mail} className="size-3.5" />
-          </span>
-          <span className="truncate">{siteName}</span>
+        <Link href="/" className="inline-flex min-w-0 items-center">
+          <BrandLogo siteName={siteName} logoUrl={settings.logoUrl} size="sm" />
         </Link>
         <ThemeToggle />
       </div>

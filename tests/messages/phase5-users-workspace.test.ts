@@ -932,7 +932,7 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
 
       const demoOverview = getDemoUserOverview(false, "2");
       assert.equal(demoOverview.availableDomains.length, 1);
-      assert.equal(demoOverview.availableDomains[0]?.name, "mailstack.local");
+      assert.equal(demoOverview.availableDomains[0]?.name, "readbox.local");
       assert.equal(demoOverview.capabilities.maxMailboxes, 1);
       assert.equal(demoOverview.capabilities.autoDeleteEnabled, true);
       assert.equal(demoOverview.capabilities.autoDeleteDays, 1);

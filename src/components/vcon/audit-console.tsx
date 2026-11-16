@@ -5,11 +5,14 @@ import {
   Icon,
   Input,
   Label,
-  PageTitle,
+  PageHeader,
+  Pagination,
   Panel,
   PanelBody,
   SectionTitle,
   Select,
+  StatCard,
+  StatGrid,
   Table,
   TableBody,
   TableCell,
@@ -51,17 +54,17 @@ export function AuditConsole({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>Audit &amp; security</PageTitle>
-        <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        title="Audit & security"
+        actions={
           <Badge
             variant={security.activeLockouts.length > 0 ? "warning" : "success"}
           >
             {security.activeLockouts.length} active lockout
             {security.activeLockouts.length === 1 ? "" : "s"}
           </Badge>
-        </div>
-      </header>
+        }
+      />
 
       {!bundle.databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -75,41 +78,20 @@ export function AuditConsole({
         </AlertBanner>
       ) : null}
 
-      <section
+      <StatGrid
         aria-label="Security summary"
-        className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+        className="sm:grid-cols-3 lg:grid-cols-3"
       >
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Matching audit events
-            </p>
-            <p className="text-xl font-medium tabular-nums">
-              {logs.totalCount}
-            </p>
-          </PanelBody>
-        </Panel>
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Active IP / username lockouts
-            </p>
-            <p className="text-xl font-medium tabular-nums">
-              {security.activeLockouts.length}
-            </p>
-          </PanelBody>
-        </Panel>
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Recent failed sign-ins (window)
-            </p>
-            <p className="text-xl font-medium tabular-nums">
-              {security.recentFailureCount}
-            </p>
-          </PanelBody>
-        </Panel>
-      </section>
+        <StatCard label="Matching audit events" value={logs.totalCount} />
+        <StatCard
+          label="Active IP / username lockouts"
+          value={security.activeLockouts.length}
+        />
+        <StatCard
+          label="Recent failed sign-ins (window)"
+          value={security.recentFailureCount}
+        />
+      </StatGrid>
 
       <section className="space-y-2.5">
         <div className="flex items-center gap-2">
@@ -308,44 +290,22 @@ export function AuditConsole({
           </TableBody>
         </Table>
 
-        {logs.totalPages > 1 ? (
-          <nav
-            aria-label="Audit pagination"
-            className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
-          >
-            <span>
-              Page {logs.page} of {logs.totalPages} ({logs.totalCount} events)
-            </span>
-            <div className="flex items-center gap-2">
-              {logs.page > 1 ? (
-                <Button asChild size="sm" variant="outline">
-                  <Link
-                    href={buildAuditHref(
-                      logs.actionFilter,
-                      logs.query,
-                      logs.page - 1,
-                    )}
-                  >
-                    Previous
-                  </Link>
-                </Button>
-              ) : null}
-              {logs.page < logs.totalPages ? (
-                <Button asChild size="sm" variant="outline">
-                  <Link
-                    href={buildAuditHref(
-                      logs.actionFilter,
-                      logs.query,
-                      logs.page + 1,
-                    )}
-                  >
-                    Next
-                  </Link>
-                </Button>
-              ) : null}
-            </div>
-          </nav>
-        ) : null}
+        <Pagination
+          variant="boxed"
+          page={logs.page}
+          totalPages={logs.totalPages}
+          totalCount={logs.totalCount}
+          prevHref={
+            logs.page > 1
+              ? buildAuditHref(logs.actionFilter, logs.query, logs.page - 1)
+              : null
+          }
+          nextHref={
+            logs.page < logs.totalPages
+              ? buildAuditHref(logs.actionFilter, logs.query, logs.page + 1)
+              : null
+          }
+        />
       </section>
     </div>
   );

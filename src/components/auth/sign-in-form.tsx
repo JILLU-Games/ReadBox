@@ -3,8 +3,8 @@
 import {
   AlertBanner,
   Button,
+  FormField,
   Input,
-  Label,
   Panel,
   PanelBody,
 } from "@/components/ui";
@@ -123,8 +123,7 @@ export function SignInForm({
   return (
     <div className="space-y-3">
       <form className="space-y-3" method="post" onSubmit={submit}>
-        <div className="space-y-1">
-          <Label htmlFor="username">Username</Label>
+        <FormField id="username" label="Username">
           <Input
             autoComplete="username"
             id="username"
@@ -134,9 +133,8 @@ export function SignInForm({
             required
             value={username}
           />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="password">Password</Label>
+        </FormField>
+        <FormField id="password" label="Password">
           <Input
             autoComplete="current-password"
             id="password"
@@ -147,7 +145,7 @@ export function SignInForm({
             type="password"
             value={password}
           />
-        </div>
+        </FormField>
         {error ? (
           <AlertBanner variant="error">
             <p>{error}</p>

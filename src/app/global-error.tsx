@@ -4,14 +4,30 @@ import "./globals.css";
 import { Button, Icon, PageTitle, Panel, PanelBody } from "@/components/ui";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
+import { useEffect } from "react";
+
 export default function GlobalErrorPage({
   reset,
 }: {
   readonly error: Error & { digest?: string };
   readonly reset: () => void;
 }) {
+  useEffect(() => {
+    try {
+      const storedTheme = window.localStorage.getItem("theme");
+      const prefersDark =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const useDark =
+        storedTheme === "dark" || (storedTheme !== "light" && prefersDark);
+      document.documentElement.classList.toggle("dark", useDark);
+    } catch {
+      // Ignore storage access errors in restricted frames.
+    }
+  }, []);
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <main className="mx-auto flex min-h-dvh w-full max-w-xl items-center px-4 py-8">
           <Panel className="w-full" role="alert">

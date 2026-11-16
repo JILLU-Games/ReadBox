@@ -1,12 +1,15 @@
 "use client";
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NavLink } from "@/components/ui/nav-link";
 import { NotificationToaster } from "@/components/ui/notifications";
+import { CaptionText } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import {
   ArrowUpCircle,
@@ -26,7 +29,6 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -132,7 +134,6 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mailboxFilter, setMailboxFilter] = useState("");
   const [toggledGroups, setToggledGroups] = useState<Record<string, boolean>>({});
-  const firstNavigationRef = useRef<HTMLElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const isAdministrator = user?.isAdministrator === true;
   const isAdminRoute = pathname.startsWith("/vcon");
@@ -209,7 +210,9 @@ export function AppShell({
   useEffect(() => {
     if (!mobileOpen) return;
 
-    firstNavigationRef.current?.focus();
+    sidebarRef.current
+      ?.querySelector<HTMLElement>('[data-drawer-initial-focus="true"]')
+      ?.focus();
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setMobileOpen(false);
@@ -262,8 +265,10 @@ export function AppShell({
   return (
     <div className="min-h-dvh bg-background text-foreground">
       {mobileOpen ? (
-        <button
-          className="fixed inset-0 z-40 bg-overlay md:hidden"
+        <Button
+          type="button"
+          variant="ghost"
+          className="fixed inset-0 z-40 h-auto w-auto bg-overlay p-0 hover:bg-overlay md:hidden"
           aria-label="Close navigation"
           onClick={closeMobileNavigation}
         />
@@ -280,21 +285,13 @@ export function AppShell({
         )}
       >
         <div className="flex h-12 shrink-0 items-center gap-2.5 border-b border-border px-3">
-          {effectiveBranding?.logoUrl ? (
-            <img
-              src={effectiveBranding.logoUrl}
-              alt={`${brandName} logo`}
-              referrerPolicy="no-referrer"
-              className="size-7 shrink-0 rounded-none border border-border object-contain p-0.5"
-            />
-          ) : (
-            <span className="grid size-7 shrink-0 place-items-center rounded-none bg-primary text-primary-foreground">
-              <Icon glyph={Inbox} />
-            </span>
-          )}
-          <span className="truncate text-xs font-medium text-foreground">
-            {brandName}
-          </span>
+          <BrandLogo
+            siteName={brandName}
+            logoUrl={effectiveBranding?.logoUrl}
+            size="md"
+            fallbackIcon={Inbox}
+            className="min-w-0 flex-1"
+          />
           <IconButton
             className="ml-auto md:hidden"
             label="Close navigation drawer"
@@ -307,8 +304,10 @@ export function AppShell({
         <div className="min-h-0 flex-1 overflow-y-auto pb-3">
           {isAdministrator ? (
             <>
-              <div className="px-3 pb-1.5 pt-3 text-[11px] font-medium text-sidebar-muted">
-                Management
+              <div className="px-3 pb-1.5 pt-3">
+                <CaptionText className="font-medium text-sidebar-muted">
+                  Management
+                </CaptionText>
               </div>
               <nav aria-label="Management navigation" className="space-y-1 px-2">
                 {managementGroups.map((group, groupIndex) => {
@@ -321,23 +320,20 @@ export function AppShell({
 
                   return (
                     <div key={group.id} className="space-y-0.5">
-                      <button
-                        ref={
-                          groupIndex === 0
-                            ? (node) => {
-                                firstNavigationRef.current = node;
-                              }
-                            : undefined
+                      <Button
+                        data-drawer-initial-focus={
+                          groupIndex === 0 ? "true" : undefined
                         }
                         type="button"
+                        variant="ghost"
                         aria-expanded={open}
                         aria-controls={submenuId}
                         onClick={() => toggleGroup(group.id)}
                         className={cn(
-                          "flex min-h-8 w-full items-center justify-between gap-2 rounded-none px-2.5 text-left text-xs font-medium transition-colors",
+                          "h-auto min-h-8 w-full justify-between gap-2 px-2.5 text-left",
                           hasActiveChild
                             ? "text-sidebar-foreground"
-                            : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
+                            : "text-sidebar-muted hover:text-sidebar-foreground",
                         )}
                       >
                         <span className="flex min-w-0 items-center gap-2.5">
@@ -348,7 +344,7 @@ export function AppShell({
                           glyph={open ? ChevronDown : ChevronRight}
                           className="size-3.5 shrink-0 text-sidebar-muted"
                         />
-                      </button>
+                      </Button>
 
                       {open ? (
                         <div
@@ -362,24 +358,19 @@ export function AppShell({
                                 href,
                               );
                               return (
-                                <Link
+                                <NavLink
                                   key={href}
                                   href={href}
-                                  aria-current={active ? "page" : undefined}
+                                  variant="sidebarSub"
+                                  active={active}
                                   onClick={closeMobileNavigation}
-                                  className={cn(
-                                    "flex min-h-7 items-center gap-2 rounded-none px-2 text-xs font-medium transition-colors",
-                                    active
-                                      ? "bg-sidebar-active text-sidebar-active-foreground"
-                                      : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
-                                  )}
                                 >
                                   <Icon
                                     glyph={NavigationIcon}
                                     className="size-3.5 shrink-0"
                                   />
                                   <span className="truncate">{label}</span>
-                                </Link>
+                                </NavLink>
                               );
                             },
                           )}
@@ -392,8 +383,10 @@ export function AppShell({
             </>
           ) : (
             <>
-              <div className="px-3 pb-1.5 pt-3 text-[11px] font-medium text-sidebar-muted">
-                Workspaces
+              <div className="px-3 pb-1.5 pt-3">
+                <CaptionText className="font-medium text-sidebar-muted">
+                  Workspaces
+                </CaptionText>
               </div>
               <nav aria-label="Workspace navigation" className="space-y-0.5 px-2">
                 {workspaceNavigation.map(({ href, label, icon: NavigationIcon }) => {
@@ -402,39 +395,33 @@ export function AppShell({
                       ? pathname === "/users"
                       : pathname === href || pathname.startsWith(`${href}/`);
                   return (
-                    <Link
+                    <NavLink
                       key={href}
-                      ref={
-                        href === "/users"
-                          ? (node) => {
-                              firstNavigationRef.current = node;
-                            }
-                          : undefined
+                      data-drawer-initial-focus={
+                        href === "/users" ? "true" : undefined
                       }
                       href={href}
-                      aria-current={active ? "page" : undefined}
+                      variant="sidebar"
+                      active={active}
                       onClick={closeMobileNavigation}
-                      className={cn(
-                        "flex min-h-8 items-center gap-2.5 rounded-none px-2.5 text-xs font-medium transition-colors",
-                        active
-                          ? "bg-sidebar-active text-sidebar-active-foreground"
-                          : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
-                      )}
+                      className="gap-2.5"
                     >
                       <Icon glyph={NavigationIcon} />
                       {label}
-                    </Link>
+                    </NavLink>
                   );
                 })}
               </nav>
 
               {!isAdminRoute && mailboxes.length > 0 ? (
                 <>
-                  <div className="flex items-center justify-between px-3 pb-1.5 pt-4 text-[11px] font-medium text-sidebar-muted">
-                    <span>Inboxes</span>
-                    <span className="font-mono text-[10px] tabular-nums">
+                  <div className="flex items-center justify-between px-3 pb-1.5 pt-4">
+                    <CaptionText className="font-medium text-sidebar-muted">
+                      Inboxes
+                    </CaptionText>
+                    <CaptionText className="font-mono text-sidebar-muted tabular-nums">
                       {mailboxes.length}
-                    </span>
+                    </CaptionText>
                   </div>
                   {mailboxes.length > 5 ? (
                     <div className="px-2 pb-1.5">
@@ -446,31 +433,29 @@ export function AppShell({
                         value={mailboxFilter}
                         onChange={(event) => setMailboxFilter(event.target.value)}
                         placeholder="Filter inboxes..."
-                        className="h-7 text-[11px]"
+                        className="h-7 text-xs"
                       />
                     </div>
                   ) : null}
                   <nav aria-label="Assigned inboxes" className="space-y-0.5 px-2">
                     {filteredMailboxes.length === 0 ? (
-                      <p className="px-2.5 py-1.5 text-[11px] text-sidebar-muted">
-                        No matching inboxes
+                      <p className="px-2.5 py-1.5">
+                        <CaptionText className="text-sidebar-muted">
+                          No matching inboxes
+                        </CaptionText>
                       </p>
                     ) : (
                       filteredMailboxes.map((mbx) => {
                         const active = activeMailboxUuid === mbx.uuid;
                         const unread = Number(mbx.unreadMessages) || 0;
                         return (
-                          <Link
+                          <NavLink
                             key={mbx.uuid}
                             href={`/users/inbox/${mbx.uuid}`}
-                            aria-current={active ? "page" : undefined}
+                            variant="sidebar"
+                            active={active}
                             onClick={closeMobileNavigation}
-                            className={cn(
-                              "flex min-h-8 items-center justify-between gap-2 rounded-none px-2.5 text-[11px] transition-colors",
-                              active
-                                ? "bg-sidebar-active font-medium text-sidebar-active-foreground"
-                                : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
-                            )}
+                            className="justify-between font-normal"
                           >
                             <span className="flex min-w-0 items-center gap-2">
                               <Icon glyph={Inbox} className="size-3.5 shrink-0" />
@@ -478,17 +463,17 @@ export function AppShell({
                                 {mbx.emailAddress}
                               </span>
                             </span>
-                            <span
+                            <CaptionText
                               className={cn(
-                                "shrink-0 font-mono text-[10px] tabular-nums",
+                                "shrink-0 font-mono tabular-nums",
                                 unread > 0
                                   ? "font-medium text-primary"
                                   : "text-sidebar-muted",
                               )}
                             >
                               {unread > 0 ? unread : mbx.totalMessages}
-                            </span>
-                          </Link>
+                            </CaptionText>
+                          </NavLink>
                         );
                       })
                     )}

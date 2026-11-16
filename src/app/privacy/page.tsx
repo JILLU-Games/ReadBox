@@ -1,6 +1,13 @@
 import { PublicSiteFooter } from "@/components/public/public-site-footer";
 import { PublicSiteHeader } from "@/components/public/public-site-header";
-import { Button, Icon, PageTitle, Panel, PanelBody } from "@/components/ui";
+import {
+  Button,
+  Icon,
+  PageTitle,
+  Panel,
+  PanelBody,
+  SectionTitle,
+} from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
 import { LogIn, UserPlus } from "lucide-react";
@@ -59,13 +66,7 @@ export default async function PublicPrivacyPage() {
           <div className="mx-auto max-w-4xl px-3 sm:px-5">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
-                <PageTitle className="text-lg font-medium sm:text-xl">
-                  Privacy Policy
-                </PageTitle>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {siteName} is designed around minimal data collection, private
-                  workspace access, and configurable message retention.
-                </p>
+                <PageTitle>Privacy Policy</PageTitle>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Button size="sm" asChild>
@@ -91,9 +92,9 @@ export default async function PublicPrivacyPage() {
               <PanelBody className="p-4 sm:p-5">
                 <article className="space-y-4 text-xs leading-relaxed text-muted-foreground">
                   <section>
-                    <h2 className="text-xs font-medium text-foreground">
+                    <SectionTitle>
                       1. Overview
-                    </h2>
+                    </SectionTitle>
                     <p className="mt-1">
                       This Privacy Notice explains what information {siteName}{" "}
                       collects when you register a workspace account, manage
@@ -102,9 +103,9 @@ export default async function PublicPrivacyPage() {
                   </section>
 
                   <section>
-                    <h2 className="text-xs font-medium text-foreground">
+                    <SectionTitle>
                       2. Information We Collect
-                    </h2>
+                    </SectionTitle>
                     <ul className="mt-1.5 list-disc space-y-1 pl-5">
                       <li>
                         <strong className="font-medium text-foreground">
@@ -133,9 +134,9 @@ export default async function PublicPrivacyPage() {
                   </section>
 
                   <section>
-                    <h2 className="text-xs font-medium text-foreground">
+                    <SectionTitle>
                       3. Automated Message Retention
-                    </h2>
+                    </SectionTitle>
                     <p className="mt-1">
                       {siteName} supports automated message retention. When
                       retention is enabled for your workspace, messages older
@@ -146,9 +147,9 @@ export default async function PublicPrivacyPage() {
                   </section>
 
                   <section>
-                    <h2 className="text-xs font-medium text-foreground">
+                    <SectionTitle>
                       4. Security and Access Controls
-                    </h2>
+                    </SectionTitle>
                     <p className="mt-1">
                       {siteName} protects your account with encrypted
                       connections, isolated workspace sessions, tracker-free
@@ -157,9 +158,9 @@ export default async function PublicPrivacyPage() {
                   </section>
 
                   <section>
-                    <h2 className="text-xs font-medium text-foreground">
+                    <SectionTitle>
                       5. Contact &amp; Data Requests
-                    </h2>
+                    </SectionTitle>
                     <p className="mt-1">
                       For privacy, account deletion, or support questions
                       regarding {siteName}, please submit a request via our{" "}

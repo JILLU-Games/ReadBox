@@ -4,12 +4,14 @@ import { PublicSiteFooter } from "@/components/public/public-site-footer";
 import { PublicSiteHeader } from "@/components/public/public-site-header";
 import {
   Button,
+  CaptionText,
   Icon,
   PageTitle,
   Panel,
   PanelBody,
   PanelHeader,
   SectionTitle,
+  SubHeading,
 } from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
@@ -232,7 +234,7 @@ const SECURITY_PILLARS = [
 export default async function PublicLandingPage() {
   const settings = await getSiteSettings();
   const siteName = settings.siteName || "ReadBox";
-  const mailDomain = env.mailDomain || "mailstack.local";
+  const mailDomain = env.mailDomain || "readbox.local";
   const baseUrl = resolvePublicBaseUrl();
 
   const jsonLd = {
@@ -299,7 +301,7 @@ export default async function PublicLandingPage() {
             <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
               <div className="flex min-w-0 flex-col justify-between lg:col-span-7">
                 <div>
-                  <PageTitle className="text-xl font-medium tracking-tight text-balance sm:text-2xl">
+                  <PageTitle className="text-balance">
                     Self-service custom-domain mailboxes and private team
                     workspaces.
                   </PageTitle>
@@ -308,9 +310,8 @@ export default async function PublicLandingPage() {
                     data-site-tagline
                     className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground"
                   >
-                    {settings.siteTagline
-                      ? `${settings.siteTagline} Create your account, launch mailboxes on available domains, and read incoming email in a fast, distraction-free workspace.`
-                      : `Create your workspace account, launch mailboxes on available domains, and read incoming email in a fast, distraction-free workspace on ${siteName}.`}
+                    {settings.siteTagline ||
+                      `Create your account, launch mailboxes on available domains, and read incoming email on ${siteName}.`}
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -338,8 +339,8 @@ export default async function PublicLandingPage() {
                 <dl className="mt-6 grid grid-cols-2 gap-2 border-t border-border pt-4 sm:grid-cols-4">
                   <Panel className="min-w-0 bg-background">
                     <PanelBody className="px-2.5 py-2">
-                      <dt className="text-[11px] text-muted-foreground">
-                        Onboarding
+                      <dt>
+                        <CaptionText>Onboarding</CaptionText>
                       </dt>
                       <dd className="mt-0.5 text-xs font-medium text-foreground">
                         Self-Service Sign-Up
@@ -348,8 +349,8 @@ export default async function PublicLandingPage() {
                   </Panel>
                   <Panel className="min-w-0 bg-background">
                     <PanelBody className="px-2.5 py-2">
-                      <dt className="text-[11px] text-muted-foreground">
-                        Mailboxes
+                      <dt>
+                        <CaptionText>Mailboxes</CaptionText>
                       </dt>
                       <dd className="mt-0.5 text-xs font-medium text-foreground">
                         Instant Provisioning
@@ -358,8 +359,8 @@ export default async function PublicLandingPage() {
                   </Panel>
                   <Panel className="min-w-0 bg-background">
                     <PanelBody className="px-2.5 py-2">
-                      <dt className="text-[11px] text-muted-foreground">
-                        Inbox Hygiene
+                      <dt>
+                        <CaptionText>Inbox Hygiene</CaptionText>
                       </dt>
                       <dd className="mt-0.5 text-xs font-medium text-foreground">
                         Automated Retention
@@ -368,8 +369,8 @@ export default async function PublicLandingPage() {
                   </Panel>
                   <Panel className="min-w-0 bg-background">
                     <PanelBody className="px-2.5 py-2">
-                      <dt className="text-[11px] text-muted-foreground">
-                        Privacy
+                      <dt>
+                        <CaptionText>Privacy</CaptionText>
                       </dt>
                       <dd className="mt-0.5 text-xs font-medium text-foreground">
                         Tracker-Free Reader
@@ -394,37 +395,37 @@ export default async function PublicLandingPage() {
                   <div className="grid flex-1 grid-cols-1 divide-y divide-border sm:grid-cols-12 sm:divide-x sm:divide-y-0">
                     <div className="bg-card p-2.5 sm:col-span-5">
                       <div className="flex items-center justify-between gap-1">
-                        <p className="text-[11px] font-medium text-muted-foreground">
+                        <CaptionText className="font-medium">
                           My Mailboxes
-                        </p>
-                        <span className="font-mono text-[10px] text-success">
+                        </CaptionText>
+                        <CaptionText className="font-mono text-success">
                           + Create
-                        </span>
+                        </CaptionText>
                       </div>
-                      <ul className="mt-1.5 space-y-1 text-[11px]">
+                      <ul className="mt-1.5 space-y-1 text-xs">
                         <li className="flex items-center justify-between gap-1 bg-sidebar-active px-2 py-1 font-medium text-sidebar-active-foreground">
                           <span className="truncate font-mono">
                             alex@{mailDomain}
                           </span>
-                          <span className="shrink-0 font-mono text-[10px] tabular-nums">
+                          <CaptionText className="shrink-0 font-mono text-sidebar-active-foreground tabular-nums">
                             3
-                          </span>
+                          </CaptionText>
                         </li>
                         <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
                           <span className="truncate font-mono">
                             support@{mailDomain}
                           </span>
-                          <span className="shrink-0 font-mono text-[10px] tabular-nums">
+                          <CaptionText className="shrink-0 font-mono tabular-nums">
                             1
-                          </span>
+                          </CaptionText>
                         </li>
                         <li className="flex items-center justify-between gap-1 px-2 py-1 text-muted-foreground">
                           <span className="truncate font-mono">
                             billing@{mailDomain}
                           </span>
-                          <span className="shrink-0 font-mono text-[10px] tabular-nums">
+                          <CaptionText className="shrink-0 font-mono tabular-nums">
                             0
-                          </span>
+                          </CaptionText>
                         </li>
                       </ul>
                     </div>
@@ -432,31 +433,35 @@ export default async function PublicLandingPage() {
                     <div className="flex flex-col justify-between p-2.5 sm:col-span-7">
                       <div className="space-y-1.5">
                         <article className="border border-primary/40 bg-accent p-2">
-                          <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
-                            <span className="font-medium text-foreground">
+                          <div className="flex items-center justify-between gap-1">
+                            <CaptionText className="font-medium text-foreground">
                               Team Updates
-                            </span>
-                            <span className="font-mono tabular-nums">1m ago</span>
+                            </CaptionText>
+                            <CaptionText className="font-mono tabular-nums">
+                              1m ago
+                            </CaptionText>
                           </div>
                           <p className="mt-0.5 truncate text-xs font-medium text-foreground">
                             New mailbox ready for your workspace
                           </p>
-                          <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+                          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                             alex@{mailDomain} is active and ready to receive mail.
                           </p>
                         </article>
 
                         <article className="border border-border bg-card p-2">
-                          <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
-                            <span className="font-medium text-foreground">
+                          <div className="flex items-center justify-between gap-1">
+                            <CaptionText className="font-medium text-foreground">
                               Billing Desk
-                            </span>
-                            <span className="font-mono tabular-nums">14m ago</span>
+                            </CaptionText>
+                            <CaptionText className="font-mono tabular-nums">
+                              14m ago
+                            </CaptionText>
                           </div>
                           <p className="mt-0.5 truncate text-xs font-medium text-foreground">
                             Monthly statement &amp; PDF receipt
                           </p>
-                          <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+                          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                             Attached statement is ready for download.
                           </p>
                         </article>
@@ -476,15 +481,9 @@ export default async function PublicLandingPage() {
         >
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-              <div className="max-w-2xl">
-                <SectionTitle className="text-sm font-medium sm:text-base">
-                  Everything you need for clean, reliable email workspaces
-                </SectionTitle>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {siteName} combines instant user sign-up and on-demand mailbox
-                  creation with a fast, distraction-free webmail experience.
-                </p>
-              </div>
+              <SectionTitle>
+                Everything you need for clean, reliable email workspaces
+              </SectionTitle>
               <Link
                 href="/sign-up"
                 className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
@@ -499,17 +498,15 @@ export default async function PublicLandingPage() {
                 <Panel key={cap.index} className="bg-card">
                   <PanelBody className="p-3.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[11px] font-medium tabular-nums text-muted-foreground">
+                      <CaptionText className="font-mono font-medium tabular-nums">
                         {cap.index}.
-                      </span>
+                      </CaptionText>
                       <Icon
                         glyph={cap.icon}
                         className="size-3.5 text-muted-foreground"
                       />
                     </div>
-                    <h3 className="mt-1.5 text-xs font-medium text-foreground">
-                      {cap.title}
-                    </h3>
+                    <SubHeading className="mt-1.5">{cap.title}</SubHeading>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                       {cap.description}
                     </p>
@@ -527,13 +524,9 @@ export default async function PublicLandingPage() {
         >
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
-              <SectionTitle className="text-sm font-medium sm:text-base">
+              <SectionTitle>
                 Workspaces for individuals, teams, and organizations
               </SectionTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Start immediately with self-service sign-up or connect your
-                organization&apos;s custom domains.
-              </p>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -547,18 +540,16 @@ export default async function PublicLandingPage() {
                   <PanelBody className="flex flex-1 flex-col justify-between p-4">
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-medium text-muted-foreground">
+                        <CaptionText className="font-medium">
                           {tier.kicker}
-                        </span>
+                        </CaptionText>
                         <Icon
                           glyph={tier.icon}
                           className="size-4 text-muted-foreground"
                         />
                       </div>
 
-                      <h3 className="mt-2 text-sm font-medium text-foreground">
-                        {tier.title}
-                      </h3>
+                      <SubHeading className="mt-2">{tier.title}</SubHeading>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         {tier.summary}
                       </p>
@@ -602,7 +593,7 @@ export default async function PublicLandingPage() {
         <section className="border-b border-border py-7 sm:py-9">
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="max-w-2xl">
-              <SectionTitle className="text-sm font-medium sm:text-base">
+              <SectionTitle>
                 From account sign-up to active mailbox in three steps
               </SectionTitle>
             </div>
@@ -613,12 +604,10 @@ export default async function PublicLandingPage() {
                   <Panel className="h-full bg-card">
                     <PanelBody className="p-3.5">
                       <div className="flex items-center gap-2">
-                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-[11px] font-medium tabular-nums text-primary-foreground">
+                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-xs font-medium tabular-nums text-primary-foreground">
                           {item.step}
                         </span>
-                        <h3 className="text-xs font-medium text-foreground">
-                          {item.title}
-                        </h3>
+                        <SubHeading>{item.title}</SubHeading>
                       </div>
                       <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                         {item.description}
@@ -639,13 +628,12 @@ export default async function PublicLandingPage() {
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
               <div className="lg:col-span-5">
-                <SectionTitle className="text-sm font-medium sm:text-base">
+                <SectionTitle>
                   Designed for privacy and safe everyday email
                 </SectionTitle>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                  {siteName} protects your workspace with isolated user
-                  accounts, clean message rendering, and automatic inbox
-                  retention controls.
+                  {siteName} protects your workspace with isolated accounts and
+                  clean message viewing.
                 </p>
               </div>
 
@@ -658,9 +646,7 @@ export default async function PublicLandingPage() {
                           glyph={item.icon}
                           className="size-3.5 text-primary"
                         />
-                        <h3 className="text-xs font-medium text-foreground">
-                          {item.title}
-                        </h3>
+                        <SubHeading>{item.title}</SubHeading>
                       </div>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         {item.description}
@@ -677,7 +663,7 @@ export default async function PublicLandingPage() {
         <section id="faq" className="scroll-mt-14 py-7 sm:py-9">
           <div className="mx-auto max-w-4xl px-3 sm:px-5">
             <div className="mb-4">
-              <SectionTitle className="text-sm font-medium sm:text-base">
+              <SectionTitle>
                 Common questions about {siteName}
               </SectionTitle>
             </div>
@@ -692,13 +678,9 @@ export default async function PublicLandingPage() {
             <Panel className="bg-background">
               <PanelBody className="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
                 <div className="max-w-xl">
-                  <SectionTitle className="text-sm font-medium sm:text-base">
+                  <SectionTitle>
                     Ready to launch your mailbox workspace?
                   </SectionTitle>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Create your account to start using mailboxes immediately, or
-                    contact our team for custom domain onboarding.
-                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button asChild>

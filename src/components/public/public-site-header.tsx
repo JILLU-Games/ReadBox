@@ -1,9 +1,8 @@
 "use client";
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { Button, Icon } from "@/components/ui";
+import { BrandLogo, Button, Icon, NavLink } from "@/components/ui";
 import { LogIn, Menu, UserPlus, X } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -65,26 +64,9 @@ export function PublicSiteHeader({
           <Link
             href="/"
             aria-label={`${siteName} home`}
-            className="flex min-w-0 shrink-0 items-center gap-2 text-xs font-medium tracking-tight whitespace-nowrap text-foreground"
+            className="flex min-w-0 shrink-0 items-center whitespace-nowrap"
           >
-            <span
-              aria-hidden="true"
-              className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-none border border-border bg-primary text-xs font-medium text-primary-foreground"
-            >
-              {logoUrl ? (
-                <Image
-                  src={logoUrl}
-                  alt=""
-                  width={28}
-                  height={28}
-                  referrerPolicy="no-referrer"
-                  className="size-full object-contain"
-                />
-              ) : (
-                siteName.slice(0, 1).toUpperCase() || "M"
-              )}
-            </span>
-            <span className="truncate font-medium">{siteName}</span>
+            <BrandLogo siteName={siteName} logoUrl={logoUrl} size="md" />
           </Link>
 
           <nav
@@ -92,18 +74,14 @@ export function PublicSiteHeader({
             className="hidden items-center gap-1 md:flex"
           >
             {navItems.map((item) => (
-              <Link
+              <NavLink
                 key={item.label}
                 href={item.href}
-                aria-current={item.active ? "page" : undefined}
-                className={` shrink-0 rounded-none px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
-                  item.active
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                variant="header"
+                active={item.active}
               >
                 {item.label}
-              </Link>
+              </NavLink>
             ))}
           </nav>
 
@@ -151,30 +129,24 @@ export function PublicSiteHeader({
           >
             <div className="grid grid-cols-2 gap-1">
               {navItems.map((item) => (
-                <Link
+                <NavLink
                   key={item.label}
                   href={item.href}
+                  variant="sidebarSub"
+                  active={item.active}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`rounded-none px-2.5 py-1.5 text-xs font-medium ${
-                    item.active
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
                 >
                   {item.label}
-                </Link>
+                </NavLink>
               ))}
-              <Link
+              <NavLink
                 href="/privacy"
+                variant="sidebarSub"
+                active={activePage === "privacy"}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`rounded-none px-2.5 py-1.5 text-xs font-medium ${
-                  activePage === "privacy"
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
               >
                 Privacy
-              </Link>
+              </NavLink>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
               <Button size="default" asChild className="flex-1">
