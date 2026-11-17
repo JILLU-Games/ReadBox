@@ -1,0 +1,47 @@
+# Isolated R-05 TEST FIXTURE ONLY — never deploy. Mimics shared mount contract.
+services:
+  postgres:
+    image: postgres:16.14-alpine
+    environment:
+      POSTGRES_USER: readbox
+      POSTGRES_DB: readbox
+      POSTGRES_PASSWORD: R05_disposable_password_0123456789
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U readbox -d readbox"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+    volumes:
+      - database:/var/lib/postgresql/data
+  web:
+    image: busybox:1.37
+    command: ["sh", "-c", "sleep 3600"]
+    volumes:
+      - mail:/var/vmail
+      - attachments:/var/lib/readbox/attachments
+      - media:/var/lib/readbox/media
+  worker:
+    image: busybox:1.37
+    command: ["sh", "-c", "sleep 3600"]
+    volumes:
+      - mail:/var/vmail
+      - attachments:/var/lib/readbox/attachments
+      - media:/var/lib/readbox/media
+  dovecot:
+    image: busybox:1.37
+    profiles: ["mailserver"]
+    command: ["sh", "-c", "sleep 3600"]
+    volumes:
+      - mail:/var/vmail
+  postfix:
+    image: busybox:1.37
+    profiles: ["mailserver"]
+    command: ["sh", "-c", "sleep 3600"]
+    volumes:
+      - queue:/var/spool/postfix
+volumes:
+  database:
+  mail:
+  attachments:
+  media:
+  queue:

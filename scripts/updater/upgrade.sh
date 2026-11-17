@@ -6,7 +6,7 @@ umask 077
 usage() {
   cat >&2 <<'EOF'
 Usage:
-  sudo /opt/vibmail/app/scripts/updater/upgrade.sh \
+  sudo /opt/readbox/app/scripts/updater/upgrade.sh \
     --archive /absolute/path/readbox-X.Y.Z-source.zip \
     --checksum /absolute/path/readbox-X.Y.Z-source.zip.sha256 \
     [--allow-migrations] \
@@ -15,7 +15,7 @@ EOF
   exit 2
 }
 
-STATUS_FILE="${UPDATE_STATUS_FILE:-/run/vibmail/update_status.json}"
+STATUS_FILE="${UPDATE_STATUS_FILE:-/run/readbox/update_status.json}"
 report_progress() {
   local step="$1"
   local message="$2"
@@ -97,8 +97,37 @@ flock -n 9 || die "another ReadBox upgrade is already running"
 report_progress "verify" "Verifying release archive and SHA-256 checksum" 10
 install -d -o root -g root -m 0700 "$UPGRADE_ROOT" "$STAGING_ROOT"
 STAGE_PARENT=$(mktemp -d "$STAGING_ROOT/stage.XXXXXX")
-cleanup_stage() { rm -rf -- "$STAGE_PARENT"; }
-trap cleanup_stage EXIT
+# The upgrade is host/systemd-only. A failure after any mutation attempts to
+# restore both the old application tree and original database/Maildir snapshot.
+# A rollback failure is reported as CRITICAL and never claimed as success.
+MUTATION_STARTED=0
+DATA_BACKUP_PATH=""
+upgrade_cleanup() {
+  local status=$?
+  trap - EXIT
+  if (( status != 0 && MUTATION_STARTED == 1 )) && [[ -n "$DATA_BACKUP_PATH" ]]; then
+    printf '[readbox-upgrade] Upgrade failed; attempting local rollback. SMTP may be interrupted.\n' >&2
+    report_progress "rollback" "Restoring pre-upgrade application and data" 90
+    local staging_rollback
+    staging_rollback=$(mktemp -d "$STAGING_ROOT/rollback.XXXXXX")
+    if tar -xzf "$APP_ARCHIVE" -C "$staging_rollback" &&
+       rsync -a --delete "$staging_rollback/" "$APP_ROOT/" &&
+       "$APP_ROOT/scripts/ops/restore.sh" --backup "$DATA_BACKUP_PATH" --confirm-restore; then
+      if [[ ${#WEB_SERVICES[@]} -gt 0 || ${#INGESTION_SERVICES[@]} -gt 0 ]]; then
+        systemctl start "${WEB_SERVICES[@]}" "${INGESTION_SERVICES[@]}" || true
+      fi
+      printf '[readbox-upgrade] Application and local data rollback completed. Investigate original upgrade error.\n' >&2
+      report_progress "error" "Upgrade failed; local rollback completed" -1
+    else
+      printf 'READBOX_UPGRADE_CRITICAL=ROLLBACK_FAILED\n' >&2
+      report_progress "error" "Upgrade failed; rollback also failed; manual intervention required" -1
+    fi
+    rm -rf -- "$staging_rollback"
+  fi
+  rm -rf -- "$STAGE_PARENT"
+  exit "$status"
+}
+trap upgrade_cleanup EXIT
 
 VERIFY_OUTPUT=$(
   python3 "$VERIFY_HELPER" \
@@ -126,8 +155,12 @@ report_progress "backup" "Creating pre-upgrade application and PostgreSQL backup
 install -d -o root -g root -m 0700 "$ROLLBACK_ROOT" "$DATA_ROOT"
 tar --one-file-system -C "$APP_ROOT" -czf "$APP_ARCHIVE" .
 BACKUP_ROOT="$DATA_ROOT" "$APP_ROOT/scripts/ops/backup.sh"
+mapfile -t rollback_snapshots < <(find "$DATA_ROOT" -mindepth 1 -maxdepth 1 -type d -print)
+[[ ${#rollback_snapshots[@]} -eq 1 ]] || die "pre-upgrade rollback data snapshot unavailable"
+DATA_BACKUP_PATH="${rollback_snapshots[0]}"
 
-report_progress "mutate" "Stopping web/ingestion workers while keeping Postfix and Dovecot active" 45
+report_progress "mutate" "Stopping web/ingestion; Postfix/Dovecot were briefly paused during pre-upgrade consistent snapshot" 45
+MUTATION_STARTED=1
 WEB_SERVICES=()
 for candidate in "${READBOX_WEB_SERVICE:-}" "readbox-web.service" "vibmail-web.service"; do
   if [[ -n "$candidate" ]] && systemctl list-unit-files "$candidate" >/dev/null 2>&1; then
@@ -159,9 +192,10 @@ chown -R root:vmail "$APP_ROOT"
 
 report_progress "migrate" "Installing dependencies, applying Prisma migrations, and building production bundle" 75
 cd "$APP_ROOT"
-npm ci --omit=dev
+npm ci --no-audit --no-fund
 npx prisma migrate deploy
 npm run build
+npm prune --omit=dev --no-audit --no-fund
 
 report_progress "restart" "Restarting ReadBox services and verifying health readiness" 90
 systemctl daemon-reload
@@ -172,5 +206,6 @@ else
 fi
 curl --fail --silent --show-error --max-time 20 "http://127.0.0.1:3000/health/ready" >/dev/null
 
+MUTATION_STARTED=0
 report_progress "complete" "Upgrade successfully completed" 100
 printf 'READBOX_UPGRADE=PASS\n'
