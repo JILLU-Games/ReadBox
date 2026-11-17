@@ -206,7 +206,7 @@ export function BackupConsole({
       <StatGrid aria-label="Backup configuration summary" className="sm:grid-cols-2 lg:grid-cols-4">
         <StatCard compact label="Backup service" value={dashboard.connected ? "Connected" : "Not connected"}
           tone={dashboard.connected ? "success" : "warning"} />
-        <StatCard compact label="Automatic backups" value={dashboard.schedule?.enabled ? "Enabled (UTC)" : "Disabled"} />
+        <StatCard compact label="Automatic backups" value={dashboard.schedule?.enabled ? "Enabled (UTC)" : dashboard.schedule ? "Disabled" : "Not configured"} />
         <StatCard compact label="Cloudflare R2" value={dashboard.r2?.configured ? "Configured" : "Not configured"} />
         <StatCard compact label="Restore" value="Unavailable" />
       </StatGrid>
@@ -305,7 +305,7 @@ export function BackupConsole({
             </label>
             <Button type="button" variant="outline" disabled={!dashboard.connected || busy}
               onClick={() => void runR2Action(() => configureScheduleAction(scheduleSettings))}>
-              Save UTC schedule
+              {dashboard.connected ? "Save UTC schedule" : "Configure schedule"}
             </Button>
             <p className="text-xs text-muted-foreground">Status: {dashboard.schedule?.enabled ? "Enabled" : "Disabled"} · last run: {dashboard.schedule?.lastRunAt ?? "Never"}</p>
           </PanelBody>
@@ -347,12 +347,13 @@ export function BackupConsole({
             <div className="flex flex-wrap gap-2" role="group" aria-label="Cloudflare R2 actions">
               <Button type="button" variant="outline" disabled={!dashboard.connected || busy}
                 onClick={() => void runR2Action(() => configureR2Action(credentials))}>
-                {dashboard.r2?.configured ? "Rotate & test R2 credentials" : "Save & test R2 credentials"}
+                {!dashboard.connected ? "Configure R2" : dashboard.r2?.configured ? "Rotate & test R2 credentials" : "Save & test R2 credentials"}
               </Button>
               <Button type="button" variant="outline" disabled={!dashboard.r2?.configured || busy}
                 onClick={() => void runR2Action(testR2Action)}>Test connection</Button>
               <Button type="button" variant="outline" disabled={!dashboard.r2?.configured || busy}
                 onClick={() => void runR2Action(listR2Action)}>Refresh remote history</Button>
+              {!dashboard.r2?.configured ? <Button type="button" variant="outline" disabled>Upload to R2</Button> : null}
             </div>
             {remoteRecords.length ? (
               <ul aria-label="R2 remote backup history" className="max-h-40 overflow-auto divide-y divide-border text-xs">
