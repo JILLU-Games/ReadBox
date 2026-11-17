@@ -15,8 +15,9 @@ EnvironmentFile=/etc/readbox-backup-agent.env
 ExecStart=/usr/bin/python3 /opt/readbox/deployment/backup-agent/agent.py --root /opt/readbox --project readbox --db-user readbox --db-name readbox --state-dir /var/lib/readbox-backup --archive-dir /var/backups/readbox-managed --lock-path /run/lock/readbox-backup-global.lock --socket-dir $READBOX_BACKUP_SOCKET_DIR
 Restart=on-failure
 RestartSec=5
-TimeoutStopSec=75
-KillMode=control-group
+TimeoutStopSec=2400
+# Only signal the broker; allow the active R05 job to finish/restart writers.
+KillMode=mixed
 UMask=0077
 NoNewPrivileges=true
 ProtectSystem=full

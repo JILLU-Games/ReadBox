@@ -145,6 +145,17 @@ class PrivateStore:
             atomic_json(self.jobs / (identifier + ".json"), job)
             return job
 
+    def set_backup_verification(self, identifier: str, verified: bool) -> None:
+        """Never leave a failed recheck incorrectly marked V2."""
+        with self.mutex:
+            record = self._read(self.backups, identifier)
+            if record is None:
+                return
+            record["state"] = "verified" if verified else "needs_review"
+            record["level"] = "V2" if verified else "V1"
+            record["lastCheckedAt"] = now()
+            atomic_json(self.backups / (identifier + ".json"), record)
+
     def save_backup(self, value: dict) -> None:
         identifier = value.get("id")
         if not valid_id(identifier):

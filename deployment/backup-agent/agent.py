@@ -62,11 +62,18 @@ class BackupBroker:
         try:
             self.state.update(identifier, "running", "Job running")
             result = self.executor.run(job["kind"], identifier, job.get("backupId"))
+            if job["kind"] == "verify" and job.get("backupId"):
+                self.state.set_backup_verification(job["backupId"], True)
             message = ("Encrypted backup saved and verified"
                        if job["kind"] == "backup"
                        else "Encrypted backup verification passed")
             self.state.update(identifier, "completed", message, "success", result)
         except Exception:
+            if job["kind"] == "verify" and job.get("backupId"):
+                try:
+                    self.state.set_backup_verification(job["backupId"], False)
+                except Exception:
+                    pass
             message = ("Backup operation failed; no completed backup was published"
                        if job["kind"] == "backup"
                        else "Backup verification failed; existing archive was preserved")
@@ -104,7 +111,7 @@ class BackupBroker:
             job = self.state.create(kind, backup_id)
         except RuntimeError:
             return 409, {"error": "JOB_CONFLICT"}
-        worker = threading.Thread(target=self._worker, args=(job,), daemon=True)
+        worker = threading.Thread(target=self._worker, args=(job,), daemon=False)
         worker.start()
         return 202, {"job": job}
 
@@ -217,6 +224,11 @@ def main() -> None:
     os.chown(socket_file, 0, 1001)
     os.chmod(socket_file, 0o660)
     print("BR02_BACKUP_AGENT_READY", flush=True)
+    def request_shutdown(_signal: int, _frame: object) -> None:
+        # server.shutdown must run in a separate thread from serve_forever.
+        threading.Thread(target=server.shutdown, daemon=True).start()
+    signal.signal(signal.SIGTERM, request_shutdown)
+    signal.signal(signal.SIGINT, request_shutdown)
     try:
         server.serve_forever(poll_interval=0.5)
     finally:

@@ -93,7 +93,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age acl
-          sudo -E "$(command -v node)" --test tests/backup/agent-protocol.test.mjs tests/backup/compose-integration.test.mjs
+          sudo env READBOX_BR02_DISPOSABLE=1 "$(command -v node)" --test tests/backup/agent-protocol.test.mjs tests/backup/compose-integration.test.mjs
           echo "BR02_DISPOSABLE_AGENT_SNAPSHOT_VERIFY_JOURNAL_PASS"
       - name: Existing R05 disposable recovery regression unchanged
         shell: bash

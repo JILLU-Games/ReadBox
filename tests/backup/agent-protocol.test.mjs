@@ -29,8 +29,11 @@ async function startAgent(temp) {
   for (let i = 0; i < 100; i++) {
     if (child.exitCode !== null) throw new Error("Agent exited before readiness");
     if (existsSync(join(temp, "ipc", "agent.sock")) && existsSync(join(temp, "ipc", "access.token"))) {
-      await sleep(50);
-      return child;
+      try {
+        if ((await rpc(temp, { action: "status" })).status === 200) return child;
+      } catch {
+        await sleep(100);
+      }
     }
     await sleep(100);
   }

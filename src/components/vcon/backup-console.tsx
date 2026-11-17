@@ -61,6 +61,11 @@ export function BackupConsole({
             result && "sha256" in result && !backups.some((record) => record.id === result.id)) {
             backups = [result as BackupRecord, ...backups].slice(0, 30);
           }
+          if (job.kind === "verify" && job.backupId && !isActive(job)) {
+            backups = backups.map((record) => record.id === job.backupId
+              ? { ...record, state: job.state === "completed" ? "verified" : "needs_review",
+                  level: job.state === "completed" ? "V2" : "V1" } : record);
+          }
           return { ...previous, jobs, backups };
         });
         if (!isActive(job)) {
@@ -194,7 +199,7 @@ export function BackupConsole({
                   <li key={backup.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs">
                     <div className="min-w-0">
                       <span className="font-mono">{backup.id.slice(0, 12)}…</span>
-                      <span className="ml-2 text-muted-foreground">{byteLabel(backup.bytes)} · V2 verified</span>
+                      <span className="ml-2 text-muted-foreground">{byteLabel(backup.bytes)} · {backup.state === "verified" ? "V2 verified" : "Needs recheck"}</span>
                     </div>
                     <Button type="button" variant="outline" size="xs"
                       disabled={!dashboard.connected || !onVerifyBackup || active}

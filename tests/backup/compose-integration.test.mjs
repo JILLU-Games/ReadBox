@@ -16,7 +16,7 @@ const project = "readboxbr02-ci";
 const composeFile = join(root, "deployment/operations/ci-compose.yml");
 
 function cmd(program, args) {
-  const r = spawnSync(program, args, { cwd: root, encoding: "utf8", timeout: 90_000 });
+  const r = spawnSync(program, args, { cwd: root, encoding: "utf8", timeout: 180_000 });
   if (r.status !== 0) throw new Error("Disposable fixture command failed: " + program + " " + args[0]);
   return r.stdout.trim();
 }
@@ -85,7 +85,11 @@ async function startAgent(temp) {
   for (let i=0;i<100;i++){
     if(child.exitCode!==null)throw Error("Agent startup failed");
     if(existsSync(join(temp,"ipc","agent.sock"))&&existsSync(join(temp,"ipc","access.token"))){
-      await sleep(50);return child;
+      try {
+        if ((await rpc(temp, "status")).status === 200) return child;
+      } catch {
+        await sleep(100);
+      }
     }
     await sleep(100);
   }
@@ -138,6 +142,16 @@ test("BR02 agent backs up and re-verifies disposable PostgreSQL/Maildir with hos
     assert.equal(status.status,200);
     assert.ok(status.data.backups.some(x=>x.id===create.data.job.id));
     assert.ok(status.data.jobs.some(x=>x.id===reverify.data.job.id));
+    // Corrupted ciphertext must downgrade the displayed V2 badge before any restore.
+    const tampered = readFileSync(archive);
+    tampered[Math.floor(tampered.length / 2)] ^= 0x55;
+    writeFileSync(archive, tampered);
+    const corruptRequest = await rpc(temp, "backup.verify", create.data.job.id);
+    assert.equal(corruptRequest.status, 202);
+    const corruptJob = await poll(temp, corruptRequest.data.job.id);
+    assert.equal(corruptJob.state, "failed");
+    const corruptStatus = await rpc(temp, "status");
+    assert.equal(corruptStatus.data.backups.find(x=>x.id===create.data.job.id)?.state, "needs_review");
     await stopAgent(agent);
     agent=await startAgent(temp);
     const persisted=await rpc(temp,"status");

@@ -5,6 +5,7 @@ import fcntl
 import os
 from pathlib import Path
 import re
+import signal
 import shutil
 import subprocess
 import sys
@@ -81,11 +82,25 @@ class BackupExecutor:
         ]
         try:
             # Do not capture/output arbitrary Docker stderr or sensitive mail content.
-            completed = subprocess.run(
+            process = subprocess.Popen(
                 args, cwd=self.root, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, timeout=1800, check=False,
+                stderr=subprocess.DEVNULL, start_new_session=True,
             )
-            if completed.returncode:
+            try:
+                exit_code = process.wait(timeout=1800)
+            except subprocess.TimeoutExpired:
+                # Ask R05 frozen() to run its writer restart finally block.
+                try:
+                    os.killpg(process.pid, signal.SIGINT)
+                except ProcessLookupError:
+                    pass
+                try:
+                    process.wait(timeout=90)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                raise RuntimeError("R05 timed out; maintenance restart requested")
+            if exit_code:
                 raise RuntimeError("R05 backup engine failed")
             verified = verify_age_snapshot(
                 root=self.root, archive=archive, identity=self.identity,

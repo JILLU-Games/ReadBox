@@ -8,11 +8,11 @@ export interface BackupEvent {
 export interface BackupRecord {
   readonly id: string;
   readonly createdAt: string;
-  readonly state: "verified";
+  readonly state: "verified" | "needs_review";
   readonly bytes: number;
   readonly sha256: string;
   readonly format: "age-r05-v1";
-  readonly level: "V2";
+  readonly level: "V1" | "V2";
   readonly includesQueue: boolean;
   readonly includesHostSecrets: false;
 }
