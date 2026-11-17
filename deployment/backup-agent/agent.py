@@ -19,7 +19,7 @@ import struct
 import threading
 import time
 
-from executor import BackupExecutor
+from executor import BackupExecutor, BackupExecutionError
 from storage import PrivateStore, private_dir, valid_id
 
 
@@ -68,7 +68,9 @@ class BackupBroker:
                        if job["kind"] == "backup"
                        else "Encrypted backup verification passed")
             self.state.update(identifier, "completed", message, "success", result)
-        except Exception:
+        except Exception as error:
+            error_code = (error.code if isinstance(error, BackupExecutionError)
+                          else "BACKUP_AGENT_EXECUTION_FAILED")
             if job["kind"] == "verify" and job.get("backupId"):
                 try:
                     self.state.set_backup_verification(job["backupId"], False)
@@ -78,7 +80,8 @@ class BackupBroker:
                        if job["kind"] == "backup"
                        else "Backup verification failed; existing archive was preserved")
             try:
-                self.state.update(identifier, "failed", message, "error")
+                self.state.update(identifier, "failed", message, "error",
+                                  {"errorCode": error_code})
             except Exception:
                 pass
 

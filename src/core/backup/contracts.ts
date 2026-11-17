@@ -24,7 +24,7 @@ export interface BackupJob {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly events: readonly BackupEvent[];
-  readonly result?: BackupRecord | { readonly backupId: string; readonly verified: true; readonly level: "V2" };
+  readonly result?: BackupRecord | { readonly backupId: string; readonly verified: true; readonly level: "V2" } | { readonly errorCode: string };
 }
 export interface BackupDashboard {
   readonly connected: boolean;

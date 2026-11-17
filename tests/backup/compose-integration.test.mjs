@@ -124,7 +124,7 @@ test("BR02 agent backs up and re-verifies disposable PostgreSQL/Maildir with hos
     const create=await rpc(temp,"backup.create");
     assert.equal(create.status,202);
     const done=await poll(temp,create.data.job.id);
-    assert.equal(done.state,"completed");
+    assert.equal(done.state,"completed", "Sanitized failure code: " + (done.result?.errorCode ?? "none"));
     assert.ok(done.result?.sha256);
     assert.equal(done.result.level,"V2");
     const archive=join(temp,"archives",create.data.job.id+".age");

@@ -15,6 +15,12 @@ from storage import PrivateStore, now, valid_id
 from verification import verify_age_snapshot
 
 
+class BackupExecutionError(RuntimeError):
+    def __init__(self, code: str):
+        super().__init__("Backup operation failed")
+        self.code = code
+
+
 class BackupExecutor:
     def __init__(self, root: Path, project: str, db_user: str, db_name: str,
                  state: PrivateStore, archives: Path, lock_path: Path):
@@ -80,6 +86,7 @@ class BackupExecutor:
             "--project", self.project, "--db-user", self.db_user, "--db-name", self.db_name,
             "--recipient", recipient, "--output", str(archive), "--confirm-maintenance",
         ]
+        stage = "R05_CAPTURE"
         try:
             # Do not capture/output arbitrary Docker stderr or sensitive mail content.
             process = subprocess.Popen(
@@ -101,7 +108,8 @@ class BackupExecutor:
                     process.wait()
                 raise RuntimeError("R05 timed out; maintenance restart requested")
             if exit_code:
-                raise RuntimeError("R05 backup engine failed")
+                raise BackupExecutionError("R05_ENGINE_FAILED")
+            stage = "CIPHERTEXT_VERIFICATION"
             verified = verify_age_snapshot(
                 root=self.root, archive=archive, identity=self.identity,
                 project=self.project, db_name=self.db_name
@@ -113,13 +121,16 @@ class BackupExecutor:
                 "includesQueue": verified["includesQueue"],
                 "includesHostSecrets": False,
             }
+            stage = "JOURNAL_PUBLISH"
             self.state.save_backup(record)
             return record
-        except Exception:
+        except Exception as error:
             # Remove only this unverified, newly generated artifact; never preexisting files.
             if self.state.get_backup(identifier) is None and archive.is_file() and not archive.is_symlink():
                 archive.unlink(missing_ok=True)
-            raise
+            if isinstance(error, BackupExecutionError):
+                raise
+            raise BackupExecutionError("BR02_" + stage + "_FAILED") from None
 
     def _verify(self, backup_id: str) -> dict:
         record = self.state.get_backup(backup_id)
