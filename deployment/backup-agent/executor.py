@@ -91,10 +91,11 @@ class BackupExecutor:
             # Do not capture/output arbitrary Docker stderr or sensitive mail content.
             process = subprocess.Popen(
                 args, cwd=self.root, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, start_new_session=True,
+                stderr=subprocess.PIPE, start_new_session=True,
             )
             try:
-                exit_code = process.wait(timeout=1800)
+                _, diagnostic = process.communicate(timeout=1800)
+                exit_code = process.returncode
             except subprocess.TimeoutExpired:
                 # Ask R05 frozen() to run its writer restart finally block.
                 try:
@@ -102,13 +103,19 @@ class BackupExecutor:
                 except ProcessLookupError:
                     pass
                 try:
-                    process.wait(timeout=90)
+                    process.communicate(timeout=90)
                 except subprocess.TimeoutExpired:
                     process.kill()
-                    process.wait()
+                    process.communicate()
                 raise RuntimeError("R05 timed out; maintenance restart requested")
             if exit_code:
-                raise BackupExecutionError("R05_ENGINE_FAILED")
+                # The existing R05 engine reports an exception *class only*.
+                # Do not forward arbitrary stderr, paths, Docker output or secrets.
+                safe = re.search(rb"R05_RECOVERY_BLOCKED: ([A-Za-z][A-Za-z0-9_]*)", diagnostic[-4096:])
+                allowed = {b"RuntimeError", b"ValueError", b"FileNotFoundError",
+                           b"PermissionError", b"OSError", b"CalledProcessError"}
+                suffix = safe.group(1).decode("ascii") if safe and safe.group(1) in allowed else "NONZERO"
+                raise BackupExecutionError("R05_ENGINE_" + suffix)
             stage = "CIPHERTEXT_VERIFICATION"
             verified = verify_age_snapshot(
                 root=self.root, archive=archive, identity=self.identity,

@@ -120,6 +120,18 @@ test("BR02 agent backs up and re-verifies disposable PostgreSQL/Maildir with hos
     cmd("age-keygen",["-o",identity]);chmodSync(identity,0o600);
     const recipient=cmd("age-keygen",["-y",identity]);
     writeFileSync(join(temp,"state","recipient.txt"),recipient+"\n",{mode:0o600});
+    // A direct R05 baseline probe isolates fixture/Docker errors from broker/IPC.
+    const direct = spawnSync("python3", [
+      "deployment/operations/compose_recovery.py", "backup",
+      "--compose-file", composeFile, "--project", project,
+      "--db-user", "readbox", "--db-name", "readbox", "--recipient", recipient,
+      "--output", join(temp, "direct-r05.age"), "--confirm-maintenance",
+    ], { cwd: root, encoding: "utf8", timeout: 180_000 });
+    if (direct.status !== 0) {
+      const match = /R05_RECOVERY_BLOCKED: [A-Za-z0-9_]+/.exec(direct.stderr ?? "");
+      throw new Error("DISPOSABLE_R05_DIRECT_ENGINE_FAILURE " + (match?.[0] ?? "NONZERO"));
+    }
+    assert.ok(statSync(join(temp, "direct-r05.age")).size > 0);
     agent=await startAgent(temp);
     const create=await rpc(temp,"backup.create");
     assert.equal(create.status,202);
