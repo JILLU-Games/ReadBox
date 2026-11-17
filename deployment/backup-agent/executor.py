@@ -90,11 +90,11 @@ class BackupExecutor:
         try:
             # Do not capture/output arbitrary Docker stderr or sensitive mail content.
             process = subprocess.Popen(
-                args, cwd=self.root, stdout=subprocess.DEVNULL,
+                args, cwd=self.root, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, start_new_session=True,
             )
             try:
-                _, diagnostic = process.communicate(timeout=1800)
+                stage_output, diagnostic = process.communicate(timeout=1800)
                 exit_code = process.returncode
             except subprocess.TimeoutExpired:
                 # Ask R05 frozen() to run its writer restart finally block.
@@ -115,7 +115,14 @@ class BackupExecutor:
                 allowed = {b"RuntimeError", b"ValueError", b"FileNotFoundError",
                            b"PermissionError", b"OSError", b"CalledProcessError"}
                 suffix = safe.group(1).decode("ascii") if safe and safe.group(1) in allowed else "NONZERO"
-                raise BackupExecutionError("R05_ENGINE_" + suffix)
+                # Only fixed presence flags: never emit subprocess output or arguments.
+                if b"R05_MAINTENANCE: stopping" not in stage_output:
+                    phase = "PREFLIGHT"
+                elif b"R05_MAINTENANCE: only previously-running services restarted" not in stage_output:
+                    phase = "SNAPSHOT_OR_RESTART"
+                else:
+                    phase = "ENCRYPT"
+                raise BackupExecutionError("R05_ENGINE_" + phase + "_" + suffix)
             stage = "CIPHERTEXT_VERIFICATION"
             verified = verify_age_snapshot(
                 root=self.root, archive=archive, identity=self.identity,
