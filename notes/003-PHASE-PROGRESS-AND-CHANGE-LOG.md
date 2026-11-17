@@ -1,20 +1,20 @@
 # 003 — Phase Progress & Immutable Change Log
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` · **Log initialized:** 2026-11-17 · **R-01 VERIFIED CLOSED (CI); 1/6 complete, 5 remain.**
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` · **Log initialized:** 2026-11-17 · **R-01 and R-02 VERIFIED CLOSED (CI); 2/6 complete, 4 remain.**
 
 ## Scoreboard
 
 | Metric | Actual value |
 |---|---|
 | Total ordered phases | **6** |
-| Completed / verified | **1/6 (CI)** |
+| Completed / verified | **2/6 (CI)** |
 | In progress | **0** |
-| Remaining | **5/6** |
-| Blocked | **1 — R-02 formal closure; RB-P2-04 readiness gap** |
+| Remaining | **4/6** |
+| Blocked | **0** (R-02 migration readiness gate resolved in CI; production GO remains NO-GO) |
 | Original forensic findings | **32** |
-| Findings verified closed | **10 (CI contract; not live VPS)** |
-| Findings OPEN | **22** |
-| Next implementation phase | **R-02 closure exception/deferral approval; R-03 remains next planned phase** |
+| Findings verified closed | **11 (CI contract; not live VPS)** |
+| Findings OPEN | **21** |
+| Next implementation phase | **R-03 — Inbound SMTP/LMTP mailserver and DNS/TLS** |
 | Final release | **NO-GO** |
 
 ## Ordered phase ledger — no results invented
@@ -22,7 +22,7 @@
 | Phase | Findings | Next feature/bugfix scope | State | CI evidence URL | Source SHA | Mirror SHA |
 |---|---:|---|---|---|---|---|
 | R-01 | 7 | Production/dev Compose selection; standalone/Coolify secrets; URL-safe DB auth; reproducible image/deps and advisory audit; accurate quick-start documentation. | VERIFIED CLOSED (CI) | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 | `113663cdabacf1460af5b06a334d99ab3db833c2` | mirror verification pending |
-| R-02 | 4 | Single-DB virtual SQL routing with least privilege, migration parity, Maildir owner/UID/GID/ACL consistency. | CODE/CI VERIFIED; CLOSE BLOCKED (RB-P2-04) | https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 | `e1efdbd0b0380a94152947f7be47eb17c5c8d70c` | pending exact final sync |
+| R-02 | 4 | Single-DB virtual SQL routing with least privilege, migration parity, Maildir owner/UID/GID/ACL consistency. | VERIFIED CLOSED (CI; RB-P2-04 exception) | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 | `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892` | final ref equality to be verified on mirror |
 | R-03 | 6 | Supported Postfix/Dovecot installation/integration, port and socket contract, documented DNS/TLS/DKIM boundaries; inbound-only vs other capabilities explicit. | NOT STARTED | — | — | — |
 | R-04 | 6 | First admin setup, consistent user/admin source, worker heartbeat and readiness gates, actionable errors for outages and recovery. | NOT STARTED | — | — | — |
 | R-05 | 6 | Container-aware and host-aware backup/restore, secret protection, downtime consistency, UID/ACL restore, updater repo correctness and rollback. | NOT STARTED | — | — | — |
@@ -80,3 +80,12 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Fixed/verified contract:** `RB-P0-03`, `RB-P0-04` and `RB-P1-08` at isolated CI level. Migration parity helper also verified, but the production readiness endpoint still does NOT enforce missing expected migrations (`RB-P2-04 OPEN`).
 - **Unchanged:** existing `src/app/`, `src/components/`, auth, UI/UX, original Prisma migrations, mailbox data and unrelated app code. No VPS or external Postfix/Dovecot test.
 - **Next decision:** authorize precise health-readiness scope exception or explicitly reassign `RB-P2-04` to R-04 before satisfying R-03 prerequisite. **Overall production NO-GO.**
+
+### R-02 final closure — explicit readiness exception — 2026-11-17
+
+- **Final status:** VERIFIED CLOSED (CI); **completed 2/6, remaining 4**; next phase **R-03** only after separate authorization.
+- **Last code SHA:** `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892`. **Focused CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169. Existing R-02 SQL/database CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332.
+- **New actual fix:** `src/core/health/snapshot.ts` now validates complete expected Prisma migration history using the existing R-02 helper; pinned seven existing migrations and auto-discovers later checked-in migrations. Missing, unfinished or query-error history returns `not_ready`.
+- **Changes permitted by explicit user exception:** only health snapshot plus `tests/admin/phase6-settings-update-health.test.ts` and new `tests/admin/r02-readiness-parity.test.ts`; no UI, auth, app routes, other backend behavior or migration edits. Focused branch audit PASS.
+- **Progress:** R-01 7 and R-02 4 findings CI verified = **11/32**; **21** other audit findings OPEN. Live VPS, SMTP/LMTP, DNS/TLS, backup/restore and release not tested. **Production NO-GO**.
+- **Final exact mirror:** verify source and target `main` ref/tree SHAs after committing this note; CI run alone is not mirror proof.

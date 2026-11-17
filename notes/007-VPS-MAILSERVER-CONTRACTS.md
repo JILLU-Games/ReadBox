@@ -78,3 +78,8 @@ Frozen source contract above remains historically correct at baseline. New CI-te
 - Postfix `pgsql-virtual-{domains,mailboxes,aliases}.cf.tpl` templates now use `readbox_postfix` and explicit `POSTFIX_DB_HOST/PORT` placeholders. **The renderer, Postfix service, and externally validated network attachment do not yet exist**; supplying the wrong network host still prevents delivery.
 - Actual SQL role, positive/negative lookup and migration replay tests passed: https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332.
 - **Known residual:** `src/core/health/snapshot.ts` remains unchanged; complete expected migration-history parity is not part of its readiness gate and RB-P2-04 is OPEN until an explicitly approved bounded exception/deferral.
+
+## R-02 post-approval readiness contract (2026-11-17)
+
+- `src/core/health/snapshot.ts` enforces the checked-in Prisma migration history (the original seven migrations plus future checked-in migration directories) via R-02's existing `verifyMailserverMigrationParity()` SQL helper. The status is `not_ready` if expected history is absent/incomplete/unavailable.
+- Only this migration readiness contract is CI verified; the earlier live SMTP/LMTP, actual mounted Dovecot and external DNS caveats remain unchanged. Evidence: https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169.

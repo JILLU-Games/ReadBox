@@ -1,6 +1,6 @@
 # 005 — Actual Feature Implementation and Verified Working Tracker
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 1/6 CI VERIFIED; 5 remaining. **Release:** NO-GO.
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 2/6 CI VERIFIED CLOSED; 4 remaining. **Release:** NO-GO.
 
 ## Terminology — critical distinction
 
@@ -46,7 +46,7 @@
 | Phase | Exact expected improvement (NOT YET WORKING-PROVEN) | State | Proof URL/commit when completed |
 |---|---|---|---|
 | R-01 | Production vs development Compose, secrets, reproducible Docker/dependency image, correct README | CI VERIFIED | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 |
-| R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | CI VERIFIED contract; formal closure blocked by health gate | https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 |
+| R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | VERIFIED CLOSED (CI; authorized health exception) | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 |
 | R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | NOT STARTED | — |
 | R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | NOT STARTED | — |
 | R-05 | Tested container-aware encrypted/private backup, restore and update rollback | NOT STARTED | — |
@@ -82,3 +82,10 @@ Source and mirrored SHA:
 - **Migration parity:** `src/core/mailserver/pg-adapter.ts` exposes a checked manifest verifier; unit tests cover successful, missing and unfinished migrations. The application `/health/ready` is **NOT** connected to this checker, so `RB-P2-04` remains OPEN and R-02 phase closure is BLOCKED under Scope Lock.
 - **Proof:** https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332. Code SHA: `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`.
 - **Not verified:** real Postfix/Dovecot installed or running, external mail delivery, DB provisioning one-shot profile invocation in a deployed stack, public DNS/TLS, VPS mounts and backups. No change to app UI/routes/auth/features.
+
+## R-02 final verified working delta (2026-11-17)
+
+- `getReadinessSnapshot()` now uses `verifyMailserverMigrationParity()` from the existing R-02 PG adapter, enumerating expected checked-in migrations at runtime with a mandatory seven-migration baseline. `checks.migrations.ok` is `false` for missing/unfinished history and query errors; `/health/ready` continues returning HTTP 503 on `not_ready` without editing its route.
+- Positive and negative health tests and Next production build pass: https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169; original disposable PostgreSQL/role/UID contract proof preserved in 009.
+- This **does not install Postfix/Dovecot**; real mailbox reception and public VPS health remain unverified. Other features, UI/auth, routes, historical migrations and existing mailbox data unchanged.
+- R-02 completed CI-wise; R-03, R-04, R-05, R-06 not started.

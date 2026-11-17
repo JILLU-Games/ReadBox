@@ -99,3 +99,10 @@ Rollback contracts: no modifications to applied migrations; backup before changi
 - Negative: unknown and disabled mailbox, deny password hash table field and public app users and writes, wrong UID/GID, missing/unfinished migration manifest fixture.
 - Scope audit: **12 maintenance-branch changed paths** including temporary CI workflow; published code excludes the workflow. All executable code changes inside R-02 allowlist, no changed UI/auth/old migrations.
 - **Not tested:** SMTP to LMTP, actual Dovecot mount, host mail routing and public port 25. `RB-P2-04` remains OPEN because `/health/ready` is unchanged; no production GO or formal R-02 CLOSED claim.
+
+## R-02 final authorized readiness closure gate — 2026-11-17
+
+- **Scope exception:** `RB-P2-04` only; `src/core/health/snapshot.ts` and two health-focused test files permitted, no unrelated runtime or UI changes.
+- **Verified CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 — npm clean install, Prisma schema validation, TypeScript, 10/10 health tests, 3/3 existing R-02 tests, Next.js production build and exact allowed-path audit all PASS.
+- **Previously verified:** https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 — disposable PostgreSQL migration repeat, positive/negative SQL lookups, least privilege and Maildir UID/GID checks.
+- **Source code SHA:** `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892`. **Result:** R-02 CI VERIFIED CLOSED; total complete phases **2/6**, remaining **4/6**. **Release status:** still NO-GO because production SMTP/LMTP, external DNS/TLS, VPS deployment and disaster recovery not verified.

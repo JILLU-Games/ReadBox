@@ -1,9 +1,9 @@
 # 001 — Production Blocker Ledger & Exact Baseline Code Proof
 
 **Baseline SHA:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`, **tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`.
-**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **22 OPEN; 10 CI-CONTRACT VERIFIED (7 R-01 + 3 R-02); RB-P2-04 OPEN; full mailserver production NO-GO.**
+**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **21 OPEN; 11 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02); R-02 VERIFIED CLOSED in CI, external SMTP/VPS remains NO-GO.**
 **Primary source:** [VPS production forensic audit](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md).
-**Status:** R-01 closed; R-02 code patch CI verified with an unresolved out-of-scope readiness gate. **NO-GO** for real VPS mailserver.
+**Status:** R-01 and R-02 CI VERIFIED CLOSED; R-03 through R-06 NOT STARTED. **NO-GO** for live mailserver.
 
 Every record below has **one owner phase**, exact source filename and GitHub line permalink at the immutable baseline, source-verbatim code excerpt (with line numbers), finding/impact from the original audit and a required future outcome. Absence of a service or missing live proof is established by the whole repository/configuration and original audit; a short code excerpt alone cannot prove absence. `CONFIRMED` is static evidence, `UNVERIFIED` is lack of live proof, not a witnessed runtime error.
 
@@ -441,7 +441,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-04 — Setup readiness does not establish complete migration history
-- **Owner:** R-02. **Baseline assessment:** CONFIRMED. **Current state:** OPEN (isolated migration parity verified; application /health/ready still lacks expected-history enforcement).
+- **Owner:** R-02. **Baseline assessment:** CONFIRMED. **Current state:** VERIFIED CLOSED (R-02 authorized readiness exception, CI negative tests; live VPS not run).
 - **Audit evidence:** `src/core/health/snapshot.ts:99–110` checks unfinished/rolled-back rows in `_prisma_migrations`, not parity against the entire expected migration set.
 - **Impact:** A manually incomplete database with an existing migrations table could pass this limited migration condition; runtime schema usage may still fail.
 - **Required outcome before closure:** Expected migration history and real schema readiness confirmed.
@@ -457,7 +457,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 108 |         migrationsOk = pendingCount === 0;
 ```
 
-- **Scope Lock:** ONLY R-02 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-02 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; closure documented in 010-R02-READINESS-CLOSURE.md with CI evidence; live acceptance remains open in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-05 — DNS record generator is advisory, not DNS automation
 - **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
@@ -581,3 +581,10 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - Three CI contract findings addressed: `RB-P0-03`, `RB-P0-04`, `RB-P1-08`. These are not proof of external live Postfix/Dovecot.
 - `RB-P2-04` remains **OPEN**: `src/core/mailserver/pg-adapter.ts` now checks an expected migration manifest with unit tests, but `src/core/health/snapshot.ts` still checks only unfinished rows. That file is **not** in R-02's allowlist (it belongs to R-04); therefore scope discipline prohibits a silent edit. R-02 cannot be marked fully VERIFIED CLOSED under its own phase exit rule without separately approving a narrowly bounded health-readiness exception or explicit documented deferral.
 - Original baseline snippets are historical proof, not assertions that the patched tree still has old configuration.
+
+## R-02 authorized RB-P2-04 closure (2026-11-17)
+
+- Verified source code SHA: `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892`; focused negative CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169. Previous full disposable PostgreSQL 16 role/permission/migrations CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332.
+- `src/core/health/snapshot.ts` now reuses the existing R-02 SQL migration parity helper with an authoritative checked-in migration manifest. Missing, unfinished and inaccessible migration history returns `not_ready` (the route continues to return 503 for `not_ready`).
+- **4/4 R-02 owner findings CI CLOSED**; total 11 CI verified, 21 remaining OPEN. Historical baseline excerpts and the interim blocked phase report are preserved as forensic history.
+- No VPS, SMTP, Dovecot, external DNS or other out-of-phase capability verified. Production remains **NO-GO**. See [010](010-R02-READINESS-CLOSURE.md).

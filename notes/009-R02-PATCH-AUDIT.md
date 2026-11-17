@@ -5,7 +5,7 @@
 **Parent R-01 SHA:** `f4ef1016facf778b8a02d46f8925aaf0584d7a89`
 **Verified R-02 executable-code SHA:** `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`
 **Focused CI (SUCCESS):** https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332
-**Formal phase outcome:** **R-02 implementation and CI contract checks PASS; phase CLOSURE BLOCKED by RB-P2-04.**
+**Final phase outcome:** **R-02 CI VERIFIED CLOSED** after separately authorized RB-P2-04 correction. This report retains intermediate BLOCKED evidence as historical context; see [010](010-R02-READINESS-CLOSURE.md).
 **Production mailserver outcome:** **NO-GO.** No live VPS, DNS, Postfix, Dovecot, SMTP or LMTP traffic.
 
 ## 1 — Exact Scope Lock audit: what changed
@@ -113,3 +113,10 @@ For honest R-02 closure, the user must **explicitly approve** either:
 2. Reassign `RB-P2-04` to the already documented R-04 health-readiness phase and explicitly accept that it remains OPEN until then.
 
 Without one of these approvals, do not silently edit health code, mark R-02 fully complete, or pretend production mailserver is ready.
+
+## Follow-up resolution of historical BLOCKED state (2026-11-17)
+
+- User explicitly authorized the one-file `src/core/health/snapshot.ts` exception plus narrowly scoped health tests.
+- Exact code SHA: `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892`; focused CI https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 SUCCESS.
+- Runtime readiness now verifies every expected migration using the existing parity helper. Missing/unfinished/failed migration history causes `not_ready`; no unapproved UI/auth/mailbox or existing-migration changes.
+- **Final R-02 status: CI VERIFIED CLOSED; 2/6 phases complete.** Historical blocked findings above document the earlier pre-approval state. Production mailserver remains **NO-GO**.

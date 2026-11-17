@@ -66,7 +66,7 @@ export async function GET() {
 | EH-M03 | R-01 | Reproducible production install fails/advisories unresolved | abort release; capture npm audit and lockfile evidence | RB-P1-14, RB-P1-15 | CI VERIFIED; live unverified |
 | EH-M04 | R-02 | SQL role no-login, DB endpoint not reachable, permission denied | safe lookup rejection; one DB only; no leakage | RB-P0-03, RB-P1-08 | CI VERIFIED contract; external Postfix/VPS unverified |
 | EH-M05 | R-02 | Maildir access denied due to differing UID/GID/ACL | no silent accepted-but-lost mail; no broad chmod | RB-P0-04 | CI VERIFIED identity; external Dovecot unverified |
-| EH-M06 | R-02 | Missing/partial/out-of-order applied migrations | not-ready/abort, no destructive fallback | RB-P2-04 | PARTIAL CI; /health/ready parity OPEN |
+| EH-M06 | R-02 | Missing/partial/out-of-order applied migrations | not-ready/abort, no destructive fallback | RB-P2-04 | CI VERIFIED CLOSED; live VPS unverified |
 | EH-M07 | R-03 | SMTP daemon or LMTP socket missing/down | observable failed/queued/deferred delivery, mail preserved | RB-P0-02, RB-P0-05 | OPEN |
 | EH-M08 | R-03 | Invalid/disabled recipient, bad alias, oversized MIME | proper SMTP reject/policy behavior, no silent loss | RB-P0-06 | OPEN |
 | EH-M09 | R-03 | Incorrect MX/port 25/TLS/certificate/DKIM | truthful distinct failure vs advisory status | RB-P1-09, RB-P1-10 | OPEN |
@@ -98,7 +98,7 @@ PASS / FAIL / SKIPPED / NOT RUN:
 | Phase | Existing handlers re-tested | New negative tests verified | Evidence URL / SHA | Status |
 |---|---|---|---|---|
 | R-01 | Startup/lockfile guards | Short credentials, reserved-character password, missing secrets, audit | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 | CI VERIFIED |
-| R-02 | PG lookup + Maildir identity | least privilege, invalid/disabled mailbox, UID mismatch and migration partial-state cases | https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 | CI PASS; health parity remains OPEN |
+| R-02 | PG lookup, Maildir identity and complete health migration parity | invalid/disabled mailbox, UID mismatch, missing/unfinished/failed migration ledger, broken bundle and query errors | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 | VERIFIED CLOSED (CI) |
 | R-03 | — | — | — | NOT STARTED |
 | R-04 | — | — | — | NOT STARTED |
 | R-05 | — | — | — | NOT STARTED |
@@ -115,3 +115,9 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - `EH-M05`: application delivery identity checked against UID/GID 1001; mismatch fails before provisioning and no automatic chown/permission widening is performed. Actual Dovecot LMTP filesystem access is not yet tested.
 - `EH-M06`: migration manifest checker detects missing and unfinished rows in targeted tests; Prisma migrate deploy re-run is idempotent. `/health/ready` does not yet invoke this checker due explicit R-02 file Scope Lock; release gate remains OPEN.
 - Proof: https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332. Source commit `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`. App UI/error messages and authentication unchanged.
+
+## R-02 final EH-M06 negative outcomes (authorized closure)
+
+- Existing expected-history helper is now invoked by `getReadinessSnapshot`, and `checks.migrations.ok` fails closed when any required migration is missing or unfinished, a failure row exists, migration directory/file is missing/unsafe, SQL query fails, or Prisma raw-query interface is absent.
+- A complete matching history remains `ready` if all independent storage, DB/config and heartbeat requirements are also satisfied. No external user-visible error strings, login behavior or UI modified.
+- **CI evidence:** https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169. Code SHA: `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892`. **Formal R-02:** CI VERIFIED CLOSED; SMTP/LMTP and actual VPS remain unverified.
