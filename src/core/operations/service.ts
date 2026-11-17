@@ -35,12 +35,19 @@ import {
   type PrismaRawQueryable,
   type SqlQueryExecutor,
 } from "@/core/mailserver/pg-adapter";
+import {
+  purgeExpiredMessagesForRetention,
+  type RetentionPurgeSummary,
+} from "@/core/messages/service";
+export type { RetentionPurgeSummary } from "@/core/messages/service";
 import { logger } from "@/core/server/logger";
 import type { PrismaClient } from "@prisma/client";
 import "server-only";
 
 export interface OperationsAuditContext {
   readonly actorId: bigint;
+  readonly authSource?: "admin_table" | "user_table";
+  readonly actorUsername?: string;
   readonly headers?: Pick<Headers, "get">;
   readonly clientIp?: string | null;
   readonly userAgent?: string | null;
@@ -209,7 +216,9 @@ class StrictSyncAbortError extends Error {
 async function resolveActorId(
   prisma: Pick<OperationsPrismaClient, "user">,
   actorId: bigint,
+  authSource?: "admin_table" | "user_table",
 ): Promise<bigint | null> {
+  if (authSource === "admin_table") return null;
   if (actorId <= BigInt(0)) return null;
   const found = await prisma.user.findUnique({
     where: { id: actorId },
@@ -335,7 +344,7 @@ export async function getOperationsOverview(
       prisma.message.count({
         where: {
           deletedAt: null,
-          parseStatus: "failed",
+          parseStatus: { in: ["error", "failed"] },
           mailbox: { deletedAt: null },
         },
       }),
@@ -447,12 +456,14 @@ export async function runVerifyPostfixContract(
   }>
 > {
   const executor = options.sqlExecutor ?? createPrismaSqlExecutor(prisma);
-  const actorId = await resolveActorId(prisma, ctx.actorId);
+  const actorId = await resolveActorId(prisma, ctx.actorId, ctx.authSource);
 
   try {
     const stats = await verifyMailserverContract(executor);
     await recordAudit(prisma, {
-      actorId,
+      actorId: actorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: "operations_verify_postfix_contract",
       targetType: "mailserver",
       targetIdentifier: "postfix_contract",
@@ -489,7 +500,7 @@ export async function runSyncMailserverMailboxes(
   const dryRun = input.dryRun === true;
   const strict = input.strict === true;
   const executor = options.sqlExecutor ?? createPrismaSqlExecutor(prisma);
-  const actorId = await resolveActorId(prisma, ctx.actorId);
+  const actorId = await resolveActorId(prisma, ctx.actorId, ctx.authSource);
 
   let sourceRows;
   try {
@@ -667,7 +678,9 @@ export async function runSyncMailserverMailboxes(
 
       if (!dryRun) {
         await recordAudit(tx, {
-          actorId,
+          actorId: actorId ?? ctx.actorId,
+          authSource: ctx.authSource,
+          actorUsername: ctx.actorUsername,
           action: "operations_mailserver_sync",
           targetType: "mailserver",
           targetIdentifier: "mailboxes",
@@ -774,9 +787,11 @@ export async function runProvisionMaildirs(
     }
   }
 
-  const actorId = await resolveActorId(prisma, ctx.actorId);
+  const actorId = await resolveActorId(prisma, ctx.actorId, ctx.authSource);
   await recordAudit(prisma, {
-    actorId,
+    actorId: actorId ?? ctx.actorId,
+    authSource: ctx.authSource,
+    actorUsername: ctx.actorUsername,
     action: "operations_provision_maildirs",
     targetType: "mailbox",
     targetIdentifier: input.mailboxUuid?.trim() || "all",
@@ -835,9 +850,11 @@ export async function runRebuildMailIndex(
   }
 
   if (!summary.dryRun) {
-    const actorId = await resolveActorId(prisma, ctx.actorId);
+    const actorId = await resolveActorId(prisma, ctx.actorId, ctx.authSource);
     await recordAudit(prisma, {
-      actorId,
+      actorId: actorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       action: "operations_rebuild_mail_index",
       targetType: "mailbox",
       targetIdentifier: input.mailboxUuid?.trim() || "all",
@@ -881,9 +898,11 @@ export async function runUpdateMailboxCounters(
     mailboxUuid: input.mailboxUuid?.trim() || undefined,
   });
 
-  const actorId = await resolveActorId(prisma, ctx.actorId);
+  const actorId = await resolveActorId(prisma, ctx.actorId, ctx.authSource);
   await recordAudit(prisma, {
-    actorId,
+    actorId: actorId ?? ctx.actorId,
+    authSource: ctx.authSource,
+    actorUsername: ctx.actorUsername,
     action: "operations_recalculate_counters",
     targetType: "mailbox",
     targetIdentifier: input.mailboxUuid?.trim() || "all",
@@ -914,13 +933,15 @@ export async function runRepairMessageBodies(
   },
   ctx: OperationsAuditContext,
 ): Promise<OperationsActionResult<BodyRepairBatchSummary>> {
-  const actorId = await resolveActorId(prisma, ctx.actorId);
+  const actorId = await resolveActorId(prisma, ctx.actorId, ctx.authSource);
   const res = await runMessageBodyRepairBatch(
     prisma as unknown as RepairPrismaClient,
     config,
     input,
     {
-      actorId,
+      actorId: actorId ?? ctx.actorId,
+      authSource: ctx.authSource,
+      actorUsername: ctx.actorUsername,
       headers: ctx.headers,
       trustProxyHeaders: ctx.trustProxyHeaders,
     },
@@ -936,5 +957,67 @@ export async function runRepairMessageBodies(
     message: res.data.dryRun
       ? `Dry-run body check: ${res.data.scanned} checked, ${res.data.wouldUpdate} would update, ${res.data.mismatched} SHA mismatch(es), ${res.data.missing} missing.`
       : `Body repair finished: ${res.data.updated} updated, ${res.data.unchanged} unchanged, ${res.data.mismatched} SHA mismatch(es), ${res.data.missing} missing.`,
+  };
+}
+
+export async function runRetentionPurge(
+  prisma: OperationsPrismaClient,
+  input: {
+    readonly dryRun?: boolean;
+    readonly retentionDays?: number;
+    readonly mailboxUuid?: string;
+  },
+  ctx: OperationsAuditContext,
+): Promise<OperationsActionResult<RetentionPurgeSummary>> {
+  if (input.mailboxUuid && !isValidUuid(input.mailboxUuid)) {
+    return {
+      ok: false,
+      code: "validation",
+      error: "Select a valid mailbox UUID.",
+    };
+  }
+
+  if (
+    input.retentionDays !== undefined &&
+    (!Number.isInteger(input.retentionDays) ||
+      input.retentionDays < 1 ||
+      input.retentionDays > 3650)
+  ) {
+    return {
+      ok: false,
+      code: "validation",
+      error: "Retention override must be an integer between 1 and 3650 days.",
+    };
+  }
+
+  const summary = await purgeExpiredMessagesForRetention(
+    prisma as unknown as Parameters<typeof purgeExpiredMessagesForRetention>[0],
+    {
+      dryRun: input.dryRun === true,
+      retentionDays: input.retentionDays,
+      mailboxUuid: input.mailboxUuid,
+      actor: {
+        userId: ctx.actorId,
+        authSource: ctx.authSource,
+        username: ctx.actorUsername,
+        headers: ctx.headers,
+        clientIp: ctx.clientIp,
+        userAgent: ctx.userAgent,
+        trustProxyHeaders: ctx.trustProxyHeaders,
+      },
+    },
+  );
+
+  const errorSuffix =
+    summary.errors && summary.errors > 0
+      ? ` (${summary.errors} mailbox error(s) encountered)`
+      : "";
+
+  return {
+    ok: true,
+    data: summary,
+    message: summary.dryRun
+      ? `Dry-run retention scan: ${summary.purgedMessages} expired message(s) across ${summary.affectedMailboxes} mailbox(es).${errorSuffix}`
+      : `Retention cleanup completed: ${summary.purgedMessages} expired message(s) purged across ${summary.affectedMailboxes} mailbox(es).${errorSuffix}`,
   };
 }

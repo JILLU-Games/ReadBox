@@ -21,6 +21,7 @@ vi.mock("next/link", () => ({
 }));
 
 import { AuditConsole } from "@/components/vcon/audit-console";
+import { InquiriesConsole } from "@/components/vcon/inquiries-console";
 import { UserForm } from "@/components/vcon/user-form";
 import { UsersDirectory } from "@/components/vcon/users-directory";
 import { AdminOverview } from "@/vcon/overview-panel";
@@ -287,5 +288,70 @@ describe("Phase 2 /vcon overview, user management, and audit UI", () => {
     expect(screen.getByText("1 active lockout")).toBeInTheDocument();
     expect(screen.getByText("locked.user")).toBeInTheDocument();
     expect(screen.getByText("inbox.user")).toBeInTheDocument();
+  });
+
+  it("FA-008: renders InquiriesConsole KPIs, filters by topic/search, and opens full inquiry details dialog", async () => {
+    const user = userEvent.setup();
+    render(
+      <InquiriesConsole
+        bundle={{
+          databaseConfigured: true,
+          databaseConnected: true,
+          query: "",
+          serviceFilter: "",
+          totalCount: 1,
+          topicCounts: {
+            total: 1,
+            personal: 0,
+            team: 0,
+            business: 1,
+            support: 0,
+          },
+          items: [
+            {
+              requestId: "req-abc1234567890",
+              fullName: "Elena Rostova",
+              workEmail: "elena@nordicops.io",
+              company: "NordicOps",
+              phone: "+46 8 501 224 10",
+              serviceType: "business",
+              serviceLabel: "Custom Domain & Enterprise Setup",
+              teamSize: "21-50",
+              message:
+                "We need three custom domains onboarded with dedicated QA mailboxes.",
+              submittedAt: "2026-11-16T08:15:00.000Z",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Contact inquiries")).toBeInTheDocument();
+    expect(screen.getByText("Elena Rostova")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Custom Domain & Enterprise Setup").length,
+    ).toBeGreaterThanOrEqual(2);
+
+    await user.selectOptions(
+      screen.getByLabelText("Filter by topic"),
+      "business",
+    );
+    await user.type(
+      screen.getByLabelText("Search contact inquiries"),
+      "NordicOps",
+    );
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+
+    expect(pushMock).toHaveBeenCalledWith(
+      "/vcon/inquiries?q=NordicOps&service=business",
+    );
+
+    await user.click(screen.getByRole("button", { name: "View details" }));
+    expect(
+      await screen.findByRole("dialog", {
+        name: /Inquiry from Elena Rostova/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("req-abc1234567890")).toBeInTheDocument();
   });
 });

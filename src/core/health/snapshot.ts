@@ -80,12 +80,16 @@ export async function getReadinessSnapshot(options?: {
   let mailServicesConnected = false;
   let ingestionStatus = "unknown";
 
-  const client =
-    options?.prisma !== undefined
-      ? options.prisma
-      : runtimeEnv.databaseUrl
-        ? (getPrismaClient() as unknown as ReadinessProbePrismaLike)
-        : null;
+  let client: ReadinessProbePrismaLike | null = null;
+  if (options?.prisma !== undefined) {
+    client = options.prisma;
+  } else if (runtimeEnv.databaseUrl) {
+    try {
+      client = getPrismaClient() as unknown as ReadinessProbePrismaLike;
+    } catch {
+      client = null;
+    }
+  }
 
   if (client && runtimeEnv.databaseUrl) {
     try {
@@ -137,12 +141,21 @@ export async function getReadinessSnapshot(options?: {
   ]);
 
   const databaseOk = databaseConnection === "reachable";
+  const ingestionDegradedOrStale =
+    ingestionStatus === "stale" ||
+    ingestionStatus === "degraded" ||
+    ingestionStatus === "unavailable";
+  const ingestionGateOk = runtimeEnv.requireIngestionReady
+    ? mailServicesConnected
+    : !ingestionDegradedOrStale;
+
   const ready =
     configuration.ok &&
     databaseOk &&
     migrationsOk &&
     mailStorage.ok &&
-    attachmentStorage.ok;
+    attachmentStorage.ok &&
+    ingestionGateOk;
 
   return {
     status: ready ? ("ready" as const) : ("not_ready" as const),

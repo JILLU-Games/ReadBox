@@ -177,12 +177,27 @@ export async function verifyRoutingDns(
     ).sort();
 
     const mxOk = normalizedMx.includes(expectedMx);
-    const targetIp = options.expectedServerIp?.trim().toLowerCase();
-    const targetOk =
-      targetIp && targetIp !== "127.0.0.1"
-        ? targetAddresses.includes(targetIp)
-        : targetAddresses.length > 0;
+    const hasExpectedIpParam = options.expectedServerIp !== undefined;
+    const targetIp = options.expectedServerIp?.trim().toLowerCase() ?? "";
+    const isLoopbackDefault =
+      targetIp === "127.0.0.1" || targetIp === "::1" || targetIp === "0.0.0.0";
+
+    const targetOk = hasExpectedIpParam
+      ? targetIp.length > 0 &&
+        !isLoopbackDefault &&
+        targetAddresses.includes(targetIp)
+      : targetAddresses.length > 0;
     const verified = mxOk && targetOk;
+
+    let message = "Required MX and mail-host records match.";
+    if (!verified) {
+      if (hasExpectedIpParam && (!targetIp || isLoopbackDefault)) {
+        message =
+          "Configure a public non-loopback SERVER_IP before verifying mail-host A/AAAA routing records.";
+      } else {
+        message = "Required MX or mail-host records are missing or incorrect.";
+      }
+    }
 
     return {
       verified,
@@ -191,9 +206,7 @@ export async function verifyRoutingDns(
       mx: normalizedMx,
       target: expectedMx,
       targetAddresses,
-      message: verified
-        ? "Required MX and mail-host records match."
-        : "Required MX or mail-host records are missing or incorrect.",
+      message,
     };
   } catch (error) {
     return {

@@ -11,7 +11,7 @@ export default function AdminNotFoundPage() {
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
           <Button asChild size="sm">
-            <Link href="/users">Return to workspace</Link>
+            <Link href="/vcon">Return to admin overview</Link>
           </Button>
         </div>
       </PanelBody>

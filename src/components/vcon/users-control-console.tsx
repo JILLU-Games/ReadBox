@@ -5,6 +5,7 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   Checkbox,
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   PanelHeader,
@@ -53,6 +54,10 @@ export interface UsersControlConsoleProps {
   readonly domains: readonly ControlDomainOption[];
   readonly pendingUsers: readonly PendingSignupUserItem[];
   readonly governedUsers: readonly GovernedUserPolicyItem[];
+  readonly databaseConfigured?: boolean;
+  readonly databaseConnected?: boolean;
+  readonly databaseError?: string;
+  readonly demoMode?: boolean;
   readonly onSaveSettings: (
     input: unknown,
   ) => Promise<SaveUserControlSettingsActionResult>;
@@ -80,6 +85,10 @@ export function UsersControlConsole({
   domains,
   pendingUsers,
   governedUsers,
+  databaseConfigured = true,
+  databaseConnected = true,
+  databaseError,
+  demoMode = false,
   onSaveSettings,
   onDecidePendingUser,
   onSaveUserOverride,
@@ -299,24 +308,43 @@ export function UsersControlConsole({
 
   return (
     <section className="space-y-3" aria-labelledby="users-control-page-title">
-      <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
-        <div className="flex items-center gap-2">
-          <Icon glyph={SlidersHorizontal} className="size-4 text-primary" />
-          <PageTitle id="users-control-page-title">Users control</PageTitle>
-        </div>
-        <Button
-          type="submit"
-          form="users-control-settings-form"
-          size="sm"
-          disabled={isPending}
+      <PageHeader
+        id="users-control-page-title"
+        title="Users control"
+        icon={SlidersHorizontal}
+        actions={
+          <Button
+            type="submit"
+            form="users-control-settings-form"
+            size="sm"
+            disabled={isPending}
+          >
+            <Icon
+              glyph={isPending ? RefreshCw : Check}
+              className={isPending ? "animate-spin" : undefined}
+            />
+            <span>{isPending ? "Saving..." : "Save control policy"}</span>
+          </Button>
+        }
+      />
+
+      {!databaseConfigured && !demoMode ? (
+        <AlertBanner
+          variant="warning"
+          title="Database not configured"
         >
-          <Icon
-            glyph={isPending ? RefreshCw : Check}
-            className={isPending ? "animate-spin" : undefined}
-          />
-          <span>{isPending ? "Saving..." : "Save control policy"}</span>
-        </Button>
-      </div>
+          Users control settings, verified domain allowlists, and user policy
+          overrides require PostgreSQL configuration.
+        </AlertBanner>
+      ) : !databaseConnected && !demoMode ? (
+        <AlertBanner
+          variant="error"
+          title="Database temporarily unavailable"
+        >
+          {databaseError ??
+            "Live domains and governed user policies could not be loaded from PostgreSQL. Verify connectivity and refresh."}
+        </AlertBanner>
+      ) : null}
 
       {errorBanner ? (
         <AlertBanner variant="error">{errorBanner}</AlertBanner>
@@ -439,6 +467,12 @@ export function UsersControlConsole({
                     min={8}
                     max={64}
                     value={minPasswordLength}
+                    aria-invalid={Boolean(fieldErrors.minPasswordLength)}
+                    aria-describedby={
+                      fieldErrors.minPasswordLength
+                        ? "id_min_password_len-error"
+                        : undefined
+                    }
                     onChange={(e) => setMinPasswordLength(e.target.value)}
                   />
                 </FormField>
@@ -451,6 +485,12 @@ export function UsersControlConsole({
                   <Select
                     id="id_verification_mode"
                     value={verificationMode}
+                    aria-invalid={Boolean(fieldErrors.verificationMode)}
+                    aria-describedby={
+                      fieldErrors.verificationMode
+                        ? "id_verification_mode-error"
+                        : undefined
+                    }
                     onChange={(e) =>
                       setVerificationMode(
                         e.target.value as UserVerificationMode,
@@ -490,6 +530,10 @@ export function UsersControlConsole({
                   maxLength={120}
                   placeholder="Enter shared invite code (required when mode is invite_code)"
                   value={inviteCode}
+                  aria-invalid={Boolean(fieldErrors.inviteCode)}
+                  aria-describedby={
+                    fieldErrors.inviteCode ? "id_invite_code-error" : undefined
+                  }
                   onChange={(e) => setInviteCode(e.target.value)}
                 />
               </FormField>
@@ -512,9 +556,9 @@ export function UsersControlConsole({
                   <span className="font-medium text-foreground">
                     Allowed domains for new &amp; governed users
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <CaptionText>
                     Leave all unchecked to allow all verified domains
-                  </span>
+                  </CaptionText>
                 </div>
                 <div className="grid gap-1.5 border border-border bg-background p-2.5 sm:grid-cols-2">
                   {domains.map((domain) => {
@@ -554,6 +598,12 @@ export function UsersControlConsole({
                     min={0}
                     max={500}
                     value={defaultMaxMailboxes}
+                    aria-invalid={Boolean(fieldErrors.defaultMaxMailboxes)}
+                    aria-describedby={
+                      fieldErrors.defaultMaxMailboxes
+                        ? "id_default_max_mailboxes-error"
+                        : undefined
+                    }
                     onChange={(e) => setDefaultMaxMailboxes(e.target.value)}
                   />
                 </FormField>
@@ -640,6 +690,12 @@ export function UsersControlConsole({
                   max={3650}
                   disabled={!autoDeleteEnabled}
                   value={autoDeleteDays}
+                  aria-invalid={Boolean(fieldErrors.autoDeleteDays)}
+                  aria-describedby={
+                    fieldErrors.autoDeleteDays
+                      ? "id_auto_delete_days-error"
+                      : undefined
+                  }
                   onChange={(e) => setAutoDeleteDays(e.target.value)}
                 />
               </FormField>
@@ -769,12 +825,14 @@ export function UsersControlConsole({
                           <p className="font-mono text-xs font-medium text-foreground">
                             {item.username}
                           </p>
-                          <p className="truncate text-[11px] text-muted-foreground">
-                            {item.email ||
-                              [item.firstName, item.lastName]
-                                .filter(Boolean)
-                                .join(" ") ||
-                              "Standard user"}
+                          <p className="truncate">
+                            <CaptionText>
+                              {item.email ||
+                                [item.firstName, item.lastName]
+                                  .filter(Boolean)
+                                  .join(" ") ||
+                                "Standard user"}
+                            </CaptionText>
                           </p>
                         </div>
                       </TableCell>

@@ -10,7 +10,12 @@ import {
 } from "@/core/accounts/user-control-policy";
 import type { MailboxActionResult } from "@/core/mailboxes/service";
 import {
+  MailValidationError,
+  validateLocalPart,
+} from "@/core/mailboxes/validators";
+import {
   buildSanitizedHtmlDocument,
+  type LiveUpdateMessageItem,
   type LiveUpdatePayload,
   type MessageActionResult,
   type SanitizedHtmlRenderOptions,
@@ -29,6 +34,25 @@ interface DemoMailboxRecord {
   domainName: string;
   status: "active" | "disabled";
   createdAt: string;
+  userId?: string;
+}
+
+function doesDemoMailboxBelongToUser(
+  mbx: DemoMailboxRecord,
+  userId: string | bigint,
+  isAdministrator: boolean,
+): boolean {
+  if (isAdministrator) return true;
+  const uid = String(userId);
+  const owner = mbx.userId ?? "2";
+  if (owner === uid) return true;
+  if (
+    (uid === "9002" && owner === "2") ||
+    (uid === "2" && owner === "9002")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 interface DemoAttachmentRecord {
@@ -90,7 +114,7 @@ function createInitialDemoStore(): DemoStoreState {
       {
         id: "1",
         uuid: "99999999-0000-4000-8000-000000000001",
-        name: "mailstack.local",
+        name: "readbox.local",
         isDefault: true,
       },
       {
@@ -105,21 +129,23 @@ function createInitialDemoStore(): DemoStoreState {
         id: "101",
         uuid: "11111111-1111-4111-8111-111111111101",
         localPart: "billing.ops",
-        emailAddress: "billing.ops@mailstack.local",
+        emailAddress: "billing.ops@readbox.local",
         domainUuid: "99999999-0000-4000-8000-000000000001",
-        domainName: "mailstack.local",
+        domainName: "readbox.local",
         status: "active",
         createdAt: "2026-11-10T08:15:00.000Z",
+        userId: "2",
       },
       {
         id: "102",
         uuid: "11111111-1111-4111-8111-111111111102",
         localPart: "olivia.martin",
-        emailAddress: "olivia.martin@mailstack.local",
+        emailAddress: "olivia.martin@readbox.local",
         domainUuid: "99999999-0000-4000-8000-000000000001",
-        domainName: "mailstack.local",
+        domainName: "readbox.local",
         status: "active",
         createdAt: "2026-11-12T10:30:00.000Z",
+        userId: "2",
       },
       {
         id: "103",
@@ -130,16 +156,18 @@ function createInitialDemoStore(): DemoStoreState {
         domainName: "teambox.dev",
         status: "active",
         createdAt: "2026-11-13T14:20:00.000Z",
+        userId: "2",
       },
       {
         id: "104",
         uuid: "11111111-1111-4111-8111-111111111104",
         localPart: "alerts.archive",
-        emailAddress: "alerts.archive@mailstack.local",
+        emailAddress: "alerts.archive@readbox.local",
         domainUuid: "99999999-0000-4000-8000-000000000001",
-        domainName: "mailstack.local",
+        domainName: "readbox.local",
         status: "disabled",
         createdAt: "2026-11-01T09:00:00.000Z",
+        userId: "2",
       },
     ],
     messages: [
@@ -150,8 +178,8 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<inv-9021@vendor.example>",
         senderName: "Vendor Billing",
         senderAddress: "billing@vendor.example",
-        recipientAddresses: ["billing.ops@mailstack.local"],
-        ccAddresses: ["finance@mailstack.local"],
+        recipientAddresses: ["billing.ops@readbox.local"],
+        ccAddresses: ["finance@readbox.local"],
         subject: "Invoice #9021 — November Monthly Statement",
         preview:
           "Your November billing summary is ready. Total due: $184.00 on Nov 30.",
@@ -211,7 +239,7 @@ function createInitialDemoStore(): DemoStoreState {
             sizeBytes: 142,
             isInline: false,
             content:
-              "Invoice #9021\nPeriod: 2026-11\nAccount: billing.ops@mailstack.local\nTotal: $184.00\n",
+              "Invoice #9021\nPeriod: 2026-11\nAccount: billing.ops@readbox.local\nTotal: $184.00\n",
           },
         ],
         deleted: false,
@@ -223,7 +251,7 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<sub-renewal@workspace.example>",
         senderName: "Account Services",
         senderAddress: "accounts@workspace.example",
-        recipientAddresses: ["billing.ops@mailstack.local"],
+        recipientAddresses: ["billing.ops@readbox.local"],
         ccAddresses: [],
         subject: "Annual workspace plan renewal confirmation",
         preview:
@@ -245,7 +273,7 @@ function createInitialDemoStore(): DemoStoreState {
   <ul style="margin:0 0 16px 18px;padding:0;font-size:13px">
     <li style="margin-bottom:4px">Plan Tier: <strong>Enterprise Multi-Domain Workspace</strong></li>
     <li style="margin-bottom:4px">Next Renewal Date: <strong>February 13, 2027</strong></li>
-    <li style="margin-bottom:4px">Assigned Mailbox: <code>billing.ops@mailstack.local</code></li>
+    <li style="margin-bottom:4px">Assigned Mailbox: <code>billing.ops@readbox.local</code></li>
   </ul>
   <p style="margin:0 0 14px 0">
     <a href="https://workspace.example/account/subscriptions/SUB-2026-049" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#2558bf;color:#ffffff;text-decoration:none;padding:8px 16px;font-size:13px;font-weight:500">Manage Subscription Settings</a>
@@ -261,7 +289,7 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<payout-confirm@stripe-demo.example>",
         senderName: "Merchant Payouts",
         senderAddress: "payouts@merchant.example",
-        recipientAddresses: ["billing.ops@mailstack.local"],
+        recipientAddresses: ["billing.ops@readbox.local"],
         ccAddresses: [],
         subject: "Settlement batch #441 deposited",
         preview:
@@ -293,7 +321,7 @@ function createInitialDemoStore(): DemoStoreState {
         messageIdHeader: "<verify-code@portal.example>",
         senderName: "Account Security",
         senderAddress: "security@portal.example",
-        recipientAddresses: ["olivia.martin@mailstack.local"],
+        recipientAddresses: ["olivia.martin@readbox.local"],
         ccAddresses: [],
         subject: "One-time verification code: 482910",
         preview:
@@ -387,7 +415,7 @@ function resolveDemoCapabilities(
   const userPolicy = getDemoUserAccessPolicy(String(userId));
   const effective = resolveEffectiveUserPolicy(globalSettings, userPolicy);
   return {
-    canDeleteMessages: true,
+    canDeleteMessages: effective.canDeleteMessages,
     canDeleteMailboxes: effective.canDeleteMailboxes,
     canCreateMailboxes: effective.canCreateMailboxes,
     maxMailboxes: effective.maxMailboxes,
@@ -457,7 +485,12 @@ export function getDemoUserOverview(
   const store = getDemoStore();
   const capabilities = resolveDemoCapabilities(isAdministrator, userId);
 
-  const recentMailboxes = [...store.mailboxes]
+  const visibleMailboxes = store.mailboxes.filter((m) =>
+    doesDemoMailboxBelongToUser(m, userId, isAdministrator),
+  );
+  const visibleMailboxUuids = new Set(visibleMailboxes.map((m) => m.uuid));
+
+  const recentMailboxes = [...visibleMailboxes]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map((mbx) => {
       const stats = computeMailboxStats(
@@ -477,6 +510,7 @@ export function getDemoUserOverview(
   const activeMessages = store.messages
     .filter(
       (m) =>
+        visibleMailboxUuids.has(m.mailboxUuid) &&
         !m.deleted &&
         isDemoMessageRetained(m.receivedAt, capabilities, isAdministrator),
     )
@@ -501,9 +535,9 @@ export function getDemoUserOverview(
 
   return {
     databaseConfigured: true,
-    totalMailboxes: store.mailboxes.length,
-    activeMailboxes: store.mailboxes.filter((m) => m.status === "active").length,
-    disabledMailboxes: store.mailboxes.filter((m) => m.status !== "active")
+    totalMailboxes: visibleMailboxes.length,
+    activeMailboxes: visibleMailboxes.filter((m) => m.status === "active").length,
+    disabledMailboxes: visibleMailboxes.filter((m) => m.status !== "active")
       .length,
     totalMessages: activeMessages.length,
     totalUnread: activeMessages.filter((m) => !m.isRead).length,
@@ -534,6 +568,7 @@ export function listDemoUserMailboxes(
 
   const filtered = store.mailboxes
     .filter((m) => {
+      if (!doesDemoMailboxBelongToUser(m, userId, isAdministrator)) return false;
       if (statusFilter !== "all" && m.status !== statusFilter) return false;
       if (
         q &&
@@ -598,7 +633,9 @@ export function listDemoMailboxMessages(
 ): UserInboxListResult | null {
   const store = getDemoStore();
   const mailbox = store.mailboxes.find((m) => m.uuid === mailboxUuid);
-  if (!mailbox) return null;
+  if (!mailbox || !doesDemoMailboxBelongToUser(mailbox, userId, isAdministrator)) {
+    return null;
+  }
 
   const capabilities = resolveDemoCapabilities(isAdministrator, userId);
 
@@ -683,17 +720,36 @@ export function listDemoMailboxMessages(
 export function getDemoMessageDetail(
   mailboxUuid: string,
   messageUuid: string,
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
 ): UserMessageDetail | null {
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
   const mailbox = store.mailboxes.find((m) => m.uuid === mailboxUuid);
-  if (!mailbox) return null;
+  if (!mailbox || !doesDemoMailboxBelongToUser(mailbox, userId, isAdministrator)) {
+    return null;
+  }
   const msg = store.messages.find(
     (m) => m.mailboxUuid === mailbox.uuid && m.uuid === messageUuid && !m.deleted,
   );
   if (!msg) return null;
 
+  if (!isDemoMessageRetained(msg.receivedAt, capabilities, isAdministrator)) {
+    return null;
+  }
+
   msg.isRead = true;
-  const stats = computeMailboxStats(store, mailbox.uuid);
+  const stats = computeMailboxStats(
+    store,
+    mailbox.uuid,
+    capabilities,
+    isAdministrator,
+  );
 
   return {
     id: msg.id,
@@ -734,29 +790,64 @@ export function getDemoMessageDetail(
       sizeBytes: att.sizeBytes,
       isInline: att.isInline,
     })),
-    canDeleteMessage: true,
+    canDeleteMessage: isAdministrator ? true : capabilities.canDeleteMessages,
   };
 }
 
 export function getDemoMessageHtml(
   messageUuid: string,
   options?: SanitizedHtmlRenderOptions,
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
 ): string | null {
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
   const msg = store.messages.find((m) => m.uuid === messageUuid && !m.deleted);
   if (!msg?.htmlBody) return null;
+
+  const mailbox = store.mailboxes.find((m) => m.uuid === msg.mailboxUuid);
+  if (!mailbox || !doesDemoMailboxBelongToUser(mailbox, userId, isAdministrator)) {
+    return null;
+  }
+
+  if (!isDemoMessageRetained(msg.receivedAt, capabilities, isAdministrator)) {
+    return null;
+  }
+
   return buildSanitizedHtmlDocument(msg.htmlBody, options);
 }
 
-export function getDemoAttachmentDownload(attachmentUuid: string): {
+export function getDemoAttachmentDownload(
+  attachmentUuid: string,
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
+): {
   safeFilename: string;
   content: string;
 } | null {
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
   for (const msg of store.messages) {
     if (msg.deleted) continue;
     const att = msg.attachments.find((a) => a.uuid === attachmentUuid);
     if (att) {
+      const mailbox = store.mailboxes.find((m) => m.uuid === msg.mailboxUuid);
+      if (!mailbox || !doesDemoMailboxBelongToUser(mailbox, userId, isAdministrator)) {
+        return null;
+      }
+      if (!isDemoMessageRetained(msg.receivedAt, capabilities, isAdministrator)) {
+        return null;
+      }
       return { safeFilename: att.safeFilename, content: att.content };
     }
   }
@@ -782,8 +873,12 @@ export function createDemoMailbox(
   const userId = actorOptions?.userId ?? "2";
   const capabilities = resolveDemoCapabilities(isAdministrator, userId);
 
+  const userMailboxes = store.mailboxes.filter((m) =>
+    doesDemoMailboxBelongToUser(m, userId, false),
+  );
+
   if (actorOptions && !isAdministrator) {
-    const quotaCheck = canUserCreateMoreMailboxes(store.mailboxes.length, {
+    const quotaCheck = canUserCreateMoreMailboxes(userMailboxes.length, {
       canCreateMailboxes: capabilities.canCreateMailboxes !== false,
       maxMailboxes: capabilities.maxMailboxes ?? 0,
     });
@@ -794,17 +889,24 @@ export function createDemoMailbox(
         error:
           quotaCheck.reason === "disabled"
             ? "Mailbox creation is disabled for your account by User Control policy."
-            : `Mailbox limit reached (${store.mailboxes.length}/${capabilities.maxMailboxes}). Contact an administrator to increase your quota.`,
+            : `Mailbox limit reached (${userMailboxes.length}/${capabilities.maxMailboxes}). Contact an administrator to increase your quota.`,
       };
     }
   }
 
-  const localPart = input.localPart.trim().toLowerCase();
-  if (!/^[a-z0-9._+-]{1,64}$/.test(localPart)) {
+  let localPart: string;
+  try {
+    localPart = validateLocalPart(input.localPart);
+  } catch (error) {
+    const message =
+      error instanceof MailValidationError
+        ? error.message
+        : "Invalid mailbox local part.";
     return {
       ok: false,
       code: "validation",
-      error: "Mailbox local part may only contain lowercase letters, numbers, dots, hyphens, underscores, or plus signs.",
+      error: message,
+      fieldErrors: { localPart: message },
     };
   }
 
@@ -857,6 +959,7 @@ export function createDemoMailbox(
     domainName: domain.name,
     status: "active",
     createdAt: new Date().toISOString(),
+    userId: String(userId),
   });
 
   return {
@@ -869,13 +972,33 @@ export function createDemoMailbox(
 export function deleteDemoMailbox(
   mailboxUuid: string,
   confirmationEmail: string,
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
 ): MailboxActionResult<{ emailAddress: string }> {
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
+  if (!isAdministrator && !capabilities.canDeleteMailboxes) {
+    return {
+      ok: false,
+      code: "blocked",
+      error: "Mailbox deletion is disabled for your account.",
+    };
+  }
+
   const index = store.mailboxes.findIndex((m) => m.uuid === mailboxUuid);
   if (index === -1) {
     return { ok: false, code: "not_found", error: "Mailbox not found." };
   }
   const target = store.mailboxes[index];
+  if (!doesDemoMailboxBelongToUser(target, userId, isAdministrator)) {
+    return { ok: false, code: "not_found", error: "Mailbox not found." };
+  }
+
   if (confirmationEmail.trim().toLowerCase() !== target.emailAddress) {
     return {
       ok: false,
@@ -896,6 +1019,10 @@ export function deleteDemoMailbox(
 export function bulkDeleteDemoMailboxes(
   mailboxUuids: readonly string[],
   confirmed: boolean,
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
 ): MailboxActionResult<{ purgedCount: number; purgedEmails: string[] }> {
   if (!confirmed || mailboxUuids.length === 0) {
     return {
@@ -905,12 +1032,36 @@ export function bulkDeleteDemoMailboxes(
     };
   }
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
+  if (!isAdministrator && !capabilities.canDeleteMailboxes) {
+    return {
+      ok: false,
+      code: "blocked",
+      error: "Mailbox deletion is disabled for your account.",
+    };
+  }
+
   const set = new Set(mailboxUuids);
-  const purgedEmails = store.mailboxes
-    .filter((m) => set.has(m.uuid))
-    .map((m) => m.emailAddress);
-  store.mailboxes = store.mailboxes.filter((m) => !set.has(m.uuid));
-  store.messages = store.messages.filter((m) => !set.has(m.mailboxUuid));
+  const targetMailboxes = store.mailboxes.filter(
+    (m) =>
+      set.has(m.uuid) && doesDemoMailboxBelongToUser(m, userId, isAdministrator),
+  );
+  if (targetMailboxes.length === 0) {
+    return {
+      ok: false,
+      code: "not_found",
+      error: "No matching mailboxes found to delete.",
+    };
+  }
+
+  const purgedEmails = targetMailboxes.map((m) => m.emailAddress);
+  const targetUuids = new Set(targetMailboxes.map((m) => m.uuid));
+
+  store.mailboxes = store.mailboxes.filter((m) => !targetUuids.has(m.uuid));
+  store.messages = store.messages.filter((m) => !targetUuids.has(m.mailboxUuid));
   return {
     ok: true,
     data: { purgedCount: purgedEmails.length, purgedEmails },
@@ -921,14 +1072,32 @@ export function bulkDeleteDemoMailboxes(
 export function markDemoMessageUnread(
   mailboxUuid: string,
   messageUuid: string,
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
 ): MessageActionResult<{ uuid: string; isRead: boolean }> {
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
+  const mailbox = store.mailboxes.find((m) => m.uuid === mailboxUuid);
+  if (!mailbox || !doesDemoMailboxBelongToUser(mailbox, userId, isAdministrator)) {
+    return { ok: false, code: "not_found", error: "Mailbox not found." };
+  }
+
   const msg = store.messages.find(
     (m) => m.mailboxUuid === mailboxUuid && m.uuid === messageUuid && !m.deleted,
   );
   if (!msg) {
     return { ok: false, code: "not_found", error: "Message not found." };
   }
+
+  if (!isDemoMessageRetained(msg.receivedAt, capabilities, isAdministrator)) {
+    return { ok: false, code: "not_found", error: "Message not found." };
+  }
+
   msg.isRead = false;
   return {
     ok: true,
@@ -940,14 +1109,36 @@ export function markDemoMessageUnread(
 export function softDeleteDemoMessage(
   mailboxUuid: string,
   messageUuid: string,
+  actorOptions?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+  },
 ): MessageActionResult<{ uuid: string }> {
   const store = getDemoStore();
+  const isAdministrator = actorOptions?.isAdministrator === true;
+  const userId = actorOptions?.userId ?? "2";
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+
+  if (!isAdministrator && !capabilities.canDeleteMessages) {
+    return {
+      ok: false,
+      code: "forbidden",
+      error: "Message deletion is disabled for your account.",
+    };
+  }
+
+  const mailbox = store.mailboxes.find((m) => m.uuid === mailboxUuid);
+  if (!mailbox || !doesDemoMailboxBelongToUser(mailbox, userId, isAdministrator)) {
+    return { ok: false, code: "not_found", error: "Mailbox not found." };
+  }
+
   const msg = store.messages.find(
     (m) => m.mailboxUuid === mailboxUuid && m.uuid === messageUuid && !m.deleted,
   );
   if (!msg) {
     return { ok: false, code: "not_found", error: "Message not found." };
   }
+
   msg.deleted = true;
   return {
     ok: true,
@@ -958,16 +1149,39 @@ export function softDeleteDemoMessage(
 
 export function pollDemoLivePayload(
   mailboxUuids: readonly string[],
+  options?: {
+    readonly isAdministrator?: boolean;
+    readonly userId?: string | bigint;
+    readonly cursor?: number;
+    readonly bootstrap?: boolean;
+  },
 ): LiveUpdatePayload {
   const store = getDemoStore();
-  const overview = getDemoUserOverview(true);
+  const isAdministrator = options?.isAdministrator ?? true;
+  const userId = options?.userId ?? "2";
+  const cursor = options?.cursor ?? 0;
+  const bootstrap = options?.bootstrap === true;
+  const capabilities = resolveDemoCapabilities(isAdministrator, userId);
+  const overview = getDemoUserOverview(isAdministrator, userId);
+
+  const userMailboxes = store.mailboxes.filter((m) =>
+    doesDemoMailboxBelongToUser(m, userId, isAdministrator),
+  );
   const requestedSet = new Set(mailboxUuids);
-  const visibleMailboxes = (
+  const targetMailboxes =
     requestedSet.size > 0
-      ? store.mailboxes.filter((m) => requestedSet.has(m.uuid))
-      : store.mailboxes
-  ).map((mbx) => {
-    const stats = computeMailboxStats(store, mbx.uuid);
+      ? userMailboxes.filter((m) => requestedSet.has(m.uuid))
+      : userMailboxes;
+
+  const targetMailboxUuids = new Set(targetMailboxes.map((m) => m.uuid));
+
+  const visibleMailboxes = targetMailboxes.map((mbx) => {
+    const stats = computeMailboxStats(
+      store,
+      mbx.uuid,
+      capabilities,
+      isAdministrator,
+    );
     return {
       uuid: mbx.uuid,
       email_address: mbx.emailAddress,
@@ -978,8 +1192,50 @@ export function pollDemoLivePayload(
     };
   });
 
+  const activeMessages = store.messages.filter(
+    (m) =>
+      targetMailboxUuids.has(m.mailboxUuid) &&
+      !m.deleted &&
+      isDemoMessageRetained(m.receivedAt, capabilities, isAdministrator),
+  );
+
+  let maxId = cursor;
+  for (const m of activeMessages) {
+    const numericId = Number(m.id) || 0;
+    if (numericId > maxId) {
+      maxId = numericId;
+    }
+  }
+
+  const mailboxByUuid = new Map(store.mailboxes.map((m) => [m.uuid, m]));
+
+  const newMessages: LiveUpdateMessageItem[] =
+    bootstrap || cursor === 0
+      ? []
+      : activeMessages
+          .filter((m) => (Number(m.id) || 0) > cursor)
+          .slice(0, 50)
+          .map((msg) => {
+            const mbx = mailboxByUuid.get(msg.mailboxUuid);
+            return {
+              id: Number(msg.id) || 0,
+              uuid: msg.uuid,
+              mailbox_uuid: msg.mailboxUuid,
+              mailbox: mbx?.emailAddress ?? "",
+              sender_name: msg.senderName,
+              sender_address: msg.senderAddress,
+              subject: msg.subject,
+              preview: msg.preview,
+              received_at: msg.receivedAt,
+              size_bytes: msg.sizeBytes,
+              has_attachments: msg.attachments.length > 0,
+              is_read: msg.isRead,
+              detail_url: `/users/inbox/${msg.mailboxUuid}/${msg.uuid}`,
+            };
+          });
+
   return {
-    cursor: 100,
+    cursor: maxId,
     has_more: false,
     summary: {
       total_mailboxes: overview.totalMailboxes,
@@ -991,6 +1247,6 @@ export function pollDemoLivePayload(
     },
     mailboxes_truncated: false,
     mailboxes: visibleMailboxes,
-    messages: [],
+    messages: newMessages,
   };
 }

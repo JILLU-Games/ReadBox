@@ -1,8 +1,20 @@
-import { SettingsConsole } from "@/components/vcon/settings-console";
-import { SystemUpdateConsole } from "@/components/vcon/system-update-console";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+import { SettingsConsole } from "@/components/vcon/settings-console";
+import { SystemUpdateConsole } from "@/components/vcon/system-update-console";
+import { UsersControlConsole } from "@/components/vcon/users-control-console";
+import { DEFAULT_USER_CONTROL_SETTINGS } from "@/core/accounts/user-control-policy";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -281,6 +293,62 @@ describe("Phase 6 /vcon/settings and /vcon/system-update UI", () => {
     expect(
       screen.queryByRole("dialog", { name: /System is Up to Date/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("Phase 4 EH-02 & EH-03: renders explicit DB error AlertBanners in SettingsConsole and UsersControlConsole", () => {
+    render(
+      <SettingsConsole
+        initialSettings={{
+          siteName: "ReadBox",
+          siteTagline: "",
+          logoPath: "",
+          faviconPath: "",
+          logoUrl: "",
+          faviconUrl: "",
+          supportEmail: "",
+          contactPhone: "",
+          officeAddress: "",
+          footerDescription: "",
+          copyrightText: "",
+          sourceCodeUrl: "",
+          privacyUrl: "",
+          updatedAtIso: "2026-11-15T10:00:00.000Z",
+          databaseConnected: false,
+        }}
+        publicSiteOrigin=""
+        mediaRoot="/var/lib/readbox/media"
+        onSaveSettings={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Database connection unavailable/i),
+    ).toBeInTheDocument();
+
+    cleanup();
+
+    render(
+      <UsersControlConsole
+        initialSettings={DEFAULT_USER_CONTROL_SETTINGS}
+        domains={[]}
+        pendingUsers={[]}
+        governedUsers={[]}
+        databaseConfigured={true}
+        databaseConnected={false}
+        databaseError="PostgreSQL connection timed out."
+        demoMode={false}
+        onSaveSettings={vi.fn()}
+        onDecidePendingUser={vi.fn()}
+        onSaveUserOverride={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Database temporarily unavailable/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/PostgreSQL connection timed out\./i),
+    ).toBeInTheDocument();
   });
 });
 

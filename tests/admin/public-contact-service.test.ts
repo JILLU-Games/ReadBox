@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import {
   consumeContactCsrfToken,
+  consumeContactCsrfTokenDurable,
   issueContactCsrfToken,
+  listContactSubmissions,
   recordContactSubmission,
   resetContactServiceStateForTests,
   validateContactPayload,
@@ -155,6 +157,163 @@ describe("Public Contact Service (CSRF, Validation, Rate Limiting & Audit)", () 
     if (!fourth.ok) {
       assert.equal(fourth.status, 429);
       assert.equal(fourth.retryAfterSeconds, 3600);
+    }
+
+    // BUG-07: Verify full contact details are persisted in AuditLog and queryable via listContactSubmissions
+    const firstAudit = (audits[0] as { data: { details: Record<string, unknown>; targetIdentifier: string } }).data;
+    assert.equal(firstAudit.details.full_name, "Jordan Taylor");
+    assert.equal(firstAudit.details.work_email, "jordan@company.org");
+    assert.equal(firstAudit.details.company, "Company Org");
+    assert.equal(
+      firstAudit.details.message,
+      "Need multi-domain mailbox provisioning with DKIM and DMARC.",
+    );
+
+    const listedFromDb = await listContactSubmissions({
+      prisma: {
+        auditLog: {
+          findMany: async () => [
+            {
+              targetIdentifier: firstAudit.targetIdentifier,
+              details: firstAudit.details,
+              createdAt: new Date(now),
+            },
+          ],
+        },
+      },
+    });
+    assert.equal(listedFromDb.length, 1);
+    assert.equal(listedFromDb[0]?.fullName, "Jordan Taylor");
+    assert.equal(listedFromDb[0]?.workEmail, "jordan@company.org");
+    assert.equal(
+      listedFromDb[0]?.message,
+      "Need multi-domain mailbox provisioning with DKIM and DMARC.",
+    );
+
+    // BUG-07: Fail-closed (status 500) when configured database fails to persist inquiry
+    const failingPrisma = {
+      auditLog: {
+        create: async () => {
+          throw new Error("DB unavailable");
+        },
+      },
+    };
+    const failedPersist = await recordContactSubmission({
+      requestIp: "198.51.100.99",
+      cleaned: {
+        ...sampleCleaned,
+        work_email: "new.sender@company.org",
+      },
+      prisma: failingPrisma as never,
+      nowMs: now + 10_000,
+    });
+    assert.equal(failedPersist.ok, false);
+    if (!failedPersist.ok) {
+      assert.equal(failedPersist.status, 500);
+    }
+  });
+
+  it("FA-002: enforces durable DB-backed CSRF replay protection and rate limits across memory state resets", async () => {
+    const now = 1_750_000_100_000;
+    const dbAudits: Array<{
+      action: string;
+      targetType: string;
+      targetIdentifier: string;
+      details: Record<string, unknown>;
+      createdAt: Date;
+    }> = [];
+
+    const dbMockPrisma = {
+      auditLog: {
+        create: async (args: {
+          data: {
+            action: string;
+            targetType: string;
+            targetIdentifier: string;
+            details: Record<string, unknown>;
+          };
+        }) => {
+          const row = {
+            ...args.data,
+            createdAt: new Date(now),
+          };
+          dbAudits.push(row);
+          return row;
+        },
+        findMany: async (args: {
+          where: {
+            action?: string;
+            targetType?: string;
+            targetIdentifier?: string;
+          };
+        }) =>
+          dbAudits.filter(
+            (row) =>
+              (!args.where.action || row.action === args.where.action) &&
+              (!args.where.targetType ||
+                row.targetType === args.where.targetType) &&
+              (!args.where.targetIdentifier ||
+                row.targetIdentifier === args.where.targetIdentifier),
+          ),
+      },
+    };
+
+    const issued = issueContactCsrfToken(now);
+    assert.equal(
+      await consumeContactCsrfTokenDurable(
+        issued.sessionValue,
+        issued.token,
+        dbMockPrisma as never,
+        now + 1_000,
+      ),
+      true,
+    );
+
+    // Clear in-memory map to simulate worker restart/different replica
+    resetContactServiceStateForTests();
+
+    assert.equal(
+      await consumeContactCsrfTokenDurable(
+        issued.sessionValue,
+        issued.token,
+        dbMockPrisma as never,
+        now + 2_000,
+      ),
+      false,
+    );
+
+    const payload = {
+      full_name: "Multi Worker Check",
+      work_email: "multiworker@company.org",
+      company: "Worker Co",
+      phone: "",
+      service_type: "team",
+      team_size: "2-5",
+      message: "Checking durable rate limit enforcement across restarts.",
+    };
+
+    for (let i = 0; i < 3; i += 1) {
+      resetContactServiceStateForTests();
+      const okRes = await recordContactSubmission({
+        requestIp: "203.0.113.45",
+        cleaned: payload,
+        prisma: dbMockPrisma as never,
+        nowMs: now + i * 1_000,
+      });
+      assert.equal(okRes.ok, true);
+    }
+
+    // Even after memory clear, 4th submission within 1 hour is blocked by DB query
+    resetContactServiceStateForTests();
+    const blockedAfterRestart = await recordContactSubmission({
+      requestIp: "203.0.113.45",
+      cleaned: payload,
+      prisma: dbMockPrisma as never,
+      nowMs: now + 5_000,
+    });
+    assert.equal(blockedAfterRestart.ok, false);
+    if (!blockedAfterRestart.ok) {
+      assert.equal(blockedAfterRestart.status, 429);
     }
   });
 });

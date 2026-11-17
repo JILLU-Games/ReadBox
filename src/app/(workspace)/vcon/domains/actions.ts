@@ -51,6 +51,8 @@ export async function createDomainAction(input: {
     input,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -79,6 +81,8 @@ export async function updateDomainStatusAction(
     input,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -110,6 +114,8 @@ export async function checkDomainDnsAction(
     },
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -133,6 +139,8 @@ export async function toggleDomainStatusAction(
     uuid,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -159,6 +167,8 @@ export async function setDefaultDomainAction(
     uuid,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -186,6 +196,8 @@ export async function deleteDomainAction(
     env.mailDomain,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },

@@ -19,14 +19,16 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${siteName}`,
     },
     description,
+    openGraph: {
+      type: "website",
+      siteName,
+      title: siteName,
+      description,
+    },
     manifest: "/manifest.webmanifest",
-    ...(settings.faviconUrl
-      ? {
-          icons: {
-            icon: settings.faviconUrl,
-          },
-        }
-      : {}),
+    icons: {
+      icon: settings.faviconUrl || "/icons/readbox.svg",
+    },
   };
 }
 

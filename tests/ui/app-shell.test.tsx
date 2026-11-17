@@ -79,6 +79,19 @@ describe("AppShell navigation, role gating, and sign-out", () => {
       "href",
       "/users/mailboxes",
     );
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/users/settings",
+    );
+
+    const openSpy = vi.fn();
+    window.addEventListener("readbox:open-create-mailbox", openSpy);
+    const addMailboxBtn = screen.getByRole("button", { name: /Add mailbox/i });
+    expect(addMailboxBtn).toBeInTheDocument();
+    addMailboxBtn.click();
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    window.removeEventListener("readbox:open-create-mailbox", openSpy);
+
     expect(
       screen.getByRole("link", { name: /alice@mailstack\.local/i }),
     ).toHaveAttribute(
@@ -164,6 +177,9 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(
       screen.getByRole("link", { name: "Audit & security" }),
     ).toHaveAttribute("href", "/vcon/audit");
+    expect(
+      screen.getByRole("link", { name: "Contact inquiries" }),
+    ).toHaveAttribute("href", "/vcon/inquiries");
 
     expect(systemGroupBtn).toHaveAttribute("aria-expanded", "false");
     await user.click(systemGroupBtn);
@@ -328,5 +344,50 @@ describe("AppShell navigation, role gating, and sign-out", () => {
 
     expect(toggle).not.toHaveFocus();
   });
-});
 
+  it("renders User Workspace sidebar and header Admin panel switcher when an administrator visits /users with mailboxes, and updates counts on live events", () => {
+    render(
+      <AppShell user={adminUser} mailboxes={sampleMailboxes}>
+        User workspace content for admin
+      </AppShell>,
+    );
+
+    expect(
+      screen.getByRole("navigation", { name: "Workspace navigation" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
+      "href",
+      "/users",
+    );
+    expect(screen.getByRole("link", { name: "My mailboxes" })).toHaveAttribute(
+      "href",
+      "/users/mailboxes",
+    );
+    expect(screen.getByRole("button", { name: /Add mailbox/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Admin panel" })).toHaveAttribute(
+      "href",
+      "/vcon",
+    );
+
+    const inboxLink = screen.getByRole("link", {
+      name: /alice@mailstack\.local/i,
+    });
+    expect(inboxLink).toHaveTextContent("2");
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("readbox:live-mailboxes-updated", {
+          detail: [
+            {
+              uuid: "11111111-2222-4333-8444-555555555555",
+              unread_messages: 7,
+              total_messages: 12,
+            },
+          ],
+        }),
+      );
+    });
+
+    expect(inboxLink).toHaveTextContent("7");
+  });
+});

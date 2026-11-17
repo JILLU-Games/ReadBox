@@ -17,7 +17,7 @@
     "test:postfix": "node --import tsx --test tests/postfix/read-adapter.test.ts",
     "test:audit": "node --conditions=react-server --import tsx --test tests/audit/record-and-policy.test.ts",
     "test:admin": "node --conditions=react-server --import tsx --test tests/admin/phase2-vcon.test.ts tests/admin/phase3-domains-mailboxes.test.ts tests/admin/phase4-ingestion-operations.test.ts tests/admin/phase6-settings-update-health.test.ts tests/admin/public-contact-service.test.ts",
-    "test:messages": "node --conditions=react-server --import tsx --test tests/messages/phase5-users-workspace.test.ts",
+    "test:messages": "node --conditions=react-server --import tsx --test tests/messages/phase5-users-workspace.test.ts tests/messages/user-profile-settings.test.ts",
     "test:setup": "node --experimental-test-module-mocks --conditions=react-server --import tsx --test tests/setup/authorization.test.ts tests/setup/lifecycle.test.ts tests/setup/progress.test.ts tests/setup/trusted-operations.test.ts",
     "test:ui": "vitest run --config vitest.config.mts",
     "test:auth:target-guard": "node --import tsx --test tests/auth/postgres-target.test.ts",

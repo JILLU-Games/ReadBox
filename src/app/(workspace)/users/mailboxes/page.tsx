@@ -15,6 +15,7 @@ import {
   createUnconfiguredUserMailboxList,
   listUserMailboxes,
 } from "@/core/messages/service";
+import { logger } from "@/core/server/logger";
 
 export default async function UserMailboxesPage(props: {
   searchParams: Promise<{ q?: string; status?: string; page?: string }>;
@@ -29,9 +30,12 @@ export default async function UserMailboxesPage(props: {
     userId = BigInt(0);
   }
 
-  let listResult = createUnconfiguredUserMailboxList({
-    isAdministrator: user.isAdministrator,
-  });
+  let listResult = createUnconfiguredUserMailboxList(
+    { isAdministrator: user.isAdministrator },
+    env.nodeEnv === "production" && !env.databaseUrl
+      ? "Database connection is not configured."
+      : undefined,
+  );
 
   if (env.databaseUrl) {
     try {
@@ -39,6 +43,7 @@ export default async function UserMailboxesPage(props: {
         getPrismaClient(),
         {
           userId,
+          authSource: user.authSource,
           username: user.username,
           isAdministrator: user.isAdministrator,
         },
@@ -48,10 +53,14 @@ export default async function UserMailboxesPage(props: {
           page: Number(searchParams.page) || 1,
         },
       );
-    } catch {
-      listResult = createUnconfiguredUserMailboxList({
-        isAdministrator: user.isAdministrator,
+    } catch (error) {
+      logger.error("users_mailboxes_db_unavailable", {
+        reason: error instanceof Error ? error.name : "unknown_error",
       });
+      listResult = createUnconfiguredUserMailboxList(
+        { isAdministrator: user.isAdministrator },
+        "Unable to load mailboxes from PostgreSQL right now. Verify connectivity and refresh.",
+      );
     }
   } else if (isDemoPreviewWorkspaceActive()) {
     listResult = listDemoUserMailboxes(

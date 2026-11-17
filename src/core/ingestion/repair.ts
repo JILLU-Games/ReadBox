@@ -252,6 +252,8 @@ export async function runMessageBodyRepairBatch(
   },
   auditCtx?: {
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly headers?: Pick<Headers, "get">;
     readonly trustProxyHeaders?: boolean;
   },
@@ -378,6 +380,8 @@ export async function runMessageBodyRepairBatch(
   if (!dryRun && auditCtx) {
     await recordAudit(prisma, {
       actorId: auditCtx.actorId ?? null,
+      authSource: auditCtx.authSource,
+      actorUsername: auditCtx.actorUsername,
       action: "message_body_repair_run",
       targetType: "mailbox",
       targetIdentifier: input.mailboxUuid?.trim() || "all",

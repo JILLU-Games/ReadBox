@@ -128,6 +128,69 @@ export function formatShortInboxDate(
   return `${month}-${day} ${hour}:${minute}`;
 }
 
+const SHORT_MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+export function formatGmailInboxDate(
+  value: string | null | undefined,
+  fallback = "—",
+): string {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  const month = SHORT_MONTH_NAMES[date.getUTCMonth()] ?? "Jan";
+  const day = date.getUTCDate();
+  const hour = String(date.getUTCHours()).padStart(2, "0");
+  const minute = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${month} ${day}, ${hour}:${minute}`;
+}
+
+export function getSenderDisplayName(
+  senderName: string | null | undefined,
+  senderAddress: string | null | undefined,
+): string {
+  const name = senderName?.trim();
+  if (name) return name;
+  const email = senderAddress?.trim();
+  if (email) return email;
+  return "Unknown sender";
+}
+
+export function getSenderInitials(
+  senderName: string | null | undefined,
+  senderAddress: string | null | undefined,
+): string {
+  const source = senderName?.trim() || senderAddress?.trim() || "";
+  if (!source) return "?";
+  const cleaned = source.includes("@") && !senderName?.trim()
+    ? source.split("@")[0] ?? source
+    : source;
+  const parts = cleaned
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]!.slice(0, 1)}${parts[1]!.slice(0, 1)}`.toUpperCase();
+  }
+  if (parts.length === 1 && parts[0]!.length > 0) {
+    return parts[0]!.slice(0, 2).toUpperCase();
+  }
+  return source.slice(0, 1).toUpperCase() || "?";
+}
+
 export interface MailboxesUrlParams {
   readonly q?: string;
   readonly status?: string;

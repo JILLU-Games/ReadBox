@@ -3,8 +3,8 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
   AlertBanner,
+  BrandLogo,
   Button,
-  Icon,
   PageTitle,
   Panel,
   PanelBody,
@@ -16,7 +16,6 @@ import { getCurrentUser } from "@/core/auth/current-user";
 import { DEV_DEMO_ACCOUNTS } from "@/core/auth/dev-demo-auth";
 import { getPrismaClient } from "@/core/database/client";
 import { getSiteSettings } from "@/core/settings/service";
-import { Mail } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -39,7 +38,14 @@ export default async function SignInPage() {
   const devDemoActive =
     env.nodeEnv === "development" && env.devAuthMode === "demo";
   const authActive = env.authEnabled || devDemoActive;
-  const prisma = env.databaseUrl ? getPrismaClient() : null;
+  let prisma = null;
+  if (env.databaseUrl) {
+    try {
+      prisma = getPrismaClient();
+    } catch {
+      prisma = null;
+    }
+  }
   const [currentUser, settings, userControl] = await Promise.all([
     authActive ? getCurrentUser() : Promise.resolve(null),
     getSiteSettings(),
@@ -50,14 +56,8 @@ export default async function SignInPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
       <div className="flex items-center justify-between gap-2">
-        <Link
-          href="/"
-          className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-foreground hover:text-primary"
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center bg-primary text-primary-foreground">
-            <Icon glyph={Mail} className="size-3.5" />
-          </span>
-          <span className="truncate">{siteName}</span>
+        <Link href="/" className="inline-flex min-w-0 items-center">
+          <BrandLogo siteName={siteName} logoUrl={settings.logoUrl} size="sm" />
         </Link>
         <ThemeToggle />
       </div>

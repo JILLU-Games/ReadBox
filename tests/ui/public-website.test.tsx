@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContactInquiryForm } from "../../src/components/public/contact-inquiry-form";
 import { PublicFaqAccordion } from "../../src/components/public/public-faq-accordion";
 import { PublicSiteFooter } from "../../src/components/public/public-site-footer";
@@ -14,6 +14,10 @@ vi.mock("next-themes", () => ({
 }));
 
 describe("Public Website UI Components", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders PublicSiteHeader with brand, navigation links, and Sign in / Sign up CTAs without Request a mailbox", () => {
     const { container } = render(
       <PublicSiteHeader
@@ -40,7 +44,7 @@ describe("Public Website UI Components", () => {
     expect(logoImg).toHaveAttribute("referrerpolicy", "no-referrer");
   });
 
-  it("renders PublicSiteFooter with Sign up, Sign in, dynamic support email, privacy policy, and copyright", () => {
+  it("renders PublicSiteFooter with Sign up, Sign in, dynamic support email, privacy policy, sourceCodeUrl, and copyright", () => {
     render(
       <PublicSiteFooter
         siteName="ReadBox"
@@ -48,6 +52,7 @@ describe("Public Website UI Components", () => {
         footerDescription="Hardened custom-domain email operations."
         copyrightText="All rights reserved."
         privacyUrl="/privacy"
+        sourceCodeUrl="https://github.com/example/readbox"
       />,
     );
 
@@ -63,6 +68,21 @@ describe("Public Website UI Components", () => {
     expect(
       screen.getByRole("link", { name: /Privacy policy/i }),
     ).toHaveAttribute("href", "/privacy");
+    const sourceLink = screen.getByRole("link", { name: /Source code/i });
+    expect(sourceLink).toHaveAttribute(
+      "href",
+      "https://github.com/example/readbox",
+    );
+    expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
+
+    cleanup();
+    render(
+      <PublicSiteFooter
+        siteName="ReadBox"
+        sourceCodeUrl="javascript:alert(1)"
+      />,
+    );
+    expect(screen.queryByRole("link", { name: /Source code/i })).toBeNull();
   });
 
   it("toggles FAQ items in PublicFaqAccordion", async () => {
@@ -110,5 +130,61 @@ describe("Public Website UI Components", () => {
     expect(banner).toHaveTextContent(
       "Please complete all required fields before submitting.",
     );
+  });
+
+  it("sends X-ReadBox-CSRF header and retries once automatically after a 403 token expiration", async () => {
+    const user = userEvent.setup();
+    let csrfCalls = 0;
+    let postCalls = 0;
+    const sentHeaders: Array<string | null> = [];
+
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/contact/csrf") {
+          csrfCalls += 1;
+          return new Response(JSON.stringify({ token: `tok-${csrfCalls}` }), {
+            status: 200,
+          });
+        }
+        if (url === "/api/contact") {
+          postCalls += 1;
+          const headers = new Headers(init?.headers);
+          sentHeaders.push(headers.get("X-ReadBox-CSRF"));
+          if (postCalls === 1) {
+            return new Response(
+              JSON.stringify({ message: "CSRF expired" }),
+              { status: 403 },
+            );
+          }
+          return new Response(
+            JSON.stringify({ request_id: "req-1234567890" }),
+            { status: 201 },
+          );
+        }
+        return new Response("Not found", { status: 404 });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      render(<ContactInquiryForm siteName="ReadBox" privacyUrl="/privacy" />);
+
+      await user.type(screen.getByLabelText(/Full name/i), "Alex Morgan");
+      await user.type(screen.getByLabelText(/Email address/i), "alex@company.com");
+      await user.type(
+        screen.getByLabelText(/Message or technical details/i),
+        "Need help configuring MX and DKIM records for our team.",
+      );
+      await user.click(screen.getByRole("checkbox"));
+      await user.click(screen.getByRole("button", { name: /Send inquiry/i }));
+
+      const banner = await screen.findByRole("status");
+      expect(banner).toHaveTextContent("Thank you. Your inquiry has been received");
+      expect(postCalls).toBe(2);
+      expect(sentHeaders).toEqual(["tok-1", "tok-2"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

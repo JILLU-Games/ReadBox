@@ -11,11 +11,13 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTitle,
+  FormField,
   Icon,
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
+  Pagination,
   Select,
   Table,
   TableBody,
@@ -216,30 +218,32 @@ export function MailboxesDirectory({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>Mailbox administration</PageTitle>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={!databaseConfigured || verifiedDomains.length === 0}
-            onClick={() => {
-              setSystemConfirmed(false);
-              setSystemDialogOpen(true);
-            }}
-          >
-            <Icon glyph={ShieldAlert} />
-            <span>System mailbox</span>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/vcon/mailboxes/new">
-              <Icon glyph={MailPlus} />
-              <span>Create mailbox</span>
-            </Link>
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        title="Mailbox administration"
+        actions={
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!databaseConfigured || verifiedDomains.length === 0}
+              onClick={() => {
+                setSystemConfirmed(false);
+                setSystemDialogOpen(true);
+              }}
+            >
+              <Icon glyph={ShieldAlert} />
+              <span>System mailbox</span>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/vcon/mailboxes/new">
+                <Icon glyph={MailPlus} />
+                <span>Create mailbox</span>
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {!databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -404,7 +408,9 @@ export function MailboxesDirectory({
                         label={`Copy ${mailbox.emailAddress}`}
                         successMessage={`Copied ${mailbox.emailAddress}`}
                         errorMessage="Clipboard unavailable — select and copy manually."
-                        className="font-mono"
+                        variant="inline"
+                        size="sm"
+                        className="h-auto px-0 py-0 font-mono"
                       >
                         <span className="truncate">{mailbox.emailAddress}</span>
                       </CopyButton>
@@ -475,46 +481,32 @@ export function MailboxesDirectory({
         </TableBody>
       </Table>
 
-      {list.totalPages > 1 ? (
-        <nav
-          aria-label="Mailboxes pagination"
-          className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
-        >
-          <span>
-            Page {list.page} of {list.totalPages} ({list.totalCount} mailboxes)
-          </span>
-          <div className="flex items-center gap-2">
-            {list.page > 1 ? (
-              <Button asChild size="sm" variant="outline">
-                <Link
-                  href={buildMailboxesHref(
-                    list.query,
-                    list.statusFilter,
-                    list.domainUuidFilter,
-                    list.page - 1,
-                  )}
-                >
-                  Previous
-                </Link>
-              </Button>
-            ) : null}
-            {list.page < list.totalPages ? (
-              <Button asChild size="sm" variant="outline">
-                <Link
-                  href={buildMailboxesHref(
-                    list.query,
-                    list.statusFilter,
-                    list.domainUuidFilter,
-                    list.page + 1,
-                  )}
-                >
-                  Next
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-        </nav>
-      ) : null}
+      <Pagination
+        variant="boxed"
+        page={list.page}
+        totalPages={list.totalPages}
+        totalCount={list.totalCount}
+        prevHref={
+          list.page > 1
+            ? buildMailboxesHref(
+                list.query,
+                list.statusFilter,
+                list.domainUuidFilter,
+                list.page - 1,
+              )
+            : null
+        }
+        nextHref={
+          list.page < list.totalPages
+            ? buildMailboxesHref(
+                list.query,
+                list.statusFilter,
+                list.domainUuidFilter,
+                list.page + 1,
+              )
+            : null
+        }
+      />
 
       <Dialog
         open={bulkDialogOpen}
@@ -585,8 +577,7 @@ export function MailboxesDirectory({
             active, DNS-verified domain.
           </DialogDescription>
           <div className="space-y-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="system-local-part">Reserved address</Label>
+            <FormField id="system-local-part" label="Reserved address">
               <Select
                 id="system-local-part"
                 value={systemLocalPart}
@@ -600,9 +591,8 @@ export function MailboxesDirectory({
                 <option value="postmaster">postmaster</option>
                 <option value="abuse">abuse</option>
               </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="system-domain-select">Target domain</Label>
+            </FormField>
+            <FormField id="system-domain-select" label="Target domain">
               <Select
                 id="system-domain-select"
                 value={systemDomainUuid}
@@ -616,7 +606,7 @@ export function MailboxesDirectory({
                   </option>
                 ))}
               </Select>
-            </div>
+            </FormField>
             <div className="flex items-start gap-2">
               <Checkbox
                 id="system-mailbox-confirm"

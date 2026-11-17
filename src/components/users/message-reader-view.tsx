@@ -4,6 +4,7 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   CopyButton,
   Dialog,
   DialogContent,
@@ -11,6 +12,8 @@ import {
   DialogFooter,
   DialogTitle,
   Icon,
+  PageTitle,
+  SectionTitle,
   notify,
 } from "@/components/ui";
 import { LiveWorkspaceNavigationBar } from "@/components/users/live-mail-notifier";
@@ -27,6 +30,7 @@ import type {
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -35,11 +39,21 @@ import {
   Minimize2,
   Paperclip,
   Printer,
+  RotateCcw,
   Trash2,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useId, useMemo, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 export interface MessageReaderNavigation {
   readonly currentIndex: number;
@@ -65,82 +79,10 @@ export interface MessageReaderViewProps {
   readonly navigation?: MessageReaderNavigation | null;
 }
 
-function extractAndScopeEmailHtml(rawHtml: string, scopeClass: string): string {
-  if (!rawHtml || !rawHtml.trim()) {
-    return "";
-  }
+const HTML_IFRAME_LOAD_TIMEOUT_MS = 12_000;
+const HTML_IFRAME_MIN_HEIGHT_PX = 260;
 
-  let working = rawHtml.trim();
-
-  // If full HTML document was returned by API endpoint, extract style tags and body innerHTML
-  const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(working);
-  if (bodyMatch) {
-    const styleMatches = working.match(/<style[^>]*>[\s\S]*?<\/style>/gi) ?? [];
-    const bodyInner = bodyMatch[1] ?? "";
-    working = `${styleMatches.join("\n")}${bodyInner}`;
-  }
-
-  // Scope <style> rules to the email container class so email styles never leak outside
-  working = working.replace(
-    /<style[^>]*>([\s\S]*?)<\/style>/gi,
-    (_full, cssText: string) => {
-      const scopedCss = cssText.replace(
-        /(^|\}|\{)\s*([^{}@]+?)\s*\{/g,
-        (match, delimiter: string, selectorGroup: string) => {
-          const trimmedGroup = selectorGroup.trim();
-          if (!trimmedGroup || trimmedGroup.startsWith("@")) {
-            return match;
-          }
-          const scopedSelectors = trimmedGroup
-            .split(",")
-            .map((sel) => {
-              const s = sel.trim();
-              if (!s) return "";
-              if (/^(html|body)\b/i.test(s)) {
-                return s.replace(/^(html|body)\b/i, `.${scopeClass}`);
-              }
-              return `.${scopeClass} ${s}`;
-            })
-            .filter(Boolean)
-            .join(", ");
-          return `${delimiter} ${scopedSelectors} {`;
-        },
-      );
-      return `<style>${scopedCss}</style>`;
-    },
-  );
-
-  // Ensure all anchor links open safely and remain interactive + right-click copyable
-  working = working.replace(
-    /<a\b([^>]*?)>/gi,
-    (fullTag, attrs: string) => {
-      const hrefMatch = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(
-        attrs,
-      );
-      const href = (
-        hrefMatch?.[1] ??
-        hrefMatch?.[2] ??
-        hrefMatch?.[3] ??
-        ""
-      ).trim();
-      if (!href) {
-        return fullTag;
-      }
-      const isMailtoOrHash =
-        href.toLowerCase().startsWith("mailto:") || href.startsWith("#");
-      let cleanedAttrs = attrs
-        .replace(/\btarget\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-        .replace(/\brel\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-        .trim();
-      if (!isMailtoOrHash) {
-        cleanedAttrs = `${cleanedAttrs} target="_blank" rel="noopener noreferrer"`.trim();
-      }
-      return `<a ${cleanedAttrs}>`;
-    },
-  );
-
-  return working;
-}
+type IframeLoadStatus = "loading" | "loaded" | "error";
 
 const URL_OR_EMAIL_TOKEN_RE =
   /(https?:\/\/[^\s<>"')]+|mailto:[^\s<>"')]+|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b)/gi;
@@ -199,63 +141,148 @@ export function MessageReaderView({
   navigation = null,
 }: MessageReaderViewProps) {
   const router = useRouter();
-  const rawScopeId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const scopeClass = `readbox-mail-scope-${rawScopeId}`;
+  const { resolvedTheme } = useTheme();
+  const activeTheme = resolvedTheme === "dark" ? "dark" : "light";
 
-  const [fetchedHtmlByUuid, setFetchedHtmlByUuid] = useState<
-    Record<string, string>
-  >({});
+  const [retryCounter, setRetryCounter] = useState(0);
+  const currentIframeKey = `${message.uuid}:${activeTheme}:${retryCounter}`;
+  const [iframeLoadState, setIframeLoadState] = useState<{
+    readonly key: string;
+    readonly status: IframeLoadStatus;
+  }>({
+    key: currentIframeKey,
+    status: message.hasHtmlBody ? "loading" : "loaded",
+  });
+  const [iframePlainText, setIframePlainText] = useState<{
+    readonly key: string;
+    readonly text: string;
+  }>({
+    key: currentIframeKey,
+    text: "",
+  });
+
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const directHtml = (message.htmlBody ?? "").trim();
-  const fetchedHtml = (fetchedHtmlByUuid[message.uuid] ?? "").trim();
+  const effectiveIframeStatus: IframeLoadStatus = !message.hasHtmlBody
+    ? "loaded"
+    : iframeLoadState.key === currentIframeKey
+      ? iframeLoadState.status
+      : "loading";
+
+  const htmlFetchFailed =
+    message.hasHtmlBody && effectiveIframeStatus === "error";
+  const showHtmlIframe = message.hasHtmlBody && !htmlFetchFailed;
+  const iframeSrc = `/api/messages/html/${message.uuid}?theme=${activeTheme}`;
+
+  const syncIframeDimensions = useCallback((iframe: HTMLIFrameElement) => {
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    const measuredHeight = Math.max(
+      HTML_IFRAME_MIN_HEIGHT_PX,
+      doc.documentElement?.scrollHeight ?? 0,
+      doc.body?.scrollHeight ?? 0,
+    );
+    iframe.style.height = `${measuredHeight}px`;
+  }, []);
 
   useEffect(() => {
-    if (directHtml.length > 0 || !message.hasHtmlBody) {
+    const iframe = iframeRef.current;
+    if (!iframe || !message.hasHtmlBody) {
       return;
     }
-    if (typeof window === "undefined" || typeof window.fetch !== "function") {
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    window
-      .fetch(`/api/messages/html/${message.uuid}`, {
-        method: "GET",
-        credentials: "same-origin",
-        signal: controller.signal,
-      })
-      .then(async (res) => {
-        if (!res.ok) return "";
-        return res.text();
-      })
-      .then((htmlText) => {
-        if (!cancelled && htmlText && htmlText.trim().length > 0) {
-          setFetchedHtmlByUuid((prev) => ({
-            ...prev,
-            [message.uuid]: htmlText,
-          }));
-        }
-      })
-      .catch(() => {
-        // Fallback to textBody if HTML endpoint is unreachable
+    const handleNativeError = () => {
+      setIframeLoadState({
+        key: currentIframeKey,
+        status: "error",
       });
+    };
+    iframe.addEventListener("error", handleNativeError);
+    return () => {
+      iframe.removeEventListener("error", handleNativeError);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, [currentIframeKey, htmlFetchFailed, message.hasHtmlBody]);
+
+  useEffect(() => {
+    if (!message.hasHtmlBody || effectiveIframeStatus !== "loading") {
+      return;
+    }
+    if (typeof window === "undefined") {
+      return;
+    }
+    const timerId = window.setTimeout(() => {
+      setIframeLoadState({
+        key: currentIframeKey,
+        status: "error",
+      });
+    }, HTML_IFRAME_LOAD_TIMEOUT_MS);
 
     return () => {
-      cancelled = true;
-      controller.abort();
+      window.clearTimeout(timerId);
     };
-  }, [directHtml, message.hasHtmlBody, message.uuid]);
+  }, [currentIframeKey, effectiveIframeStatus, message.hasHtmlBody]);
 
-  const effectiveHtml = directHtml || fetchedHtml;
-  const scopedHtml = useMemo(
-    () =>
-      effectiveHtml ? extractAndScopeEmailHtml(effectiveHtml, scopeClass) : "",
-    [effectiveHtml, scopeClass],
-  );
+  function handleIframeLoad() {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    const hasMarker = Boolean(
+      doc?.querySelector('meta[name="readbox-html-body"]'),
+    );
+
+    if (!iframe || !doc || !hasMarker) {
+      setIframeLoadState({
+        key: currentIframeKey,
+        status: "error",
+      });
+      return;
+    }
+
+    setIframeLoadState({
+      key: currentIframeKey,
+      status: "loaded",
+    });
+
+    const extractedText = (doc.body?.innerText ?? doc.body?.textContent ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (extractedText) {
+      setIframePlainText({
+        key: currentIframeKey,
+        text: extractedText,
+      });
+    }
+
+    syncIframeDimensions(iframe);
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
+
+    if (typeof ResizeObserver !== "undefined" && doc.body) {
+      const observer = new ResizeObserver(() => {
+        if (iframeRef.current) {
+          syncIframeDimensions(iframeRef.current);
+        }
+      });
+      observer.observe(doc.body);
+      resizeObserverRef.current = observer;
+    }
+  }
+
+  function handleIframeError() {
+    setIframeLoadState({
+      key: currentIframeKey,
+      status: "error",
+    });
+  }
+
+  function handleRetryHtmlLoad() {
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
+    setRetryCounter((c) => c + 1);
+  }
 
   const { mailbox } = message;
   const senderDisplay =
@@ -271,15 +298,20 @@ export function MessageReaderView({
     if (message.textBody && message.textBody.trim().length > 0) {
       return message.textBody.trim();
     }
-    if (effectiveHtml) {
-      return effectiveHtml
-        .replace(/<style[\s\S]*?<\/style>/gi, " ")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+    if (
+      iframePlainText.key === currentIframeKey &&
+      iframePlainText.text.length > 0
+    ) {
+      return iframePlainText.text;
     }
     return message.subject || "";
-  }, [effectiveHtml, message.subject, message.textBody]);
+  }, [
+    currentIframeKey,
+    iframePlainText.key,
+    iframePlainText.text,
+    message.subject,
+    message.textBody,
+  ]);
 
   function handleMarkUnread() {
     startTransition(async () => {
@@ -327,13 +359,16 @@ export function MessageReaderView({
   return (
     <div className={embedded ? "space-y-0" : "space-y-3"}>
       {!embedded ? (
-        <LiveWorkspaceNavigationBar
-          visibleMailboxUuids={[mailbox.uuid]}
-          pollingEnabled={true}
-        />
+        <div data-print-hide="true">
+          <LiveWorkspaceNavigationBar
+            visibleMailboxUuids={[mailbox.uuid]}
+            pollingEnabled={true}
+          />
+        </div>
       ) : null}
 
       <article
+        data-print-region="message-reader"
         aria-labelledby="message-reader-subject"
         className={cn(
           "flex flex-col border border-border bg-card",
@@ -341,7 +376,10 @@ export function MessageReaderView({
         )}
       >
         {/* Gmail-style Top Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/20 px-3 py-2">
+        <div
+          data-print-hide="true"
+          className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2"
+        >
           <div className="flex flex-wrap items-center gap-1.5">
             <Button
               asChild
@@ -386,10 +424,12 @@ export function MessageReaderView({
 
             <CopyButton
               value={plainTextCopyValue}
+              variant="outline"
+              size="sm"
               label="Copy email content"
               successMessage="Copied email content"
               errorMessage="Unable to copy content."
-              className="inline-flex h-7 items-center gap-1 border border-border bg-background px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="font-normal"
             >
               <span>Copy text</span>
             </CopyButton>
@@ -410,9 +450,9 @@ export function MessageReaderView({
           <div className="flex items-center gap-1.5">
             {navigation && navigation.totalCount > 0 ? (
               <div className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
-                <span className="px-1 font-mono text-[11px]">
+                <CaptionText className="px-1 font-mono text-muted-foreground">
                   {navigation.currentIndex} of {navigation.totalCount}
-                </span>
+                </CaptionText>
                 {navigation.prevHref ? (
                   <Button
                     asChild
@@ -482,12 +522,21 @@ export function MessageReaderView({
         {/* Gmail-style Subject + Sender Header */}
         <header className="space-y-3 border-b border-border px-4 py-3.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1
-              id="message-reader-subject"
-              className="break-words text-base font-medium leading-snug text-foreground"
-            >
-              {message.subject || "(No subject)"}
-            </h1>
+            {embedded ? (
+              <SectionTitle
+                id="message-reader-subject"
+                className="break-words text-base leading-snug"
+              >
+                {message.subject || "(No subject)"}
+              </SectionTitle>
+            ) : (
+              <PageTitle
+                id="message-reader-subject"
+                className="break-words leading-snug"
+              >
+                {message.subject || "(No subject)"}
+              </PageTitle>
+            )}
             <Badge variant="default" className="font-normal">
               Inbox
             </Badge>
@@ -503,7 +552,7 @@ export function MessageReaderView({
             <div className="flex min-w-0 flex-1 items-start gap-2.5">
               <div
                 aria-hidden="true"
-                className="grid size-8 shrink-0 place-items-center border border-border bg-primary/10 text-xs font-medium text-primary"
+                className="grid size-8 shrink-0 place-items-center border border-border bg-accent text-xs font-medium text-accent-foreground"
               >
                 {avatarInitial}
               </div>
@@ -514,31 +563,34 @@ export function MessageReaderView({
                     {senderDisplay}
                   </strong>
                   {message.senderAddress && message.senderName ? (
-                    <span className="break-all font-mono text-[11px] text-muted-foreground">
+                    <CaptionText className="break-all font-mono">
                       &lt;{message.senderAddress}&gt;
-                    </span>
+                    </CaptionText>
                   ) : null}
                   {message.senderAddress ? (
                     <CopyButton
                       value={message.senderAddress}
+                      variant="outline"
+                      size="xs"
                       label={`Copy ${message.senderAddress}`}
                       successMessage={`Copied ${message.senderAddress}`}
                       errorMessage="Unable to copy address."
-                      className="border border-border bg-background px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+                      className="font-normal"
                     >
                       Copy
                     </CopyButton>
                   ) : null}
                 </div>
 
-                <details className="group text-[11px] text-muted-foreground">
-                  <summary className="inline-flex cursor-pointer select-none items-center gap-1 hover:text-foreground">
+                <details className="group text-xs text-muted-foreground">
+                  <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-[11px] hover:text-foreground">
                     <span>to {primaryRecipients}</span>
-                    <span aria-hidden="true" className="text-[10px]">
-                      ▾
-                    </span>
+                    <Icon
+                      glyph={ChevronDown}
+                      className="size-3 transition-transform group-open:rotate-180"
+                    />
                   </summary>
-                  <dl className="mt-2 grid max-w-xl gap-1.5 border border-border bg-muted/30 p-2.5 font-mono text-[11px]">
+                  <dl className="mt-2 grid max-w-xl gap-1.5 border border-border bg-muted p-2.5 font-mono text-[11px]">
                     <div className="flex flex-wrap gap-2">
                       <dt className="w-16 shrink-0 text-muted-foreground">
                         from:
@@ -616,67 +668,57 @@ export function MessageReaderView({
           ) : null}
         </header>
 
-        {/* Unified Gmail-style Email Content Canvas (No HTML/Plain Text toggle, No broken sub-iframe) */}
+        {/* Isolated Sandboxed Email Content Canvas */}
         <section
           aria-label="Email body"
           data-testid="email-body-content"
           className="min-h-[260px] flex-1 select-text bg-card px-4 py-4 text-foreground"
         >
-          <style>{`
-            .${scopeClass} {
-              font-family: "Segoe UI", "Segoe UI Web", system-ui, -apple-system, "Helvetica Neue", sans-serif;
-              font-size: 13px;
-              line-height: 1.6;
-              color: inherit;
-              overflow-wrap: anywhere;
-              word-break: break-word;
-            }
-            .${scopeClass} img {
-              max-width: 100%;
-              height: auto;
-              display: inline-block;
-            }
-            .${scopeClass} table {
-              max-width: 100%;
-              border-collapse: collapse;
-            }
-            .${scopeClass} a {
-              color: var(--primary);
-              text-decoration: underline;
-              text-underline-offset: 2px;
-              cursor: pointer;
-            }
-            .${scopeClass} blockquote {
-              margin: 8px 0;
-              padding-left: 12px;
-              border-left: 2px solid var(--border);
-              color: var(--muted-foreground);
-            }
-            .${scopeClass} pre, .${scopeClass} code {
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              font-size: 12px;
-            }
-            .${scopeClass} pre {
-              white-space: pre-wrap;
-              overflow-x: auto;
-              padding: 10px;
-              border: 1px solid var(--border);
-              background: var(--muted);
-            }
-          `}</style>
-
-          {scopedHtml ? (
-            <div
-              className={cn(scopeClass, "max-w-full overflow-x-auto")}
-              dangerouslySetInnerHTML={{ __html: scopedHtml }}
-            />
-          ) : message.textBody.trim().length > 0 ? (
-            <div
-              className={cn(
-                scopeClass,
-                "space-y-2 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground",
-              )}
+          {htmlFetchFailed ? (
+            <AlertBanner
+              variant="warning"
+              className="mb-3"
+              action={
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="outline"
+                  onClick={handleRetryHtmlLoad}
+                >
+                  <Icon glyph={RotateCcw} className="size-3" />
+                  Retry
+                </Button>
+              }
             >
+              Formatted HTML body could not be loaded. Displaying text fallback.
+            </AlertBanner>
+          ) : null}
+
+          {showHtmlIframe ? (
+            <div className="space-y-2">
+              {effectiveIframeStatus === "loading" ? (
+                <p
+                  role="status"
+                  className="text-xs text-muted-foreground"
+                >
+                  Loading formatted email…
+                </p>
+              ) : null}
+              <iframe
+                key={currentIframeKey}
+                ref={iframeRef}
+                title="Formatted email message"
+                data-testid="message-html-iframe"
+                src={iframeSrc}
+                sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                referrerPolicy="no-referrer"
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+                className="block min-h-[260px] w-full border-0 bg-card"
+              />
+            </div>
+          ) : message.textBody.trim().length > 0 ? (
+            <div className="readbox-mail-body space-y-2 whitespace-pre-wrap break-words text-foreground">
               {message.textBody.split("\n").map((line, index) => (
                 <div key={`line-${index}`} className="min-h-[1.25rem]">
                   {renderLinkifiedTextLine(line, `l-${index}`)}
@@ -684,7 +726,7 @@ export function MessageReaderView({
               ))}
             </div>
           ) : (
-            <div className="border border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+            <div className="border border-border bg-muted p-6 text-center text-xs text-muted-foreground">
               No readable message body is available.
             </div>
           )}
@@ -694,20 +736,17 @@ export function MessageReaderView({
         {message.attachments.length > 0 ? (
           <section
             aria-labelledby="attachments-heading"
-            className="space-y-2 border-t border-border bg-muted/15 px-4 py-3"
+            className="space-y-2 border-t border-border bg-muted px-4 py-3"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <Icon glyph={Paperclip} className="size-3.5 text-muted-foreground" />
-                <h2
-                  id="attachments-heading"
-                  className="text-xs font-medium text-foreground"
-                >
+                <SectionTitle id="attachments-heading">
                   {message.attachments.length}{" "}
                   {message.attachments.length === 1
                     ? "Attachment"
                     : "Attachments"}
-                </h2>
+                </SectionTitle>
               </div>
             </div>
 
@@ -748,33 +787,40 @@ export function MessageReaderView({
         ) : null}
 
         {/* Gmail-style Bottom Action Footer */}
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/10 px-4 py-2.5">
+        <footer
+          data-print-hide="true"
+          className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-4 py-2.5"
+        >
           <div className="flex flex-wrap items-center gap-1.5">
             {message.senderAddress ? (
               <CopyButton
                 value={message.senderAddress}
+                variant="secondary"
+                size="sm"
                 label={`Copy sender ${message.senderAddress}`}
                 successMessage={`Copied ${message.senderAddress}`}
                 errorMessage="Unable to copy sender address."
-                className="inline-flex h-7 items-center gap-1.5 border border-border bg-background px-2.5 text-xs text-foreground hover:bg-muted"
+                className="font-normal"
               >
                 <span>Copy sender address</span>
               </CopyButton>
             ) : null}
             <CopyButton
               value={plainTextCopyValue}
+              variant="secondary"
+              size="sm"
               label="Copy message text"
               successMessage="Copied message text"
               errorMessage="Unable to copy message text."
-              className="inline-flex h-7 items-center gap-1.5 border border-border bg-background px-2.5 text-xs text-foreground hover:bg-muted"
+              className="font-normal"
             >
               <span>Copy message text</span>
             </CopyButton>
           </div>
 
-          <span className="font-mono text-[11px] text-muted-foreground">
+          <CaptionText className="font-mono">
             Delivered to {mailbox.emailAddress}
-          </span>
+          </CaptionText>
         </footer>
       </article>
 

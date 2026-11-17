@@ -3,7 +3,9 @@
 import {
   AlertBanner,
   Button,
+  CaptionText,
   Checkbox,
+  FormField,
   Icon,
   Input,
   Label,
@@ -82,8 +84,8 @@ export function ContactInquiryForm({
 
   const csrfPromiseRef = useRef<Promise<string> | null>(null);
 
-  const fetchCsrfToken = async (): Promise<string> => {
-    if (csrfToken) return csrfToken;
+  const fetchCsrfToken = async (forceRefresh = false): Promise<string> => {
+    if (!forceRefresh && csrfToken) return csrfToken;
     if (!csrfPromiseRef.current) {
       csrfPromiseRef.current = fetch("/api/contact/csrf", {
         method: "GET",
@@ -167,30 +169,39 @@ export function ContactInquiryForm({
 
     setLoading(true);
     try {
+      const submitWithToken = async (token: string) =>
+        fetch("/api/contact", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-ReadBox-CSRF": token,
+          },
+          body: JSON.stringify({
+            full_name: fullName,
+            work_email: workEmail,
+            company,
+            phone,
+            service_type: serviceType,
+            team_size: teamSize,
+            message,
+            consent,
+            website: websiteHoneypot,
+            form_started_at: String(
+              formStartedAtRef.current || Date.now() - 3_000,
+            ),
+          }),
+        });
+
       const token = await fetchCsrfToken();
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "X-VibMail-CSRF": token,
-        },
-        body: JSON.stringify({
-          full_name: fullName,
-          work_email: workEmail,
-          company,
-          phone,
-          service_type: serviceType,
-          team_size: teamSize,
-          message,
-          consent,
-          website: websiteHoneypot,
-          form_started_at: String(
-            formStartedAtRef.current || Date.now() - 3_000,
-          ),
-        }),
-      });
+      let response = await submitWithToken(token);
+
+      if (response.status === 403) {
+        setCsrfToken("");
+        const refreshedToken = await fetchCsrfToken(true);
+        response = await submitWithToken(refreshedToken);
+      }
 
       const data = (await response.json().catch(() => ({}))) as {
         message?: string;
@@ -201,6 +212,17 @@ export function ContactInquiryForm({
       if (!response.ok) {
         if (data.errors) {
           setFieldErrors(data.errors);
+        }
+        if (response.status === 429) {
+          const retryAfterRaw = response.headers.get("Retry-After");
+          const retrySeconds = retryAfterRaw ? Number(retryAfterRaw) : NaN;
+          const retryNote =
+            Number.isFinite(retrySeconds) && retrySeconds > 0
+              ? ` Wait about ${retrySeconds >= 60 ? `${Math.ceil(retrySeconds / 60)} min` : `${Math.ceil(retrySeconds)}s`} before trying again.`
+              : "";
+          throw new Error(
+            `${data.message || "Too many inquiries submitted recently."}${retryNote}`,
+          );
         }
         throw new Error(
           data.message || "Your inquiry could not be submitted.",
@@ -255,9 +277,9 @@ export function ContactInquiryForm({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>{statusBanner.text}</span>
                 {statusBanner.requestId ? (
-                  <span className="font-mono text-[11px]">
+                  <CaptionText className="font-mono text-current">
                     Ref: {statusBanner.requestId.slice(0, 12)}
-                  </span>
+                  </CaptionText>
                 ) : null}
               </div>
             </AlertBanner>
@@ -265,9 +287,9 @@ export function ContactInquiryForm({
 
           {/* Quick Inquiry Topic Selector */}
           <div className="mb-3 border-b border-border pb-3">
-            <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+            <CaptionText className="mb-1.5 block font-medium">
               Quick topic selection
-            </p>
+            </CaptionText>
             <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               {INQUIRY_TOPICS.map((topic) => {
                 const isSelected = serviceType === topic.value;
@@ -288,10 +310,11 @@ export function ContactInquiryForm({
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="grid gap-1">
-              <Label htmlFor="full_name">
-                Full name <span aria-hidden="true">*</span>
-              </Label>
+            <FormField
+              id="full_name"
+              label="Full name *"
+              error={fieldErrors.full_name}
+            >
               <Input
                 id="full_name"
                 name="full_name"
@@ -304,21 +327,17 @@ export function ContactInquiryForm({
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.full_name)}
+                aria-describedby={
+                  fieldErrors.full_name ? "full_name-error" : undefined
+                }
               />
-              {fieldErrors.full_name ? (
-                <p
-                  data-error-for="full_name"
-                  className="text-[11px] text-destructive"
-                >
-                  {fieldErrors.full_name}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
 
-            <div className="grid gap-1">
-              <Label htmlFor="work_email">
-                Email address <span aria-hidden="true">*</span>
-              </Label>
+            <FormField
+              id="work_email"
+              label="Email address *"
+              error={fieldErrors.work_email}
+            >
               <Input
                 id="work_email"
                 name="work_email"
@@ -330,19 +349,17 @@ export function ContactInquiryForm({
                 value={workEmail}
                 onChange={(e) => setWorkEmail(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.work_email)}
+                aria-describedby={
+                  fieldErrors.work_email ? "work_email-error" : undefined
+                }
               />
-              {fieldErrors.work_email ? (
-                <p
-                  data-error-for="work_email"
-                  className="text-[11px] text-destructive"
-                >
-                  {fieldErrors.work_email}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
 
-            <div className="grid gap-1">
-              <Label htmlFor="company">Organization or domain</Label>
+            <FormField
+              id="company"
+              label="Organization or domain"
+              error={fieldErrors.company}
+            >
               <Input
                 id="company"
                 name="company"
@@ -353,19 +370,17 @@ export function ContactInquiryForm({
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.company)}
+                aria-describedby={
+                  fieldErrors.company ? "company-error" : undefined
+                }
               />
-              {fieldErrors.company ? (
-                <p
-                  data-error-for="company"
-                  className="text-[11px] text-destructive"
-                >
-                  {fieldErrors.company}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
 
-            <div className="grid gap-1">
-              <Label htmlFor="phone">Phone (optional)</Label>
+            <FormField
+              id="phone"
+              label="Phone (optional)"
+              error={fieldErrors.phone}
+            >
               <Input
                 id="phone"
                 name="phone"
@@ -376,21 +391,15 @@ export function ContactInquiryForm({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.phone)}
+                aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
               />
-              {fieldErrors.phone ? (
-                <p
-                  data-error-for="phone"
-                  className="text-[11px] text-destructive"
-                >
-                  {fieldErrors.phone}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
 
-            <div className="grid gap-1">
-              <Label htmlFor="service_type">
-                Inquiry topic <span aria-hidden="true">*</span>
-              </Label>
+            <FormField
+              id="service_type"
+              label="Inquiry topic *"
+              error={fieldErrors.service_type}
+            >
               <Select
                 id="service_type"
                 name="service_type"
@@ -398,6 +407,9 @@ export function ContactInquiryForm({
                 value={serviceType}
                 onChange={(e) => setServiceType(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.service_type)}
+                aria-describedby={
+                  fieldErrors.service_type ? "service_type-error" : undefined
+                }
                 className="w-full"
               >
                 <option value="">Select a topic</option>
@@ -407,24 +419,22 @@ export function ContactInquiryForm({
                   </option>
                 ))}
               </Select>
-              {fieldErrors.service_type ? (
-                <p
-                  data-error-for="service_type"
-                  className="text-[11px] text-destructive"
-                >
-                  {fieldErrors.service_type}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
 
-            <div className="grid gap-1">
-              <Label htmlFor="team_size">Team or workspace size</Label>
+            <FormField
+              id="team_size"
+              label="Team or workspace size"
+              error={fieldErrors.team_size}
+            >
               <Select
                 id="team_size"
                 name="team_size"
                 value={teamSize}
                 onChange={(e) => setTeamSize(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.team_size)}
+                aria-describedby={
+                  fieldErrors.team_size ? "team_size-error" : undefined
+                }
                 className="w-full"
               >
                 <option value="">Select team size</option>
@@ -434,49 +444,39 @@ export function ContactInquiryForm({
                 <option value="21-50">21–50 users</option>
                 <option value="50+">50+ users</option>
               </Select>
-              {fieldErrors.team_size ? (
-                <p
-                  data-error-for="team_size"
-                  className="text-[11px] text-destructive"
-                >
-                  {fieldErrors.team_size}
-                </p>
-              ) : null}
-            </div>
+            </FormField>
 
-            <div className="grid gap-1 sm:col-span-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label htmlFor="message">
-                  Message or technical details <span aria-hidden="true">*</span>
-                </Label>
-                <span
-                  id="message-help"
-                  className="font-mono text-[11px] tabular-nums text-muted-foreground"
-                >
-                  <span data-message-count>{message.length}</span> / 2000 (min 20)
-                </span>
-              </div>
-              <Textarea
+            <div className="sm:col-span-2">
+              <FormField
                 id="message"
-                name="message"
-                rows={4}
-                required
-                minLength={20}
-                maxLength={2000}
-                aria-describedby="message-help"
-                placeholder="Describe your custom domain setup, workspace quota requirements, or technical support question."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                aria-invalid={Boolean(fieldErrors.message)}
-              />
-              {fieldErrors.message ? (
-                <p
-                  data-error-for="message"
-                  className="text-[11px] text-destructive"
+                label="Message or technical details *"
+                error={fieldErrors.message}
+              >
+                <Textarea
+                  id="message"
+                  name="message"
+                  rows={4}
+                  required
+                  minLength={20}
+                  maxLength={2000}
+                  aria-describedby={
+                    fieldErrors.message
+                      ? "message-help message-error"
+                      : "message-help"
+                  }
+                  placeholder="Describe your custom domain setup, workspace quota requirements, or technical support question."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.message)}
+                />
+                <CaptionText
+                  id="message-help"
+                  className="text-right font-mono tabular-nums"
                 >
-                  {fieldErrors.message}
-                </p>
-              ) : null}
+                  <span data-message-count>{message.length}</span> / 2000 (min
+                  20)
+                </CaptionText>
+              </FormField>
             </div>
           </div>
 
@@ -522,8 +522,9 @@ export function ContactInquiryForm({
             </Label>
             {fieldErrors.consent ? (
               <p
-                data-error-for="consent"
-                className="mt-1 text-[11px] text-destructive"
+                id="consent-error"
+                role="alert"
+                className="mt-1 text-xs text-destructive"
               >
                 {fieldErrors.consent}
               </p>

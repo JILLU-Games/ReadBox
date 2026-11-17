@@ -62,6 +62,8 @@ export async function provisionMailboxAction(input: {
     mailboxRuntimeConfig(),
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -90,6 +92,8 @@ export async function setMailboxActiveAction(
     active,
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -119,6 +123,8 @@ export async function purgeMailboxAction(
     mailboxRuntimeConfig(),
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -148,6 +154,8 @@ export async function bulkPurgeMailboxesAction(
     mailboxRuntimeConfig(),
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },
@@ -179,6 +187,8 @@ export async function createSystemMailboxAction(input: {
     mailboxRuntimeConfig(),
     {
       actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
       headers: requestHeaders,
       trustProxyHeaders: env.trustProxyHeaders,
     },

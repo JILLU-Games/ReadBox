@@ -111,6 +111,8 @@ export interface ManagedUserEditRecord {
 
 export interface UserAuditContext {
   readonly actorId: bigint;
+  readonly authSource?: "admin_table" | "user_table";
+  readonly actorUsername?: string;
   readonly headers?: Pick<Headers, "get">;
   readonly clientIp?: string | null;
   readonly userAgent?: string | null;
@@ -178,7 +180,9 @@ function isUniqueConstraintError(error: unknown): boolean {
 async function resolveActorIdForDatabase(
   tx: Pick<PrismaClient, "user">,
   actorId: bigint,
+  authSource?: "admin_table" | "user_table",
 ): Promise<bigint | null> {
+  if (authSource === "admin_table") return null;
   if (actorId <= BigInt(0)) return null;
   const existing = await tx.user.findUnique({
     where: { id: actorId },
@@ -399,6 +403,21 @@ export async function createManagedUser(
       };
     }
 
+    if ("adminAccount" in prisma && prisma.adminAccount) {
+      const existingAdminUsername = await prisma.adminAccount.findFirst({
+        where: { username: { equals: data.username, mode: "insensitive" } },
+        select: { id: true },
+      });
+      if (existingAdminUsername) {
+        return {
+          ok: false,
+          code: "validation",
+          error: "A user with that username already exists.",
+          fieldErrors: { username: "A user with that username already exists." },
+        };
+      }
+    }
+
     const validMailboxes = mailboxIds.length
       ? await prisma.mailbox.findMany({
           where: { id: { in: mailboxIds }, deletedAt: null },
@@ -424,6 +443,7 @@ export async function createManagedUser(
       const dbActorId = await resolveActorIdForDatabase(
         tx,
         auditContext.actorId,
+        auditContext.authSource,
       );
 
       const user = await tx.user.create({
@@ -463,7 +483,9 @@ export async function createManagedUser(
       const auditClient = tx as unknown as AuditWriteClient;
       for (const mailbox of validMailboxes) {
         await recordAudit(auditClient, {
-          actorId: dbActorId,
+          actorId: dbActorId ?? auditContext.actorId,
+          authSource: auditContext.authSource,
+          actorUsername: auditContext.actorUsername,
           action: "mailbox_assignment_added",
           targetType: "user",
           targetIdentifier: user.username,
@@ -477,7 +499,9 @@ export async function createManagedUser(
 
       if (data.canDeleteMessages || data.canDeleteMailboxes) {
         await recordAudit(auditClient, {
-          actorId: dbActorId,
+          actorId: dbActorId ?? auditContext.actorId,
+          authSource: auditContext.authSource,
+          actorUsername: auditContext.actorUsername,
           action: "user_delete_permissions_changed",
           targetType: "user",
           targetIdentifier: user.username,
@@ -497,7 +521,9 @@ export async function createManagedUser(
         .sort();
 
       await recordAudit(auditClient, {
-        actorId: dbActorId,
+        actorId: dbActorId ?? auditContext.actorId,
+        authSource: auditContext.authSource,
+        actorUsername: auditContext.actorUsername,
         action: "user_created",
         targetType: "user",
         targetIdentifier: user.username,
@@ -614,6 +640,23 @@ export async function updateManagedUser(
       };
     }
 
+    if ("adminAccount" in prisma && prisma.adminAccount) {
+      const duplicateAdminUsername = await prisma.adminAccount.findFirst({
+        where: {
+          username: { equals: data.username, mode: "insensitive" },
+        },
+        select: { id: true },
+      });
+      if (duplicateAdminUsername) {
+        return {
+          ok: false,
+          code: "validation",
+          error: "A user with that username already exists.",
+          fieldErrors: { username: "A user with that username already exists." },
+        };
+      }
+    }
+
     const selectedMailboxes = mailboxIds.length
       ? await prisma.mailbox.findMany({
           where: { id: { in: mailboxIds }, deletedAt: null },
@@ -637,6 +680,7 @@ export async function updateManagedUser(
       const dbActorId = await resolveActorIdForDatabase(
         tx,
         auditContext.actorId,
+        auditContext.authSource,
       );
 
       const previousPolicy = existingTarget.accessPolicy ?? {
@@ -707,7 +751,9 @@ export async function updateManagedUser(
 
       for (const mailbox of addedMailboxes) {
         await recordAudit(auditClient, {
-          actorId: dbActorId,
+          actorId: dbActorId ?? auditContext.actorId,
+          authSource: auditContext.authSource,
+          actorUsername: auditContext.actorUsername,
           action: "mailbox_assignment_added",
           targetType: "user",
           targetIdentifier: savedUser.username,
@@ -721,7 +767,9 @@ export async function updateManagedUser(
 
       for (const address of removedAddresses) {
         await recordAudit(auditClient, {
-          actorId: dbActorId,
+          actorId: dbActorId ?? auditContext.actorId,
+          authSource: auditContext.authSource,
+          actorUsername: auditContext.actorUsername,
           action: "mailbox_assignment_removed",
           targetType: "user",
           targetIdentifier: savedUser.username,
@@ -738,7 +786,9 @@ export async function updateManagedUser(
         previousPolicy.canDeleteMailboxes !== data.canDeleteMailboxes
       ) {
         await recordAudit(auditClient, {
-          actorId: dbActorId,
+          actorId: dbActorId ?? auditContext.actorId,
+          authSource: auditContext.authSource,
+          actorUsername: auditContext.actorUsername,
           action: "user_delete_permissions_changed",
           targetType: "user",
           targetIdentifier: savedUser.username,
@@ -761,7 +811,9 @@ export async function updateManagedUser(
 
       if (existingTarget.isActive !== savedUser.isActive) {
         await recordAudit(auditClient, {
-          actorId: dbActorId,
+          actorId: dbActorId ?? auditContext.actorId,
+          authSource: auditContext.authSource,
+          actorUsername: auditContext.actorUsername,
           action: savedUser.isActive ? "user_activated" : "user_deactivated",
           targetType: "user",
           targetIdentifier: savedUser.username,
@@ -773,7 +825,9 @@ export async function updateManagedUser(
       }
 
       await recordAudit(auditClient, {
-        actorId: dbActorId,
+        actorId: dbActorId ?? auditContext.actorId,
+        authSource: auditContext.authSource,
+        actorUsername: auditContext.actorUsername,
         action: "user_updated",
         targetType: "user",
         targetIdentifier: savedUser.username,
@@ -826,7 +880,7 @@ export async function deleteManagedUser(
     return { ok: false, code: "not_found", error: "User not found." };
   }
 
-  if (userId === auditContext.actorId) {
+  if (auditContext.authSource !== "admin_table" && userId === auditContext.actorId) {
     return {
       ok: false,
       code: "self_delete",
@@ -874,10 +928,13 @@ export async function deleteManagedUser(
       const dbActorId = await resolveActorIdForDatabase(
         tx,
         auditContext.actorId,
+        auditContext.authSource,
       );
 
       await recordAudit(tx as unknown as AuditWriteClient, {
-        actorId: dbActorId,
+        actorId: dbActorId ?? auditContext.actorId,
+        authSource: auditContext.authSource,
+        actorUsername: auditContext.actorUsername,
         action: "user_deleted",
         targetType: "user",
         targetIdentifier: target.username,

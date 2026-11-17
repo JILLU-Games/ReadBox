@@ -88,13 +88,9 @@ export default async function PublicContactPage(props: {
           <div className="mx-auto max-w-6xl px-3 sm:px-5">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
-                <PageTitle className="text-lg font-medium sm:text-xl">
-                  Contact &amp; Support
-                </PageTitle>
+                <PageTitle>Contact &amp; Support</PageTitle>
                 <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                  Reach out for custom domain onboarding, team workspace setup,
-                  or general support. Need immediate mailbox access? Create your
-                  account directly via sign-up.
+                  Custom domain onboarding, team setup, or workspace support.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -153,7 +149,7 @@ export default async function PublicContactPage(props: {
                   <PanelBody>
                     <ol className="space-y-2.5 text-xs">
                       <li className="flex items-start gap-2.5">
-                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-[11px] font-medium text-primary-foreground">
+                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-xs font-medium text-primary-foreground">
                           1
                         </span>
                         <div>
@@ -167,7 +163,7 @@ export default async function PublicContactPage(props: {
                         </div>
                       </li>
                       <li className="flex items-start gap-2.5">
-                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-[11px] font-medium text-primary-foreground">
+                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-xs font-medium text-primary-foreground">
                           2
                         </span>
                         <div>
@@ -181,7 +177,7 @@ export default async function PublicContactPage(props: {
                         </div>
                       </li>
                       <li className="flex items-start gap-2.5">
-                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-[11px] font-medium text-primary-foreground">
+                        <span className="flex size-5 shrink-0 items-center justify-center bg-primary font-mono text-xs font-medium text-primary-foreground">
                           3
                         </span>
                         <div>
@@ -298,6 +294,7 @@ export default async function PublicContactPage(props: {
         footerDescription={settings.footerDescription}
         copyrightText={settings.copyrightText}
         privacyUrl={settings.privacyUrl}
+        sourceCodeUrl={settings.sourceCodeUrl}
         supportEmail={settings.supportEmail}
       />
     </div>

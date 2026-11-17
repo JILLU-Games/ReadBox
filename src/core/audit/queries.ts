@@ -157,23 +157,31 @@ export async function listAuditLogs(
   }
 
   return {
-    items: rows.map((row) => ({
-      uuid: row.uuid,
-      action: row.action,
-      actorUsername: row.actor?.username ?? null,
-      targetType: row.targetType,
-      targetIdentifier: row.targetIdentifier,
-      ipAddress: row.ipAddress,
-      userAgent: row.userAgent,
-      details: sanitizeAuditDetails(
+    items: rows.map((row) => {
+      const sanitizedDetails = sanitizeAuditDetails(
         row.details &&
           typeof row.details === "object" &&
           !Array.isArray(row.details)
           ? (row.details as Record<string, unknown>)
           : undefined,
-      ),
-      createdAt: row.createdAt.toISOString(),
-    })),
+      );
+      const detailActorUsername =
+        typeof sanitizedDetails.actor_username === "string" &&
+        sanitizedDetails.actor_username.trim().length > 0
+          ? sanitizedDetails.actor_username.trim()
+          : null;
+      return {
+        uuid: row.uuid,
+        action: row.action,
+        actorUsername: row.actor?.username ?? detailActorUsername,
+        targetType: row.targetType,
+        targetIdentifier: row.targetIdentifier,
+        ipAddress: row.ipAddress,
+        userAgent: row.userAgent,
+        details: sanitizedDetails,
+        createdAt: row.createdAt.toISOString(),
+      };
+    }),
     totalCount,
     page,
     pageSize,

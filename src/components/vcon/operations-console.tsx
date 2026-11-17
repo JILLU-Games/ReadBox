@@ -4,17 +4,20 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   Checkbox,
   Icon,
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   PanelHeader,
   SectionTitle,
   Select,
+  StatCard,
+  StatGrid,
 } from "@/components/ui";
 import type { BodyRepairBatchSummary } from "@/core/ingestion/repair";
 import type { IngestionRunSummary } from "@/core/ingestion/service";
@@ -23,6 +26,7 @@ import type {
   MailserverSyncSummary,
   OperationsActionResult,
   OperationsOverviewData,
+  RetentionPurgeSummary,
 } from "@/core/operations/service";
 import {
   Calculator,
@@ -32,6 +36,7 @@ import {
   HardDrive,
   RefreshCw,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -60,6 +65,7 @@ export function OperationsConsole({
   onRebuildIndex,
   onRecalculateCounters,
   onRepairBodies,
+  onRetentionPurge,
 }: {
   readonly overview: OperationsOverviewData;
   readonly onVerifyPostfix: () => Promise<
@@ -89,6 +95,11 @@ export function OperationsConsole({
     readonly limit: number;
     readonly mailboxUuid?: string;
   }) => Promise<OperationsActionResult<BodyRepairBatchSummary>>;
+  readonly onRetentionPurge?: (input: {
+    readonly dryRun: boolean;
+    readonly retentionDays?: number;
+    readonly mailboxUuid?: string;
+  }) => Promise<OperationsActionResult<RetentionPurgeSummary>>;
 }) {
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -112,6 +123,11 @@ export function OperationsConsole({
   const [repairConfirm, setRepairConfirm] = useState(false);
   const [repairResult, setRepairResult] =
     useState<BodyRepairBatchSummary | null>(null);
+
+  const [retentionDaysInput, setRetentionDaysInput] = useState("");
+  const [retentionConfirm, setRetentionConfirm] = useState(false);
+  const [retentionResult, setRetentionResult] =
+    useState<RetentionPurgeSummary | null>(null);
 
   const [postfixResult, setPostfixResult] = useState<{
     readonly domains: number;
@@ -152,23 +168,33 @@ export function OperationsConsole({
     return Math.max(1, Math.min(5000, parsed));
   }
 
+  function parsedRetentionDays(): number | undefined {
+    const trimmed = retentionDaysInput.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed)) return undefined;
+    return Math.max(1, Math.min(3650, parsed));
+  }
+
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>Operations &amp; ingestion diagnostics</PageTitle>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={stateBadgeVariant(overview.health.ingestion.state)}>
-            Worker: {overview.health.ingestion.detail}
-          </Badge>
-          <Badge
-            variant={overview.postfixContract.verified ? "success" : "warning"}
-          >
-            {overview.postfixContract.verified
-              ? "Postfix contract OK"
-              : "Postfix contract attention"}
-          </Badge>
-        </div>
-      </header>
+      <PageHeader
+        title="Operations & ingestion diagnostics"
+        actions={
+          <>
+            <Badge variant={stateBadgeVariant(overview.health.ingestion.state)}>
+              Worker: {overview.health.ingestion.detail}
+            </Badge>
+            <Badge
+              variant={overview.postfixContract.verified ? "success" : "warning"}
+            >
+              {overview.postfixContract.verified
+                ? "Postfix contract OK"
+                : "Postfix contract attention"}
+            </Badge>
+          </>
+        }
+      />
 
       {!overview.databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -182,73 +208,74 @@ export function OperationsConsole({
         </AlertBanner>
       ) : null}
 
-      <section
+      <StatGrid
         aria-label="Operations telemetry summary"
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="sm:grid-cols-2 lg:grid-cols-4"
       >
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Ingestion heartbeat
-            </p>
-            <p className="text-sm font-medium">
-              {overview.health.ingestion.detail}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Last seen: {formatTimestamp(overview.health.ingestion.meta)}
-            </p>
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Postfix virtual views
-            </p>
-            <p className="text-sm font-medium tabular-nums">
-              {overview.postfixContract.postfixRows} routing row(s)
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {overview.postfixContract.domains} active domain(s) ·{" "}
-              {overview.postfixContract.mailboxes} mailserver box(es)
-            </p>
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Schema sync drift
-            </p>
-            <p className="text-sm font-medium tabular-nums">
-              {overview.syncDrift.missingInApp +
-                overview.syncDrift.missingInMailserver +
-                overview.syncDrift.statusMismatches}{" "}
-              diff(s)
-            </p>
-            <p className="text-xs text-muted-foreground">
-              App {overview.syncDrift.appMailboxes} vs mailserver{" "}
-              {overview.syncDrift.mailserverMailboxes}
-            </p>
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelBody className="space-y-1 p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Indexed message corpus
-            </p>
-            <p className="text-sm font-medium tabular-nums">
-              {overview.indexingStats.totalMessages} indexed
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {overview.indexingStats.warningMessages} warning ·{" "}
-              {overview.indexingStats.oversizedMessages} oversized ·{" "}
-              {overview.indexingStats.failedMessages} failed
-            </p>
-          </PanelBody>
-        </Panel>
-      </section>
+        <StatCard
+          compact
+          label="Ingestion heartbeat"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.health.ingestion.detail}
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                Last seen: {formatTimestamp(overview.health.ingestion.meta)}
+              </CaptionText>
+            </>
+          }
+        />
+        <StatCard
+          compact
+          label="Postfix virtual views"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.postfixContract.postfixRows} routing row(s)
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                {overview.postfixContract.domains} active domain(s) ·{" "}
+                {overview.postfixContract.mailboxes} mailserver box(es)
+              </CaptionText>
+            </>
+          }
+        />
+        <StatCard
+          compact
+          label="Schema sync drift"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.syncDrift.missingInApp +
+                  overview.syncDrift.missingInMailserver +
+                  overview.syncDrift.statusMismatches}{" "}
+                diff(s)
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                App {overview.syncDrift.appMailboxes} vs mailserver{" "}
+                {overview.syncDrift.mailserverMailboxes}
+              </CaptionText>
+            </>
+          }
+        />
+        <StatCard
+          compact
+          label="Indexed message corpus"
+          value={
+            <>
+              <span className="block text-sm font-medium text-foreground">
+                {overview.indexingStats.totalMessages} indexed
+              </span>
+              <CaptionText className="mt-0.5 block font-sans font-normal">
+                {overview.indexingStats.warningMessages} warning ·{" "}
+                {overview.indexingStats.oversizedMessages} oversized ·{" "}
+                {overview.indexingStats.failedMessages} failed
+              </CaptionText>
+            </>
+          }
+        />
+      </StatGrid>
 
       <Panel aria-label="Storage readiness and mailbox scope">
         <PanelBody className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -743,6 +770,128 @@ export function OperationsConsole({
                 {busyAction === "repair-execute"
                   ? "Repairing..."
                   : "Repair bodies"}
+              </Button>
+            </div>
+          </PanelBody>
+        </Panel>
+
+        {/* 7. Run Email Retention Purge */}
+        <Panel className="flex flex-col justify-between lg:col-span-2">
+          <PanelHeader>
+            <div className="flex items-center gap-2">
+              <Icon glyph={Trash2} className="text-primary" />
+              <SectionTitle>7. Run email retention purge</SectionTitle>
+            </div>
+          </PanelHeader>
+          <PanelBody className="flex flex-1 flex-col justify-between gap-3">
+            <div className="space-y-2.5">
+              <p className="text-xs leading-5 text-muted-foreground">
+                Purges retention-expired messages across mailboxes using
+                effective user/global retention policies (or an explicit day
+                override) in bounded batches and recalculates unread/total
+                mailbox counters.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Label htmlFor="ops-retention-days">
+                  Retention days override (optional, 1-3650)
+                </Label>
+                <Input
+                  id="ops-retention-days"
+                  type="number"
+                  min={1}
+                  max={3650}
+                  placeholder="Policy default"
+                  value={retentionDaysInput}
+                  onChange={(event) =>
+                    setRetentionDaysInput(event.target.value)
+                  }
+                  className="h-8 w-36"
+                />
+              </div>
+              <Label
+                htmlFor="ops-retention-confirm"
+                className="flex cursor-pointer items-start gap-2 font-normal"
+              >
+                <Checkbox
+                  id="ops-retention-confirm"
+                  checked={retentionConfirm}
+                  onChange={(event) =>
+                    setRetentionConfirm(event.target.checked)
+                  }
+                  className="mt-0.5"
+                />
+                <span>
+                  Confirm batch purge of retention-expired emails and counter
+                  recalculation.
+                </span>
+              </Label>
+              {retentionResult ? (
+                <div className="border border-border bg-muted/40 p-2.5 text-xs">
+                  <div>
+                    {retentionResult.dryRun
+                      ? "Dry run retention scan:"
+                      : "Retention purge:"}{" "}
+                    {retentionResult.purgedMessages} expired message(s) across{" "}
+                    {retentionResult.affectedMailboxes} affected /{" "}
+                    {retentionResult.scannedMailboxes} scanned mailbox(es)
+                    {retentionResult.retentionDays > 0
+                      ? ` · window ${retentionResult.retentionDays} day(s)`
+                      : " · per-user/disabled policy"}
+                    {retentionResult.errors
+                      ? ` · errors ${retentionResult.errors}`
+                      : ""}
+                    .
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={actionsDisabled || !onRetentionPurge}
+                onClick={() =>
+                  void runAction(
+                    "retention-dry-run",
+                    () =>
+                      onRetentionPurge!({
+                        dryRun: true,
+                        retentionDays: parsedRetentionDays(),
+                        mailboxUuid: selectedMailboxUuid || undefined,
+                      }),
+                    (data) => setRetentionResult(data),
+                    "Unable to run retention dry scan right now.",
+                  )
+                }
+              >
+                {busyAction === "retention-dry-run"
+                  ? "Scanning..."
+                  : "Dry run retention"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={
+                  actionsDisabled || !retentionConfirm || !onRetentionPurge
+                }
+                onClick={() =>
+                  void runAction(
+                    "retention-execute",
+                    () =>
+                      onRetentionPurge!({
+                        dryRun: false,
+                        retentionDays: parsedRetentionDays(),
+                        mailboxUuid: selectedMailboxUuid || undefined,
+                      }),
+                    (data) => setRetentionResult(data),
+                    "Unable to purge expired emails right now.",
+                  )
+                }
+              >
+                {busyAction === "retention-execute"
+                  ? "Purging..."
+                  : "Purge expired emails"}
               </Button>
             </div>
           </PanelBody>

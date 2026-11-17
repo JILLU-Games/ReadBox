@@ -6,8 +6,14 @@ import {
   type IngestionRunSummary,
   type IngestionRuntimeConfig,
 } from "@/core/ingestion/service";
+import {
+  purgeExpiredMessagesForRetention,
+  type RetentionPurgeSummary,
+} from "@/core/messages/service";
 import { logger } from "@/core/server/logger";
 import "server-only";
+
+export const DEFAULT_RETENTION_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 
 export interface WorkerCliOptions {
   readonly once: boolean;
@@ -95,6 +101,111 @@ export async function runIngestionPass(
   });
 }
 
+export async function runWorkerRetentionPurgePass(
+  options: {
+    readonly dryRun?: boolean;
+    readonly mailboxLocalPart?: string;
+  } = {},
+): Promise<RetentionPurgeSummary> {
+  if (!env.databaseUrl) {
+    throw new Error("DATABASE_URL must be set to run retention purge.");
+  }
+
+  const prisma = getPrismaClient();
+  let mailboxUuid: string | undefined;
+
+  if (options.mailboxLocalPart?.trim()) {
+    const matched = await prisma.mailbox.findFirst({
+      where: {
+        deletedAt: null,
+        localPart: options.mailboxLocalPart.trim().toLowerCase(),
+      },
+      select: { uuid: true },
+    });
+    if (!matched) {
+      return {
+        dryRun: options.dryRun === true,
+        retentionDays: 0,
+        cutoffIso: null,
+        scannedMailboxes: 0,
+        affectedMailboxes: 0,
+        purgedMessages: 0,
+        errors: 0,
+      };
+    }
+    mailboxUuid = matched.uuid;
+  }
+
+  return purgeExpiredMessagesForRetention(
+    prisma as unknown as Parameters<typeof purgeExpiredMessagesForRetention>[0],
+    {
+      dryRun: options.dryRun === true,
+      mailboxUuid,
+      actor: {
+        username: "system-retention-worker",
+      },
+    },
+  );
+}
+
+export async function recordWorkerDegradedHeartbeat(
+  reason: string,
+  details?: Record<string, unknown>,
+  prismaClient?: {
+    readonly serviceHeartbeat?: {
+      upsert(args: {
+        where: { serviceName: string };
+        create: {
+          serviceName: string;
+          status: string;
+          details: Record<string, unknown>;
+          lastSeenAt: Date;
+        };
+        update: {
+          status: string;
+          details: Record<string, unknown>;
+          lastSeenAt: Date;
+        };
+      }): Promise<unknown>;
+    };
+  } | null,
+): Promise<void> {
+  try {
+    const client =
+      prismaClient !== undefined
+        ? prismaClient
+        : env.databaseUrl
+          ? (getPrismaClient() as unknown as {
+              readonly serviceHeartbeat?: {
+                upsert(args: unknown): Promise<unknown>;
+              };
+            })
+          : null;
+    if (!client?.serviceHeartbeat) return;
+    const now = new Date();
+    const payload = {
+      reason,
+      ...details,
+    };
+    await client.serviceHeartbeat.upsert({
+      where: { serviceName: "maildir_ingestion" },
+      create: {
+        serviceName: "maildir_ingestion",
+        status: "degraded",
+        details: payload,
+        lastSeenAt: now,
+      },
+      update: {
+        status: "degraded",
+        details: payload,
+        lastSeenAt: now,
+      },
+    });
+  } catch {
+    // Best-effort heartbeat update
+  }
+}
+
 export async function runIngestionWorkerLoop(
   options: WorkerCliOptions,
   signal?: AbortSignal,
@@ -114,9 +225,49 @@ export async function runIngestionWorkerLoop(
     dryRun: lastSummary.dryRun,
   });
 
+  let lastRetentionPurgeAt = 0;
+
+  async function maybeRunRetentionPurge() {
+    const nowMs = Date.now();
+    if (
+      lastRetentionPurgeAt !== 0 &&
+      nowMs - lastRetentionPurgeAt < DEFAULT_RETENTION_PURGE_INTERVAL_MS
+    ) {
+      return;
+    }
+
+    lastRetentionPurgeAt = nowMs;
+    try {
+      const purgeSummary = await runWorkerRetentionPurgePass({
+        dryRun: options.dryRun,
+        mailboxLocalPart: options.mailboxLocalPart,
+      });
+      logger.info("worker_retention_purge_completed", {
+        dryRun: purgeSummary.dryRun,
+        scannedMailboxes: purgeSummary.scannedMailboxes,
+        affectedMailboxes: purgeSummary.affectedMailboxes,
+        purgedMessages: purgeSummary.purgedMessages,
+        errors: purgeSummary.errors ?? 0,
+      });
+      if ((purgeSummary.errors ?? 0) > 0) {
+        await recordWorkerDegradedHeartbeat("retention_purge_partial_errors", {
+          retentionErrors: purgeSummary.errors,
+        });
+      }
+    } catch (error) {
+      const errorType = error instanceof Error ? error.name : "RetentionError";
+      logger.error("worker_retention_purge_failed", { errorType });
+      await recordWorkerDegradedHeartbeat("retention_purge_failed", {
+        errorType,
+      });
+    }
+  }
+
   if (options.once) {
     return lastSummary;
   }
+
+  await maybeRunRetentionPurge();
 
   while (!signal?.aborted) {
     await new Promise<void>((resolve) => {
@@ -149,7 +300,12 @@ export async function runIngestionWorkerLoop(
     } catch (error) {
       const errorType = error instanceof Error ? error.name : "WorkerError";
       logger.error("ingestion_worker_pass_failed", { errorType });
+      await recordWorkerDegradedHeartbeat("ingestion_pass_failed", {
+        errorType,
+      });
     }
+
+    await maybeRunRetentionPurge();
   }
 
   return lastSummary;

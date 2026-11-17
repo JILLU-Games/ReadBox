@@ -532,10 +532,58 @@ export function sanitizeStylesheet(
   }
 }
 
+const SAFE_ATTACHMENT_IMAGE_PATH_RE =
+  /^\/api\/messages\/attachment\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(?:\?inline=1)?$/i;
+
 export function isSafeRasterDataImageUri(src: string | undefined): boolean {
   if (!src) return false;
   const lowered = src.trim().toLowerCase();
   return SAFE_DATA_IMAGE_PREFIXES.some((prefix) => lowered.startsWith(prefix));
+}
+
+export function isSafeInternalAttachmentImagePath(
+  src: string | undefined,
+): boolean {
+  if (!src) return false;
+  return SAFE_ATTACHMENT_IMAGE_PATH_RE.test(src.trim());
+}
+
+export function isSafeEmailImageSource(src: string | undefined): boolean {
+  return (
+    isSafeRasterDataImageUri(src) || isSafeInternalAttachmentImagePath(src)
+  );
+}
+
+export interface SanitizeHtmlEmailOptions {
+  readonly cidMap?: ReadonlyMap<string, string> | Readonly<Record<string, string>>;
+}
+
+function resolveCidReferencesInHtml(
+  html: string,
+  cidMap?: ReadonlyMap<string, string> | Readonly<Record<string, string>>,
+): string {
+  if (!html || !cidMap) return html;
+  const lookup = (key: string): string | undefined => {
+    if (cidMap instanceof Map) {
+      return (
+        cidMap.get(key) ??
+        cidMap.get(key.toLowerCase()) ??
+        undefined
+      );
+    }
+    const record = cidMap as Readonly<Record<string, string>>;
+    return record[key] ?? record[key.toLowerCase()];
+  };
+
+  return html.replace(
+    /(<img\b[^>]*?\bsrc\s*=\s*["'])cid:([^"']+)(["'])/gi,
+    (fullMatch, prefix: string, rawCid: string, suffix: string) => {
+      const cleanedCid = rawCid.replace(/^<|>$/g, "").trim();
+      if (!cleanedCid) return fullMatch;
+      const mapped = lookup(cleanedCid);
+      return mapped ? `${prefix}${mapped}${suffix}` : fullMatch;
+    },
+  );
 }
 
 export function isSafeAnchorHref(href: string | undefined): boolean {
@@ -558,13 +606,17 @@ export function isSafeAnchorHref(href: string | undefined): boolean {
   return true;
 }
 
-export function sanitizeHtmlEmail(rawHtml: string): string {
+export function sanitizeHtmlEmail(
+  rawHtml: string,
+  options?: SanitizeHtmlEmailOptions,
+): string {
   if (!rawHtml || !rawHtml.trim()) return "";
 
+  const resolvedHtml = resolveCidReferencesInHtml(rawHtml, options?.cidMap);
   const budget = new CssBudget();
   const sanitizedStylesheets: string[] = [];
 
-  const passOne = sanitizeHtml(rawHtml, {
+  const passOne = sanitizeHtml(resolvedHtml, {
     allowedTags: [...SAFE_HTML_TAGS],
     allowedAttributes: {
       a: ["href", "title", "rel", "target", "name"],
@@ -647,7 +699,7 @@ export function sanitizeHtmlEmail(rawHtml: string): string {
     },
     exclusiveFilter: (frame) => {
       if (frame.tag === "img") {
-        return !isSafeRasterDataImageUri(frame.attribs.src);
+        return !isSafeEmailImageSource(frame.attribs.src);
       }
       if (frame.tag === "style") {
         const cleanedCss = sanitizeStylesheet(frame.text, budget);

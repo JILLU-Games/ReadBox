@@ -14,12 +14,22 @@ import urllib.request
 from contextlib import suppress
 from pathlib import Path
 
-RUNTIME_DIR = Path(os.environ.get("UPDATE_RUNTIME_DIR", "/run/vibmail"))
+RUNTIME_DIR = Path(
+    os.environ.get(
+        "UPDATE_RUNTIME_DIR",
+        "/run/readbox" if Path("/run/readbox").exists() else "/run/vibmail",
+    )
+)
 REQUEST_PATH = RUNTIME_DIR / "update_request.json"
 PROCESSING_PATH = RUNTIME_DIR / "update_request.processing.json"
 STATUS_PATH = RUNTIME_DIR / "update_status.json"
 UPGRADE_SCRIPT = Path(
-    os.environ.get("UPDATE_SCRIPT_PATH", "/opt/vibmail/app/scripts/updater/upgrade.sh")
+    os.environ.get(
+        "UPDATE_SCRIPT_PATH",
+        "/opt/readbox/app/scripts/updater/upgrade.sh"
+        if Path("/opt/readbox/app/scripts/updater/upgrade.sh").exists()
+        else "/opt/vibmail/app/scripts/updater/upgrade.sh",
+    )
 )
 GITHUB_REPO = os.environ.get("UPDATE_GITHUB_REPO", "vibtools/ReadBox")
 
@@ -31,16 +41,35 @@ def write_status(step: str, message: str, progress: int) -> None:
     )
 
 
+ALLOWED_REQUEST_USERS = tuple(
+    dict.fromkeys(
+        filter(
+            None,
+            [
+                os.environ.get("READBOX_UPDATER_REQUEST_USER", "").strip(),
+                "vmail",
+                "nextjs",
+            ],
+        )
+    )
+)
+
+
 def valid_request_file(request_path: Path = REQUEST_PATH) -> bool:
     try:
         request_stat = request_path.lstat()
-        vmail_uid = pwd.getpwnam("vmail").pw_uid
+        allowed_uids: set[int] = set()
+        for username in ALLOWED_REQUEST_USERS:
+            with suppress(KeyError):
+                allowed_uids.add(pwd.getpwnam(username).pw_uid)
+        if not allowed_uids:
+            return False
         return (
             stat.S_ISREG(request_stat.st_mode)
-            and request_stat.st_uid == vmail_uid
+            and request_stat.st_uid in allowed_uids
             and stat.S_IMODE(request_stat.st_mode) in (0o600, 0o640)
         )
-    except (OSError, KeyError):
+    except OSError:
         return False
 
 

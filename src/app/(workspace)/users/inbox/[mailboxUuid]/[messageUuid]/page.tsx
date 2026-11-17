@@ -55,6 +55,7 @@ export default async function UserMessageDetailPage(props: {
 
   const actor = {
     userId,
+    authSource: user.authSource,
     username: user.username,
     isAdministrator: user.isAdministrator,
     headers: reqHeaders,
@@ -69,7 +70,10 @@ export default async function UserMessageDetailPage(props: {
         mailboxUuid,
         messageUuid,
       )
-    : getDemoMessageDetail(mailboxUuid, messageUuid);
+    : getDemoMessageDetail(mailboxUuid, messageUuid, {
+        isAdministrator: user.isAdministrator,
+        userId: user.id,
+      });
 
   if (!message) {
     notFound();
@@ -82,7 +86,12 @@ export default async function UserMessageDetailPage(props: {
         mailboxUuid,
         filters,
       )
-    : listDemoMailboxMessages(mailboxUuid, filters);
+    : listDemoMailboxMessages(
+        mailboxUuid,
+        filters,
+        user.isAdministrator,
+        user.id,
+      );
 
   if (!inboxResult) {
     notFound();

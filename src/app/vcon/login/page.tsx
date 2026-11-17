@@ -3,9 +3,9 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
   AlertBanner,
-  Badge,
+  BrandLogo,
   Button,
-  Icon,
+  CaptionText,
   PageTitle,
   Panel,
   PanelBody,
@@ -47,25 +47,21 @@ export default async function AdminLoginPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md min-w-0 flex-col justify-center gap-3 px-4 py-8">
       <div className="flex items-center justify-between gap-2">
-        <Link
-          href="/"
-          className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-foreground hover:text-primary"
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center bg-primary text-primary-foreground">
-            <Icon glyph={Shield} className="size-3.5" />
-          </span>
-          <span className="truncate">{siteName}</span>
+        <Link href="/" className="inline-flex min-w-0 items-center">
+          <BrandLogo
+            siteName={siteName}
+            logoUrl={settings.logoUrl}
+            size="sm"
+            fallbackIcon={Shield}
+          />
         </Link>
         <ThemeToggle />
       </div>
 
       <Panel>
         <PanelHeader>
-          <div className="flex items-center gap-2">
-            <PageTitle>Admin sign in</PageTitle>
-            <Badge variant="outline">vcon</Badge>
-          </div>
-          <span className="text-[11px] text-muted-foreground">{siteName}</span>
+          <PageTitle>Admin sign in</PageTitle>
+          <CaptionText>{siteName}</CaptionText>
         </PanelHeader>
         <PanelBody className="space-y-3 p-4">
           {devBypassActive ? (

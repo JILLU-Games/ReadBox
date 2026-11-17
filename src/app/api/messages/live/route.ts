@@ -68,7 +68,12 @@ export async function GET(request: NextRequest) {
 
   if (!env.databaseUrl) {
     const payload = isDemoPreviewWorkspaceActive()
-      ? pollDemoLivePayload(mailboxUuids)
+      ? pollDemoLivePayload(mailboxUuids, {
+          isAdministrator: user.isAdministrator,
+          userId: user.id,
+          cursor: Number(rawCursor) || 0,
+          bootstrap,
+        })
       : EMPTY_LIVE_PAYLOAD;
     return NextResponse.json(payload, {
       status: 200,

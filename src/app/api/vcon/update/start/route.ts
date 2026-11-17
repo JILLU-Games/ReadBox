@@ -24,13 +24,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const rawActorId = admin.id as bigint | string | null | undefined;
+  let actorId: bigint | null = null;
+  if (typeof rawActorId === "bigint") {
+    actorId = rawActorId;
+  } else if (typeof rawActorId === "string" && /^\d+$/.test(rawActorId)) {
+    try {
+      actorId = BigInt(rawActorId);
+    } catch {
+      actorId = null;
+    }
+  }
+
   const result = await queueUpdateRequest(
     {
       archiveUrl: body.archive_url,
       checksumUrl: body.checksum_url,
     },
     {
-      actorId: admin.id ? BigInt(admin.id) : null,
+      actorId,
+      authSource: admin.authSource,
+      actorUsername: admin.username,
       headers: request.headers,
     },
   );

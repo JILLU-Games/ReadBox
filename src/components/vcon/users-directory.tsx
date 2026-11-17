@@ -13,7 +13,8 @@ import {
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
+  Pagination,
   Table,
   TableBody,
   TableCell,
@@ -89,15 +90,17 @@ export function UsersDirectory({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>User management</PageTitle>
-        <Button asChild size="sm">
-          <Link href="/vcon/users/new">
-            <Icon glyph={UserPlus} />
-            <span>Add user</span>
-          </Link>
-        </Button>
-      </header>
+      <PageHeader
+        title="User management"
+        actions={
+          <Button asChild size="sm">
+            <Link href="/vcon/users/new">
+              <Icon glyph={UserPlus} />
+              <span>Add user</span>
+            </Link>
+          </Button>
+        }
+      />
 
       {!databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -235,33 +238,20 @@ export function UsersDirectory({
         </TableBody>
       </Table>
 
-      {list.totalPages > 1 ? (
-        <nav
-          aria-label="Users pagination"
-          className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
-        >
-          <span>
-            Showing page {list.page} of {list.totalPages} ({list.totalCount}{" "}
-            total)
-          </span>
-          <div className="flex items-center gap-2">
-            {list.page > 1 ? (
-              <Button asChild size="sm" variant="outline">
-                <Link href={buildUsersHref(list.query, list.page - 1)}>
-                  Previous
-                </Link>
-              </Button>
-            ) : null}
-            {list.page < list.totalPages ? (
-              <Button asChild size="sm" variant="outline">
-                <Link href={buildUsersHref(list.query, list.page + 1)}>
-                  Next
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-        </nav>
-      ) : null}
+      <Pagination
+        variant="boxed"
+        page={list.page}
+        totalPages={list.totalPages}
+        totalCount={list.totalCount}
+        prevHref={
+          list.page > 1 ? buildUsersHref(list.query, list.page - 1) : null
+        }
+        nextHref={
+          list.page < list.totalPages
+            ? buildUsersHref(list.query, list.page + 1)
+            : null
+        }
+      />
 
       <Dialog
         open={deleteTarget !== null}

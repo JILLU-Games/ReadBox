@@ -47,6 +47,7 @@ export async function GET(
           getPrismaClient(),
           {
             userId,
+            authSource: user.authSource,
             username: user.username,
             isAdministrator: user.isAdministrator,
             headers: request.headers,
@@ -55,7 +56,10 @@ export async function GET(
           messageUuid,
           theme ? { theme } : undefined,
         )
-      : getDemoMessageHtml(messageUuid, theme ? { theme } : undefined);
+      : getDemoMessageHtml(messageUuid, theme ? { theme } : undefined, {
+          isAdministrator: user.isAdministrator,
+          userId: user.id,
+        });
 
     if (!htmlDocument) {
       return new NextResponse("Not found", {
@@ -73,6 +77,7 @@ export async function GET(
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Content-Security-Policy": SAFE_HTML_CSP_POLICY,
+        "X-Frame-Options": "SAMEORIGIN",
         "X-Content-Type-Options": "nosniff",
         "Referrer-Policy": "no-referrer",
         "Cache-Control": "private, no-store",

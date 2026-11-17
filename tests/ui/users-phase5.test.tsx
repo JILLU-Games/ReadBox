@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -30,7 +30,12 @@ vi.mock("@/components/ui/notifications", () => ({
   },
 }));
 
-import { claimMessageNotification } from "@/components/users/live-mail-notifier";
+import { RouteErrorPanel } from "@/components/layout/route-error-panel";
+import {
+  claimMessageNotification,
+  LIVE_BROADCAST_CHANNEL_NAME,
+  NOTIFIED_STORAGE_KEY,
+} from "@/components/users/live-mail-notifier";
 import { MailboxInboxView } from "@/components/users/mailbox-inbox-view";
 import { MessageReaderView } from "@/components/users/message-reader-view";
 import { UserMailboxesView } from "@/components/users/user-mailboxes-view";
@@ -309,7 +314,7 @@ describe("Phase 5 — User Workspace UI components", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders MailboxInboxView with search/filter controls and message rows", () => {
+  it("renders MailboxInboxView with compact search, filter tabs, sender initials, and clutter-free message rows", () => {
     render(
       <MailboxInboxView
         inboxResult={{
@@ -353,11 +358,29 @@ describe("Phase 5 — User Workspace UI components", () => {
     );
 
     expect(screen.getByText("TLS Certificate Renewed")).toBeInTheDocument();
+    expect(screen.getByText("SO")).toBeInTheDocument();
+    expect(screen.getByText("Nov 15, 10:00")).toBeInTheDocument();
+    expect(screen.queryByText("1.5 KB")).toBeNull();
     expect(screen.getByLabelText("Read state")).toBeInTheDocument();
-    expect(screen.getByLabelText("Attachment filter")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "All" })).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555",
+    );
+    expect(screen.getByRole("link", { name: "Unread" })).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555?read=unread",
+    );
+    expect(screen.getByRole("link", { name: "Read" })).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555?read=read",
+    );
+    expect(screen.getByLabelText("Attachment filter")).toHaveAttribute(
+      "href",
+      "/users/inbox/11111111-2222-4333-8444-555555555555?attachments=yes",
+    );
   });
 
-  it("renders MessageReaderView with unified Gmail-style email body, working links/buttons, attachments, and gated Delete button without HTML/Plain-text toggles", async () => {
+  it("renders MessageReaderView with sandboxed iframe isolation, error fallback with Retry, attachments, and gated Delete button", async () => {
     const user = userEvent.setup();
     const markUnread = vi.fn(async () => ({
       ok: true as const,
@@ -425,16 +448,61 @@ describe("Phase 5 — User Workspace UI components", () => {
     ).toBeNull();
     expect(screen.queryByRole("button", { name: /Plain text/i })).toBeNull();
 
-    // Ensure HTML email body and interactive CTA link render directly in the DOM
-    expect(
-      screen.getByText("Your November statement is ready."),
-    ).toBeInTheDocument();
-    const ctaLink = screen.getByRole("link", { name: /View Invoice #9021/i });
-    expect(ctaLink).toHaveAttribute(
-      "href",
-      "https://billing.vendor.example/inv/9021",
+    // Verify parent React DOM does NOT inject raw email HTML inline
+    expect(screen.queryByText("Your November statement is ready.")).toBeNull();
+
+    // Verify sandboxed iframe points to CSP-hardened HTML endpoint without allow-scripts
+    const iframe = screen.getByTestId("message-html-iframe") as HTMLIFrameElement;
+    expect(iframe).toHaveAttribute(
+      "src",
+      "/api/messages/html/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeee1?theme=light",
     );
-    expect(ctaLink).toHaveAttribute("target", "_blank");
+    expect(iframe).toHaveAttribute(
+      "sandbox",
+      "allow-same-origin allow-popups allow-popups-to-escape-sandbox",
+    );
+    expect(iframe.getAttribute("sandbox")).not.toContain("allow-scripts");
+
+    // Simulate successful CSP-guarded load with readbox-html-body meta marker
+    const fakeDoc = document.implementation.createHTMLDocument("email");
+    const meta = fakeDoc.createElement("meta");
+    meta.setAttribute("name", "readbox-html-body");
+    meta.setAttribute("content", "1");
+    fakeDoc.head.appendChild(meta);
+    fakeDoc.body.innerHTML = "<p>Iframe content loaded cleanly.</p>";
+    Object.defineProperty(iframe, "contentDocument", {
+      configurable: true,
+      get: () => fakeDoc,
+    });
+    fireEvent.load(iframe);
+    expect(screen.queryByText(/Loading formatted email/i)).toBeNull();
+
+    // Simulate 404/plain-text response loaded into iframe (missing readbox-html-body meta) -> EH-05 fallback
+    const emptyDoc = document.implementation.createHTMLDocument("404");
+    emptyDoc.body.textContent = "Not found";
+    Object.defineProperty(iframe, "contentDocument", {
+      configurable: true,
+      get: () => emptyDoc,
+    });
+    fireEvent.load(iframe);
+    expect(
+      screen.getByText(/Formatted HTML body could not be loaded/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Plain text fallback statement."),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("message-html-iframe")).toBeNull();
+
+    // Retry remounts the sandboxed iframe and error event also triggers fallback
+    await user.click(screen.getByRole("button", { name: /Retry/i }));
+    const retriedIframe = screen.getByTestId("message-html-iframe");
+    fireEvent.error(retriedIframe);
+    expect(
+      screen.getByText(/Formatted HTML body could not be loaded/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Retry/i }));
+    expect(screen.getByTestId("message-html-iframe")).toBeInTheDocument();
 
     expect(screen.getByText("statement.pdf")).toBeInTheDocument();
 
@@ -472,5 +540,93 @@ describe("Phase 5 — User Workspace UI components", () => {
     expect(firstClaim).toBe(true);
     expect(secondClaim).toBe(false);
     expect(posted.length).toBe(1);
+    expect(NOTIFIED_STORAGE_KEY).toBe("readbox-notified-message-uuids");
+    expect(LIVE_BROADCAST_CHANNEL_NAME).toBe("readbox-live-notifications");
+  });
+
+  it("Phase 4 EH-02 & EH-04: renders databaseError AlertBanner in UserOverview & UserMailboxesView and recovery actions in RouteErrorPanel", async () => {
+    const user = userEvent.setup();
+    render(
+      <UserOverview
+        username="alice"
+        snapshot={{
+          databaseConfigured: false,
+          databaseError: "PostgreSQL overview query failed.",
+          totalMailboxes: 0,
+          activeMailboxes: 0,
+          disabledMailboxes: 0,
+          totalMessages: 0,
+          totalUnread: 0,
+          lastReceivedAt: null,
+          recentMessages: [],
+          recentMailboxes: [],
+          availableDomains: [],
+          capabilities: {
+            canDeleteMessages: false,
+            canDeleteMailboxes: false,
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText("Database temporarily unavailable"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("PostgreSQL overview query failed."),
+    ).toBeInTheDocument();
+
+    cleanup();
+
+    render(
+      <UserMailboxesView
+        listResult={{
+          databaseConfigured: false,
+          databaseError: "PostgreSQL mailbox query failed.",
+          items: [],
+          totalCount: 0,
+          page: 1,
+          pageSize: 25,
+          totalPages: 1,
+          query: "",
+          statusFilter: "all",
+          availableDomains: [],
+          capabilities: {
+            canDeleteMessages: false,
+            canDeleteMailboxes: false,
+          },
+        }}
+        createMailboxAction={vi.fn()}
+        deleteMailboxAction={vi.fn()}
+        bulkDeleteMailboxesAction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText("Database temporarily unavailable"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("PostgreSQL mailbox query failed."),
+    ).toBeInTheDocument();
+
+    cleanup();
+
+    const onReset = vi.fn();
+    render(
+      <RouteErrorPanel
+        title="Sign-in view temporarily unavailable"
+        description="Retry or return home."
+        backHref="/"
+        backLabel="Back to home"
+        onReset={onReset}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Try again/i }));
+    expect(onReset).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("link", { name: "Back to home" }),
+    ).toHaveAttribute("href", "/");
   });
 });

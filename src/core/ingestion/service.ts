@@ -383,7 +383,7 @@ export async function ingestMaildirFile(
     }
 
     const parseStatus = parsed.parseFailed
-      ? "failed"
+      ? "error"
       : warnings.length > 0
         ? "warning"
         : "ok";

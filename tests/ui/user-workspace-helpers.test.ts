@@ -5,9 +5,12 @@ import {
   buildMailboxesUrl,
   buildMessageUrl,
   formatCompactTimestamp,
+  formatGmailInboxDate,
   formatMessageByteSize,
   generateRandomUsaLocalPart,
   generateUsaMailboxSuggestions,
+  getSenderDisplayName,
+  getSenderInitials,
   sanitizeLocalPartInput,
 } from "../../src/components/users/user-workspace-helpers";
 
@@ -49,10 +52,30 @@ test("URL builders preserve search, filter, and pagination parameters cleanly", 
   );
 });
 
-test("formatMessageByteSize and formatCompactTimestamp format safely", () => {
+test("formatMessageByteSize, formatCompactTimestamp, and formatGmailInboxDate format safely", () => {
   assert.equal(formatMessageByteSize(512), "512 B");
   assert.equal(formatMessageByteSize(2048), "2.0 KB");
   assert.equal(formatMessageByteSize(1572864), "1.5 MB");
   assert.equal(formatCompactTimestamp("2026-11-15T10:30:00.000Z"), "2026-11-15 10:30");
   assert.equal(formatCompactTimestamp(null, "No email"), "No email");
+  assert.equal(formatGmailInboxDate("2026-11-15T09:20:00.000Z"), "Nov 15, 09:20");
+  assert.equal(formatGmailInboxDate(null, "—"), "—");
+});
+
+test("getSenderDisplayName and getSenderInitials derive crisp labels and monograms", () => {
+  assert.equal(
+    getSenderDisplayName("Customer Care", "care@example.com"),
+    "Customer Care",
+  );
+  assert.equal(
+    getSenderDisplayName("  ", "billing@example.com"),
+    "billing@example.com",
+  );
+  assert.equal(getSenderDisplayName(null, null), "Unknown sender");
+
+  assert.equal(getSenderInitials("Customer Care", "care@example.com"), "CC");
+  assert.equal(getSenderInitials("Vendor Billing", "b@x.com"), "VB");
+  assert.equal(getSenderInitials("", "alice.martin@example.com"), "AM");
+  assert.equal(getSenderInitials("", "support@example.com"), "SU");
+  assert.equal(getSenderInitials("", ""), "?");
 });

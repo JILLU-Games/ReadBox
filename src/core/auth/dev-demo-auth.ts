@@ -1,4 +1,25 @@
-import { isOpaqueToken } from "@/core/auth/opaque-token";
+import {
+  DEFAULT_USER_PASSWORD_POLICY,
+  formatSecurityEventLabel,
+  formatUserAgentSummary,
+  hasStrongPasswordCharacters,
+  type UserPasswordPolicySummary,
+  type UserSecurityEventItem,
+  type UserSecuritySnapshot,
+  type UserSessionSummaryItem,
+  validateUserPasswordInput,
+} from "@/core/accounts/user-profile-schema";
+import {
+  createOpaqueToken,
+  hashOpaqueToken,
+  isOpaqueToken,
+} from "@/core/auth/opaque-token";
+import {
+  MAX_PASSWORD_LENGTH,
+  RESET_TOKEN_TTL_MS,
+  SESSION_MAX_AGE_SECONDS,
+  passwordConfirmationMatches,
+} from "@/core/auth/password-policy";
 import { z } from "zod";
 
 export interface DevDemoAccount {
@@ -56,10 +77,49 @@ const credentialsSchema = z.object({
   loginScope: z.enum(["admin", "user"]).optional(),
 });
 
+export interface DevDemoProfileOverride {
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly email: string;
+  readonly phone: string;
+}
+
+interface DevDemoSessionMeta {
+  readonly id: string;
+  readonly userId: string;
+  readonly sessionId: string;
+  readonly createdAt: string;
+  readonly lastSeenAt: string;
+  readonly expiresAt: string;
+  readonly label: string;
+  readonly ipAddress: string | null;
+}
+
+interface DevDemoSecurityEvent {
+  readonly id: string;
+  readonly userId: string;
+  readonly action: string;
+  readonly ipAddress: string | null;
+  readonly createdAt: string;
+}
+
+interface DevDemoResetTokenRecord {
+  readonly userId: string;
+  readonly tokenHash: string;
+  readonly expiresAt: number;
+}
+
 const globalForDevDemoSessions = globalThis as typeof globalThis & {
   mailstackDevDemoSessions?: Map<string, string>;
   mailstackDevDemoDynamicUsers?: Map<string, DevDemoAccount>;
   mailstackDevDemoNextId?: bigint;
+  readboxDevDemoProfileOverrides?: Map<string, DevDemoProfileOverride>;
+  readboxDevDemoPasswordOverrides?: Map<string, string>;
+  readboxDevDemoSessionMeta?: Map<string, DevDemoSessionMeta>;
+  readboxDevDemoNextSessionSeq?: number;
+  readboxDevDemoSecurityEvents?: DevDemoSecurityEvent[];
+  readboxDevDemoNextEventSeq?: number;
+  readboxDevDemoResetTokens?: Map<string, DevDemoResetTokenRecord>;
 };
 
 function getSessionStore(): Map<string, string> {
@@ -72,11 +132,67 @@ function getDynamicUserStore(): Map<string, DevDemoAccount> {
   return globalForDevDemoSessions.mailstackDevDemoDynamicUsers;
 }
 
+function getProfileOverrideStore(): Map<string, DevDemoProfileOverride> {
+  globalForDevDemoSessions.readboxDevDemoProfileOverrides ??= new Map();
+  return globalForDevDemoSessions.readboxDevDemoProfileOverrides;
+}
+
+function getPasswordOverrideStore(): Map<string, string> {
+  globalForDevDemoSessions.readboxDevDemoPasswordOverrides ??= new Map();
+  return globalForDevDemoSessions.readboxDevDemoPasswordOverrides;
+}
+
+function getSessionMetaStore(): Map<string, DevDemoSessionMeta> {
+  globalForDevDemoSessions.readboxDevDemoSessionMeta ??= new Map();
+  return globalForDevDemoSessions.readboxDevDemoSessionMeta;
+}
+
+function getSecurityEventStore(): DevDemoSecurityEvent[] {
+  globalForDevDemoSessions.readboxDevDemoSecurityEvents ??= [];
+  return globalForDevDemoSessions.readboxDevDemoSecurityEvents;
+}
+
+function getResetTokenStore(): Map<string, DevDemoResetTokenRecord> {
+  globalForDevDemoSessions.readboxDevDemoResetTokens ??= new Map();
+  return globalForDevDemoSessions.readboxDevDemoResetTokens;
+}
+
+function appendDemoSecurityEvent(
+  userId: string,
+  action: string,
+  ipAddress: string | null = "127.0.0.1",
+) {
+  const nextSeq = globalForDevDemoSessions.readboxDevDemoNextEventSeq ?? 1;
+  globalForDevDemoSessions.readboxDevDemoNextEventSeq = nextSeq + 1;
+  const events = getSecurityEventStore();
+  events.unshift({
+    id: `demo-evt-${nextSeq}`,
+    userId,
+    action,
+    ipAddress: ipAddress || "127.0.0.1",
+    createdAt: new Date().toISOString(),
+  });
+  if (events.length > 100) {
+    events.length = 100;
+  }
+}
+
+function applyAccountOverrides(account: DevDemoAccount): DevDemoAccount {
+  const profileOverride = getProfileOverrideStore().get(account.id);
+  const passwordOverride = getPasswordOverrideStore().get(account.id);
+  if (!profileOverride && passwordOverride === undefined) return account;
+  return {
+    ...account,
+    ...(profileOverride ?? {}),
+    ...(passwordOverride !== undefined ? { password: passwordOverride } : {}),
+  };
+}
+
 function getAllDevDemoAccounts(): DevDemoAccount[] {
   return [
     ...DEV_DEMO_ACCOUNTS,
     ...Array.from(getDynamicUserStore().values()),
-  ];
+  ].map(applyAccountOverrides);
 }
 
 function toCurrentUserIdentity(account: DevDemoAccount) {
@@ -86,6 +202,7 @@ function toCurrentUserIdentity(account: DevDemoAccount) {
     firstName: account.firstName,
     lastName: account.lastName,
     email: account.email,
+    phone: account.phone ?? "",
     isActive: account.isActive !== false,
     passwordResetRequired: false,
     isAdministrator: account.isAdministrator,
@@ -128,7 +245,10 @@ export function authorizeDevDemoCredentials(
   const account = getAllDevDemoAccounts().find(
     (candidate) => candidate.username.toLowerCase() === username,
   );
-  if (!account || account.password !== parsed.data.password) {
+  if (!account) return null;
+
+  if (account.password !== parsed.data.password) {
+    appendDemoSecurityEvent(account.id, "login_failure");
     return null;
   }
 
@@ -150,6 +270,8 @@ export function authorizeDevDemoCredentials(
   if (loginScope === "user" && account.isAdministrator) {
     return null;
   }
+
+  appendDemoSecurityEvent(account.id, "login_success");
 
   return {
     id: account.id,
@@ -200,11 +322,12 @@ export function registerDevDemoSignupUser(input: {
   };
 
   getDynamicUserStore().set(account.id, account);
+  appendDemoSecurityEvent(account.id, "user_self_signup");
   return account;
 }
 
 export function listDevDemoDynamicUsers(): DevDemoAccount[] {
-  return Array.from(getDynamicUserStore().values());
+  return Array.from(getDynamicUserStore().values()).map(applyAccountOverrides);
 }
 
 export function updateDevDemoDynamicUserStatus(
@@ -219,13 +342,21 @@ export function updateDevDemoDynamicUserStatus(
     verificationStatus: status,
   };
   getDynamicUserStore().set(userId, updated);
-  return updated;
+  appendDemoSecurityEvent(
+    userId,
+    status === "verified" ? "user_signup_approved" : "user_signup_rejected",
+  );
+  return applyAccountOverrides(updated);
 }
 
 export function registerDevDemoSession(
   nodeEnv: "development" | "test" | "production",
   userId: string,
   sessionId: string,
+  options: {
+    readonly ipAddress?: string | null;
+    readonly userAgent?: string | null;
+  } = {},
 ): boolean {
   if (nodeEnv !== "development" || !isOpaqueToken(sessionId)) return false;
   const account = getAllDevDemoAccounts().find(
@@ -237,6 +368,23 @@ export function registerDevDemoSession(
   if (!account) return false;
 
   getSessionStore().set(sessionId, account.id);
+  const now = new Date();
+  const expires = new Date(now.getTime() + SESSION_MAX_AGE_SECONDS * 1000);
+  const seq = globalForDevDemoSessions.readboxDevDemoNextSessionSeq ?? 1;
+  globalForDevDemoSessions.readboxDevDemoNextSessionSeq = seq + 1;
+  const rawUa = (options.userAgent ?? "").trim();
+  const label = rawUa ? formatUserAgentSummary(rawUa) : "Local demo browser";
+  const ipAddress = (options.ipAddress ?? "").trim() || "127.0.0.1";
+  getSessionMetaStore().set(sessionId, {
+    id: `demo-sess-${seq}`,
+    userId: account.id,
+    sessionId,
+    createdAt: now.toISOString(),
+    lastSeenAt: now.toISOString(),
+    expiresAt: expires.toISOString(),
+    label,
+    ipAddress,
+  });
   return true;
 }
 
@@ -244,10 +392,30 @@ export function getActiveDevDemoSession(
   nodeEnv: "development" | "test" | "production",
   userId: string,
   sessionId: string,
+  options: {
+    readonly ipAddress?: string | null;
+    readonly userAgent?: string | null;
+  } = {},
 ) {
   if (nodeEnv !== "development" || !isOpaqueToken(sessionId)) return null;
   const storedUserId = getSessionStore().get(sessionId);
   if (storedUserId !== userId) return null;
+
+  const meta = getSessionMetaStore().get(sessionId);
+  if (meta) {
+    const rawUa = (options.userAgent ?? "").trim();
+    const rawIp = (options.ipAddress ?? "").trim();
+    getSessionMetaStore().set(sessionId, {
+      ...meta,
+      lastSeenAt: new Date().toISOString(),
+      ...(meta.label === "Local demo browser" && rawUa
+        ? { label: formatUserAgentSummary(rawUa) }
+        : {}),
+      ...(meta.ipAddress === "127.0.0.1" && rawIp
+        ? { ipAddress: rawIp }
+        : {}),
+    });
+  }
 
   const account = getAllDevDemoAccounts().find(
     (candidate) =>
@@ -261,6 +429,7 @@ export function getActiveDevDemoSession(
 export function revokeDevDemoSession(sessionId: string): void {
   if (!isOpaqueToken(sessionId)) return;
   getSessionStore().delete(sessionId);
+  getSessionMetaStore().delete(sessionId);
 }
 
 export function getDevDemoUserById(
@@ -277,8 +446,404 @@ export function getDevDemoUserById(
   return account ? toCurrentUserIdentity(account) : null;
 }
 
+export function getDevDemoProfile(userId: string) {
+  const account = getAllDevDemoAccounts().find(
+    (candidate) => candidate.id === userId,
+  );
+  if (!account) return null;
+  return {
+    id: account.id,
+    username: account.username,
+    firstName: account.firstName,
+    lastName: account.lastName,
+    email: account.email,
+    phone: account.phone ?? "",
+    isAdministrator: account.isAdministrator,
+    authSource:
+      account.authSource ??
+      (account.isAdministrator ? "admin_table" : "user_table"),
+    editable: !account.isAdministrator,
+    dateJoined: null,
+    lastLogin: null,
+  };
+}
+
+export function updateDevDemoProfile(
+  userId: string,
+  patch: DevDemoProfileOverride,
+) {
+  const existing = getAllDevDemoAccounts().find(
+    (candidate) => candidate.id === userId,
+  );
+  if (!existing || existing.isAdministrator) {
+    return null;
+  }
+
+  const normalized: DevDemoProfileOverride = {
+    firstName: patch.firstName.trim(),
+    lastName: patch.lastName.trim(),
+    email: patch.email.trim(),
+    phone: patch.phone.trim(),
+  };
+  getProfileOverrideStore().set(existing.id, normalized);
+
+  const dynamic = getDynamicUserStore().get(existing.id);
+  if (dynamic) {
+    getDynamicUserStore().set(existing.id, {
+      ...dynamic,
+      ...normalized,
+    });
+  }
+
+  appendDemoSecurityEvent(existing.id, "user_profile_updated");
+  return getDevDemoProfile(existing.id);
+}
+
+export function getDevDemoSecuritySnapshot(
+  userId: string,
+  currentSessionId: string | null = null,
+  passwordPolicy: UserPasswordPolicySummary = DEFAULT_USER_PASSWORD_POLICY,
+): UserSecuritySnapshot {
+  const account = getAllDevDemoAccounts().find(
+    (candidate) => candidate.id === userId,
+  );
+  const now = Date.now();
+  const activeSessions: UserSessionSummaryItem[] = Array.from(
+    getSessionMetaStore().values(),
+  )
+    .filter(
+      (entry) =>
+        entry.userId === userId &&
+        Date.parse(entry.expiresAt) > now &&
+        getSessionStore().get(entry.sessionId) === userId,
+    )
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      ipAddress: entry.ipAddress ?? "127.0.0.1",
+      createdAt: entry.createdAt,
+      lastSeenAt: entry.lastSeenAt,
+      expiresAt: entry.expiresAt,
+      isCurrent: Boolean(currentSessionId && entry.sessionId === currentSessionId),
+    }));
+
+  const recentEvents: UserSecurityEventItem[] = getSecurityEventStore()
+    .filter((evt) => evt.userId === userId)
+    .slice(0, 10)
+    .map((evt) => {
+      const formatted = formatSecurityEventLabel(evt.action);
+      return {
+        id: evt.id,
+        action: evt.action,
+        label: formatted.label,
+        ipAddress: evt.ipAddress,
+        createdAt: evt.createdAt,
+        outcome: formatted.outcome,
+      };
+    });
+
+  return {
+    passwordPolicy,
+    activeSessions,
+    recentEvents,
+    canManageSecurity: Boolean(account && !account.isAdministrator),
+  };
+}
+
+export function updateDevDemoPassword(
+  userId: string,
+  rawInput: unknown,
+  currentSessionId: string | null = null,
+  passwordPolicy: UserPasswordPolicySummary = DEFAULT_USER_PASSWORD_POLICY,
+):
+  | {
+      readonly ok: true;
+      readonly message: string;
+      readonly data: { readonly revokedOtherSessions: number };
+    }
+  | {
+      readonly ok: false;
+      readonly code: "validation" | "not_found" | "admin_protected";
+      readonly error: string;
+      readonly fieldErrors?: Record<string, string>;
+    } {
+  const existing = getAllDevDemoAccounts().find(
+    (candidate) => candidate.id === userId,
+  );
+  if (!existing) {
+    return { ok: false, code: "not_found", error: "Account not found." };
+  }
+  if (existing.isAdministrator) {
+    return {
+      ok: false,
+      code: "admin_protected",
+      error: "Administrator accounts cannot update password here.",
+    };
+  }
+
+  const validated = validateUserPasswordInput(rawInput, passwordPolicy);
+  if (!validated.ok) {
+    return {
+      ok: false,
+      code: "validation",
+      error: validated.error,
+      fieldErrors: validated.fieldErrors,
+    };
+  }
+
+  if (existing.password !== validated.data.currentPassword) {
+    return {
+      ok: false,
+      code: "validation",
+      error: "Current password is incorrect.",
+      fieldErrors: { currentPassword: "Current password is incorrect." },
+    };
+  }
+
+  getPasswordOverrideStore().set(existing.id, validated.data.newPassword);
+  const dynamic = getDynamicUserStore().get(existing.id);
+  if (dynamic) {
+    getDynamicUserStore().set(existing.id, {
+      ...dynamic,
+      password: validated.data.newPassword,
+    });
+  }
+
+  let revokedOtherSessions = 0;
+  if (validated.data.revokeOtherSessions) {
+    for (const [sid, meta] of getSessionMetaStore().entries()) {
+      if (meta.userId === existing.id && sid !== currentSessionId) {
+        getSessionStore().delete(sid);
+        getSessionMetaStore().delete(sid);
+        revokedOtherSessions += 1;
+      }
+    }
+  }
+
+  appendDemoSecurityEvent(existing.id, "user_password_changed");
+
+  return {
+    ok: true,
+    data: { revokedOtherSessions },
+    message:
+      revokedOtherSessions > 0
+        ? `Password updated and ${revokedOtherSessions} other active session(s) signed out.`
+        : "Password updated.",
+  };
+}
+
+export function issueDevDemoPasswordResetToken(
+  identifier: string,
+  clientIp: string | null = null,
+): {
+  readonly ok: boolean;
+  readonly token?: string;
+  readonly username?: string;
+  readonly error?: string;
+} {
+  const normalized = identifier.trim().toLowerCase();
+  if (!normalized) {
+    return { ok: false, error: "Enter your username or email address." };
+  }
+
+  const account = getAllDevDemoAccounts().find(
+    (candidate) =>
+      candidate.isActive !== false &&
+      (candidate.username.toLowerCase() === normalized ||
+        (candidate.email && candidate.email.toLowerCase() === normalized)),
+  );
+  if (!account) {
+    return { ok: false, error: "No active account matched that username or email." };
+  }
+
+  const token = createOpaqueToken();
+  const tokenHash = hashOpaqueToken(token);
+  const expiresAt = Date.now() + RESET_TOKEN_TTL_MS;
+
+  const store = getResetTokenStore();
+  for (const [key, entry] of store.entries()) {
+    if (entry.userId === account.id || entry.expiresAt <= Date.now()) {
+      store.delete(key);
+    }
+  }
+  store.set(tokenHash, {
+    userId: account.id,
+    tokenHash,
+    expiresAt,
+  });
+
+  appendDemoSecurityEvent(account.id, "password_reset_requested", clientIp);
+  return { ok: true, token, username: account.username };
+}
+
+export function completeDevDemoPasswordReset(
+  token: string,
+  newPassword: string,
+  confirmation: string,
+  policy: UserPasswordPolicySummary = DEFAULT_USER_PASSWORD_POLICY,
+  clientIp: string | null = null,
+): {
+  readonly ok: boolean;
+  readonly error?: string;
+  readonly fieldErrors?: Record<string, string>;
+} {
+  if (!isOpaqueToken(token)) {
+    return {
+      ok: false,
+      error: "Reset token is invalid or has expired.",
+      fieldErrors: { token: "Enter a valid reset token." },
+    };
+  }
+
+  const minLen = Math.max(8, policy.minLength);
+  if (newPassword.length < minLen) {
+    return {
+      ok: false,
+      error: `Password must be at least ${minLen} characters.`,
+      fieldErrors: {
+        password: `Password must be at least ${minLen} characters.`,
+      },
+    };
+  }
+  if (newPassword.length > MAX_PASSWORD_LENGTH) {
+    return {
+      ok: false,
+      error: `Password cannot exceed ${MAX_PASSWORD_LENGTH} characters.`,
+      fieldErrors: {
+        password: `Password cannot exceed ${MAX_PASSWORD_LENGTH} characters.`,
+      },
+    };
+  }
+  if (policy.requireStrongPassword && !hasStrongPasswordCharacters(newPassword)) {
+    return {
+      ok: false,
+      error:
+        "Password must include uppercase, lowercase, number, and symbol characters.",
+      fieldErrors: {
+        password:
+          "Password must include uppercase, lowercase, number, and symbol characters.",
+      },
+    };
+  }
+  if (!passwordConfirmationMatches(newPassword, confirmation)) {
+    return {
+      ok: false,
+      error: "Password confirmation does not match.",
+      fieldErrors: { confirmation: "Password confirmation does not match." },
+    };
+  }
+
+  const tokenHash = hashOpaqueToken(token);
+  const store = getResetTokenStore();
+  const entry = store.get(tokenHash);
+  if (!entry || entry.expiresAt <= Date.now()) {
+    if (entry) store.delete(tokenHash);
+    return {
+      ok: false,
+      error: "Reset token is invalid or has expired.",
+      fieldErrors: { token: "Reset token is invalid or has expired." },
+    };
+  }
+
+  store.delete(tokenHash);
+
+  const account = getAllDevDemoAccounts().find(
+    (candidate) => candidate.id === entry.userId,
+  );
+  if (!account) {
+    return {
+      ok: false,
+      error: "Reset target account no longer exists.",
+    };
+  }
+
+  getPasswordOverrideStore().set(account.id, newPassword);
+  const dynamic = getDynamicUserStore().get(account.id);
+  if (dynamic) {
+    getDynamicUserStore().set(account.id, {
+      ...dynamic,
+      password: newPassword,
+    });
+  }
+
+  for (const [sid, meta] of getSessionMetaStore().entries()) {
+    if (meta.userId === account.id) {
+      getSessionStore().delete(sid);
+      getSessionMetaStore().delete(sid);
+    }
+  }
+
+  appendDemoSecurityEvent(account.id, "password_reset_completed", clientIp);
+  return { ok: true };
+}
+
+export function revokeDevDemoUserSessionById(
+  userId: string,
+  sessionRecordId: string,
+  currentSessionId: string | null = null,
+):
+  | { readonly ok: true; readonly message: string; readonly data: { readonly revoked: number } }
+  | { readonly ok: false; readonly code: "validation" | "not_found"; readonly error: string } {
+  for (const [sid, meta] of getSessionMetaStore().entries()) {
+    if (meta.userId === userId && meta.id === sessionRecordId) {
+      if (currentSessionId && sid === currentSessionId) {
+        return {
+          ok: false,
+          code: "validation",
+          error: "Use Sign out in the header to end your current session.",
+        };
+      }
+      getSessionStore().delete(sid);
+      getSessionMetaStore().delete(sid);
+      appendDemoSecurityEvent(userId, "user_session_revoked");
+      return {
+        ok: true,
+        data: { revoked: 1 },
+        message: "Session revoked.",
+      };
+    }
+  }
+
+  return { ok: false, code: "not_found", error: "Session not found." };
+}
+
+export function revokeDevDemoOtherUserSessions(
+  userId: string,
+  currentSessionId: string | null = null,
+): { readonly ok: true; readonly message: string; readonly data: { readonly revoked: number } } {
+  let revoked = 0;
+  for (const [sid, meta] of getSessionMetaStore().entries()) {
+    if (meta.userId === userId && sid !== currentSessionId) {
+      getSessionStore().delete(sid);
+      getSessionMetaStore().delete(sid);
+      revoked += 1;
+    }
+  }
+
+  if (revoked > 0) {
+    appendDemoSecurityEvent(userId, "user_sessions_revoked");
+  }
+
+  return {
+    ok: true,
+    data: { revoked },
+    message:
+      revoked > 0
+        ? `Signed out ${revoked} other active session(s).`
+        : "No other active sessions to sign out.",
+  };
+}
+
 export function clearDevDemoSessions(): void {
   getSessionStore().clear();
   getDynamicUserStore().clear();
+  getProfileOverrideStore().clear();
+  getPasswordOverrideStore().clear();
+  getSessionMetaStore().clear();
+  getResetTokenStore().clear();
+  getSecurityEventStore().length = 0;
   globalForDevDemoSessions.mailstackDevDemoNextId = BigInt(9100);
+  globalForDevDemoSessions.readboxDevDemoNextSessionSeq = 1;
+  globalForDevDemoSessions.readboxDevDemoNextEventSeq = 1;
 }

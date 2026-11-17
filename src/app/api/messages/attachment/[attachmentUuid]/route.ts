@@ -36,7 +36,10 @@ export async function GET(
 
   const { attachmentUuid } = await context.params;
   if (!env.databaseUrl && demoActive) {
-    const demoAttachment = getDemoAttachmentDownload(attachmentUuid);
+    const demoAttachment = getDemoAttachmentDownload(attachmentUuid, {
+      isAdministrator: user.isAdministrator,
+      userId: user.id,
+    });
     if (!demoAttachment) {
       return uniformNotFound();
     }
@@ -67,6 +70,7 @@ export async function GET(
       getPrismaClient(),
       {
         userId,
+        authSource: user.authSource,
         username: user.username,
         isAdministrator: user.isAdministrator,
         headers: request.headers,
@@ -89,7 +93,7 @@ export async function GET(
       "Cache-Control": "private, no-store",
     };
 
-    if (process.env.USE_X_ACCEL_REDIRECT === "true") {
+    if (env.useXAccelRedirect) {
       return new NextResponse(null, {
         status: 200,
         headers: {

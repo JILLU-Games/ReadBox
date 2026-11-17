@@ -2,12 +2,15 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   CopyButton,
   Icon,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelHeader,
   SectionTitle,
+  StatCard,
+  StatGrid,
 } from "@/components/ui";
 import type {
   AdminOverviewData,
@@ -57,10 +60,12 @@ function HealthStatusCard({
         />
         <div className="min-w-0">
           <p className="text-xs font-medium text-foreground">{item.label}</p>
-          <p className="truncate text-[11px] text-muted-foreground">
-            {item.meta
-              ? `Last seen ${formatTimestamp(item.meta, "Never")}`
-              : subtitle}
+          <p className="truncate">
+            <CaptionText>
+              {item.meta
+                ? `Last seen ${formatTimestamp(item.meta, "Never")}`
+                : subtitle}
+            </CaptionText>
           </p>
         </div>
       </div>
@@ -89,29 +94,31 @@ export function AdminOverview({
 
   return (
     <div className="space-y-3">
-      <header className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
-        <PageTitle>System overview</PageTitle>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Button asChild size="sm">
-            <Link href="/vcon/users/new">
-              <Icon glyph={UserPlus} />
-              Add user
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/vcon/users">
-              <Icon glyph={Users} />
-              Users
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/vcon/audit">
-              <Icon glyph={ScrollText} />
-              Audit &amp; security
-            </Link>
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        title="System overview"
+        actions={
+          <>
+            <Button asChild size="sm">
+              <Link href="/vcon/users/new">
+                <Icon glyph={UserPlus} />
+                Add user
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/vcon/users">
+                <Icon glyph={Users} />
+                Users
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/vcon/audit">
+                <Icon glyph={ScrollText} />
+                Audit &amp; security
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {!data.databaseConfigured ? (
         <AlertBanner
@@ -132,25 +139,16 @@ export function AdminOverview({
         </AlertBanner>
       ) : null}
 
-      <section
-        aria-label="System KPIs"
-        className="grid grid-cols-2 border border-border bg-card sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-border"
-      >
+      <StatGrid aria-label="System KPIs">
         {kpiCards.map((card) => (
-          <article key={card.label} className="px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">{card.label}</p>
-            <p
-              className={
-                "small" in card && card.small
-                  ? "mt-1 truncate font-mono text-xs font-medium tabular-nums text-foreground"
-                  : "mt-0.5 text-lg font-medium tabular-nums text-foreground"
-              }
-            >
-              {card.value}
-            </p>
-          </article>
+          <StatCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            compact={"small" in card && card.small}
+          />
         ))}
-      </section>
+      </StatGrid>
 
       <section
         aria-label="Service health"
@@ -174,9 +172,7 @@ export function AdminOverview({
         <Panel>
           <PanelHeader>
             <SectionTitle>Recently received</SectionTitle>
-            <span className="text-[11px] text-muted-foreground">
-              Latest 8 deliveries
-            </span>
+            <CaptionText>Latest 8 deliveries</CaptionText>
           </PanelHeader>
           <div className="divide-y divide-border">
             {data.recentMessages.length > 0 ? (
@@ -189,14 +185,18 @@ export function AdminOverview({
                     <p className="truncate text-xs font-medium text-foreground">
                       {message.subject || "(No subject)"}
                     </p>
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                      {message.senderAddress || "Unknown sender"} ·{" "}
-                      <span className="font-mono">{message.mailboxEmail}</span>
+                    <p className="mt-0.5 truncate">
+                      <CaptionText>
+                        {message.senderAddress || "Unknown sender"} ·{" "}
+                        <span className="font-mono">{message.mailboxEmail}</span>
+                      </CaptionText>
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <time className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                      {formatTimestamp(message.receivedAt, "Unknown date")}
+                    <time>
+                      <CaptionText className="font-mono tabular-nums">
+                        {formatTimestamp(message.receivedAt, "Unknown date")}
+                      </CaptionText>
                     </time>
                     {!message.isRead ? (
                       <Badge variant="default">Unread</Badge>
@@ -215,9 +215,7 @@ export function AdminOverview({
         <Panel>
           <PanelHeader>
             <SectionTitle>Recently created mailboxes</SectionTitle>
-            <span className="text-[11px] text-muted-foreground">
-              Click address to copy
-            </span>
+            <CaptionText>Click address to copy</CaptionText>
           </PanelHeader>
           <div className="divide-y divide-border">
             {data.recentMailboxes.length > 0 ? (
@@ -235,13 +233,17 @@ export function AdminOverview({
                         title={`Copy ${mailbox.emailAddress}`}
                         successMessage={`Copied ${mailbox.emailAddress}`}
                         errorMessage="Could not copy mailbox address."
-                        className="max-w-full font-mono"
+                        variant="inline"
+                        size="sm"
+                        className="h-auto max-w-full px-0 py-0 font-mono"
                       >
                         <span className="truncate">{mailbox.emailAddress}</span>
                       </CopyButton>
-                      <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-                        {mailbox.totalMessages}{" "}
-                        {msgCount === 1 ? "message" : "messages"}
+                      <p className="mt-0.5">
+                        <CaptionText className="tabular-nums">
+                          {mailbox.totalMessages}{" "}
+                          {msgCount === 1 ? "message" : "messages"}
+                        </CaptionText>
                       </p>
                     </div>
                     <Badge

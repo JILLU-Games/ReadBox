@@ -21,8 +21,8 @@ import {
 } from "react";
 
 export const MAX_NOTIFIED_MESSAGE_UUIDS = 200;
-export const NOTIFIED_STORAGE_KEY = "vibmail-notified-message-uuids";
-export const LIVE_BROADCAST_CHANNEL_NAME = "vibmail-live-notifications";
+export const NOTIFIED_STORAGE_KEY = "readbox-notified-message-uuids";
+export const LIVE_BROADCAST_CHANNEL_NAME = "readbox-live-notifications";
 
 export function loadNotifiedMessageUuids(
   storage: Pick<Storage, "getItem"> | null | undefined = typeof window !==
@@ -97,7 +97,7 @@ export async function claimMessageNotification(
   ) {
     let claimed = false;
     await navigator.locks.request(
-      `vibmail-notification-${messageUuid}`,
+      `readbox-notification-${messageUuid}`,
       async () => {
         claimed = attemptClaim();
       },
@@ -145,11 +145,13 @@ export function useLiveMailPoller({
   const [syncDegraded, setSyncDegraded] = useState(false);
   const cursorRef = useRef<number>(0);
   const bootstrappedRef = useRef<boolean>(false);
+  const lastSnapshotSignatureRef = useRef<string | null>(null);
   const pollingRef = useRef<boolean>(false);
   const backoffRef = useRef<number>(5000);
   const consecutiveFailuresRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const sessionExpiredNotifiedRef = useRef<boolean>(false);
   const onLivePayloadRef = useRef(onLivePayload);
 
   const visibleMailboxesKey = visibleMailboxUuids.slice(0, 50).join(",");
@@ -202,7 +204,7 @@ export function useLiveMailPoller({
             `New email in ${message.mailbox}`,
             {
               body: `${message.sender_address || "Unknown sender"} — ${subject}`,
-              tag: `vibmail-${message.uuid}`,
+              tag: `readbox-${message.uuid}`,
             },
           );
           browserNotification.onclick = () => {
@@ -265,6 +267,18 @@ export function useLiveMailPoller({
           },
         );
 
+        if (response.status === 401) {
+          cancelled = true;
+          setSyncDegraded(true);
+          if (!sessionExpiredNotifiedRef.current) {
+            sessionExpiredNotifiedRef.current = true;
+            notify.error(
+              "Your session has expired. Sign in again to resume live mailbox updates.",
+            );
+          }
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(`Live poll HTTP ${response.status}`);
         }
@@ -276,12 +290,36 @@ export function useLiveMailPoller({
         cursorRef.current = Number(payload.cursor || 0);
         bootstrappedRef.current = true;
 
+        const nextSignature = JSON.stringify({
+          summary: payload.summary,
+          mailboxes: (payload.mailboxes ?? []).map((m) => [
+            m.uuid,
+            m.status,
+            m.total_messages,
+            m.unread_messages,
+          ]),
+        });
+        const stateChanged =
+          !firstPoll &&
+          lastSnapshotSignatureRef.current !== null &&
+          lastSnapshotSignatureRef.current !== nextSignature;
+        lastSnapshotSignatureRef.current = nextSignature;
+
         onLivePayloadRef.current?.(payload);
+        if (Array.isArray(payload.mailboxes)) {
+          window.dispatchEvent(
+            new CustomEvent("readbox:live-mailboxes-updated", {
+              detail: payload.mailboxes,
+            }),
+          );
+        }
 
         if (!firstPoll && payload.messages.length > 0) {
           for (const msg of payload.messages) {
             await dispatchMessageNotification(msg);
           }
+          router.refresh();
+        } else if (stateChanged) {
           router.refresh();
         }
 

@@ -54,6 +54,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
     isHttpsRequest,
   });
 
+  const requestClientIp = extractClientIp(req?.headers, {
+    trustProxyHeaders: env.trustProxyHeaders,
+  });
+  const requestUserAgent = req?.headers?.get("user-agent") ?? "";
+
   return {
     secret: authSecret,
     trustHost: env.nodeEnv !== "production" || env.authTrustHost,
@@ -133,13 +138,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
         let registered = false;
         try {
           registered = devDemoActive
-            ? registerDevDemoSession(env.nodeEnv, user.id, sessionId)
+            ? registerDevDemoSession(env.nodeEnv, user.id, sessionId, {
+                ipAddress: requestClientIp,
+                userAgent: requestUserAgent,
+              })
             : await registerAppSession(
                 getPrismaClient(),
                 user.id,
                 sessionId,
                 expiresAt,
-                { authSource },
+                {
+                  authSource,
+                  ipAddress: requestClientIp,
+                  userAgent: requestUserAgent,
+                },
               );
         } catch {
           appLogger.error("auth_session_registration_failed");
@@ -161,9 +173,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth((req) => {
       let currentUser;
       try {
         currentUser = devDemoActive
-          ? getActiveDevDemoSession(env.nodeEnv, userId, sessionId)
+          ? getActiveDevDemoSession(env.nodeEnv, userId, sessionId, {
+              ipAddress: requestClientIp,
+              userAgent: requestUserAgent,
+            })
           : await getActiveAppSession(getPrismaClient(), userId, sessionId, {
               authSource,
+              ipAddress: requestClientIp,
+              userAgent: requestUserAgent,
             });
       } catch {
         appLogger.error("auth_session_validation_failed");

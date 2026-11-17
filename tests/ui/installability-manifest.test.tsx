@@ -1,12 +1,22 @@
-import manifest from "@/app/manifest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+import manifest from "@/app/manifest";
+import {
+  resetDevFallbackSiteSettings,
+  updateSiteSettings,
+} from "@/core/settings/service";
 
 describe("app installability manifest", () => {
-  const appManifest = manifest();
+  afterEach(() => {
+    resetDevFallbackSiteSettings();
+  });
 
-  it("declares standalone launch behavior and the authenticated workspace start URL", () => {
+  it("declares standalone launch behavior and the authenticated workspace start URL", async () => {
+    const appManifest = await manifest();
     expect(appManifest).toMatchObject({
       name: "ReadBox",
       short_name: "ReadBox",
@@ -17,10 +27,26 @@ describe("app installability manifest", () => {
     });
   });
 
+  it("reflects dynamic site settings branding asynchronously", async () => {
+    await updateSiteSettings(
+      {
+        siteName: "Acme MailOps",
+        siteTagline: "Custom mail workspace",
+      },
+      { prisma: null },
+    );
+
+    const appManifest = await manifest();
+    expect(appManifest.name).toBe("Acme MailOps");
+    expect(appManifest.short_name).toBe("Acme MailOps");
+    expect(appManifest.description).toBe("Custom mail workspace");
+  });
+
   it.each([
-    ["/icons/mailstack-192.png", 192],
-    ["/icons/mailstack-512.png", 512],
-  ])("provides a valid %i-pixel PNG manifest icon", (src, size) => {
+    ["/icons/readbox-192.png", 192],
+    ["/icons/readbox-512.png", 512],
+  ])("provides a valid %i-pixel PNG manifest icon", async (src, size) => {
+    const appManifest = await manifest();
     const icon = appManifest.icons?.find((candidate) => candidate.src === src);
     expect(icon).toMatchObject({
       sizes: `${size}x${size}`,

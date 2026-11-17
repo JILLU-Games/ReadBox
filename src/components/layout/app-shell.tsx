@@ -1,12 +1,15 @@
 "use client";
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NavLink } from "@/components/ui/nav-link";
 import { NotificationToaster } from "@/components/ui/notifications";
+import { CaptionText } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import {
   ArrowUpCircle,
@@ -18,6 +21,8 @@ import {
   LogOut,
   Mail,
   Menu,
+  MessageSquare,
+  Plus,
   ScrollText,
   Settings,
   ShieldCheck,
@@ -26,7 +31,6 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -61,6 +65,7 @@ export interface AppShellProps {
 const workspaceNavigation = [
   { href: "/users", label: "Overview", icon: LayoutDashboard },
   { href: "/users/mailboxes", label: "My mailboxes", icon: Mail },
+  { href: "/users/settings", label: "Settings", icon: Settings },
 ] as const;
 
 const managementGroups = [
@@ -94,6 +99,11 @@ const managementGroups = [
         icon: SlidersHorizontal,
       },
       { href: "/vcon/audit", label: "Audit & security", icon: ScrollText },
+      {
+        href: "/vcon/inquiries",
+        label: "Contact inquiries",
+        icon: MessageSquare,
+      },
     ],
   },
   {
@@ -125,17 +135,23 @@ export function AppShell({
   children,
   user,
   branding,
-  mailboxes = [],
+  mailboxes,
   signOutAction,
 }: AppShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mailboxFilter, setMailboxFilter] = useState("");
   const [toggledGroups, setToggledGroups] = useState<Record<string, boolean>>({});
-  const firstNavigationRef = useRef<HTMLElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const isAdministrator = user?.isAdministrator === true;
   const isAdminRoute = pathname.startsWith("/vcon");
+  const isUsersRoute = pathname.startsWith("/users");
+  const showManagementSidebar =
+    isAdministrator && (isAdminRoute || (!isUsersRoute || mailboxes === undefined));
+  const resolvedMailboxesProp = useMemo(() => mailboxes ?? [], [mailboxes]);
+  const [liveMailboxCounts, setLiveMailboxCounts] = useState<
+    Record<string, { unreadMessages: number; totalMessages: number }>
+  >({});
 
   const [liveBrandingOverride, setLiveBrandingOverride] =
     useState<AppShellBranding | null>(null);
@@ -157,16 +173,63 @@ export function AppShell({
         });
       }
     }
+    function handleLiveMailboxesUpdated(event: Event) {
+      const items = (
+        event as CustomEvent<
+          ReadonlyArray<{
+            uuid: string;
+            unread_messages: number;
+            total_messages: number;
+          }>
+        >
+      ).detail;
+      if (!Array.isArray(items)) return;
+      setLiveMailboxCounts((prev) => {
+        const next = { ...prev };
+        for (const item of items) {
+          if (item && typeof item.uuid === "string") {
+            next[item.uuid] = {
+              unreadMessages: Number(item.unread_messages) || 0,
+              totalMessages: Number(item.total_messages) || 0,
+            };
+          }
+        }
+        return next;
+      });
+    }
     window.addEventListener(
       "readbox:site-settings-updated",
       handleBrandingUpdated,
     );
-    return () =>
+    window.addEventListener(
+      "readbox:live-mailboxes-updated",
+      handleLiveMailboxesUpdated,
+    );
+    return () => {
       window.removeEventListener(
         "readbox:site-settings-updated",
         handleBrandingUpdated,
       );
+      window.removeEventListener(
+        "readbox:live-mailboxes-updated",
+        handleLiveMailboxesUpdated,
+      );
+    };
   }, []);
+
+  const effectiveMailboxes = useMemo(
+    () =>
+      resolvedMailboxesProp.map((mbx) => {
+        const live = liveMailboxCounts[mbx.uuid];
+        if (!live) return mbx;
+        return {
+          ...mbx,
+          unreadMessages: live.unreadMessages,
+          totalMessages: live.totalMessages,
+        };
+      }),
+    [liveMailboxCounts, resolvedMailboxesProp],
+  );
 
   const effectiveBranding = liveBrandingOverride ?? branding;
   const brandName = effectiveBranding?.siteName?.trim() || "ReadBox";
@@ -200,16 +263,18 @@ export function AppShell({
 
   const filteredMailboxes = useMemo(() => {
     const query = mailboxFilter.trim().toLowerCase();
-    if (!query) return mailboxes;
-    return mailboxes.filter((mbx) =>
+    if (!query) return effectiveMailboxes;
+    return effectiveMailboxes.filter((mbx) =>
       mbx.emailAddress.toLowerCase().includes(query),
     );
-  }, [mailboxes, mailboxFilter]);
+  }, [effectiveMailboxes, mailboxFilter]);
 
   useEffect(() => {
     if (!mobileOpen) return;
 
-    firstNavigationRef.current?.focus();
+    sidebarRef.current
+      ?.querySelector<HTMLElement>('[data-drawer-initial-focus="true"]')
+      ?.focus();
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setMobileOpen(false);
@@ -262,8 +327,10 @@ export function AppShell({
   return (
     <div className="min-h-dvh bg-background text-foreground">
       {mobileOpen ? (
-        <button
-          className="fixed inset-0 z-40 bg-overlay md:hidden"
+        <Button
+          type="button"
+          variant="ghost"
+          className="fixed inset-0 z-40 h-auto w-auto bg-overlay p-0 hover:bg-overlay md:hidden"
           aria-label="Close navigation"
           onClick={closeMobileNavigation}
         />
@@ -271,6 +338,7 @@ export function AppShell({
       <aside
         ref={sidebarRef}
         id="workspace-sidebar"
+        data-print-hide="true"
         role={mobileOpen ? "dialog" : undefined}
         aria-modal={mobileOpen ? true : undefined}
         aria-label={mobileOpen ? "Workspace navigation" : undefined}
@@ -280,21 +348,13 @@ export function AppShell({
         )}
       >
         <div className="flex h-12 shrink-0 items-center gap-2.5 border-b border-border px-3">
-          {effectiveBranding?.logoUrl ? (
-            <img
-              src={effectiveBranding.logoUrl}
-              alt={`${brandName} logo`}
-              referrerPolicy="no-referrer"
-              className="size-7 shrink-0 rounded-none border border-border object-contain p-0.5"
-            />
-          ) : (
-            <span className="grid size-7 shrink-0 place-items-center rounded-none bg-primary text-primary-foreground">
-              <Icon glyph={Inbox} />
-            </span>
-          )}
-          <span className="truncate text-xs font-medium text-foreground">
-            {brandName}
-          </span>
+          <BrandLogo
+            siteName={brandName}
+            logoUrl={effectiveBranding?.logoUrl}
+            size="md"
+            fallbackIcon={Inbox}
+            className="min-w-0 flex-1"
+          />
           <IconButton
             className="ml-auto md:hidden"
             label="Close navigation drawer"
@@ -305,10 +365,12 @@ export function AppShell({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-          {isAdministrator ? (
+          {showManagementSidebar ? (
             <>
-              <div className="px-3 pb-1.5 pt-3 text-[11px] font-medium text-sidebar-muted">
-                Management
+              <div className="px-3 pb-1.5 pt-3">
+                <CaptionText className="font-medium text-sidebar-muted">
+                  Management
+                </CaptionText>
               </div>
               <nav aria-label="Management navigation" className="space-y-1 px-2">
                 {managementGroups.map((group, groupIndex) => {
@@ -321,23 +383,20 @@ export function AppShell({
 
                   return (
                     <div key={group.id} className="space-y-0.5">
-                      <button
-                        ref={
-                          groupIndex === 0
-                            ? (node) => {
-                                firstNavigationRef.current = node;
-                              }
-                            : undefined
+                      <Button
+                        data-drawer-initial-focus={
+                          groupIndex === 0 ? "true" : undefined
                         }
                         type="button"
+                        variant="ghost"
                         aria-expanded={open}
                         aria-controls={submenuId}
                         onClick={() => toggleGroup(group.id)}
                         className={cn(
-                          "flex min-h-8 w-full items-center justify-between gap-2 rounded-none px-2.5 text-left text-xs font-medium transition-colors",
+                          "h-auto min-h-8 w-full justify-between gap-2 px-2.5 text-left",
                           hasActiveChild
                             ? "text-sidebar-foreground"
-                            : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
+                            : "text-sidebar-muted hover:text-sidebar-foreground",
                         )}
                       >
                         <span className="flex min-w-0 items-center gap-2.5">
@@ -348,7 +407,7 @@ export function AppShell({
                           glyph={open ? ChevronDown : ChevronRight}
                           className="size-3.5 shrink-0 text-sidebar-muted"
                         />
-                      </button>
+                      </Button>
 
                       {open ? (
                         <div
@@ -362,24 +421,19 @@ export function AppShell({
                                 href,
                               );
                               return (
-                                <Link
+                                <NavLink
                                   key={href}
                                   href={href}
-                                  aria-current={active ? "page" : undefined}
+                                  variant="sidebarSub"
+                                  active={active}
                                   onClick={closeMobileNavigation}
-                                  className={cn(
-                                    "flex min-h-7 items-center gap-2 rounded-none px-2 text-xs font-medium transition-colors",
-                                    active
-                                      ? "bg-sidebar-active text-sidebar-active-foreground"
-                                      : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
-                                  )}
                                 >
                                   <Icon
                                     glyph={NavigationIcon}
                                     className="size-3.5 shrink-0"
                                   />
                                   <span className="truncate">{label}</span>
-                                </Link>
+                                </NavLink>
                               );
                             },
                           )}
@@ -392,8 +446,10 @@ export function AppShell({
             </>
           ) : (
             <>
-              <div className="px-3 pb-1.5 pt-3 text-[11px] font-medium text-sidebar-muted">
-                Workspaces
+              <div className="px-3 pb-1.5 pt-3">
+                <CaptionText className="font-medium text-sidebar-muted">
+                  Workspaces
+                </CaptionText>
               </div>
               <nav aria-label="Workspace navigation" className="space-y-0.5 px-2">
                 {workspaceNavigation.map(({ href, label, icon: NavigationIcon }) => {
@@ -402,41 +458,55 @@ export function AppShell({
                       ? pathname === "/users"
                       : pathname === href || pathname.startsWith(`${href}/`);
                   return (
-                    <Link
+                    <NavLink
                       key={href}
-                      ref={
-                        href === "/users"
-                          ? (node) => {
-                              firstNavigationRef.current = node;
-                            }
-                          : undefined
+                      data-drawer-initial-focus={
+                        href === "/users" ? "true" : undefined
                       }
                       href={href}
-                      aria-current={active ? "page" : undefined}
+                      variant="sidebar"
+                      active={active}
                       onClick={closeMobileNavigation}
-                      className={cn(
-                        "flex min-h-8 items-center gap-2.5 rounded-none px-2.5 text-xs font-medium transition-colors",
-                        active
-                          ? "bg-sidebar-active text-sidebar-active-foreground"
-                          : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
-                      )}
+                      className="gap-2.5"
                     >
                       <Icon glyph={NavigationIcon} />
                       {label}
-                    </Link>
+                    </NavLink>
                   );
                 })}
               </nav>
 
-              {!isAdminRoute && mailboxes.length > 0 ? (
+              {!isAdminRoute ? (
+                <div className="px-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2.5"
+                    onClick={() => {
+                      closeMobileNavigation();
+                      window.dispatchEvent(
+                        new CustomEvent("readbox:open-create-mailbox"),
+                      );
+                    }}
+                  >
+                    <Icon glyph={Plus} />
+                    <span>Add mailbox</span>
+                  </Button>
+                </div>
+              ) : null}
+
+              {!isAdminRoute && effectiveMailboxes.length > 0 ? (
                 <>
-                  <div className="flex items-center justify-between px-3 pb-1.5 pt-4 text-[11px] font-medium text-sidebar-muted">
-                    <span>Inboxes</span>
-                    <span className="font-mono text-[10px] tabular-nums">
-                      {mailboxes.length}
-                    </span>
+                  <div className="flex items-center justify-between px-3 pb-1.5 pt-4">
+                    <CaptionText className="font-medium text-sidebar-muted">
+                      Inboxes
+                    </CaptionText>
+                    <CaptionText className="font-mono text-sidebar-muted tabular-nums">
+                      {effectiveMailboxes.length}
+                    </CaptionText>
                   </div>
-                  {mailboxes.length > 5 ? (
+                  {effectiveMailboxes.length > 5 ? (
                     <div className="px-2 pb-1.5">
                       <Label htmlFor="sidebar-inbox-filter" className="sr-only">
                         Filter inboxes
@@ -446,31 +516,29 @@ export function AppShell({
                         value={mailboxFilter}
                         onChange={(event) => setMailboxFilter(event.target.value)}
                         placeholder="Filter inboxes..."
-                        className="h-7 text-[11px]"
+                        className="h-7 text-xs"
                       />
                     </div>
                   ) : null}
                   <nav aria-label="Assigned inboxes" className="space-y-0.5 px-2">
                     {filteredMailboxes.length === 0 ? (
-                      <p className="px-2.5 py-1.5 text-[11px] text-sidebar-muted">
-                        No matching inboxes
+                      <p className="px-2.5 py-1.5">
+                        <CaptionText className="text-sidebar-muted">
+                          No matching inboxes
+                        </CaptionText>
                       </p>
                     ) : (
                       filteredMailboxes.map((mbx) => {
                         const active = activeMailboxUuid === mbx.uuid;
                         const unread = Number(mbx.unreadMessages) || 0;
                         return (
-                          <Link
+                          <NavLink
                             key={mbx.uuid}
                             href={`/users/inbox/${mbx.uuid}`}
-                            aria-current={active ? "page" : undefined}
+                            variant="sidebar"
+                            active={active}
                             onClick={closeMobileNavigation}
-                            className={cn(
-                              "flex min-h-8 items-center justify-between gap-2 rounded-none px-2.5 text-[11px] transition-colors",
-                              active
-                                ? "bg-sidebar-active font-medium text-sidebar-active-foreground"
-                                : "text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground",
-                            )}
+                            className="justify-between font-normal"
                           >
                             <span className="flex min-w-0 items-center gap-2">
                               <Icon glyph={Inbox} className="size-3.5 shrink-0" />
@@ -478,17 +546,17 @@ export function AppShell({
                                 {mbx.emailAddress}
                               </span>
                             </span>
-                            <span
+                            <CaptionText
                               className={cn(
-                                "shrink-0 font-mono text-[10px] tabular-nums",
+                                "shrink-0 font-mono tabular-nums",
                                 unread > 0
                                   ? "font-medium text-primary"
                                   : "text-sidebar-muted",
                               )}
                             >
                               {unread > 0 ? unread : mbx.totalMessages}
-                            </span>
-                          </Link>
+                            </CaptionText>
+                          </NavLink>
                         );
                       })
                     )}
@@ -510,8 +578,11 @@ export function AppShell({
         ) : null}
       </aside>
 
-      <div className="min-h-dvh md:pl-56">
-        <header className="sticky top-0 z-30 flex h-12 items-center gap-2.5 border-b border-border bg-card px-3 md:px-4">
+      <div data-print-shell="true" className="min-h-dvh md:pl-56">
+        <header
+          data-print-hide="true"
+          className="sticky top-0 z-30 flex h-12 items-center gap-2.5 border-b border-border bg-card px-3 md:px-4"
+        >
           <IconButton
             id={menuButtonId}
             className="md:hidden"
@@ -531,6 +602,18 @@ export function AppShell({
             </div>
           ) : null}
           <div className="ml-auto flex items-center gap-2">
+            {isAdministrator && (isAdminRoute || !showManagementSidebar) ? (
+              <NavLink
+                href={isAdminRoute ? "/users" : "/vcon"}
+                variant="sidebar"
+                className="h-8 border border-border px-2.5 text-xs"
+              >
+                <Icon glyph={isAdminRoute ? Inbox : ShieldCheck} className="size-3.5" />
+                <span className="hidden sm:inline">
+                  {isAdminRoute ? "User workspace" : "Admin panel"}
+                </span>
+              </NavLink>
+            ) : null}
             <ThemeToggle />
             {signOutAction ? (
               <form action={signOutAction}>

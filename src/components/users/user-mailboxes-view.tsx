@@ -11,11 +11,13 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTitle,
+  FormField,
   Icon,
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
+  Pagination,
   Select,
   Table,
   TableBody,
@@ -213,9 +215,9 @@ export function UserMailboxesView({
         onLivePayload={handleLivePayload}
       />
 
-      <div className="border border-border bg-card p-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <PageTitle>My Mailboxes</PageTitle>
+      <PageHeader
+        title="My Mailboxes"
+        actions={
           <Button
             type="button"
             onClick={() =>
@@ -228,10 +230,18 @@ export function UserMailboxesView({
             <Icon glyph={Plus} />
             Create mailbox
           </Button>
-        </div>
-
-        {!listResult.databaseConfigured ? (
-          <AlertBanner variant="warning" className="mt-2.5">
+        }
+      >
+        {listResult.databaseError ? (
+          <AlertBanner
+            variant="error"
+            className="mb-2.5"
+            title="Database temporarily unavailable"
+          >
+            {listResult.databaseError}
+          </AlertBanner>
+        ) : !listResult.databaseConfigured ? (
+          <AlertBanner variant="warning" className="mb-2.5">
             Database connection is not configured.
           </AlertBanner>
         ) : null}
@@ -240,7 +250,7 @@ export function UserMailboxesView({
           method="get"
           action="/users/mailboxes"
           role="search"
-          className="mt-2.5 flex flex-wrap items-center gap-2"
+          className="flex flex-wrap items-center gap-2"
         >
           <div className="min-w-48 flex-1">
             <Label htmlFor="user-mailboxes-q" className="sr-only">
@@ -285,7 +295,7 @@ export function UserMailboxesView({
             </Button>
           ) : null}
         </form>
-      </div>
+      </PageHeader>
 
       {canDeleteMailboxes && listResult.items.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2 text-xs">
@@ -434,42 +444,30 @@ export function UserMailboxesView({
         </TableBody>
       </Table>
 
-      {listResult.totalPages > 1 ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
-          <span className="tabular-nums">
-            Page {listResult.page} of {listResult.totalPages} (
-            {listResult.totalCount})
-          </span>
-          <div className="flex items-center gap-1.5">
-            {listResult.page > 1 ? (
-              <Button asChild size="sm" variant="outline">
-                <Link
-                  href={buildMailboxesUrl({
-                    page: listResult.page - 1,
-                    q: listResult.query,
-                    status: listResult.statusFilter,
-                  })}
-                >
-                  Previous
-                </Link>
-              </Button>
-            ) : null}
-            {listResult.page < listResult.totalPages ? (
-              <Button asChild size="sm" variant="outline">
-                <Link
-                  href={buildMailboxesUrl({
-                    page: listResult.page + 1,
-                    q: listResult.query,
-                    status: listResult.statusFilter,
-                  })}
-                >
-                  Next
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <Pagination
+        variant="boxed"
+        page={listResult.page}
+        totalPages={listResult.totalPages}
+        totalCount={listResult.totalCount}
+        prevHref={
+          listResult.page > 1
+            ? buildMailboxesUrl({
+                page: listResult.page - 1,
+                q: listResult.query,
+                status: listResult.statusFilter,
+              })
+            : null
+        }
+        nextHref={
+          listResult.page < listResult.totalPages
+            ? buildMailboxesUrl({
+                page: listResult.page + 1,
+                q: listResult.query,
+                status: listResult.statusFilter,
+              })
+            : null
+        }
+      />
 
       {!usesShellModal ? (
         <CreateUserMailboxModal
@@ -495,13 +493,11 @@ export function UserMailboxesView({
                 </strong>{" "}
                 to permanently remove this mailbox and all stored messages.
               </DialogDescription>
-              <div>
-                <Label
-                  htmlFor="confirm-user-mailbox-delete"
-                  className="mb-1 block"
-                >
-                  Confirm address
-                </Label>
+              <FormField
+                id="confirm-user-mailbox-delete"
+                label="Confirm address"
+                error={purgeError ?? undefined}
+              >
                 <Input
                   id="confirm-user-mailbox-delete"
                   type="text"
@@ -512,12 +508,13 @@ export function UserMailboxesView({
                   }}
                   placeholder={purgeTarget.emailAddress}
                   autoComplete="off"
+                  aria-invalid={Boolean(purgeError)}
+                  aria-describedby={
+                    purgeError ? "confirm-user-mailbox-delete-error" : undefined
+                  }
                   className="font-mono"
                 />
-              </div>
-              {purgeError ? (
-                <AlertBanner variant="error">{purgeError}</AlertBanner>
-              ) : null}
+              </FormField>
               <DialogFooter>
                 <Button
                   type="button"

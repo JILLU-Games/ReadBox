@@ -328,9 +328,14 @@ export function toSiteSettingsView(
 export async function getSiteSettings(options?: {
   readonly prisma?: SiteSettingsPrismaLike | null;
   readonly baseOrigin?: string;
+  readonly nodeEnv?: "development" | "test" | "production";
 }): Promise<SiteSettingsView> {
+  const effectiveNodeEnv = options?.nodeEnv ?? env.nodeEnv;
   const now = Date.now();
   if (now < dbCheckCooldownUntil && options?.prisma === undefined) {
+    if (effectiveNodeEnv === "production") {
+      logger.warn("site_settings_cooldown_fallback_active");
+    }
     return toSiteSettingsView(
       getCachedSiteSettingsSnapshot(),
       false,
@@ -338,16 +343,35 @@ export async function getSiteSettings(options?: {
     );
   }
 
-  const client =
-    options?.prisma !== undefined
-      ? options.prisma
-      : env.databaseUrl
-        ? (getPrismaClient() as unknown as SiteSettingsPrismaLike)
-        : null;
+  let client: SiteSettingsPrismaLike | null = null;
+  if (options?.prisma !== undefined) {
+    client = options.prisma;
+  } else if (env.databaseUrl) {
+    try {
+      client = getPrismaClient() as unknown as SiteSettingsPrismaLike;
+    } catch (error) {
+      dbCheckCooldownUntil = Date.now() + 30_000;
+      logger.error("site_settings_client_init_failed", {
+        reason: error instanceof Error ? error.name : "unknown_error",
+      });
+      return toSiteSettingsView(
+        effectiveNodeEnv === "production"
+          ? DEFAULT_SITE_SETTINGS
+          : getCachedSiteSettingsSnapshot(),
+        false,
+        options?.baseOrigin,
+      );
+    }
+  }
 
   if (!client) {
+    if (effectiveNodeEnv === "production") {
+      logger.warn("site_settings_database_not_configured");
+    }
     return toSiteSettingsView(
-      getCachedSiteSettingsSnapshot(),
+      effectiveNodeEnv === "production"
+        ? DEFAULT_SITE_SETTINGS
+        : getCachedSiteSettingsSnapshot(),
       false,
       options?.baseOrigin,
     );
@@ -385,11 +409,19 @@ export async function getSiteSettings(options?: {
     return toSiteSettingsView(created, true, options?.baseOrigin);
   } catch (error) {
     dbCheckCooldownUntil = Date.now() + 30_000;
-    logger.debug("site_settings_load_fallback", {
+    const logFields = {
       reason: error instanceof Error ? error.name : "unknown_error",
-    });
+      message: error instanceof Error ? error.message : "unknown_error",
+    };
+    if (effectiveNodeEnv === "production") {
+      logger.error("site_settings_load_failed", logFields);
+    } else {
+      logger.warn("site_settings_load_fallback", logFields);
+    }
     return toSiteSettingsView(
-      getCachedSiteSettingsSnapshot(),
+      effectiveNodeEnv === "production"
+        ? DEFAULT_SITE_SETTINGS
+        : getCachedSiteSettingsSnapshot(),
       false,
       options?.baseOrigin,
     );
@@ -436,9 +468,13 @@ export async function updateSiteSettings(
     readonly prisma?: SiteSettingsPrismaLike | null;
     readonly mediaRoot?: string;
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly headers?: Pick<Headers, "get">;
+    readonly nodeEnv?: "development" | "test" | "production";
   },
 ): Promise<UpdateSiteSettingsResult> {
+  const effectiveNodeEnv = options?.nodeEnv ?? env.nodeEnv;
   const parsed = siteSettingsFieldsSchema.safeParse({
     siteName: input.siteName,
     siteTagline: input.siteTagline ?? "",
@@ -534,35 +570,31 @@ export async function updateSiteSettings(
       privacyUrl: parsed.data.privacyUrl,
     };
 
-    const client =
-      options?.prisma !== undefined
-        ? options.prisma
-        : env.databaseUrl
-          ? (getPrismaClient() as unknown as SiteSettingsPrismaLike)
-          : null;
+    let client: SiteSettingsPrismaLike | null = null;
+    if (options?.prisma !== undefined) {
+      client = options.prisma;
+    } else if (env.databaseUrl) {
+      client = getPrismaClient() as unknown as SiteSettingsPrismaLike;
+    }
+
+    if (!client && effectiveNodeEnv === "production") {
+      return {
+        ok: false,
+        error: "Database connection is required to save site settings.",
+      };
+    }
 
     let savedRecord: SiteSettingsRecord;
     let dbConnected = false;
 
     if (client) {
-      try {
-        savedRecord = await client.siteSettings.upsert({
-          where: { id: BigInt(1) },
-          create: payload,
-          update: payload,
-        });
-        dbConnected = true;
-        dbCheckCooldownUntil = 0;
-      } catch (dbError) {
-        if (env.nodeEnv === "production") {
-          throw dbError;
-        }
-        savedRecord = {
-          id: BigInt(1),
-          ...payload,
-          updatedAt: new Date(),
-        };
-      }
+      savedRecord = await client.siteSettings.upsert({
+        where: { id: BigInt(1) },
+        create: payload,
+        update: payload,
+      });
+      dbConnected = true;
+      dbCheckCooldownUntil = 0;
     } else {
       savedRecord = {
         id: BigInt(1),
@@ -592,6 +624,8 @@ export async function updateSiteSettings(
     if (client && dbConnected) {
       await recordAudit(client, {
         actorId: options?.actorId ?? null,
+        authSource: options?.authSource,
+        actorUsername: options?.actorUsername,
         action: "site_settings_updated",
         targetType: "site_settings",
         targetIdentifier: "singleton",

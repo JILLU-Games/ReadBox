@@ -4,12 +4,15 @@ import {
   AlertBanner,
   Badge,
   Button,
+  CaptionText,
   CopyButton,
   Icon,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelHeader,
   SectionTitle,
+  StatCard,
+  StatGrid,
 } from "@/components/ui";
 import { CreateUserMailboxModal } from "@/components/users/create-user-mailbox-modal";
 import {
@@ -112,92 +115,78 @@ export function UserOverview({
         onLivePayload={handleLivePayload}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
-        <PageTitle>Inbox &amp; Mailbox Workspace</PageTitle>
+      <PageHeader
+        title="Inbox & Mailbox Workspace"
+        actions={
+          createMailboxAction ? (
+            <Button
+              type="button"
+              onClick={() =>
+                usesShellModal
+                  ? liveContext.openCreateMailboxModal?.()
+                  : setCreateOpen(true)
+              }
+              disabled={!snapshot.databaseConfigured || !canCreate}
+            >
+              <Icon glyph={Plus} />
+              Create mailbox
+            </Button>
+          ) : undefined
+        }
+      />
 
-        {createMailboxAction ? (
-          <Button
-            type="button"
-            onClick={() =>
-              usesShellModal
-                ? liveContext.openCreateMailboxModal?.()
-                : setCreateOpen(true)
-            }
-            disabled={!snapshot.databaseConfigured || !canCreate}
-          >
-            <Icon glyph={Plus} />
-            Create mailbox
-          </Button>
-        ) : null}
-      </div>
-
-      {!snapshot.databaseConfigured ? (
+      {snapshot.databaseError ? (
+        <AlertBanner
+          variant="error"
+          title="Database temporarily unavailable"
+        >
+          {snapshot.databaseError}
+        </AlertBanner>
+      ) : !snapshot.databaseConfigured ? (
         <AlertBanner variant="warning">
           Database connection is not configured.
         </AlertBanner>
       ) : null}
 
-      <section
-        aria-label="Workspace mailbox and message summary"
-        className="grid grid-cols-2 border border-border bg-card sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-border"
-      >
-        <div className="px-3 py-2">
-          <span className="text-[11px] text-muted-foreground">Mailboxes</span>
-          <p
-            data-testid="summary-total-mailboxes"
-            className="mt-0.5 text-lg font-medium tabular-nums text-foreground"
-          >
-            {liveSummary.totalMailboxes}
-          </p>
-        </div>
-        <div className="px-3 py-2">
-          <span className="text-[11px] text-muted-foreground">Active</span>
-          <p
-            data-testid="summary-active-mailboxes"
-            className="mt-0.5 text-lg font-medium tabular-nums text-success"
-          >
-            {liveSummary.activeMailboxes}
-          </p>
-        </div>
-        <div className="px-3 py-2">
-          <span className="text-[11px] text-muted-foreground">Disabled</span>
-          <p
-            data-testid="summary-disabled-mailboxes"
-            className="mt-0.5 text-lg font-medium tabular-nums text-muted-foreground"
-          >
-            {liveSummary.disabledMailboxes}
-          </p>
-        </div>
-        <div className="px-3 py-2">
-          <span className="text-[11px] text-muted-foreground">Messages</span>
-          <p
-            data-testid="summary-total-messages"
-            className="mt-0.5 text-lg font-medium tabular-nums text-foreground"
-          >
-            {liveSummary.totalMessages}
-          </p>
-        </div>
-        <div className="px-3 py-2">
-          <span className="text-[11px] text-muted-foreground">Unread</span>
-          <p
-            data-testid="summary-total-unread"
-            className="mt-0.5 text-lg font-medium tabular-nums text-primary"
-          >
-            {liveSummary.totalUnread}
-          </p>
-        </div>
-        <div className="px-3 py-2">
-          <span className="text-[11px] text-muted-foreground">
-            Last received
-          </span>
-          <p
-            data-testid="summary-last-received"
-            className="mt-1 truncate font-mono text-xs tabular-nums text-foreground"
-          >
-            {formatCompactTimestamp(liveSummary.lastReceivedAt, "No email yet")}
-          </p>
-        </div>
-      </section>
+      <StatGrid aria-label="Workspace mailbox and message summary">
+        <StatCard
+          label="Mailboxes"
+          value={liveSummary.totalMailboxes}
+          testId="summary-total-mailboxes"
+        />
+        <StatCard
+          label="Active"
+          value={liveSummary.activeMailboxes}
+          tone="success"
+          testId="summary-active-mailboxes"
+        />
+        <StatCard
+          label="Disabled"
+          value={liveSummary.disabledMailboxes}
+          tone="muted"
+          testId="summary-disabled-mailboxes"
+        />
+        <StatCard
+          label="Messages"
+          value={liveSummary.totalMessages}
+          testId="summary-total-messages"
+        />
+        <StatCard
+          label="Unread"
+          value={liveSummary.totalUnread}
+          tone="primary"
+          testId="summary-total-unread"
+        />
+        <StatCard
+          label="Last received"
+          value={formatCompactTimestamp(
+            liveSummary.lastReceivedAt,
+            "No email yet",
+          )}
+          compact
+          testId="summary-last-received"
+        />
+      </StatGrid>
 
       <div className="grid min-w-0 gap-3 lg:grid-cols-2">
         <Panel className="min-w-0">
@@ -206,9 +195,9 @@ export function UserOverview({
               <Icon glyph={MailOpen} className="text-muted-foreground" />
               <SectionTitle>Recently received</SectionTitle>
             </div>
-            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            <CaptionText className="font-mono tabular-nums">
               {snapshot.recentMessages.length}
-            </span>
+            </CaptionText>
           </PanelHeader>
 
           <div className="divide-y divide-border">
@@ -223,7 +212,7 @@ export function UserOverview({
                   href={`/users/inbox/${msg.mailboxUuid}/${msg.uuid}`}
                   className={cn(
                     "flex items-start justify-between gap-3 px-3 py-2 transition-colors hover:bg-muted",
-                    !msg.isRead && "bg-accent/50",
+                    !msg.isRead && "bg-accent",
                   )}
                 >
                   <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -251,15 +240,17 @@ export function UserOverview({
                           />
                         ) : null}
                       </div>
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <CaptionText className="block truncate">
                         {msg.senderAddress || msg.senderName || "Unknown"} ·{" "}
                         <span className="font-mono">{msg.mailboxEmail}</span>
-                      </p>
+                      </CaptionText>
                     </div>
                   </div>
-                  <time className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-                    {formatShortInboxDate(msg.receivedAt, "—")}
-                  </time>
+                  <CaptionText className="shrink-0 font-mono tabular-nums">
+                    <time dateTime={msg.receivedAt ?? undefined}>
+                      {formatShortInboxDate(msg.receivedAt, "—")}
+                    </time>
+                  </CaptionText>
                 </Link>
               ))
             )}
@@ -272,13 +263,17 @@ export function UserOverview({
               <Icon glyph={Mail} className="text-muted-foreground" />
               <SectionTitle>Assigned mailboxes</SectionTitle>
             </div>
-            <Link
-              href="/users/mailboxes"
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            <Button
+              asChild
+              size="xs"
+              variant="ghost"
+              className="text-primary hover:text-primary"
             >
-              View all
-              <Icon glyph={ArrowRight} className="size-3" />
-            </Link>
+              <Link href="/users/mailboxes">
+                View all
+                <Icon glyph={ArrowRight} className="size-3" />
+              </Link>
+            </Button>
           </PanelHeader>
 
           <div className="divide-y divide-border">
@@ -313,13 +308,13 @@ export function UserOverview({
                           {mailbox.status}
                         </Badge>
                       </div>
-                      <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                      <CaptionText className="mt-0.5 block tabular-nums">
                         {mailbox.totalMessages}{" "}
                         {totalNum === 1 ? "message" : "messages"} ·{" "}
                         <span className="font-medium text-foreground">
                           {mailbox.unreadMessages} unread
                         </span>
-                      </p>
+                      </CaptionText>
                     </div>
 
                     <Button asChild size="sm" variant="outline">

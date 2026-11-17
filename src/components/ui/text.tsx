@@ -23,7 +23,7 @@ export function SectionTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-xs font-semibold text-foreground", className)}
+      className={cn("text-xs font-medium text-foreground", className)}
       {...props}
     >
       {children}
@@ -31,9 +31,30 @@ export function SectionTitle({
   );
 }
 
+export function SubHeading({
+  className,
+  children,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h3
+      className={cn("text-xs font-medium text-foreground", className)}
+      {...props}
+    >
+      {children}
+    </h3>
+  );
+}
+
 export function MutedText({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
   return (
     <span className={cn("text-xs text-muted-foreground", className)} {...props} />
+  );
+}
+
+export function CaptionText({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span className={cn("text-[11px] text-muted-foreground", className)} {...props} />
   );
 }
 

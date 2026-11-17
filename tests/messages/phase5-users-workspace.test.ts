@@ -6,8 +6,13 @@ import {
 } from "@/core/accounts/user-control-policy";
 import {
   createDemoMailbox,
+  deleteDemoMailbox,
+  getDemoMessageDetail,
   getDemoUserOverview,
+  listDemoMailboxMessages,
   listDemoUserMailboxes,
+  pollDemoLivePayload,
+  softDeleteDemoMessage,
 } from "@/core/messages/demo-workspace";
 import {
   buildAttachmentContentDisposition,
@@ -297,6 +302,13 @@ function createFakeWorkspacePrisma(options?: {
     ) {
       if (!(row.id > (where.id as { gt: bigint }).gt)) return false;
     }
+    if (
+      where.id &&
+      typeof where.id === "object" &&
+      Array.isArray((where.id as { in?: bigint[] }).in)
+    ) {
+      if (!(where.id as { in: bigint[] }).in.includes(row.id)) return false;
+    }
     if (typeof where.uuid === "string" && row.uuid !== where.uuid) return false;
     if (typeof where.mailboxId === "bigint" && row.mailboxId !== where.mailboxId)
       return false;
@@ -314,8 +326,62 @@ function createFakeWorkspacePrisma(options?: {
       if (!mbx || !matchesMailboxWhere(mbx, mailboxWhere)) return false;
     }
 
+    if (where.receivedAt === null && row.receivedAt !== null) return false;
+    if (
+      where.receivedAt &&
+      typeof where.receivedAt === "object" &&
+      (where.receivedAt as { gte?: Date }).gte instanceof Date
+    ) {
+      if (
+        !row.receivedAt ||
+        row.receivedAt < (where.receivedAt as { gte: Date }).gte
+      ) {
+        return false;
+      }
+    }
+    if (
+      where.receivedAt &&
+      typeof where.receivedAt === "object" &&
+      (where.receivedAt as { lt?: Date }).lt instanceof Date
+    ) {
+      if (
+        !row.receivedAt ||
+        !(row.receivedAt < (where.receivedAt as { lt: Date }).lt)
+      ) {
+        return false;
+      }
+    }
+    if (
+      where.createdAt &&
+      typeof where.createdAt === "object" &&
+      (where.createdAt as { gte?: Date }).gte instanceof Date
+    ) {
+      if (row.createdAt < (where.createdAt as { gte: Date }).gte) {
+        return false;
+      }
+    }
+    if (
+      where.createdAt &&
+      typeof where.createdAt === "object" &&
+      (where.createdAt as { lt?: Date }).lt instanceof Date
+    ) {
+      if (!(row.createdAt < (where.createdAt as { lt: Date }).lt)) {
+        return false;
+      }
+    }
+
+    if (Array.isArray(where.AND)) {
+      const andMatched = where.AND.every((clause: Record<string, unknown>) =>
+        matchesMessageWhere(row, clause),
+      );
+      if (!andMatched) return false;
+    }
+
     if (Array.isArray(where.OR)) {
       const orMatched = where.OR.some((clause: Record<string, unknown>) => {
+        if ("receivedAt" in clause || "createdAt" in clause || "AND" in clause) {
+          return matchesMessageWhere(row, clause);
+        }
         const sName = (clause.senderName as { contains?: string } | undefined)
           ?.contains;
         const sAddr = (
@@ -514,6 +580,21 @@ function createFakeWorkspacePrisma(options?: {
         if (data.deletedById !== undefined)
           found.deletedById = data.deletedById;
         return found;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: Record<string, unknown>;
+        data: {
+          deletedAt?: Date | null;
+        };
+      }) => {
+        const matched = messages.filter((m) => matchesMessageWhere(m, where));
+        for (const row of matched) {
+          if (data.deletedAt !== undefined) row.deletedAt = data.deletedAt;
+        }
+        return { count: matched.length };
       },
     },
     attachment: {
@@ -768,7 +849,7 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
 
   it("6. builds strict CSP sandboxed HTML document and blocks unauthorized users", async () => {
     assert.match(SAFE_HTML_CSP_POLICY, /default-src 'none'/);
-    assert.match(SAFE_HTML_CSP_POLICY, /img-src data:/);
+    assert.match(SAFE_HTML_CSP_POLICY, /img-src data: 'self'/);
     assert.match(SAFE_HTML_CSP_POLICY, /style-src 'unsafe-inline'/);
     assert.match(SAFE_HTML_CSP_POLICY, /base-uri 'none'/);
     assert.match(SAFE_HTML_CSP_POLICY, /form-action 'none'/);
@@ -776,6 +857,16 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     assert.doesNotMatch(SAFE_HTML_CSP_POLICY, /navigate-to/);
 
     const fake = createFakeWorkspacePrisma();
+    const detail = await getMessageDetailForUser(
+      fake as never,
+      { userId: BigInt(101), isAdministrator: false },
+      MAILBOX_A_UUID,
+      MESSAGE_A1_UUID,
+    );
+    assert.ok(detail);
+    assert.equal(detail.hasHtmlBody, true);
+    assert.equal(detail.htmlBody, undefined);
+
     const html = await getSanitizedMessageHtmlForUser(
       fake as never,
       { userId: BigInt(101), isAdministrator: false },
@@ -783,8 +874,22 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     );
     assert.ok(html);
     assert.match(html, /<!doctype html>/i);
+    assert.match(html, /<meta name='readbox-html-body' content='1'>/);
     assert.match(html, /November invoice/);
     assert.ok(fake.auditLogs.some((a) => a.action === "message_html_view"));
+
+    const hardenedLinksHtml = buildSanitizedHtmlDocument(
+      '<p><a href="https://vendor.example/inv">Invoice</a> <a href="mailto:support@vendor.example">Support</a> <button>Action</button></p>',
+    );
+    assert.match(
+      hardenedLinksHtml,
+      /href="https:\/\/vendor\.example\/inv" target="_blank" rel="noopener noreferrer"/,
+    );
+    assert.match(
+      hardenedLinksHtml,
+      /<a href="mailto:support@vendor\.example">Support<\/a>/,
+    );
+    assert.match(hardenedLinksHtml, /<button type="button">Action<\/button>/);
 
     const fallbackHtml = buildSanitizedHtmlDocument("");
     assert.match(fallbackHtml, /No HTML body is available\./);
@@ -932,7 +1037,7 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
 
       const demoOverview = getDemoUserOverview(false, "2");
       assert.equal(demoOverview.availableDomains.length, 1);
-      assert.equal(demoOverview.availableDomains[0]?.name, "mailstack.local");
+      assert.equal(demoOverview.availableDomains[0]?.name, "readbox.local");
       assert.equal(demoOverview.capabilities.maxMailboxes, 1);
       assert.equal(demoOverview.capabilities.autoDeleteEnabled, true);
       assert.equal(demoOverview.capabilities.autoDeleteDays, 1);
@@ -1003,4 +1108,337 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
       resetDemoUserControlSettings();
     }
   });
+
+  it("11. Phase 03 BUG-20: preserves recent receivedAt:null messages via createdAt fallback and purges expired messages with counter recalculation", async () => {
+    const { isMessageWithinRetention, purgeExpiredMessagesForRetention } =
+      await import("@/core/messages/service");
+
+    const cutoff = new Date("2026-11-14T00:00:00.000Z");
+    assert.equal(
+      isMessageWithinRetention(
+        {
+          receivedAt: null,
+          createdAt: new Date("2026-11-15T08:00:00.000Z"),
+        },
+        cutoff,
+      ),
+      true,
+    );
+    assert.equal(
+      isMessageWithinRetention(
+        {
+          receivedAt: null,
+          createdAt: new Date("2026-11-10T08:00:00.000Z"),
+        },
+        cutoff,
+      ),
+      false,
+    );
+
+    const fake = createFakeWorkspacePrisma();
+    // Make Message #1 old (2026-10-01) and Message #2 recent with receivedAt: null
+    fake.messages[0]!.receivedAt = new Date("2026-10-01T00:00:00.000Z");
+    fake.messages[0]!.createdAt = new Date("2026-10-01T00:00:00.000Z");
+    fake.messages[1]!.receivedAt = null;
+    fake.messages[1]!.createdAt = new Date("2026-11-15T10:00:00.000Z");
+
+    const now = new Date("2026-11-16T00:00:00.000Z");
+    const drySummary = await purgeExpiredMessagesForRetention(fake as never, {
+      dryRun: true,
+      retentionDays: 7,
+      now,
+    });
+    assert.equal(drySummary.purgedMessages, 1);
+    assert.equal(drySummary.affectedMailboxes, 1);
+    assert.equal(fake.messages[0]!.deletedAt, null);
+
+    const liveSummary = await purgeExpiredMessagesForRetention(fake as never, {
+      dryRun: false,
+      retentionDays: 7,
+      now,
+      actor: {
+        userId: BigInt(1),
+        authSource: "admin_table",
+        username: "admin",
+      },
+    });
+    assert.equal(liveSummary.purgedMessages, 1);
+    assert.notEqual(fake.messages[0]!.deletedAt, null);
+    assert.equal(fake.messages[1]!.deletedAt, null);
+    assert.equal(fake.mailboxes[0]!.totalMessages, BigInt(1));
+    assert.equal(fake.mailboxes[0]!.unreadMessages, BigInt(0));
+    assert.ok(
+      fake.auditLogs.some((a) => a.action === "messages_retention_purged"),
+    );
+  });
+
+  it("12. Phase 04 BUG-18: pollLiveMessagesForUser enforces retention cutoff on messages, summary totals, and per-mailbox counters", async () => {
+    const fake = createFakeWorkspacePrisma();
+    const aliceActor = { userId: BigInt(101), isAdministrator: false };
+
+    // Set Message #1 old (expired) and Message #2 recent (within 7-day retention)
+    fake.messages[0]!.receivedAt = new Date("2020-01-01T00:00:00.000Z");
+    fake.messages[0]!.createdAt = new Date("2020-01-01T00:00:00.000Z");
+    fake.messages[0]!.isRead = false;
+    fake.messages[1]!.receivedAt = new Date();
+    fake.messages[1]!.createdAt = new Date();
+    fake.messages[1]!.isRead = false;
+
+    (fake.userAccessPolicy as { findUnique: unknown }).findUnique =
+      async () => ({
+        canCreateMailboxes: true,
+        canDeleteMessages: true,
+        canDeleteMailboxes: false,
+        maxMailboxes: 5,
+        allowedDomainUuids: [],
+        autoDeleteEnabled: true,
+        autoDeleteDays: 7,
+      });
+
+    const livePoll = await pollLiveMessagesForUser(
+      fake as never,
+      aliceActor,
+      {
+        bootstrap: false,
+        cursor: 0,
+        mailboxUuids: [MAILBOX_A_UUID],
+      },
+    );
+
+    assert.equal(livePoll.messages.length, 1);
+    assert.equal(livePoll.messages[0]?.uuid, MESSAGE_A2_UUID);
+    assert.equal(livePoll.summary.total_messages, 1);
+    assert.equal(livePoll.summary.total_unread, 1);
+    assert.equal(livePoll.mailboxes[0]?.total_messages, 1);
+    assert.equal(livePoll.mailboxes[0]?.unread_messages, 1);
+  });
+
+  it("13. Phase 04 BUG-19: resolves inline cid: attachment references to same-origin attachment URLs in message detail, HTML endpoint, and sanitizer", async () => {
+    const {
+      sanitizeHtmlEmail,
+      isSafeInternalAttachmentImagePath,
+    } = await import("@/core/ingestion/sanitizer");
+    const { resolveInlineCidAttachmentsInHtml } = await import(
+      "@/core/messages/service"
+    );
+
+    assert.equal(
+      isSafeInternalAttachmentImagePath(
+        `/api/messages/attachment/${ATTACHMENT_A1_UUID}`,
+      ),
+      true,
+    );
+    assert.equal(
+      isSafeInternalAttachmentImagePath("https://evil.example/track.png"),
+      false,
+    );
+
+    const sanitizedWithCidMap = sanitizeHtmlEmail(
+      '<p>Hello <img src="cid:logo-1@mailstack.local" alt="Logo"><img src="cid:unmapped-cid" alt="Drop"></p>',
+      {
+        cidMap: {
+          "logo-1@mailstack.local": `/api/messages/attachment/${ATTACHMENT_A1_UUID}`,
+        },
+      },
+    );
+    assert.match(
+      sanitizedWithCidMap,
+      new RegExp(`/api/messages/attachment/${ATTACHMENT_A1_UUID}`),
+    );
+    assert.doesNotMatch(sanitizedWithCidMap, /unmapped-cid/);
+
+    const resolvedBody = resolveInlineCidAttachmentsInHtml(
+      '<p><img src="cid:banner-cid" alt="Banner"></p>',
+      [
+        {
+          uuid: ATTACHMENT_A1_UUID,
+          contentId: "<banner-cid>",
+          originalFilename: "banner.png",
+          safeFilename: "banner.png",
+          isInline: true,
+        },
+      ],
+    );
+    assert.equal(
+      resolvedBody,
+      `<p><img src="/api/messages/attachment/${ATTACHMENT_A1_UUID}" alt="Banner"></p>`,
+    );
+  });
+
+  it("13. Phase 05 BUG-08: enforces dynamic capabilities, ownership, retention, and cursor-based live polling in Demo Workspace", () => {
+    try {
+      // 1. Set policy with canDeleteMessages: false and canDeleteMailboxes: false for userId: "2"
+      setDemoUserAccessPolicy("2", {
+        canCreateMailboxes: true,
+        canDeleteMessages: false,
+        canDeleteMailboxes: false,
+        maxMailboxes: 5,
+        allowedDomainUuids: [],
+        autoDeleteEnabled: false,
+        autoDeleteDays: 0,
+      });
+
+      // 2. getDemoMessageDetail reflects canDeleteMessage: false for non-admin user
+      const msgDetailUser = getDemoMessageDetail(
+        "11111111-1111-4111-8111-111111111101",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa001",
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(Boolean(msgDetailUser), true);
+      assert.equal(msgDetailUser?.canDeleteMessage, false);
+
+      // Admin gets canDeleteMessage: true
+      const msgDetailAdmin = getDemoMessageDetail(
+        "11111111-1111-4111-8111-111111111101",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa001",
+        { isAdministrator: true, userId: "2" },
+      );
+      assert.equal(Boolean(msgDetailAdmin), true);
+      assert.equal(msgDetailAdmin?.canDeleteMessage, true);
+
+      // 3. softDeleteDemoMessage rejected when canDeleteMessages is false
+      const softDeleteBlocked = softDeleteDemoMessage(
+        "11111111-1111-4111-8111-111111111101",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa001",
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(softDeleteBlocked.ok, false);
+      if (!softDeleteBlocked.ok) {
+        assert.equal(softDeleteBlocked.code, "forbidden");
+      }
+
+      // 4. deleteDemoMailbox rejected when canDeleteMailboxes is false
+      const deleteMailboxBlocked = deleteDemoMailbox(
+        "11111111-1111-4111-8111-111111111101",
+        "billing.ops@readbox.local",
+        { isAdministrator: false, userId: "2" },
+      );
+      assert.equal(deleteMailboxBlocked.ok, false);
+      if (!deleteMailboxBlocked.ok) {
+        assert.equal(deleteMailboxBlocked.code, "blocked");
+      }
+
+      // 5. Ownership isolation: create mailbox assigned to userId: "999"
+      const createdForOther = createDemoMailbox(
+        { localPart: "isolated.box" },
+        { isAdministrator: false, userId: "999" },
+      );
+      assert.equal(createdForOther.ok, true);
+      if (createdForOther.ok) {
+        const otherUuid = createdForOther.data.uuid;
+
+        // User "2" cannot access mailbox of user "999"
+        const forbiddenList = listDemoMailboxMessages(
+          otherUuid,
+          {},
+          false,
+          "2",
+        );
+        assert.equal(forbiddenList, null);
+
+        // Admin CAN access mailbox of user "999"
+        const adminAccess = listDemoMailboxMessages(
+          otherUuid,
+          {},
+          true,
+          "1",
+        );
+        assert.equal(Boolean(adminAccess), true);
+      }
+
+      // 6. pollDemoLivePayload supports cursor-based incremental polling
+      const pollBootstrap = pollDemoLivePayload([], {
+        isAdministrator: true,
+        cursor: 0,
+        bootstrap: true,
+      });
+      assert.equal(pollBootstrap.messages.length, 0);
+      assert.equal(pollBootstrap.cursor >= 5000, true);
+
+      // Polling with cursor = 5000 returns messages with id > 5000
+      const pollIncremental = pollDemoLivePayload([], {
+        isAdministrator: true,
+        cursor: 5000,
+        bootstrap: false,
+      });
+      assert.equal(pollIncremental.messages.length > 0, true);
+      assert.equal(pollIncremental.cursor >= 5001, true);
+      assert.equal(pollIncremental.messages[0]?.id, 5001);
+    } finally {
+      resetDemoUserControlSettings();
+    }
+  });
+
+  it("14. Phase 3 FA-006: retention purge uses batched updateMany and respects per-user policy overrides alongside global inheritance", async () => {
+    const { purgeExpiredMessagesForRetention } = await import(
+      "@/core/messages/service"
+    );
+
+    const fake = createFakeWorkspacePrisma();
+    // Mailbox 10 (Alice, uid 101) has message #1 from 15 days ago and message #2 from 2 days ago
+    fake.messages[0]!.receivedAt = new Date("2026-11-01T00:00:00.000Z");
+    fake.messages[0]!.createdAt = new Date("2026-11-01T00:00:00.000Z");
+    fake.messages[1]!.receivedAt = new Date("2026-11-14T00:00:00.000Z");
+    fake.messages[1]!.createdAt = new Date("2026-11-14T00:00:00.000Z");
+
+    // Mailbox 20 (Bob, uid 202) has message #3 from 15 days ago
+    fake.messages[2]!.receivedAt = new Date("2026-11-01T00:00:00.000Z");
+    fake.messages[2]!.createdAt = new Date("2026-11-01T00:00:00.000Z");
+
+    let updateManyCalls = 0;
+    const origUpdateMany = fake.message.updateMany;
+    fake.message.updateMany = async (args) => {
+      updateManyCalls += 1;
+      return origUpdateMany(args);
+    };
+
+    // Attach per-user policy overrides: global is disabled, Alice has 7-day retention, Bob explicitly disables auto-delete
+    (fake as Record<string, unknown>).mailboxMembership = {
+      findMany: async () => [
+        {
+          mailboxId: BigInt(10),
+          user: {
+            isActive: true,
+            accessPolicy: {
+              canCreateMailboxes: null,
+              canDeleteMessages: true,
+              canDeleteMailboxes: false,
+              maxMailboxes: null,
+              allowedDomainUuids: [],
+              autoDeleteEnabled: true,
+              autoDeleteDays: 7,
+            },
+          },
+        },
+        {
+          mailboxId: BigInt(20),
+          user: {
+            isActive: true,
+            accessPolicy: {
+              canCreateMailboxes: null,
+              canDeleteMessages: false,
+              canDeleteMailboxes: false,
+              maxMailboxes: null,
+              allowedDomainUuids: [],
+              autoDeleteEnabled: false,
+              autoDeleteDays: 0,
+            },
+          },
+        },
+      ],
+    };
+
+    const summary = await purgeExpiredMessagesForRetention(fake as never, {
+      dryRun: false,
+      now: new Date("2026-11-16T00:00:00.000Z"),
+    });
+
+    assert.equal(updateManyCalls, 1);
+    assert.equal(summary.affectedMailboxes, 1);
+    assert.equal(summary.purgedMessages, 1);
+    assert.notEqual(fake.messages[0]!.deletedAt, null);
+    assert.equal(fake.messages[1]!.deletedAt, null);
+    assert.equal(fake.messages[2]!.deletedAt, null);
+  });
 });
+

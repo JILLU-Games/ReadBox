@@ -8,7 +8,7 @@ import {
   Icon,
   Input,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
 } from "@/components/ui";
@@ -73,12 +73,14 @@ export function MailboxPurgeConfirm({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>Permanently delete mailbox</PageTitle>
-        <Button asChild size="sm" variant="outline">
-          <Link href="/vcon/mailboxes">Back to mailboxes</Link>
-        </Button>
-      </header>
+      <PageHeader
+        title="Permanently delete mailbox"
+        actions={
+          <Button asChild size="sm" variant="outline">
+            <Link href="/vcon/mailboxes">Back to mailboxes</Link>
+          </Button>
+        }
+      />
 
       <AlertBanner
         variant="error"
@@ -115,6 +117,10 @@ export function MailboxPurgeConfirm({
                 autoComplete="off"
                 spellCheck={false}
                 placeholder={mailbox.emailAddress}
+                aria-invalid={Boolean(error)}
+                aria-describedby={
+                  error ? "purge-confirmation-input-error" : undefined
+                }
                 onChange={(event) => setConfirmation(event.target.value)}
                 required
               />

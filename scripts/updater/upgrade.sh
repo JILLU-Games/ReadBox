@@ -56,11 +56,30 @@ CHECKSUM=$(realpath -e -- "$CHECKSUM")
 [[ -f "$ARCHIVE" && ! -L "$ARCHIVE" ]] || die "target archive must be a regular non-symlink file"
 [[ -f "$CHECKSUM" && ! -L "$CHECKSUM" ]] || die "checksum must be a regular non-symlink file"
 
-APP_ROOT=${APP_ROOT:-/opt/vibmail/app}
-ENV_FILE=${VIBMAIL_ENV_FILE:-/etc/vibmail/vibmail.env}
-LOCK_FILE=${UPGRADE_LOCK_FILE:-/run/vibmail/vibmail-upgrade.lock}
-UPGRADE_ROOT=${UPGRADE_ROOT:-/var/backups/vibmail/upgrades}
-STAGING_ROOT=${STAGING_ROOT:-/opt/vibmail-upgrades}
+APP_ROOT=${APP_ROOT:-${READBOX_APP_ROOT:-/opt/readbox/app}}
+if [[ ! -d "$APP_ROOT" && -d "/opt/vibmail/app" ]]; then
+  APP_ROOT="/opt/vibmail/app"
+fi
+
+ENV_FILE=${READBOX_ENV_FILE:-${VIBMAIL_ENV_FILE:-/etc/readbox/readbox.env}}
+if [[ ! -f "$ENV_FILE" && -f "/etc/vibmail/vibmail.env" ]]; then
+  ENV_FILE="/etc/vibmail/vibmail.env"
+fi
+
+LOCK_FILE=${UPGRADE_LOCK_FILE:-/run/readbox/readbox-upgrade.lock}
+if [[ ! -d "$(dirname -- "$LOCK_FILE")" && -d "/run/vibmail" ]]; then
+  LOCK_FILE="/run/vibmail/vibmail-upgrade.lock"
+fi
+
+UPGRADE_ROOT=${UPGRADE_ROOT:-${READBOX_BACKUP_ROOT:-/var/backups/readbox/upgrades}}
+if [[ ! -d "$UPGRADE_ROOT" && -d "/var/backups/vibmail/upgrades" ]]; then
+  UPGRADE_ROOT="/var/backups/vibmail/upgrades"
+fi
+
+STAGING_ROOT=${STAGING_ROOT:-/opt/readbox-upgrades}
+if [[ ! -d "$STAGING_ROOT" && -d "/opt/vibmail-upgrades" ]]; then
+  STAGING_ROOT="/opt/vibmail-upgrades"
+fi
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 VERIFY_HELPER="$SCRIPT_DIR/verify_upgrade_archive.py"
 
@@ -109,7 +128,26 @@ tar --one-file-system -C "$APP_ROOT" -czf "$APP_ARCHIVE" .
 BACKUP_ROOT="$DATA_ROOT" "$APP_ROOT/scripts/ops/backup.sh"
 
 report_progress "mutate" "Stopping web/ingestion workers while keeping Postfix and Dovecot active" 45
-systemctl stop vibmail-ingestion.service vibmail-web.service
+WEB_SERVICES=()
+for candidate in "${READBOX_WEB_SERVICE:-}" "readbox-web.service" "vibmail-web.service"; do
+  if [[ -n "$candidate" ]] && systemctl list-unit-files "$candidate" >/dev/null 2>&1; then
+    WEB_SERVICES+=("$candidate")
+    break
+  fi
+done
+INGESTION_SERVICES=()
+for candidate in "${READBOX_INGESTION_SERVICE:-}" "readbox-ingestion.service" "vibmail-ingestion.service"; do
+  if [[ -n "$candidate" ]] && systemctl list-unit-files "$candidate" >/dev/null 2>&1; then
+    INGESTION_SERVICES+=("$candidate")
+    break
+  fi
+done
+
+if [[ ${#INGESTION_SERVICES[@]} -gt 0 || ${#WEB_SERVICES[@]} -gt 0 ]]; then
+  systemctl stop "${INGESTION_SERVICES[@]}" "${WEB_SERVICES[@]}" 2>/dev/null || true
+else
+  systemctl stop vibmail-ingestion.service vibmail-web.service 2>/dev/null || true
+fi
 systemctl is-active --quiet postfix.service || die "Postfix stopped unexpectedly"
 systemctl is-active --quiet dovecot.service || die "Dovecot stopped unexpectedly"
 
@@ -127,7 +165,11 @@ npm run build
 
 report_progress "restart" "Restarting ReadBox services and verifying health readiness" 90
 systemctl daemon-reload
-systemctl start vibmail-web.service vibmail-ingestion.service
+if [[ ${#WEB_SERVICES[@]} -gt 0 || ${#INGESTION_SERVICES[@]} -gt 0 ]]; then
+  systemctl start "${WEB_SERVICES[@]}" "${INGESTION_SERVICES[@]}"
+else
+  systemctl start vibmail-web.service vibmail-ingestion.service
+fi
 curl --fail --silent --show-error --max-time 20 "http://127.0.0.1:3000/health/ready" >/dev/null
 
 report_progress "complete" "Upgrade successfully completed" 100

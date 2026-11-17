@@ -19,7 +19,7 @@ import {
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Panel,
   PanelBody,
   SectionTitle,
@@ -241,14 +241,14 @@ export function UserForm({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>
-          {isCreate ? "Add user" : `Edit ${initialUser?.username ?? "user"}`}
-        </PageTitle>
-        <Button asChild size="sm" variant="outline">
-          <Link href="/vcon/users">Back to users</Link>
-        </Button>
-      </header>
+      <PageHeader
+        title={isCreate ? "Add user" : `Edit ${initialUser?.username ?? "user"}`}
+        actions={
+          <Button asChild size="sm" variant="outline">
+            <Link href="/vcon/users">Back to users</Link>
+          </Button>
+        }
+      />
 
       {!databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
@@ -294,6 +294,9 @@ export function UserForm({
                   autoComplete="off"
                   maxLength={150}
                   aria-invalid={Boolean(fieldErrors.username)}
+                  aria-describedby={
+                    fieldErrors.username ? "managed-username-error" : undefined
+                  }
                 />
                 {isCreate ? (
                   <Button
@@ -310,7 +313,11 @@ export function UserForm({
                 ) : null}
               </div>
               {fieldErrors.username ? (
-                <p className="text-xs text-destructive" role="alert">
+                <p
+                  id="managed-username-error"
+                  className="text-xs text-destructive"
+                  role="alert"
+                >
                   {fieldErrors.username}
                 </p>
               ) : null}
@@ -326,6 +333,12 @@ export function UserForm({
                   id="managed-first-name"
                   name="firstName"
                   value={firstName}
+                  aria-invalid={Boolean(fieldErrors.firstName)}
+                  aria-describedby={
+                    fieldErrors.firstName
+                      ? "managed-first-name-error"
+                      : undefined
+                  }
                   onChange={(event) => setFirstName(event.target.value)}
                   maxLength={150}
                   autoComplete="off"
@@ -340,6 +353,12 @@ export function UserForm({
                   id="managed-last-name"
                   name="lastName"
                   value={lastName}
+                  aria-invalid={Boolean(fieldErrors.lastName)}
+                  aria-describedby={
+                    fieldErrors.lastName
+                      ? "managed-last-name-error"
+                      : undefined
+                  }
                   onChange={(event) => setLastName(event.target.value)}
                   maxLength={150}
                   autoComplete="off"
@@ -355,6 +374,10 @@ export function UserForm({
                   name="email"
                   type="email"
                   value={email}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={
+                    fieldErrors.email ? "managed-email-error" : undefined
+                  }
                   onChange={(event) => setEmail(event.target.value)}
                   maxLength={254}
                   placeholder="optional@example.com"
@@ -389,6 +412,11 @@ export function UserForm({
                       placeholder="Minimum 15 characters"
                       maxLength={128}
                       aria-invalid={Boolean(fieldErrors.password)}
+                      aria-describedby={
+                        fieldErrors.password
+                          ? "managed-password-error"
+                          : "managed-password-hint"
+                      }
                     />
                     <Button
                       type="button"
@@ -402,11 +430,18 @@ export function UserForm({
                     </Button>
                   </div>
                   {fieldErrors.password ? (
-                    <p className="text-xs text-destructive" role="alert">
+                    <p
+                      id="managed-password-error"
+                      className="text-xs text-destructive"
+                      role="alert"
+                    >
                       {fieldErrors.password}
                     </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">
+                    <p
+                      id="managed-password-hint"
+                      className="text-xs text-muted-foreground"
+                    >
                       Requires at least {MIN_PASSWORD_LENGTH} characters.
                     </p>
                   )}
@@ -429,6 +464,11 @@ export function UserForm({
                     placeholder="Repeat password"
                     maxLength={128}
                     aria-invalid={Boolean(fieldErrors.passwordConfirmation)}
+                    aria-describedby={
+                      fieldErrors.passwordConfirmation
+                        ? "managed-password-confirmation-error"
+                        : undefined
+                    }
                   />
                 </FormField>
               </div>
@@ -497,7 +537,11 @@ export function UserForm({
                 </div>
               </div>
               {fieldErrors.assignedMailboxIds ? (
-                <p className="text-xs text-destructive" role="alert">
+                <p
+                  id="user-assign-mailboxes-error"
+                  className="text-xs text-destructive"
+                  role="alert"
+                >
                   {fieldErrors.assignedMailboxIds}
                 </p>
               ) : null}

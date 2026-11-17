@@ -13,7 +13,7 @@ import {
   Input,
   Label,
   notify,
-  PageTitle,
+  PageHeader,
   Table,
   TableBody,
   TableCell,
@@ -165,15 +165,17 @@ export function DomainsDirectory({
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <PageTitle>Domains &amp; DNS</PageTitle>
-        <Button asChild size="sm">
-          <Link href="/vcon/domains/new">
-            <Icon glyph={Plus} />
-            <span>Add domain</span>
-          </Link>
-        </Button>
-      </header>
+      <PageHeader
+        title="Domains & DNS"
+        actions={
+          <Button asChild size="sm">
+            <Link href="/vcon/domains/new">
+              <Icon glyph={Plus} />
+              <span>Add domain</span>
+            </Link>
+          </Button>
+        }
+      />
 
       {!databaseConfigured ? (
         <AlertBanner variant="warning" role="status">

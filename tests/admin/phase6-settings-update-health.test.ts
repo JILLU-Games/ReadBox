@@ -1,5 +1,10 @@
 import { parseEnvironment } from "@/config/env-schema";
 import {
+  listUsersControlSnapshot,
+  updateUserControlSettings,
+  updateUserExtendedPolicy,
+} from "@/core/accounts/user-control-policy";
+import {
   checkConfigurationReadiness,
   checkWritableStorageDirectory,
   getReadinessSnapshot,
@@ -19,11 +24,13 @@ import {
 } from "@/core/settings/service";
 import {
   checkLatestRelease,
+  isContainerRuntime,
   isOfficialReleaseUrl,
   queueUpdateRequest,
   readUpdateStatus,
   runUpdatePreflight,
 } from "@/core/updates/service";
+import { recordWorkerDegradedHeartbeat } from "@/workers/ingestion";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
@@ -447,6 +454,13 @@ test("System Update validates official GitHub release URLs, checks release asset
     });
     assert.equal(Array.isArray(preflightReport.checks), true);
     assert.equal(preflightReport.checks.length >= 9, true);
+
+    // BUG-21: Check updateScriptPath default includes /scripts/updater/upgrade.sh
+    const parsedEnv = parseEnvironment({});
+    assert.equal(
+      parsedEnv.updateScriptPath.includes("/scripts/updater/upgrade.sh"),
+      true,
+    );
   } finally {
     await rm(tempRuntimeDir, { recursive: true, force: true });
   }
@@ -561,6 +575,321 @@ test("Health readiness snapshot and PostgreSQL VPS templates verify production i
     assert.match(restoreScript, /psql/);
     assert.match(restoreScript, /validate_tar_archive/);
   } finally {
+    await rm(tempMailRoot, { recursive: true, force: true });
+    await rm(tempAttRoot, { recursive: true, force: true });
+  }
+});
+
+test("Phase 03 BUG-05 & BUG-06: updateUserControlSettings, updateUserExtendedPolicy, and updateSiteSettings fail-closed on DB errors and listUsersControlSnapshot does not inject fake demo domains into connected DB", async () => {
+  // BUG-05: updateUserControlSettings fails closed when DB write throws
+  const failingControlPrisma = {
+    userControlSettings: {
+      async findFirst() {
+        throw new Error("PostgreSQL connection refused");
+      },
+      async update() {
+        throw new Error("PostgreSQL connection refused");
+      },
+      async create() {
+        throw new Error("PostgreSQL connection refused");
+      },
+    },
+  };
+  const controlRes = await updateUserControlSettings(
+    failingControlPrisma as never,
+    { signupEnabled: false },
+  );
+  assert.equal(controlRes.ok, false);
+  if (!controlRes.ok) {
+    assert.match(controlRes.error, /Could not save user control policy/i);
+  }
+
+  // BUG-05: updateUserExtendedPolicy fails closed when DB upsert throws
+  const failingPolicyPrisma = {
+    userAccessPolicy: {
+      async upsert() {
+        throw new Error("PostgreSQL write error");
+      },
+    },
+  };
+  const policyRes = await updateUserExtendedPolicy(
+    failingPolicyPrisma as never,
+    "10",
+    { canCreateMailboxes: false, maxMailboxes: 2 },
+  );
+  assert.equal(policyRes.ok, false);
+  if (!policyRes.ok) {
+    assert.match(policyRes.error, /Could not save user access policy/i);
+  }
+
+  // BUG-05: listUsersControlSnapshot returns empty domains array when DB is connected and 0 verified domains exist
+  const emptyDomainsPrisma = {
+    userControlSettings: {
+      async findFirst() {
+        return null;
+      },
+    },
+    domain: {
+      async findMany() {
+        return [];
+      },
+    },
+    user: {
+      async findMany() {
+        return [];
+      },
+    },
+  };
+  const connectedSnapshot = await listUsersControlSnapshot(
+    emptyDomainsPrisma as never,
+  );
+  assert.equal(connectedSnapshot.databaseConnected, true);
+  assert.equal(connectedSnapshot.domains.length, 0);
+
+  // Demo fallback snapshot computes accurate demo mailbox count (4)
+  const demoSnapshot = await listUsersControlSnapshot(null);
+  assert.equal(demoSnapshot.databaseConnected, false);
+  const demoUserItem = demoSnapshot.governedUsers.find(
+    (u) => u.username === "demo.user",
+  );
+  assert.ok(demoUserItem);
+  assert.equal(demoUserItem.mailboxCount, 4);
+
+  // BUG-06: updateSiteSettings fails closed when Prisma client upsert fails (regardless of NODE_ENV)
+  const failingSitePrisma: SiteSettingsPrismaLike = {
+    siteSettings: {
+      async findFirst() {
+        return null;
+      },
+      async upsert() {
+        throw new Error("PostgreSQL disk full");
+      },
+    },
+    auditLog: {
+      async create() {
+        return { id: BigInt(1) };
+      },
+    },
+  };
+  const siteRes = await updateSiteSettings(
+    { siteName: "ReadBox Fail-Closed Test" },
+    { prisma: failingSitePrisma },
+  );
+  assert.equal(siteRes.ok, false);
+});
+
+test("Phase 4 FA-007 & EH-02: listUsersControlSnapshot, updateUserControlSettings, and updateSiteSettings fail closed without demo domains or in-memory saves", async () => {
+  // When a DB client throws on domain/user query, NEVER fall back to DEMO_VERIFIED_DOMAINS (readbox.local)
+  const failingSnapshotPrisma = {
+    userControlSettings: {
+      async findFirst() {
+        return null;
+      },
+    },
+    domain: {
+      async findMany() {
+        throw new Error("PostgreSQL connection lost");
+      },
+    },
+    user: {
+      async findMany() {
+        throw new Error("PostgreSQL connection lost");
+      },
+    },
+  };
+  const failedSnapshot = await listUsersControlSnapshot(
+    failingSnapshotPrisma as never,
+  );
+  assert.equal(failedSnapshot.databaseConnected, false);
+  assert.equal(failedSnapshot.domains.length, 0);
+  assert.equal(failedSnapshot.governedUsers.length, 0);
+  assert.match(failedSnapshot.databaseError ?? "", /PostgreSQL/i);
+
+  // In production without DB, listUsersControlSnapshot and mutations fail closed (never seed demo state)
+  const prodNoDbSnapshot = await listUsersControlSnapshot(null, {
+    nodeEnv: "production",
+  });
+  assert.equal(prodNoDbSnapshot.databaseConnected, false);
+  assert.equal(prodNoDbSnapshot.domains.length, 0);
+  assert.equal(prodNoDbSnapshot.governedUsers.length, 0);
+  assert.match(prodNoDbSnapshot.databaseError ?? "", /not configured/i);
+
+  const prodControlWrite = await updateUserControlSettings(
+    null,
+    { signupEnabled: true },
+    undefined,
+    { nodeEnv: "production" },
+  );
+  assert.equal(prodControlWrite.ok, false);
+
+  const prodPolicyWrite = await updateUserExtendedPolicy(
+    null,
+    "10",
+    { canCreateMailboxes: false, maxMailboxes: 1 },
+    undefined,
+    { nodeEnv: "production" },
+  );
+  assert.equal(prodPolicyWrite.ok, false);
+
+  const prodSiteWrite = await updateSiteSettings(
+    { siteName: "ReadBox Production Missing DB" },
+    { prisma: null, nodeEnv: "production" },
+  );
+  assert.equal(prodSiteWrite.ok, false);
+});
+
+test("Phase 6 FA-004, FA-005, FA-011 & EH-06: Docker/Coolify worker contract, container-aware preflight, readbox defaults, and strict /health/ready worker heartbeat gate", async () => {
+  // 1. FA-005: Modernized env defaults (readbox.local, /run/readbox, readbox-updater.service, /opt/readbox/...)
+  const defaults = parseEnvironment({});
+  assert.equal(defaults.mailDomain, "readbox.local");
+  assert.equal(defaults.mailHostname, "mail.readbox.local");
+  assert.equal(defaults.appHostname, "app.readbox.local");
+  assert.equal(defaults.updateRuntimeDir, "/run/readbox");
+  assert.equal(defaults.updateServiceName, "readbox-updater.service");
+  assert.equal(
+    defaults.updateScriptPath,
+    "/opt/readbox/app/scripts/updater/upgrade.sh",
+  );
+  assert.equal(defaults.requireIngestionReady, false);
+
+  // 2. FA-005: Container runtime detection & container-aware preflight message
+  assert.equal(
+    isContainerRuntime({
+      dockerEnvExists: false,
+      envVars: { DOCKER_RUNTIME: "true" },
+    }),
+    true,
+  );
+  assert.equal(
+    isContainerRuntime({
+      dockerEnvExists: true,
+      envVars: { DOCKER_RUNTIME: "false" },
+    }),
+    false,
+  );
+
+  const tempRuntimeDir = await mkdtemp(join(tmpdir(), "readbox-container-pf-"));
+  const tempMailRoot = await mkdtemp(join(tmpdir(), "readbox-p6-mail-"));
+  const tempAttRoot = await mkdtemp(join(tmpdir(), "readbox-p6-att-"));
+
+  try {
+    const containerPreflight = await runUpdatePreflight({
+      runtimeDir: tempRuntimeDir,
+      containerRuntime: true,
+    });
+    assert.equal(containerPreflight.status, "blocked");
+    assert.match(
+      containerPreflight.message,
+      /Managed by container orchestrator \(Coolify \/ Docker Compose\)/i,
+    );
+    assert.equal(
+      containerPreflight.checks.some(
+        (c) => c.name === "container orchestrator update policy",
+      ),
+      true,
+    );
+
+    // 3. FA-004: Verify Dockerfile & docker-compose.yml include Maildir ingestion worker runtime
+    const dockerfileRaw = readFileSync(
+      resolve(process.cwd(), "Dockerfile"),
+      "utf8",
+    );
+    const composeRaw = readFileSync(
+      resolve(process.cwd(), "docker-compose.yml"),
+      "utf8",
+    );
+    assert.match(dockerfileRaw, /COPY --from=builder.*\/app\/scripts \.\/scripts/);
+    assert.match(dockerfileRaw, /tsx@/);
+    assert.match(composeRaw, /^\s*worker:/m);
+    assert.match(composeRaw, /scripts\/mail\/ingest\.ts/);
+
+    // 4. EH-06: recordWorkerDegradedHeartbeat upserts degraded status with structured details
+    const heartbeats: Array<{ status: string; details: unknown }> = [];
+    await recordWorkerDegradedHeartbeat(
+      "ingestion_pass_failed",
+      { errorType: "PermissionDenied" },
+      {
+        serviceHeartbeat: {
+          async upsert({ create }) {
+            heartbeats.push({ status: create.status, details: create.details });
+            return create;
+          },
+        },
+      },
+    );
+    assert.equal(heartbeats.length, 1);
+    assert.equal(heartbeats[0]?.status, "degraded");
+
+    // 5. FA-011 & EH-06: /health/ready fails closed when ingestion heartbeat is degraded/stale or REQUIRE_INGESTION_READY=true without heartbeat
+    const baseProdEnv = parseEnvironment({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgresql://readbox:secret@127.0.0.1:5432/readbox",
+      AUTH_ENABLED: "true",
+      AUTH_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef",
+      MAIL_DOMAIN: "mail.example.com",
+      MAIL_HOSTNAME: "mx.example.com",
+      APP_HOSTNAME: "app.example.com",
+      SERVER_IP: "203.0.113.10",
+      MAIL_STORAGE_ROOT: tempMailRoot,
+      ATTACHMENT_STORAGE_ROOT: tempAttRoot,
+    });
+    const now = new Date("2026-11-16T12:00:00.000Z");
+
+    const degradedSnapshot = await getReadinessSnapshot({
+      runtimeEnv: baseProdEnv,
+      now,
+      prisma: {
+        async $queryRaw() {
+          return [{ pending_count: BigInt(0) }] as unknown as never;
+        },
+        serviceHeartbeat: {
+          async findUnique() {
+            return {
+              status: "degraded",
+              lastSeenAt: new Date("2026-11-16T11:59:50.000Z"),
+            };
+          },
+        },
+      },
+    });
+    assert.equal(degradedSnapshot.status, "not_ready");
+    assert.equal(degradedSnapshot.checks.mailServices.connected, false);
+    assert.equal(
+      degradedSnapshot.checks.mailServices.ingestionStatus,
+      "degraded",
+    );
+
+    const strictEnv = parseEnvironment({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgresql://readbox:secret@127.0.0.1:5432/readbox",
+      AUTH_ENABLED: "true",
+      AUTH_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef",
+      MAIL_DOMAIN: "mail.example.com",
+      MAIL_HOSTNAME: "mx.example.com",
+      APP_HOSTNAME: "app.example.com",
+      SERVER_IP: "203.0.113.10",
+      MAIL_STORAGE_ROOT: tempMailRoot,
+      ATTACHMENT_STORAGE_ROOT: tempAttRoot,
+      REQUIRE_INGESTION_READY: "true",
+    });
+
+    const missingHeartbeatStrict = await getReadinessSnapshot({
+      runtimeEnv: strictEnv,
+      now,
+      prisma: {
+        async $queryRaw() {
+          return [{ pending_count: BigInt(0) }] as unknown as never;
+        },
+        serviceHeartbeat: {
+          async findUnique() {
+            return null;
+          },
+        },
+      },
+    });
+    assert.equal(missingHeartbeatStrict.status, "not_ready");
+  } finally {
+    await rm(tempRuntimeDir, { recursive: true, force: true });
     await rm(tempMailRoot, { recursive: true, force: true });
     await rm(tempAttRoot, { recursive: true, force: true });
   }

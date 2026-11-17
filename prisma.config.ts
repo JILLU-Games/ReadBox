@@ -13,9 +13,14 @@ if (!["postgres:", "postgresql:"].includes(parsedDatasourceUrl.protocol)) {
   throw new Error("Prisma CLI DATABASE_URL must use PostgreSQL");
 }
 
-if (
-  !["127.0.0.1", "localhost", "[::1]"].includes(parsedDatasourceUrl.hostname)
-) {
+const isAllowedHost =
+  process.env.PRISMA_CLI_ALLOW_REMOTE === "true" ||
+  process.env.NODE_ENV === "production" ||
+  ["127.0.0.1", "localhost", "[::1]", "postgres", "db"].includes(
+    parsedDatasourceUrl.hostname,
+  );
+
+if (!isAllowedHost) {
   throw new Error("Prisma CLI is restricted to a local PostgreSQL database");
 }
 

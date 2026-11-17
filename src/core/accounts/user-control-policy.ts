@@ -1,12 +1,36 @@
+import { env } from "@/config/env";
 import { recordAudit } from "@/core/audit/record";
 import type { AuditWriteClient } from "@/core/audit/types";
 import {
   DEV_DEMO_ACCOUNTS,
   listDevDemoDynamicUsers,
 } from "@/core/auth/dev-demo-auth";
+import { logger } from "@/core/server/logger";
 import type { PrismaClient } from "@prisma/client";
 import "server-only";
 import { z } from "zod";
+
+export interface GovernanceRuntimeOptions {
+  readonly allowDemoFallback?: boolean;
+  readonly nodeEnv?: "development" | "test" | "production";
+  readonly devAuthMode?: "off" | "bypass" | "demo";
+}
+
+export function isDemoGovernanceFallbackAllowed(
+  options?: GovernanceRuntimeOptions,
+): boolean {
+  const nodeEnv = options?.nodeEnv ?? env.nodeEnv;
+  if (nodeEnv === "production") {
+    return false;
+  }
+  if (options?.allowDemoFallback !== undefined) {
+    return options.allowDemoFallback;
+  }
+  if (options?.devAuthMode !== undefined) {
+    return options.devAuthMode === "demo";
+  }
+  return true;
+}
 
 export const FIELD_REQUIREMENT_MODES = ["none", "optional", "required"] as const;
 export type FieldRequirementMode = (typeof FIELD_REQUIREMENT_MODES)[number];
@@ -121,7 +145,7 @@ export const DEMO_VERIFIED_DOMAINS: readonly ControlDomainOption[] =
   Object.freeze([
     {
       uuid: "99999999-0000-4000-8000-000000000001",
-      name: "mailstack.local",
+      name: "readbox.local",
       isDefault: true,
     },
     {
@@ -311,6 +335,12 @@ export function normalizeUserControlSettings(
   };
 }
 
+export type UserAccessPolicyOverrideInput = {
+  readonly [K in keyof ExtendedUserAccessPolicyShape]?:
+    | ExtendedUserAccessPolicyShape[K]
+    | null;
+};
+
 export function normalizeExtendedUserAccessPolicy(
   raw:
     | Partial<Record<keyof ExtendedUserAccessPolicyShape, unknown>>
@@ -330,6 +360,19 @@ export function normalizeExtendedUserAccessPolicy(
     };
   }
 
+  const autoDeleteEnabled =
+    typeof raw.autoDeleteEnabled === "boolean"
+      ? raw.autoDeleteEnabled
+      : defaults.autoDeleteEnabled;
+
+  const autoDeleteDays = autoDeleteEnabled
+    ? typeof raw.autoDeleteDays === "number" &&
+      Number.isFinite(raw.autoDeleteDays) &&
+      raw.autoDeleteDays > 0
+      ? Math.max(1, Math.min(3650, Math.floor(raw.autoDeleteDays)))
+      : defaults.autoDeleteDays
+    : 0;
+
   return {
     canCreateMailboxes:
       typeof raw.canCreateMailboxes === "boolean"
@@ -348,21 +391,14 @@ export function normalizeExtendedUserAccessPolicy(
         ? Math.max(0, Math.min(500, Math.floor(raw.maxMailboxes)))
         : defaults.defaultMaxMailboxes,
     allowedDomainUuids: normalizeUuidArray(raw.allowedDomainUuids),
-    autoDeleteEnabled:
-      typeof raw.autoDeleteEnabled === "boolean"
-        ? raw.autoDeleteEnabled
-        : defaults.autoDeleteEnabled,
-    autoDeleteDays:
-      typeof raw.autoDeleteDays === "number" &&
-      Number.isFinite(raw.autoDeleteDays)
-        ? Math.max(0, Math.min(3650, Math.floor(raw.autoDeleteDays)))
-        : 0,
+    autoDeleteEnabled,
+    autoDeleteDays,
   };
 }
 
 export function resolveEffectiveUserPolicy(
   globalSettings: UserControlSettingsShape,
-  userPolicy?: Partial<ExtendedUserAccessPolicyShape> | null,
+  userPolicy?: UserAccessPolicyOverrideInput | null,
 ): ExtendedUserAccessPolicyShape {
   const normalized = normalizeExtendedUserAccessPolicy(
     userPolicy,
@@ -373,25 +409,14 @@ export function resolveEffectiveUserPolicy(
       ? normalized.allowedDomainUuids
       : globalSettings.allowedDomainUuids;
 
-  const autoDeleteEnabled =
-    userPolicy?.autoDeleteEnabled !== undefined
-      ? normalized.autoDeleteEnabled
-      : globalSettings.autoDeleteEnabled;
-
-  const autoDeleteDays = autoDeleteEnabled
-    ? normalized.autoDeleteDays > 0
-      ? normalized.autoDeleteDays
-      : globalSettings.autoDeleteDays
-    : 0;
-
   return {
     canCreateMailboxes: normalized.canCreateMailboxes,
     canDeleteMessages: normalized.canDeleteMessages,
     canDeleteMailboxes: normalized.canDeleteMailboxes,
     maxMailboxes: normalized.maxMailboxes,
     allowedDomainUuids,
-    autoDeleteEnabled,
-    autoDeleteDays,
+    autoDeleteEnabled: normalized.autoDeleteEnabled,
+    autoDeleteDays: normalized.autoDeleteDays,
   };
 }
 
@@ -495,9 +520,12 @@ export function resetDemoUserControlSettings(): void {
 
 export async function getUserControlSettings(
   prisma?: Partial<Pick<PrismaClient, "userControlSettings">> | null,
+  options?: GovernanceRuntimeOptions,
 ): Promise<UserControlSettingsShape> {
   if (!prisma?.userControlSettings) {
-    return getDemoUserControlSettings();
+    return isDemoGovernanceFallbackAllowed(options)
+      ? getDemoUserControlSettings()
+      : DEFAULT_USER_CONTROL_SETTINGS;
   }
 
   try {
@@ -526,8 +554,11 @@ export async function getUserControlSettings(
       autoDeleteEnabled: row.autoDeleteEnabled,
       autoDeleteDays: row.autoDeleteDays,
     });
-  } catch {
-    return getDemoUserControlSettings();
+  } catch (error) {
+    logger.warn("user_control_settings_load_failed", {
+      reason: error instanceof Error ? error.name : "unknown_error",
+    });
+    return DEFAULT_USER_CONTROL_SETTINGS;
   }
 }
 
@@ -536,9 +567,12 @@ export async function updateUserControlSettings(
   rawInput: unknown,
   auditContext?: {
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly clientIp?: string | null;
     readonly userAgent?: string | null;
   },
+  options?: GovernanceRuntimeOptions,
 ): Promise<
   | { readonly ok: true; readonly settings: UserControlSettingsShape }
   | {
@@ -567,6 +601,12 @@ export async function updateUserControlSettings(
   const normalized = normalizeUserControlSettings(parsed.data);
 
   if (!prisma?.userControlSettings) {
+    if (!isDemoGovernanceFallbackAllowed(options)) {
+      return {
+        ok: false,
+        error: "Database connection is required to save user control settings.",
+      };
+    }
     setDemoUserControlSettings(normalized);
     return { ok: true, settings: normalized };
   }
@@ -611,6 +651,8 @@ export async function updateUserControlSettings(
     if (prisma.auditLog) {
       await recordAudit(prisma as unknown as AuditWriteClient, {
         actorId: auditContext?.actorId ?? null,
+        authSource: auditContext?.authSource,
+        actorUsername: auditContext?.actorUsername,
         action: "user_control_settings_updated",
         targetType: "user_control_settings",
         targetIdentifier: "global",
@@ -628,9 +670,15 @@ export async function updateUserControlSettings(
 
     setDemoUserControlSettings(normalized);
     return { ok: true, settings: normalized };
-  } catch {
-    setDemoUserControlSettings(normalized);
-    return { ok: true, settings: normalized };
+  } catch (error) {
+    logger.error("user_control_settings_update_failed", {
+      reason: error instanceof Error ? error.name : "unknown_error",
+    });
+    return {
+      ok: false,
+      error:
+        "Could not save user control policy to database. Please try again.",
+    };
   }
 }
 
@@ -675,15 +723,21 @@ export async function getUserExtendedPolicy(
 
 export async function updateUserExtendedPolicy(
   prisma: Partial<
-    Pick<PrismaClient, "user" | "userAccessPolicy" | "auditLog">
+    Pick<
+      PrismaClient,
+      "user" | "userAccessPolicy" | "userControlSettings" | "auditLog"
+    >
   > | null,
   rawUserId: string,
   rawInput: unknown,
   auditContext?: {
     readonly actorId?: bigint | null;
+    readonly authSource?: "admin_table" | "user_table";
+    readonly actorUsername?: string;
     readonly clientIp?: string | null;
     readonly userAgent?: string | null;
   },
+  options?: GovernanceRuntimeOptions,
 ): Promise<
   | { readonly ok: true; readonly policy: ExtendedUserAccessPolicyShape }
   | { readonly ok: false; readonly error: string }
@@ -702,13 +756,20 @@ export async function updateUserExtendedPolicy(
     };
   }
 
-  const globalSettings = await getUserControlSettings(null);
+  const globalSettings = await getUserControlSettings(prisma, options);
   const normalized = normalizeExtendedUserAccessPolicy(
     parsed.data,
     globalSettings,
   );
 
   if (!prisma?.userAccessPolicy) {
+    if (!isDemoGovernanceFallbackAllowed(options)) {
+      return {
+        ok: false,
+        error:
+          "Database connection is required to save user permission overrides.",
+      };
+    }
     setDemoUserAccessPolicy(trimmedId, normalized);
     return { ok: true, policy: normalized };
   }
@@ -741,6 +802,8 @@ export async function updateUserExtendedPolicy(
     if (prisma.auditLog) {
       await recordAudit(prisma as unknown as AuditWriteClient, {
         actorId: auditContext?.actorId ?? null,
+        authSource: auditContext?.authSource,
+        actorUsername: auditContext?.actorUsername,
         action: "user_access_policy_updated",
         targetType: "user",
         targetIdentifier: trimmedId,
@@ -758,22 +821,55 @@ export async function updateUserExtendedPolicy(
 
     setDemoUserAccessPolicy(trimmedId, normalized);
     return { ok: true, policy: normalized };
-  } catch {
-    setDemoUserAccessPolicy(trimmedId, normalized);
-    return { ok: true, policy: normalized };
+  } catch (error) {
+    logger.error("user_access_policy_update_failed", {
+      user_id: trimmedId,
+      reason: error instanceof Error ? error.name : "unknown_error",
+    });
+    return {
+      ok: false,
+      error:
+        "Could not save user access policy to database. Please try again.",
+    };
   }
+}
+
+function countDemoMailboxesForAccount(account: {
+  readonly id: string;
+  readonly username: string;
+}): number {
+  const demoStoreMailboxes = (
+    globalThis as {
+      __readboxDemoUserStore?: {
+        mailboxes?: ReadonlyArray<{ ownerUserId?: string }>;
+      };
+    }
+  ).__readboxDemoUserStore?.mailboxes;
+
+  if (!demoStoreMailboxes) {
+    return account.username === "demo.user" ? 4 : 0;
+  }
+
+  return demoStoreMailboxes.filter((mbx) => {
+    if (mbx.ownerUserId) {
+      return mbx.ownerUserId === account.id;
+    }
+    return account.username === "demo.user";
+  }).length;
 }
 
 export async function listUsersControlSnapshot(
   prisma?: PrismaClient | null,
+  options?: GovernanceRuntimeOptions,
 ): Promise<{
   readonly settings: UserControlSettingsShape;
   readonly domains: readonly ControlDomainOption[];
   readonly pendingUsers: readonly PendingSignupUserItem[];
   readonly governedUsers: readonly GovernedUserPolicyItem[];
   readonly databaseConnected: boolean;
+  readonly databaseError?: string;
 }> {
-  const settings = await getUserControlSettings(prisma ?? null);
+  const settings = await getUserControlSettings(prisma ?? null, options);
 
   if (prisma) {
     try {
@@ -853,15 +949,36 @@ export async function listUsersControlSnapshot(
 
       return {
         settings,
-        domains:
-          dbDomains.length > 0 ? dbDomains : [...DEMO_VERIFIED_DOMAINS],
+        domains: dbDomains,
         pendingUsers,
         governedUsers,
         databaseConnected: true,
       };
-    } catch {
-      // Fall back to demo snapshot when PostgreSQL is unreachable
+    } catch (error) {
+      logger.error("users_control_snapshot_load_failed", {
+        reason: error instanceof Error ? error.name : "unknown_error",
+      });
+      return {
+        settings,
+        domains: [],
+        pendingUsers: [],
+        governedUsers: [],
+        databaseConnected: false,
+        databaseError:
+          "Unable to load verified domains and governed users from PostgreSQL.",
+      };
     }
+  }
+
+  if (!isDemoGovernanceFallbackAllowed(options)) {
+    return {
+      settings,
+      domains: [],
+      pendingUsers: [],
+      governedUsers: [],
+      databaseConnected: false,
+      databaseError: "Database connection is not configured.",
+    };
   }
 
   const demoAccounts = [
@@ -890,7 +1007,7 @@ export async function listUsersControlSnapshot(
     phone: acc.phone ?? "",
     isActive: acc.isActive !== false,
     verificationStatus: acc.verificationStatus ?? "verified",
-    mailboxCount: acc.username === "demo.user" ? 3 : 0,
+    mailboxCount: countDemoMailboxesForAccount(acc),
     policy: resolveEffectiveUserPolicy(
       settings,
       getDemoUserAccessPolicy(acc.id),
