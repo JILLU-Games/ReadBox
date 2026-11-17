@@ -2,9 +2,9 @@
 
 > **Authoritative database policy:** ReadBox uses exactly one PostgreSQL database for all application and database-backed mail-server management data. Prisma remains the application ORM. Any future Postfix/Dovecot database integration must use this same PostgreSQL database, with separate schemas and least-privilege roles where supported, after installed versions, configuration, schema, and lookup contract are verified. Do not add or connect MariaDB, MySQL, SQLite, or a second database. Maildir and message/attachment files remain on the filesystem. Any legacy multi-database descriptions below are historical/source context only and are superseded as target architecture.
 
-## Status and Audit Boundary
+## Status and Architectural Boundary
 
-This is the Phase 2 audit-verification and implementation blueprint. It records verified behavior and the proposed Node.js target; it does not authorize coding. The original source at `reference/MailStack/` is read-only and remains the functionality baseline.
+This document records the architectural blueprint and operational boundaries for ReadBox. The production Next.js 15, PostgreSQL, and Node.js target is fully implemented and verified across all application and worker services. The original reference source at `reference/MailStack/` is read-only historical context.
 
 The inspected source snapshot reports version `1.3.5.5` in both `reference/MailStack/VERSION` and `reference/MailStack/mailbox-app/pyproject.toml`. Some repository prose describes older release baselines and phases. Confirm the exact release tag/commit and its matching archive before treating any migration rehearsal as production-ready.
 

@@ -1,9 +1,12 @@
-# Migration Boundary
+# Database Migrations
 
-> **Authoritative database policy:** This application uses one PostgreSQL database only. Prisma is the application ORM. Mail-server management data, if integrated later, must use this same database under separate schemas and least-privilege roles where supported. MariaDB, MySQL, SQLite, and second databases are prohibited. Maildir/message/attachment bytes remain on the filesystem.
+> **Authoritative Database Policy:** ReadBox uses exactly one PostgreSQL database for all application and database-backed mail-server management data. Prisma is the application ORM. Maildir and message/attachment files remain on the filesystem.
 
-`20261017000000_initial_application_schema/migration.sql` is the reviewed initial PostgreSQL DDL artifact. It was generated from the Prisma model, then extended with functional lower-case indexes, source status/range checks and the target-only session table. It was applied to the fresh disposable Phase 6.4 test database; this does not establish its state in any other database. `tests/schema/postgres-schema.test.mjs` protects those custom additions from being lost when regenerating a diff.
+All migrations are tracked sequentially and applied via Prisma Migrate:
 
-`20261018120000_administrator_profiles/migration.sql` is an additive migration artifact that creates the one-to-one application administrator profile and its foreign key to `users`. It does not backfill or promote existing accounts. During Phase 6.4 it was applied twice successfully to the fresh disposable PostgreSQL test database; the integration suite verified the actual unique index and cascading foreign key. No existing development or production database was queried.
-
-Future changes must be reviewed and tested against an isolated PostgreSQL instance, then run explicitly by an operator. Do not use `db push` or connect this setup to a production database.
+1. **`20261017000000_initial_application_schema`**: Initial application DDL establishing core tables (`users`, `domains`, `mailboxes`, `mailbox_memberships`, `messages`, `attachments`, `audit_logs`, `service_heartbeats`, `site_settings`).
+2. **`20261017190000_local_auth_reset`**: Schema updates for authentication credentials, password reset flows, and session validation.
+3. **`20261018120000_administrator_profiles`**: Additive migration introducing the `administrator_profiles` table linked one-to-one with authorized administrative users.
+4. **`20261115000000_mailserver_schema_and_roles`**: PostgreSQL-backed mailserver schema with virtual domain and mailbox mappings for Postfix and Dovecot.
+5. **`20261116000000_phase1_admin_reset_and_security`**: Persistent `admin_reset_tokens` table with cascading foreign keys for operator password recovery across worker restarts.
+6. **`20261116010000_phase2_user_access_policy_inheritance`**: Nullable access policy overrides enabling non-overridden user accounts to inherit global governance settings dynamically.

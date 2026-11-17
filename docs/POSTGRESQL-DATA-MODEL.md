@@ -4,7 +4,7 @@
 
 ## Scope and Safety
 
-This model is based on the inspected Django models/migrations at `reference/MailStack/`. It is the new application's PostgreSQL schema only. It does **not** replace or copy the separate MariaDB schema used by Postfix/Dovecot, and it does not absorb the contact service's SQLite state. The generated `prisma/migrations/20261017000000_initial_application_schema/migration.sql` was applied only to a newly created, disposable PostgreSQL 16.14 rehearsal container; it remains unapplied in persistent or production environments. No production database was queried or changed.
+This model is based on the inspected Django models/migrations at `reference/MailStack/`. It is the new application's PostgreSQL schema only. It does **not** replace or copy the separate MariaDB schema used by Postfix/Dovecot, and it does not absorb the contact service's SQLite state. The generated `prisma/migrations/20261017000000_initial_application_schema/migration.sql` was applied only to a newly created, isolated test PostgreSQL 16.14 rehearsal container; it remains unapplied in persistent or production environments. No production database was queried or changed.
 
 The migration and cutover content below is future planning, not authorization. Production access, production migration, cutover, and Phase 5 remain unapproved. During rehearsal, never inspect, count, copy, or import source sessions and never access or inspect source password hashes; password verification is synthetic-only.
 
@@ -12,7 +12,7 @@ Phase 4 Prisma schema and initial SQL are complete; the isolated PostgreSQL 16.1
 
 Any future fixture or rehearsal requires named data-owner and security approval, approved provenance and sanitization, enforced production disconnection and outbound network denial, and an approved artifact retention/deletion policy with verified deletion evidence. Reject the entire fixture and stop immediately if validation finds any prohibited secret, password hash, session data, or identifying content.
 
-Approvals must be named and recorded before any source/production inventory, backup, restore, or data access. They must include fixture provenance/sanitization evidence, verified production disconnection, tested outbound denial including external/AI egress, approved artifact access/retention/deletion, and verified deletion evidence for fixtures, logs, checkpoints/manifests, temporary files, reports, backups, and disposable targets. No such access or fixture activity is authorized now.
+Approvals must be named and recorded before any source/production inventory, backup, restore, or data access. They must include fixture provenance/sanitization evidence, verified production disconnection, tested outbound denial including external/AI egress, approved artifact access/retention/deletion, and verified deletion evidence for fixtures, logs, checkpoints/manifests, temporary files, reports, backups, and isolated test targets. No such access or fixture activity is authorized now.
 
 ## Phase 4.1 Isolated PostgreSQL Rehearsal
 
@@ -92,4 +92,4 @@ Static source review identifies `auth_group`, `auth_permission`, `auth_group_per
 - PostgreSQL custom functional indexes/checks in the initial migration are generated-plus-reviewed SQL. Keep the schema tests and migration SQL synchronized when Prisma models change.
 - Source sessions remain entirely outside rehearsal; do not inspect, count, inventory, copy, export, invalidate, or import them. Any future cutover session policy is undecided and requires separate named, recorded approval.
 - The original UI mailbox delete is permanent purge while a soft-delete service exists but is not routed; preserve current route behavior unless approved otherwise.
-- The initial SQL has executed successfully on disposable PostgreSQL 16.14 only. This does not prove compatibility with the eventual production PostgreSQL version/configuration, source production data, ID/hash/data preservation, or restore/rollback behavior.
+- The initial SQL has executed successfully on isolated test PostgreSQL 16.14 only. This does not prove compatibility with the eventual production PostgreSQL version/configuration, source production data, ID/hash/data preservation, or restore/rollback behavior.

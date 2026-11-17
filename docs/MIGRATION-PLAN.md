@@ -53,7 +53,7 @@ Any password-verifier compatibility assessment described below is synthetic-only
 | python-dotenv 1.2.2                             | Reads root-protected app environment file                                                                               | systemd `EnvironmentFile` injection plus validated `src/config/`; no unsafe shell-env parsing.                                                                                   |
 | whitenoise 6.11.0                               | Django static serving/compression                                                                                       | Next static build and existing Nginx static/cache policy; private media/attachments are not public static content.                                                               |
 | setuptools >=75, wheel                          | Python package build metadata                                                                                           | npm/pnpm scripts, Node build output and lockfile; remove Python packaging from deployed app after runtime scripts are ported.                                                    |
-| pytest 9.1.1, pytest-django 4.12.0              | Python app test harness                                                                                                 | Vitest for unit/integration with disposable PostgreSQL/MariaDB fixtures; preserve behavioral cases.                                                                              |
+| pytest 9.1.1, pytest-django 4.12.0              | Python app test harness                                                                                                 | Vitest for unit/integration with isolated test PostgreSQL/MariaDB fixtures; preserve behavioral cases.                                                                              |
 | pytest-cov 7.0.0, coverage 7.13.3               | Coverage enforcement                                                                                                    | V8 coverage (`@vitest/coverage-v8` or equivalent) with agreed thresholds and critical branch coverage.                                                                           |
 | Ruff 0.15.17                                    | Python lint/import/style checks                                                                                         | ESLint + TypeScript typecheck; configured formatter without source-behavior changes.                                                                                             |
 | Bandit 1.9.4                                    | Python security static checks                                                                                           | Node-aware SAST in CI plus security tests; dependency auditing alone is not a SAST replacement.                                                                                  |
@@ -181,10 +181,10 @@ Local results for this Phase 4 work:
 
 | Check                                                     | Result                                                              |
 | --------------------------------------------------------- | ------------------------------------------------------------------- |
-| `npm.cmd run test:compat`                                 | PASS: 15 tests, 0 failures, including FK actions/index coverage.    |
-| `npm.cmd run db:validate`                                 | PASS: Prisma 7 schema valid; no database connection.                |
-| `npm.cmd run db:generate`                                 | PASS: local client generated; no database connection.               |
-| Persistent/production PostgreSQL migration                | NOT RUN; SQL was applied only to the disposable Phase 4.1 database. |
+| `npm run test:compat`                                 | PASS: 15 tests, 0 failures, including FK actions/index coverage.    |
+| `npm run db:validate`                                 | PASS: Prisma 7 schema valid; no database connection.                |
+| `npm run db:generate`                                 | PASS: local client generated; no database connection.               |
+| Persistent/production PostgreSQL migration                | NOT RUN; SQL was applied only to the ephemeral Phase 4.1 database. |
 | Original Django test suite / production backup comparison | NOT RUN; no Python runtime or production data accessed.             |
 
 Remaining future pre-import gates, only after separate named, recorded data-owner/security approval and all applicable safety gates: inventory approved production application/framework tables excluding all source session data; resolve non-ASCII collation/casefold differences; verify compatibility with the selected production PostgreSQL version/configuration; compare approved non-secret row/file data inside isolation. Never access or inspect source password hashes. Export only security-approved aggregates. The MariaDB mail schema and contact SQLite remain separate.
@@ -193,7 +193,7 @@ Remaining future pre-import gates, only after separate named, recorded data-owne
 
 The Phase 4.2 risk assessment, field mapping, validation classes, and approval-gated sanitized-data rehearsal sequence are in [DATA-MIGRATION-REHEARSAL-PLAN.md](DATA-MIGRATION-REHEARSAL-PLAN.md). This is planning only; no source rows or credentials were accessed.
 
-The initial migration was executed against a fresh, disposable PostgreSQL 16.14 database only. Container `mailstack-phase41-e3cda607f6214efe95d1cd48934ae11c` used the already-present `postgres:16-alpine` image, Docker `none` networking, no published ports or external volumes, and a 512 MiB tmpfs data directory. A randomly generated temporary password was used and is not recorded. Existing `ygit-*` containers were not inspected beyond their listed name/image/status/ports and were not touched.
+The initial migration was executed against a fresh, isolated test PostgreSQL 16.14 database only. Container `mailstack-phase41-e3cda607f6214efe95d1cd48934ae11c` used the already-present `postgres:16-alpine` image, Docker `none` networking, no published ports or external volumes, and a 512 MiB tmpfs data directory. A randomly generated temporary password was used and is not recorded. Existing `ygit-*` containers were not inspected beyond their listed name/image/status/ports and were not touched.
 
 Migration tested: `prisma/migrations/20261017000000_initial_application_schema/migration.sql`, SHA-256 `7839ada483c61d6fabc7c80ee57dd4ae4d739a21e46eab38e7c116bcb047e3eb`.
 
@@ -215,12 +215,12 @@ The configured local checks were run individually after the rehearsal; each comm
 
 | Command                            | Result                      |
 | ---------------------------------- | --------------------------- |
-| `npm.cmd run test:compat`          | PASS: 15 tests, 0 failures. |
-| `npm.cmd run db:validate`          | PASS.                       |
-| `npm.cmd run db:generate`          | PASS.                       |
-| `npm.cmd run lint`                 | PASS.                       |
-| `npm.cmd run typecheck`            | PASS.                       |
-| `npm.cmd run build`                | PASS.                       |
-| `npm.cmd audit --audit-level=high` | PASS: 0 vulnerabilities.    |
+| `npm run test:compat`          | PASS: 15 tests, 0 failures. |
+| `npm run db:validate`          | PASS.                       |
+| `npm run db:generate`          | PASS.                       |
+| `npm run lint`                 | PASS.                       |
+| `npm run typecheck`            | PASS.                       |
+| `npm run build`                | PASS.                       |
+| `npm audit --audit-level=high` | PASS: 0 vulnerabilities.    |
 
 Remaining production-only gates include actual production collation/Unicode collision inventory, unsigned positive-BIGINT range preflight, source row and ID/hash/counter/file preservation, password-hash compatibility, framework-table inventory, production-version/configuration compatibility, and restore/rollback rehearsal. The PostgreSQL application schema remains separate from Postfix/Dovecot MariaDB and contact SQLite. No authentication, runtime adapter, mail worker, or mail-engine implementation was started.

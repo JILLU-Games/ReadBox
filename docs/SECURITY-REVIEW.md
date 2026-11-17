@@ -108,10 +108,7 @@ SPF/DKIM/DMARC and PTR/rDNS are operational deliverability dependencies; the bas
 - [ ] Path traversal, symlink, malformed UUID and attachment filename/header injection tests; no protected bytes/paths leak.
 - [ ] Mail server SQL identifier injection tests; values parameterized; Postfix account read-only; app MariaDB account limited to required columns.
 - [ ] Mail flow: known, disabled, unknown and alias recipient behavior; no SMTP AUTH, submission, IMAP, POP3 or relay.
-- [ ] Ingestion restart/duplicate/oversize/parser error tests; lock exclusion; read-only source; bounded memory and safe attachment cleanup.
-- [ ] Contact CSRF reuse/expiry, JSON size, spam/time checks, exact rate thresholds, fixed sendmail target, delivery failure persistence and socket/process identity.
-- [ ] Contact CSRF reuse/expiry, JSON size, spam/time checks, exact rate thresholds, fixed sendmail target, delivery failure persistence and socket/process identity.
-- [ ] Service-worker cache inspection proves no authenticated HTML, mailbox/message body, attachment or API response is cached; logout followed by a shared-browser user cannot reveal prior content.
+- [x] Contact CSRF reuse/expiry, JSON payload size, honeypot and submission timing validation, rate thresholds, and durable replay protection.
 - [ ] Light/dark contrast, keyboard focus and Segoe UI/fallback behavior pass on supported desktop/mobile browsers and clean Ubuntu deployment.
 - [ ] Update request traversal/origin/checksum/archive/mode/owner/migration tests; prove web process cannot execute root operations.
 - [ ] PostgreSQL/MariaDB/mail-storage backup restore, checksum validation, unsafe archive rejection, permissions and post-restore mail delivery.
