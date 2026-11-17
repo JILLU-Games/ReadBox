@@ -61,9 +61,9 @@ export async function GET() {
 
 | Error ID | Owner | Failure/negative case not validated or not handled completely | Required production response | Source audit IDs | State |
 |---|---|---|---|---|---|
-| EH-M01 | R-01 | Dev Compose selected / demo password accidentally used | explicit prod selection and fail startup | RB-P0-01, RB-P1-01 | OPEN |
-| EH-M02 | R-01 | Missing/short secret and DB URL reserved-character corruption | clear, redacted refusal; valid URL encoding | RB-P1-01, RB-P2-03 | OPEN |
-| EH-M03 | R-01 | Reproducible production install fails/advisories unresolved | abort release; capture npm audit and lockfile evidence | RB-P1-14, RB-P1-15 | OPEN |
+| EH-M01 | R-01 | Dev Compose selected / demo password accidentally used | explicit prod selection and fail startup | RB-P0-01, RB-P1-01 | CI VERIFIED; live unverified |
+| EH-M02 | R-01 | Missing/short secret and DB URL reserved-character corruption | clear, redacted refusal; valid URL encoding | RB-P1-01, RB-P2-03 | CI VERIFIED; live unverified |
+| EH-M03 | R-01 | Reproducible production install fails/advisories unresolved | abort release; capture npm audit and lockfile evidence | RB-P1-14, RB-P1-15 | CI VERIFIED; live unverified |
 | EH-M04 | R-02 | SQL role no-login, DB endpoint not reachable, permission denied | safe lookup rejection; one DB only; no leakage | RB-P0-03, RB-P1-08 | OPEN |
 | EH-M05 | R-02 | Maildir access denied due to differing UID/GID/ACL | no silent accepted-but-lost mail; no broad chmod | RB-P0-04 | OPEN |
 | EH-M06 | R-02 | Missing/partial/out-of-order applied migrations | not-ready/abort, no destructive fallback | RB-P2-04 | OPEN |
@@ -97,9 +97,14 @@ PASS / FAIL / SKIPPED / NOT RUN:
 
 | Phase | Existing handlers re-tested | New negative tests verified | Evidence URL / SHA | Status |
 |---|---|---|---|---|
-| R-01 | — | — | — | NOT STARTED |
+| R-01 | Startup/lockfile guards | Short credentials, reserved-character password, missing secrets, audit | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 | CI VERIFIED |
 | R-02 | — | — | — | NOT STARTED |
 | R-03 | — | — | — | NOT STARTED |
 | R-04 | — | — | — | NOT STARTED |
 | R-05 | — | — | — | NOT STARTED |
 | R-06 | — | — | — | NOT STARTED |
+
+## R-01 error handling patch proof
+
+- EH-M01/EH-M02/EH-M03 verified by selected Compose service checks, short/missing secret rejection, reserved-character password round-trip, lockfile and production dependency audit: https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590.
+- A runtime password bug involving `%` escaping was found and corrected in Dockerfile before the successful run. Other mailserver and VPS error cases remain OPEN.

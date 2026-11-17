@@ -85,3 +85,9 @@ Author and timestamp:
 ```
 
 Rollback contracts: no modifications to applied migrations; backup before changing data; retained original Maildir; only reversible image/config changes; retain database compatibility; no destructive release tests against production. A failed phase stays blocked—never silently release or auto-publish.
+
+## R-01 completed focused release-foundation gate — 2026-11-17
+
+- Full app regression (167 unit + 70 UI tests, typecheck/lint, Prisma validate, Next build): https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120. Its final Docker smoke found the raw-percent credential encoding bug, so that whole workflow run is not labeled PASS.
+- Final corrected Docker/Compose/runtime smoke, immutable base digest and moderate-level production npm audit: https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 — **SUCCESS**. Targeted Dockerfile and test correction only after app regression.
+- Source code SHA: `113663cdabacf1460af5b06a334d99ab3db833c2`. R-01 finding outcomes: CI VERIFIED CLOSED; remaining R-02 to R-06 and external VPS SMTP/LMTP tests NOT RUN. Full mailserver **NO-GO**.

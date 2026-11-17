@@ -2,7 +2,7 @@
 
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`.
 **Finding source:** [001-PRODUCTION-RELEASE-BLOCKERS.md](001-PRODUCTION-RELEASE-BLOCKERS.md) and the earlier forensic report.
-**Status:** Planning only; `0/6` implemented. **Production verdict: NO-GO.**
+**Status:** R-01 VERIFIED CLOSED (CI); `1/6` implemented, 5 remaining. **Production verdict: NO-GO.**
 
 ## Implementation sequencing and shared controls
 
@@ -12,7 +12,7 @@ Implement **R-01 → R-02 → R-03 → R-04 → R-05 → R-06** in sequence only
 
 | Phase | Scope focus | Owner findings | Status |
 |---|---|---:|---|
-| R-01 | Deployment foundation + reproducibility | 7 | NEXT; NOT STARTED |
+| R-01 | Deployment foundation + reproducibility | 7 | VERIFIED CLOSED (CI) |
 | R-02 | PostgreSQL/Postfix SQL and Maildir identity | 4 | NOT STARTED |
 | R-03 | Inbound SMTP/LMTP mailserver and DNS/TLS | 6 | NOT STARTED |
 | R-04 | Operator bootstrap and fail-closed runtime health | 6 | NOT STARTED |
@@ -23,7 +23,7 @@ Implement **R-01 → R-02 → R-03 → R-04 → R-05 → R-06** in sequence only
 
 ## R-01 — Deployment foundation + reproducibility
 
-**Position:** 1/6 · **Prerequisite:** 000 frozen baseline · **Current state:** NOT STARTED.
+**Position:** 1/6 · **Prerequisite:** 000 frozen baseline · **Current state:** VERIFIED CLOSED (CI).
 
 **Owned findings (single owner):** `RB-P0-01`, `RB-P1-01`, `RB-P1-02`, `RB-P1-14`, `RB-P1-15`, `RB-P2-03`, `RB-P2-09`.
 
@@ -252,3 +252,9 @@ One consolidated CI regression/release-gate run plus authorized staging VPS acce
 ## Final release condition
 
 `R-06` must not claim production GO until all `006` gates and outstanding findings have recorded evidence at the actual release SHA plus live staging VPS checks. Existing CI's 237 tests are an initial regression baseline only, not an SMTP deployment proof. Do not run live services, edit source, create tags or publish releases on the authority of this planning document.
+
+### R-01 implementation verification
+
+- The seven R-01 owned findings are CI closed. Source code commit: `113663cdabacf1460af5b06a334d99ab3db833c2`.
+- Scoped checks: https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 (Docker, secrets, npm audit), https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120 (167 unit/70 UI, app build).
+- No `src/`, UI/UX, business logic, Prisma migration or mailserver template changes. Next scope: **R-02** after explicit approval.

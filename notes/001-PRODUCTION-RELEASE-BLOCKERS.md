@@ -1,7 +1,7 @@
 # 001 — Production Blocker Ledger & Exact Baseline Code Proof
 
 **Baseline SHA:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`, **tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`.
-**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **All 32 OPEN; 0 verified fixed.**
+**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **25 OPEN; 7 R-01 CI-VERIFIED CLOSED; full mailserver production NO-GO.**
 **Primary source:** [VPS production forensic audit](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md).
 **Status:** documentation/planning only. **NO-GO** for real VPS mailserver.
 
@@ -10,7 +10,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 ## Full 32-finding register
 
 ### RB-P0-01 — Default Docker Compose starts the wrong stack
-- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** VERIFIED CLOSED (R-01 CI; live unverified).
 - **Audit evidence:** `compose.yaml:1–41` defines `postgres` and optional `postgres-test` only, with a development-only password. `docker-compose.yml:12–165` separately defines `postgres`, `web` and `worker`. `README.md:194–229` instructs `docker compose up -d` without specifying a file. Docker Compose prioritizes `compose.yaml` over legacy `docker-compose.yml` when both exist (Docker documentation: https://docs.docker.com/compose/intro/compose-application-model/).
 - **Impact:** Following the published quick-start does not start the web application or Maildir worker and can select the development database configuration.
 - **Required outcome before closure:** Explicit production Compose entrypoint, never default to development DB.
@@ -27,7 +27,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
   9 |     ports:
 ```
 
-- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P0-02 — SMTP/MTA and mailbox-delivery services absent from production Compose
 - **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
@@ -118,7 +118,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-06 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-01 — Standalone Compose cannot run from unconfigured sample secrets
-- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** VERIFIED CLOSED (R-01 CI; live unverified).
 - **Audit evidence:** `docker-compose.yml:18,53,134,136` requires `SERVICE_PASSWORD_DB` and `SERVICE_BASE64_64_SECRET`; `.env.example:9–11,29–30` leaves them empty. Automatic generation is a Coolify convention, not native standalone Docker Compose behavior.
 - **Impact:** An unconfigured standalone installation is rejected during Compose variable validation. Published "copy .env + up" instructions are not sufficient.
 - **Required outcome before closure:** Production secrets validated and safely initialized/persisted per deployment mode.
@@ -132,10 +132,10 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
  20 |     volumes:
 ```
 
-- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-02 — README environment variables and service names diverge from the running configuration
-- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** VERIFIED CLOSED (R-01 CI; live unverified).
 - **Audit evidence:** `README.md:208–229,275–291` refers to `NEXTAUTH_SECRET`, `app`, `db`, Next.js 15 and older storage variable names. Actual Compose uses `AUTH_SECRET` supplied from `SERVICE_BASE64_64_SECRET`, services `web`/`postgres`, and current `package.json` has Next.js **16.4.2**.
 - **Impact:** Direct copy/paste may misconfigure authentication, database access and runtime deployment.
 - **Required outcome before closure:** Correct README instructions/env names/service names/framework version.
@@ -150,7 +150,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 214 | ```
 ```
 
-- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-03 — First administrator bootstrapping is not wired into Compose startup
 - **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
@@ -346,7 +346,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-05 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-14 — Separate runtime dependency install is not fully lockfile-reproducible
-- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** VERIFIED CLOSED (R-01 CI; live unverified).
 - **Audit evidence:** `Dockerfile:18–31` runs a fresh `npm install --no-save` for a separately built migrator/runtime dependency set, unlike the main `npm ci` in `Dockerfile:8–16`. Base image `node:22-alpine` is not pinned to an immutable digest.
 - **Impact:** The npm lockfile correction does not alone guarantee identical production runtime dependency resolution or base-image contents across rebuilds.
 - **Required outcome before closure:** Production deps and build image are reproducible/pinned.
@@ -361,10 +361,10 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
  24 |   tsx@4.23.15 \
 ```
 
-- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-15 — Previous npm audit advisories remain in the reconciled lockfile
-- **Owner:** R-01. **Baseline assessment:** CONFIRMED VERSION EVIDENCE. **Current state:** OPEN.
+- **Owner:** R-01. **Baseline assessment:** CONFIRMED VERSION EVIDENCE. **Current state:** VERIFIED CLOSED (R-01 CI; live unverified).
 - **Audit evidence:** Prior GitHub Actions dependency audit reported **two moderate findings** for `next` and `fast-uri`. Current `package-lock.json` still locks `next@16.4.2` and `fast-uri@3.1.8`. The prior Next.js advisory was `GHSA-mfr8-8qww-v76h` and fast-uri had multiple URI parsing advisories. This audit has not re-run `npm audit` on the latest external advisory feed.
 - **Impact:** Security dependency remediation is not evidenced; severity and fixed versions should not be assumed current without a fresh advisory check. This is **not** proof of a working exploit.
 - **Required outcome before closure:** Fresh dependency security review/remediation or documented risk acceptance.
@@ -377,7 +377,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
  55 |     "next-themes": "^0.4.6",
 ```
 
-- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-16 — Production image, external PostgreSQL and failure-recovery integration unverified
 - **Owner:** R-06. **Baseline assessment:** UNVERIFIED. **Current state:** OPEN.
@@ -425,7 +425,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-05 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-03 — Password-in-URI construction needs character-safe verification
-- **Owner:** R-01. **Baseline assessment:** CONDITIONAL. **Current state:** OPEN.
+- **Owner:** R-01. **Baseline assessment:** CONDITIONAL. **Current state:** VERIFIED CLOSED (R-01 CI; live unverified).
 - **Audit evidence:** `docker-compose.yml:48,134` interpolates `SERVICE_PASSWORD_DB` directly into PostgreSQL URL credentials.
 - **Impact:** Secrets containing URL-reserved characters may lead to invalid or misparsed URLs unless encoded appropriately. No evidence demonstrates arbitrary-character passwords work.
 - **Required outcome before closure:** Reserved characters in DB secrets handled without credential misparse.
@@ -438,7 +438,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
  50 |
 ```
 
-- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-04 — Setup readiness does not establish complete migration history
 - **Owner:** R-02. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
@@ -521,7 +521,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-06 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-09 — Archived source history and documentation can still contain outdated assertions
-- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-01. **Baseline assessment:** CONFIRMED. **Current state:** VERIFIED CLOSED (R-01 CI; live unverified).
 - **Audit evidence:** `README.md` contains stale framework/version/configuration details; old historical `notes/` files were removed from the current tree by this documentation-only audit change (Git history remains intact).
 - **Impact:** Prior notes describing phases as "production-ready" must not supersede the current evidence-based NO-GO verdict.
 - **Required outcome before closure:** Document actual Next.js 16.4.2/current commands.
@@ -534,7 +534,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
  42 | ---
 ```
 
-- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
+- **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-10 — Production readiness defaults do not require a live mailserver
 - **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
@@ -568,3 +568,9 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **R-06** (3): RB-P0-06, RB-P1-16, RB-P2-08.
 
 **Totals:** 32 records; 32 unique owner assignments; no duplicate or orphan. This document does not authorize any source edit, server action or live mail sending. Current code and historical report stay unchanged. New defects must have new evidence and explicit scope authorization; do not silently add them to a running phase.
+
+## R-01 closure evidence (2026-11-17)
+
+- Seven findings CI-verified: RB-P0-01, RB-P1-01, RB-P1-02, RB-P1-14, RB-P1-15, RB-P2-03, RB-P2-09.
+- Tested source patch SHA: `113663cdabacf1460af5b06a334d99ab3db833c2`; Docker/Compose/security proof https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590; complete app regression proof https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120.
+- 25 findings OPEN. SMTP/LMTP and real VPS acceptance remain unverified. Historical code excerpts intentionally preserve the original baseline.

@@ -1,6 +1,6 @@
 # 005 — Actual Feature Implementation and Verified Working Tracker
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 0/6 complete. **Release:** NO-GO.
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 1/6 CI VERIFIED; 5 remaining. **Release:** NO-GO.
 
 ## Terminology — critical distinction
 
@@ -45,7 +45,7 @@
 
 | Phase | Exact expected improvement (NOT YET WORKING-PROVEN) | State | Proof URL/commit when completed |
 |---|---|---|---|
-| R-01 | Production vs development Compose, secrets, reproducible Docker/dependency image, correct README | NOT STARTED | — |
+| R-01 | Production vs development Compose, secrets, reproducible Docker/dependency image, correct README | CI VERIFIED | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 |
 | R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | NOT STARTED | — |
 | R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | NOT STARTED | — |
 | R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | NOT STARTED | — |
@@ -66,3 +66,10 @@ Source and mirrored SHA:
 ```
 
 **No future features are marked complete.** The tracker must not be updated from code review alone to claim live production functionality.
+
+## R-01 code-level working features (CI verified, NOT live VPS)
+
+- Docker build uses immutable Node digest and one package-lock resolution. `prisma`, `tsx`, `dotenv` are available in runtime. App CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120.
+- Default Compose defines `postgres`, `web`, `worker`; opt-in `compose.dev.yaml` preserves the development database setup.
+- Docker entrypoint safely encodes arbitrary DB password symbols and fails on short DB/auth credentials. Docker and production npm audit CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590.
+- Actual production VPS Postfix/Dovecot, mail receipt, real PostgreSQL migrations and disaster recovery: **NOT VERIFIED**. Existing UI, routes, auth behavior and messages unchanged.
