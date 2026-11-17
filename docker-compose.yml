@@ -110,6 +110,7 @@ services:
       - readbox_media:/var/lib/readbox/media
       - readbox_locks:/var/lock/readbox-provision
       - readbox_opendkim:/etc/opendkim/keys
+      - readbox_backup_ipc:/run/readbox-backup-agent:ro
     networks:
       - readbox_internal
     healthcheck:
@@ -271,6 +272,8 @@ volumes:
   readbox_locks:
   readbox_opendkim:
   readbox_postfix_queue:
+  # BR-02: private Unix socket only; no Docker daemon mount.
+  readbox_backup_ipc:
 
 networks:
   readbox_internal:
