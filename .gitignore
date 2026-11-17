@@ -24,8 +24,7 @@ next-env.d.ts
 # package-lock.json is version-controlled for reproducible npm ci
 npm-debug.log*
 yarn-debug.log*
-p# package-lock.json is version-controlled for reproducible npm ci
-npm-debug.log*
+pnpm-debug.log*
 bun.lock
 bun.lockb
 yarn.lock
