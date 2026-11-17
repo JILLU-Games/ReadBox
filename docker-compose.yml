@@ -171,7 +171,9 @@ services:
     networks:
       - readbox_internal
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'scripts/mail/ingest.ts' >/dev/null || exit 1"]
+      # App web liveness must remain independent to avoid worker startup deadlock.
+      # Worker health also requires the app's *full* DB/storage/ingestion readiness.
+      test: ["CMD-SHELL", "pgrep -f 'scripts/mail/ingest.ts' >/dev/null && node -e \"fetch('http://web:3000/health/ready', {signal: AbortSignal.timeout(3000)}).then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
       timeout: 5s
       retries: 3

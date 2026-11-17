@@ -210,10 +210,18 @@ export async function runIngestionWorkerLoop(
   options: WorkerCliOptions,
   signal?: AbortSignal,
 ): Promise<IngestionRunSummary> {
-  let lastSummary = await runIngestionPass({
-    mailboxLocalPart: options.mailboxLocalPart,
-    dryRun: options.dryRun,
-  });
+  let lastSummary: IngestionRunSummary;
+  try {
+    lastSummary = await runIngestionPass({
+      mailboxLocalPart: options.mailboxLocalPart,
+      dryRun: options.dryRun,
+    });
+  } catch (error) {
+    await recordWorkerDegradedHeartbeat("initial_ingestion_pass_failed", {
+      errorType: error instanceof Error ? error.name : "WorkerError",
+    });
+    throw error;
+  }
 
   logger.info("ingestion_pass_completed", {
     status: lastSummary.status,

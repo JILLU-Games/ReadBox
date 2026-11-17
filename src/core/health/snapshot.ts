@@ -7,7 +7,7 @@ import {
   type PrismaRawQueryable,
 } from "@/core/mailserver/pg-adapter";
 import { randomBytes } from "node:crypto";
-import { lstatSync, readdirSync, statSync } from "node:fs";
+import { lstatSync, readdirSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import "server-only";
@@ -33,10 +33,12 @@ export async function checkWritableStorageDirectory(
   directoryPath: string,
 ): Promise<{ readonly ok: boolean }> {
   try {
-    const st = statSync(directoryPath);
-    if (!st.isDirectory()) {
+    const st = lstatSync(directoryPath);
+    if (!st.isDirectory() || st.isSymbolicLink()) {
       return { ok: false };
     }
+    // A writeable but unreadable Maildir is not operationally healthy.
+    readdirSync(directoryPath);
     const probePath = join(
       directoryPath,
       `.readbox-healthcheck-${randomBytes(6).toString("hex")}`,
@@ -178,6 +180,8 @@ export async function getReadinessSnapshot(options?: {
             const ageSeconds =
               (now.getTime() - heartbeat.lastSeenAt.getTime()) / 1_000;
             const isFresh =
+              Number.isFinite(ageSeconds) &&
+              ageSeconds >= 0 &&
               ageSeconds <= runtimeEnv.ingestionStaleAfterSeconds;
             ingestionStatus = isFresh ? heartbeat.status : "stale";
             mailServicesConnected =
@@ -204,7 +208,11 @@ export async function getReadinessSnapshot(options?: {
     ingestionStatus === "stale" ||
     ingestionStatus === "degraded" ||
     ingestionStatus === "unavailable";
-  const ingestionGateOk = runtimeEnv.requireIngestionReady
+  // In production the worker is mandatory, even if an old Compose env value
+  // still sets REQUIRE_INGESTION_READY=false. Development policy is retained.
+  const requiresWorker =
+    runtimeEnv.nodeEnv === "production" || runtimeEnv.requireIngestionReady;
+  const ingestionGateOk = requiresWorker
     ? mailServicesConnected
     : !ingestionDegradedOrStale;
 
@@ -218,6 +226,7 @@ export async function getReadinessSnapshot(options?: {
 
   return {
     status: ready ? ("ready" as const) : ("not_ready" as const),
+    scope: "application" as const,
     checks: {
       configuration,
       database: {
@@ -233,7 +242,11 @@ export async function getReadinessSnapshot(options?: {
       mailServices: {
         connected: mailServicesConnected,
         ingestionStatus,
+        required: requiresWorker,
       },
+      // This route checks the ReadBox app/ingestion; it never asserts that
+      // external SMTP/MX/PTR or Dovecot LMTP are actually accepting mail.
+      mailTransport: { verified: false, status: "not_checked" as const },
     },
   };
 }

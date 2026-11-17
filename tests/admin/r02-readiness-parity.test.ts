@@ -88,6 +88,14 @@ test("R-02 health readiness fails closed on missing/failed migration history wit
       async $executeRawUnsafe() {
         return 0;
       },
+      serviceHeartbeat: {
+        async findUnique() {
+          return {
+            status: "healthy",
+            lastSeenAt: new Date(Date.now() - 1000),
+          };
+        },
+      },
     });
 
     const probe = async (prisma: ReadinessProbePrismaLike) =>
