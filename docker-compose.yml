@@ -1,5 +1,6 @@
 # ==============================================================================
 # ReadBox Production Stack (PostgreSQL 16 + Next.js Web + Maildir Worker)
+# Default docker compose now selects THIS file; compose.dev.yaml is opt-in development.
 #
 # Postfix / Dovecot Host or Sidecar Integration Contract:
 # 1. Mount the `readbox_vmail` volume (or bind-mount `/var/vmail`) into both
@@ -44,8 +45,10 @@ services:
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
 
-      # Database & Migrations (Coolify auto-generates SERVICE_PASSWORD_DB)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-readbox}:${SERVICE_PASSWORD_DB}@postgres:5432/${POSTGRES_DB:-readbox}?schema=public
+      # Database & Migrations: runtime encodes arbitrary DB password bytes safely.
+      READBOX_DB_USER: ${POSTGRES_USER:-readbox}
+      READBOX_DB_NAME: ${POSTGRES_DB:-readbox}
+      READBOX_DB_PASSWORD: ${SERVICE_PASSWORD_DB:?Set SERVICE_PASSWORD_DB in .env or Coolify}
       PRISMA_CLI_ALLOW_REMOTE: "true"
 
       # Authentication & Proxy Trust (Coolify auto-generates SERVICE_BASE64_64_SECRET)
@@ -131,7 +134,9 @@ services:
       NODE_ENV: production
       DOCKER_RUNTIME: "true"
       SKIP_MIGRATIONS: "true"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-readbox}:${SERVICE_PASSWORD_DB}@postgres:5432/${POSTGRES_DB:-readbox}?schema=public
+      READBOX_DB_USER: ${POSTGRES_USER:-readbox}
+      READBOX_DB_NAME: ${POSTGRES_DB:-readbox}
+      READBOX_DB_PASSWORD: ${SERVICE_PASSWORD_DB:?Set SERVICE_PASSWORD_DB in .env or Coolify}
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       AUTH_SECRET: ${SERVICE_BASE64_64_SECRET:?Coolify auto-generates SERVICE_BASE64_64_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}

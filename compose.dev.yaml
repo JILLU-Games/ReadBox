@@ -1,4 +1,6 @@
-name: readbox
+# DEVELOPMENT ONLY. Production uses docker-compose.yml.
+# Run: docker compose -f compose.dev.yaml up -d postgres
+name: readbox-dev
 services:
   postgres:
     image: postgres:16.14-alpine
