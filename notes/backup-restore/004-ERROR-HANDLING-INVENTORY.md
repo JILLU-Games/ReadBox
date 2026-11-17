@@ -1,12 +1,14 @@
 # BR-004 — Error-Handling Inventory and Planned Failure Contract
 
-**Evidence baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`. Status columns separate **EXISTS in repository** from **TO ADD**; nothing in TO ADD currently works.
+**Evidence baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`; BR-01 implementation `f742231e25c5d4969d76cb5ec441b4f23eeddfc8`. Status columns separate **EXISTS in repository** from **TO ADD**; nothing in the backup backend TO ADD currently works.
 
 ## Actual existing error handling
 
 | Code path | Source lines | What it currently handles | Limit / caution |
 |---|---|---|---|
 | `src/core/auth/route-access-policy.ts` | 13–20 | unauthed redirects/not-found admin denial | No restore-specific superuser action or re-auth gate |
+| `src/app/(workspace)/vcon/backup/page.tsx` | 1–9 | BR-01 page uses existing `requireAdminUser()` (verified via focused mocked route test) | No agent capability; cannot run backup/restore |
+| `src/components/vcon/backup-console.tsx` | 19–158 | BR-01 read-only explanation and all 10 future buttons disabled | Intentional unavailable state; no network/backend errors generated |
 | `src/app/api/vcon/update/start/route.ts` | 8–24,52–68 | admin check, bad JSON, safe HTTP response | Update-specific only; backup API must independently enforce authorization |
 | `src/core/audit/record.ts` | 14–40,130–191 | redact sensitive fields, record audit and log persistence errors | DB restore can rewrite DB audit log; separate host journal needed |
 | `src/core/server/logger.ts` | 13–48 | key-based structured log redaction | Unstructured stdout/stderr must never be exposed raw |
@@ -54,3 +56,11 @@ All responses have opaque `requestId`/`jobId`, stable `code`, generic redacted `
 - Do not use automatic retries for production restore. Scheduler may retry uploads on safe idempotent object keys only.
 - Restore timeouts, cancellation and web disconnection are not considered success. Actual status is from host agent's durable journal.
 - New error codes/tests must be added to this file when implemented, **not** reported as existing until real CI proof and tested path exist.
+
+## BR-01 actual handling and limitations (implemented)
+
+- No backup API or privileged executor exists yet. The new page **never issues an operation**; thus no backup job may report false success and no restore error can be triggered from UI.
+- The existing administrator route guard is called before rendering; the focused test checks the call and a mocked guard rejection, not an independent live production security probe.
+- The explanatory **Backup controls are not connected** banner and all disabled controls are fail-closed UI affordances, not proof that a host backup agent was installed or queried.
+- No new backend error codes were implemented; all proposed `BACKUP_*` / `R2_*` / `RESTORE_*` codes above remain **NOT IMPLEMENTED** until BR-02–04.
+- Evidence: [BR-01 consolidated CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845), [code commit](https://github.com/JILLU-Games/ReadBox/commit/f742231e25c5d4969d76cb5ec441b4f23eeddfc8). No existing logger, audit DB, auth source or production configuration was changed.

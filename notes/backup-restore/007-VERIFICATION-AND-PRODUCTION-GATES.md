@@ -1,6 +1,6 @@
 # BR-007 — Exact Focused Verification, Rollback and Release Gates
 
-**Source baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`. **All new BR phase gates = NOT RUN.** Existing R-05 CI may pass, but does not prove future UI/agent/R2/production restore. Never conflate planned tests with actual results.
+**Source baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`; BR-01 exact code commit `f742231e25c5d4969d76cb5ec441b4f23eeddfc8` validated by [R-06 consolidated CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845). **BR-01 source/CI PASS; BR-02–04 gates NOT RUN.** Existing R-05 CI may pass, but does not prove future UI/agent/R2/production restore. Never conflate planned tests with actual results.
 
 ## BR-01 — focused UI contract
 
@@ -60,9 +60,19 @@ BR-01/BR-02/BR-03/BR-04 completion means **backup module capability acceptance**
 
 | Phase | Focused CI | App regression | Patch allowlist | Agent/restore evidence | Docs log | Closure |
 |---|---|---|---|---|---|---|
-| BR-01 | NOT RUN | NOT RUN | NOT REVIEWED | N/A | PLANNED | OPEN |
+| BR-01 | PASS — [R06 Actions](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845) | PASS — unit/UI/build | PASS — exact 5-path diff, 10/10 disabled | N/A; no agent yet | UPDATED | CLOSED (source/CI) |
 | BR-02 | NOT RUN | NOT RUN | NOT REVIEWED | NOT RUN | PLANNED | OPEN |
 | BR-03 | NOT RUN | NOT RUN | NOT REVIEWED | NOT RUN | PLANNED | OPEN |
 | BR-04 | NOT RUN | NOT RUN | NOT REVIEWED | NOT RUN | PLANNED | OPEN |
 
-No deployment/build/release was executed in this documentation-only phase.
+BR-01 build and tests ran **only in GitHub Actions against disposable resources**; no production deployment, live SMTP sending, backup/restore execution, tag or stable release was performed in BR-01. BR-02 remains a separate approval-dependent Scope Lock.
+
+## BR-01 implementation patch audit and evidence
+
+- Before SHA: `29c2663cc24c3bb5788932f177ee3bf7f1c1111e`; code SHA: `f742231e25c5d4969d76cb5ec441b4f23eeddfc8`.
+- Approved code paths: `src/components/layout/app-shell.tsx`, `tests/ui/app-shell.test.tsx`, `src/app/(workspace)/vcon/backup/page.tsx`, `src/components/vcon/backup-console.tsx`, `tests/ui/vcon-backup.test.tsx`.
+- Actual code diff: EXACT SAME FIVE PATHS, 2 modified with additive changes (+2/+5) and 3 added; 0 removed/renamed. Scope violation: 0.
+- Static target audit: 1 link, server `requireAdminUser()`, no fetch/child process/hooks, 10/10 disabled action buttons, no fake status. PASS.
+- One full CI run: https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845. Code SHA `f742231e25c5d4969d76cb5ec441b4f23eeddfc8`. The consolidated frontend/type/build, dependency audit, PostgreSQL integration, SMTP+LMTP smoke, R05 disposable backup+restore+rollback and immutable historical gates completed with success.
+- CI is *not* a live VPS browser acceptance or actual host backup restore; remain honest on production readiness.
+- Next BR-02 must test host agent privilege boundary and existing functionality without allowing backup/restore from an uninstalled or unhealthy agent.
