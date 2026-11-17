@@ -31,6 +31,16 @@ class BackupExecutor:
         if root.is_symlink() or not (root / "docker-compose.yml").is_file():
             raise ValueError("Real Compose root required")
         self.root = root.resolve(strict=True)
+        # Production ALWAYS uses the audited production compose file. The fixture
+        # is reachable only in an explicit disposable CI project with the guard.
+        if project == "readboxbr02-ci" and os.environ.get("READBOX_BR02_DISPOSABLE") == "1":
+            self.compose_file = self.root / "deployment/operations/ci-compose.yml"
+        elif project.endswith("-ci"):
+            raise ValueError("Disposable CI Compose requires explicit guarded fixture")
+        else:
+            self.compose_file = self.root / "docker-compose.yml"
+        if self.compose_file.is_symlink() or not self.compose_file.is_file():
+            raise ValueError("Required fixed Compose file missing")
         self.project = project
         self.db_user = db_user
         self.db_name = db_name
@@ -82,7 +92,7 @@ class BackupExecutor:
             raise ValueError("Backup archive already exists")
         args = [
             sys.executable, str(self.root / "deployment/operations/compose_recovery.py"),
-            "backup", "--compose-file", str(self.root / "docker-compose.yml"),
+            "backup", "--compose-file", str(self.compose_file),
             "--project", self.project, "--db-user", self.db_user, "--db-name", self.db_name,
             "--recipient", recipient, "--output", str(archive), "--confirm-maintenance",
         ]
