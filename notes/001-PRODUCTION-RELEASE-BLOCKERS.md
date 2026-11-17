@@ -74,9 +74,9 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 
 ```dockerfile
  80 | ENV DOCKER_RUNTIME=true
- 81 | 
+ 81 |
  82 | USER nextjs
- 83 | 
+ 83 |
  84 | EXPOSE 3000
 ```
 
@@ -92,12 +92,12 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 ```text
  13 | mail_home = /var/vmail/%Ld/%Ln
  14 | mail_location = maildir:/var/vmail/%Ld/%Ln/Maildir
- 15 | 
+ 15 |
  16 | userdb {
  17 |   driver = static
  18 |   args = uid=vmail gid=vmail home=/var/vmail/%Ld/%Ln
  19 | }
- 20 | 
+ 20 |
 ```
 
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
@@ -161,10 +161,10 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 
 ```bash
  37 | fi
- 38 | 
+ 38 |
  39 | echo "[entrypoint] Starting ReadBox process ($*)..."
  40 | exec "$@"
- 41 | 
+ 41 |
 ```
 
 - **Scope Lock:** ONLY R-04 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
@@ -218,7 +218,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 148 |   const ingestionGateOk = runtimeEnv.requireIngestionReady
 149 |     ? mailServicesConnected
 150 |     : !ingestionDegradedOrStale;
-151 | 
+151 |
 152 |   const ready =
 153 |     configuration.ok &&
 ```
@@ -290,7 +290,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
  54 | APP_HOSTNAME=app.readbox.local
  55 | SERVER_IP=127.0.0.1
  56 | DNS_LOOKUP_TIMEOUT_SECONDS=3
- 57 | 
+ 57 |
 ```
 
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
@@ -304,11 +304,11 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 
 ```bash
 118 | trap cleanup_on_exit EXIT INT TERM
-119 | 
+119 |
 120 | for service in "${SERVICES[@]}"; do
 121 |   systemctl stop "$service.service" 2>/dev/null || true
 122 | done
-123 | 
+123 |
 124 | # Single PostgreSQL database dump (includes both public and mailserver schemas per AGENTS.md)
 ```
 
@@ -323,7 +323,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 
 ```bash
  84 | install -d -m 0700 "$DEST"
- 85 | 
+ 85 |
  86 | SERVICES=(postfix dovecot)
  87 | for candidate in "${READBOX_INGESTION_SERVICE:-}" "readbox-ingestion" "vibmail-ingestion"; do
  88 |   unit="${candidate%.service}"
@@ -435,7 +435,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
  47 |       # Database & Migrations (Coolify auto-generates SERVICE_PASSWORD_DB)
  48 |       DATABASE_URL: postgresql://${POSTGRES_USER:-readbox}:${SERVICE_PASSWORD_DB}@postgres:5432/${POSTGRES_DB:-readbox}?schema=public
  49 |       PRISMA_CLI_ALLOW_REMOTE: "true"
- 50 | 
+ 50 |
 ```
 
 - **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
@@ -480,11 +480,11 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Exact immutable source:** [`src/core/mailserver/pg-adapter.ts:L273-L277`](https://github.com/vibtoolshq/ReadBox/blob/e28886e5e0f7a155cd64e23bc8ee8f6668d6699c/src/core/mailserver/pg-adapter.ts#L273-L277).
 
 ```ts
-273 | 
+273 |
 274 | export function generateDisabledMailboxPasswordHash(): string {
 275 |   return `!READBOX-READ-ONLY!${randomBytes(36).toString("base64url")}`;
 276 | }
-277 | 
+277 |
 ```
 
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
@@ -498,7 +498,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 
 ```bash
   6 | [[ ${EUID:-$(id -u)} -eq 0 ]] || { printf 'Run as root.\n' >&2; exit 1; }
-  7 | 
+  7 |
   8 | ENV_FILE=${READBOX_ENV_FILE:-${VIBMAIL_ENV_FILE:-/etc/readbox/readbox.env}}
   9 | if [[ ! -r "$ENV_FILE" && -r "/etc/vibmail/vibmail.env" ]]; then
  10 |   ENV_FILE="/etc/vibmail/vibmail.env"
@@ -528,9 +528,9 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Exact immutable source:** [`README.md:L39-L42`](https://github.com/vibtoolshq/ReadBox/blob/e28886e5e0f7a155cd64e23bc8ee8f6668d6699c/README.md#L39-L42).
 
 ```text
- 39 | > **Keywords:** `self-hosted webmail`, `open source mail server web client`, `postfix dovecot webmail`, `maildir web interface`, `docker email server webmail`, `coolify mail server webmail`, `private business email server`, `sandboxed email reader xss protection`, `spf dkim dmarc dns generator`, `nextjs webmail`, `vib tools`.  
+ 39 | > **Keywords:** `self-hosted webmail`, `open source mail server web client`, `postfix dovecot webmail`, `maildir web interface`, `docker email server webmail`, `coolify mail server webmail`, `private business email server`, `sandboxed email reader xss protection`, `spf dkim dmarc dns generator`, `nextjs webmail`, `vib tools`.
  40 | > **Description:** ReadBox is a fast, secure, privacy-first open-source webmail interface and mail server management platform by Vib Tools. Built on Next.js 15, PostgreSQL 16, and Tailwind CSS with sandboxed HTML email rendering, Maildir ingestion, and automated SPF/DKIM/DMARC deliverability verification.
- 41 | 
+ 41 |
  42 | ---
 ```
 
@@ -545,7 +545,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 
 ```ts
 150 |     : !ingestionDegradedOrStale;
-151 | 
+151 |
 152 |   const ready =
 153 |     configuration.ok &&
 154 |     databaseOk &&
@@ -553,7 +553,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 156 |     mailStorage.ok &&
 157 |     attachmentStorage.ok &&
 158 |     ingestionGateOk;
-159 | 
+159 |
 ```
 
 - **Scope Lock:** ONLY R-04 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
