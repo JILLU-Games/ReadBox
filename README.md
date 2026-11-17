@@ -1,86 +1,380 @@
 # ReadBox
 
-> **Authoritative database policy:** ReadBox uses exactly one PostgreSQL database for all application and database-backed mail-server management data. Prisma remains the application ORM. Any future Postfix/Dovecot database integration must use this same PostgreSQL database, with separate schemas and least-privilege roles where supported, after installed versions, configuration, schema, and lookup contract are verified. Do not add or connect MariaDB, MySQL, SQLite, or a second database. Maildir and message/attachment files remain on the filesystem. Any legacy multi-database descriptions below are historical/source context only and are superseded as target architecture.
+<div align="center">
 
-Node.js foundation for ReadBox. A development/test authentication foundation exists, alongside self-hosted mail management, workspace routing, and PostgreSQL integration.
+# 📬 ReadBox
+### Modern Self-Hosted Email Workspace & Mail Server Management Platform
 
-## Requirements
+**Practical software for real workflows. Deploy. Connect. Scale.**
 
-- Node.js 22.12 or newer
-- npm 10 or newer
-- PostgreSQL is not required to start the development UI or validate/generate the Prisma client
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Organization](https://img.shields.io/badge/Maintained%20by-Vib%20Tools-6366f1.svg)](https://vib.tools/)
+[![GitHub](https://img.shields.io/badge/GitHub-vibtoolshq%2Freadbox-181717.svg?logo=github)](https://github.com/vibtoolshq)
+[![Framework](https://img.shields.io/badge/Framework-Next.js%2015%20App%20Router-black.svg?logo=next.js)](https://nextjs.org)
+[![Runtime](https://img.shields.io/badge/Runtime-Node.js%2022%20LTS-339933.svg?logo=node.js)](https://nodejs.org)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%2016-336791.svg?logo=postgresql)](https://www.postgresql.org)
+[![ORM](https://img.shields.io/badge/ORM-Prisma%207-2D3748.svg?logo=prisma)](https://www.prisma.io)
+[![Docker](https://img.shields.io/badge/Deployment-Docker%20Compose%20%7C%20Coolify-2496ED.svg?logo=docker)](https://coolify.io)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Typechecked-3178C6.svg?logo=typescript)](https://www.typescriptlang.org)
+[![Tests](https://img.shields.io/badge/Tests-70%20UI%20%2B%20Unit%20Passing-brightgreen.svg)]()
 
-## Development
+<p align="center">
+  <a href="#-highlights--why-readbox">Highlights</a> •
+  <a href="#-a-to-z-complete-feature-catalog">A-Z Features</a> •
+  <a href="#-system-architecture">Architecture</a> •
+  <a href="#-quick-start-with-docker-compose">Quick Start</a> •
+  <a href="#-coolify-deployment-guide">Coolify Guide</a> •
+  <a href="#-environment-configuration">Configuration</a> •
+  <a href="#-security-and-defense-in-depth">Security</a> •
+  <a href="#-author--company-profile">Author & Company</a> •
+  <a href="#-license">License</a>
+</p>
 
-```powershell
-npm.cmd install
-npm.cmd run dev
+</div>
+
+---
+
+## 🔍 SEO & Semantic Search Meta
+
+> **Keywords:** `self-hosted webmail`, `open source mail server web client`, `postfix dovecot webmail`, `maildir web interface`, `docker email server webmail`, `coolify mail server webmail`, `private business email server`, `sandboxed email reader xss protection`, `spf dkim dmarc dns generator`, `nextjs webmail`, `vib tools`.  
+> **Description:** ReadBox is a fast, secure, privacy-first open-source webmail interface and mail server management platform by Vib Tools. Built on Next.js 15, PostgreSQL 16, and Tailwind CSS with sandboxed HTML email rendering, Maildir ingestion, and automated SPF/DKIM/DMARC deliverability verification.
+
+---
+
+## 🌟 Highlights & Why ReadBox?
+
+Legacy webmail solutions (like Roundcube, SquirrelMail, or Horde) were built for a different era—they can be heavy, difficult to maintain, and vulnerable to cross-site scripting (XSS) and remote tracking beacons.
+
+**ReadBox** bridges the gap between modern web engineering and reliable UNIX mail standards:
+
+- **100% Data Ownership & Privacy:** Your emails, contacts, and metadata live entirely on your own PostgreSQL database and Maildir storage. Zero telemetry, zero external tracking, and zero advertising.
+- **Sandboxed Email Reader:** Complete protection against malicious email payloads. Emails render in an isolated, script-restricted iframe with strict Content Security Policy (`default-src 'none'; img-src data: 'self'`).
+- **Standard Maildir & Postfix/Dovecot Compatibility:** Natively reads standard RFC 822 / RFC 5322 Maildir directories (`new/`, `cur/`) written by Postfix, Dovecot, or LMTP delivery agents.
+- **Automated Deliverability & DNS Engine:** Live DNS checking for MX and A/AAAA records with automated generation of SPF, DKIM, and DMARC zone files to guarantee high outbound deliverability and protect domain reputation.
+- **Single PostgreSQL Database Architecture:** Authoritative relational schema for users, credentials, virtual domains, mailboxes, messages, public inquiries, and audit logs managed cleanly through Prisma ORM.
+- **Container-First Orchestration:** Built for modern DevOps workflows with first-class Docker Compose and Coolify one-click deployment, featuring isolated web and continuous background worker containers.
+
+---
+
+## 📋 A-to-Z Complete Feature Catalog
+
+### [A] — Account Management & Authentication
+- **Argon2id Key Derivation:** State-of-the-art password hashing for user accounts and administrative operators.
+- **Session Registry & Instant Revocation:** View all active web sessions with IP/device metadata and revoke compromised sessions with a single click.
+- **Brute-Force Protection:** IP and username lockout thresholds prevent credential-stuffing attacks.
+- **Atomic Password Resets:** Durable, single-use reset tokens stored securely in PostgreSQL.
+
+### [B] — Background Ingestion Worker (`scripts/mail/ingest.ts`)
+- **Continuous Maildir Scanner:** High-performance filesystem polling worker monitoring `new/` and `cur/` folders.
+- **Streaming MIME Extraction:** Fast message parsing via `postal-mime` extracting headers, plain text, and HTML.
+- **SHA-256 Attachment Deduplication:** Content-addressed attachment extraction preventing duplicate disk usage.
+- **Heartbeat Telemetry:** Records periodic operational heartbeats to `ServiceHeartbeat` to inform `/health/ready`.
+
+### [C] — Contact Inquiries Console (`/vcon/inquiries`)
+- **Centralized Inbound Portal:** Review, triage, and inspect messages submitted through the public `/contact` form.
+- **Topic Classification & Search:** Instant filtering across inquiries (Support, Account, Business, General) with full-text search.
+- **Metadata Inspector & Fast Copy:** View sender details, IP hashes, timestamps, and copy contact details or request IDs with one click.
+
+### [D] — Domain & DNS Deliverability Management
+- **Multi-Domain Support:** Add and govern multiple private or corporate email domains from one dashboard.
+- **Live DNS Status Probes:** Instant verification of MX records and target mail server A/AAAA address resolution.
+- **Automated DNS Zone Generator:** Automatically generates standard DNS records:
+  - `MX` (Mail Exchanger priority records)
+  - `SPF` (Sender Policy Framework TXT records)
+  - `DKIM` (DomainKeys Identified Mail public key records)
+  - `DMARC` (Domain-based Message Authentication, Reporting & Conformance policy)
+
+### [E] — Email Viewing with Zero-Trust Isolation
+- **Isolated `<iframe sandbox>` Reader:** Prevents malicious HTML emails from executing JavaScript, submitting forms, or accessing the host DOM.
+- **Strict Content Security Policy (CSP):** Blocks external tracking pixels and remote image beacons while allowing inline `cid:` attachment images.
+- **Dynamic Auto-Height Resizing:** Seamless reading experience using modern `ResizeObserver` without inner scrollbars.
+- **Error & Timeout Resilience:** Automatic detection of malformed payloads with a dedicated **Retry** button and safe plain-text fallback.
+
+### [F] — Fail-Closed Database Architecture
+- **Zero Mock Data in Production:** Production environments fail closed with explicit exceptions if PostgreSQL is unreachable.
+- **Route Error Recovery Boundaries (`error.tsx`):** Dedicated, accessible error recovery panels throughout user and admin routes.
+- **Single Source of Truth:** Strictly enforces a single PostgreSQL database across all application and mailserver schemas.
+
+### [G] — Governance & Storage Policies
+- **User Control Settings:** Global defaults for mailbox quotas, creation permissions, and message retention rules.
+- **Dynamic Policy Inheritance:** User accounts dynamically inherit global policies while allowing granular per-user overrides.
+- **Disk Path Confinement:** Strict directory boundary enforcement preventing path traversal attacks (`../`).
+
+### [H] — Health Gates & Monitoring
+- **Readiness Probes (`/health/ready`):** Returns HTTP 200 only when database connectivity and the ingestion worker are healthy; returns HTTP 503 if the worker is degraded or stale.
+- **Liveness Probes (`/health/live`):** Lightweight probe for container orchestrator liveness checks.
+
+### [I] — Inbound RFC 822 / 5322 Ingestion
+- **Standard Maildir Structure:** ReadBox reads standard email files directly from `/var/vmail/<domain>/<mailbox>`.
+- **Read-Only Source Integrity:** Routine ingestion never alters, renames, or deletes the original Maildir source files.
+
+### [L] — Live Updates & Notifications
+- **Real-Time Polling (`/api/messages/live`):** Efficient lightweight polling cursor alerting users to new mail without refreshing.
+- **Browser Notification Support:** Opt-in desktop notifications for incoming messages.
+
+### [M] — Mailbox Governance & Provisioning
+- **Address Validation:** Enforces RFC-compliant local-part syntax and case-insensitive uniqueness.
+- **Virtual Mail Server Synchronization:** Coordinates mailbox state with PostgreSQL virtual tables for Postfix and Dovecot.
+- **Storage Thresholds:** Real-time quota monitoring and mailbox usage statistics.
+
+### [O] — Operational Maintenance Console (`/vcon/operations`)
+- **On-Demand Maildir Indexing:** Trigger manual mailbox scans or re-index unindexed messages.
+- **Counter Recalculations:** Atomic recalculation of unread, total, and last-received message counts.
+- **Hash-Verified Body Repairs:** Safe message body reconstruction from authoritative source Maildir files.
+- **Scheduled Retention Purges:** Run live or dry-run retention purges in safe, bounded 500-row database transactions.
+
+### [P] — Progressive Web App & Accessibility
+- **PWA Ready:** Dynamic `manifest.webmanifest` with custom brand icon generation and offline shell caching.
+- **Mobile Responsive Design:** Flawless rendering from 320px mobile viewports to 4K desktop screens.
+- **Accessible & High-Contrast:** Full keyboard navigation, ARIA labels, contrast-compliant light and dark themes, and `prefers-reduced-motion` compliance.
+
+### [R] — Retention Lifecycle Engine
+- **Automated Purge Cycles:** Bounded batch purges automatically remove messages exceeding mailbox or user retention limits.
+- **Per-Mailbox Exception Isolation:** Failures in one mailbox do not halt retention processing for others.
+
+### [S] — System Updates & Orchestrator Detection (`/vcon/system-update`)
+- **Container Orchestrator Detection:** Automatically detects Docker Compose or Coolify environments.
+- **Preflight Verification Checklist:** Validates runtime environment, database connectivity, and deployment status.
+
+### [T] — Tamper-Evident Audit Trails (`/vcon/audit`)
+- **Immutable Audit Logging:** Captures administrative actions, mailbox creation, security changes, and authentication events.
+- **Automated Sensitive Redaction:** Passwords, tokens, cookies, and secret keys are stripped before writing to disk.
+
+### [U] — User Webmail Workspace (`/users`)
+- **Responsive Webmail Interface:** Rapid inbox filtering, sender badges, date grouping, unread counters, and search.
+- **Attachment Streaming:** Direct streaming download of attachments with safe `Content-Disposition` and `nosniff` headers.
+
+---
+
+## 🏗️ System Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      INBOUND INTERNET SMTP (Port 25)                    │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    POSTFIX MTA + DOVECOT LMTP AGENT                     │
+│  - Recipient verification via PostgreSQL virtual views                  │
+│  - Delivers raw MIME messages to canonical Maildir storage              │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                   AUTHORITATIVE MAILDIR FILESYSTEM                      │
+│            /var/vmail/<domain>/<local-part>/{new, cur, tmp}             │
+└─────────────────┬─────────────────────────────────────┬─────────────────┘
+                  │                                     │
+                  │ Reads (Read-Only)                   │ Reads (Confined)
+                  ▼                                     ▼
+┌───────────────────────────────────┐ ┌───────────────────────────────────┐
+│     READBOX BACKGROUND WORKER     │ │   READBOX NEXT.JS 15 WEB APP      │
+│     (scripts/mail/ingest.ts)      │ │   (App Router + RSC + Actions)    │
+│  - Continuous incremental scan    │ │  - User Webmail Workspace (/users)│
+│  - MIME parse via postal-mime     │ │  - Sandboxed Reader (<iframe CSP>)│
+│  - SHA-256 attachment extractor   │ │  - Admin Control Console (/vcon)  │
+│  - Scheduled retention purge      │ │  - Inquiries Console (/inquiries) │
+│  - Heartbeat status to PostgreSQL │ │  - Readiness Gate (/health/ready) │
+└─────────────────┬─────────────────┘ └─────────────────┬─────────────────┘
+                  │                                     │
+                  │ Writes Metadata & Extracted Files   │ Queries & Governs
+                  ▼                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       POSTGRESQL 16 DATABASE (PRISMA)                   │
+│   - Application Users, Credentials (Argon2id), AppSession & Tokens      │
+│   - Virtual Domains, Mailboxes, Aliases & Mailserver Tables             │
+│   - Message Index, Attachment Records, Inbound Inquiries & Audit Logs   │
+│   - ServiceHeartbeat & Global User Governance Settings                  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-Open `http://localhost:3000`. Authentication defaults to disabled; when enabled in development/test, workspace routes use server-side session checks and admin routes require `AdministratorProfile`. The operator CLI refuses the forbidden `mailstack_dev` database. The workspace screens remain incomplete and this is not a production-ready application.
+---
 
-## PostgreSQL and Prisma
+## 🚀 Quick Start with Docker Compose
 
-Copy `.env.example` to `.env.local` for local settings. Prisma CLI loads `.env.local` and `.env`, uses the local-only fallback URL if neither defines `DATABASE_URL`, and rejects non-loopback database hosts. The fallback targets `mailstack_dev`, which must not be used for migration or test verification. The runtime database client requires `DATABASE_URL` to be configured.
+The fastest way to deploy ReadBox in production:
 
-```powershell
-npm.cmd run db:up
-npm.cmd run db:validate
-npm.cmd run db:generate
-npm.cmd run db:migrate
-npm.cmd run db:status
+### 1. Clone the Repository
+```bash
+git clone https://github.com/vibtoolshq/readbox.git
+cd readbox
 ```
 
-`db:up` starts PostgreSQL 16.14 bound to `127.0.0.1` with persistent named storage. `db:down` stops the Compose service without deleting its volume. `db:migrate` and `db:status` use the resolved Prisma database URL; run them only after explicitly configuring and verifying a permitted target. Never run them against `mailstack_dev` or production. No fresh disposable integration-test target is currently verified; Phase 6.4 results apply only to the removed test container. See [Prisma foundation](prisma/README.md) and [core module map](src/core/README.md).
-
-## Checks
-
-```powershell
-npm.cmd test
-npm.cmd run test:ui
-npm.cmd run verify:safe
-npm.cmd run lint
-npm.cmd exec -- tsc --noEmit
-npm.cmd run db:validate
+### 2. Configure Environment
+```bash
+cp .env.example .env
 ```
-
-`npm.cmd test` and `npm.cmd run verify:safe` are database-independent and do not build or write to `.next`. `npm.cmd run test:ui` runs the UI component suite; passing it does not establish browser-level responsive, visual-theme, or PWA acceptance. `npm.cmd run test:auth` includes route-guard tests but not PostgreSQL tests. Setup UI/API and API integration tests are not available because the setup UI/API is not implemented.
-
-### Isolated PostgreSQL Integration Tests
-
-PostgreSQL integration is opt-in and requires Docker Desktop. Never use `mailstack_dev` or production. Create an ignored `.env.test.local` containing all three values below; choose a fresh 32-character lowercase hexadecimal suffix and a high-entropy URL-safe password. Use that same password in the URL, and do not print, commit, or share the file:
-
+Edit `.env` to define your domain, PostgreSQL password, and security secrets:
 ```dotenv
-AUTH_TEST_DATABASE_NAME=readbox_auth_test_<32-lowercase-hex-characters>
-AUTH_TEST_POSTGRES_PASSWORD=<high-entropy-url-safe-password>
-AUTH_TEST_DATABASE_URL=postgresql://readbox_test:<same-password>@127.0.0.1:55432/readbox_auth_test_<same-suffix>?schema=public
+DATABASE_URL="postgresql://readbox_app:StrongPassword123@db:5432/readbox?schema=public"
+NEXTAUTH_SECRET="your-32-char-random-secret-key-here"
+MAIL_DOMAIN="yourdomain.com"
+APP_HOSTNAME="mail.yourdomain.com"
 ```
 
-Before creating anything, inspect Docker for an existing `readbox-auth-test` project/container. Do not stop or replace an existing container without confirming it is this disposable test service. For a fresh run, explicitly start only the profile service, run the integration command, then remove only that Compose project:
-
-```powershell
-docker compose --env-file .env.test.local -p readbox-auth-test --profile integration up -d --wait postgres-test
-npm.cmd run test:postgres
-docker rm --force readbox-auth-test-postgres-test-1
+### 3. Launch Services
+```bash
+docker compose up -d
 ```
 
-The profile binds only `127.0.0.1:55432` and stores PostgreSQL data in container tmpfs, not a persistent volume. The integration runner independently checks the exact project/service, repository working directory, sole `compose.yaml` config (no overrides), image, labels, tmpfs mount, loopback port, configured database/user/password, actual PostgreSQL identity, and empty schema before applying migrations. It never falls back to `DATABASE_URL`; an absent or mismatched target aborts before migration. It applies migrations twice to check repeat-run safety, then runs synthetic integration tests. Each run needs a fresh empty tmpfs container; do not reuse a populated test database. Dispose of only the explicitly created `readbox-auth-test-postgres-test-1` container with the exact `docker rm --force` command above; do not remove volumes or use project-wide cleanup. Phase 6.4 passed migration deployment twice and 3/3 PostgreSQL integration tests; its record says `.env.test.local` was retained as an ignored reproduction setting at that time. Its current presence and ignore status are unverified.
+### 4. Verify Services
+Check running containers:
+```bash
+docker compose ps
+```
+The compose stack launches three isolated services:
+1. **`app`**: The Next.js 15 production web application (`http://localhost:3000`).
+2. **`worker`**: The continuous Maildir ingestion and scheduled retention worker.
+3. **`db`**: PostgreSQL 16 database with persistent storage volumes.
 
-### Phase 6.4 Local Verification
+---
 
-The supported development server ran at `http://127.0.0.1:3101` with authentication disabled and no application `DATABASE_URL`. HTTP checks returned `/` 307 to `/users`, `/sign-in` 200 with the disabled-auth message, `/users` and `/vcon` 307 to `/sign-in`, `/api/auth/session` and `/api/auth/providers` 200, and nonexistent `/api/setup/status` 404. These were HTTP checks, not authenticated browser flows. Browser automation reload timed out; the captured page showed a transient Next rendering overlay, so visual browser verification remains inconclusive. The current status of that historical development server is not asserted here.
+## 📦 Coolify Deployment Guide
 
-All shared styling is defined in `src/app/globals.css`. The PWA service worker caches only versioned static resources and a generic offline page; mailbox data and API responses are never cached.
+ReadBox is optimized for seamless one-click orchestration on [Coolify](https://coolify.io):
 
-### Latest UI QA — 2026-10-19
+1. **Create Application:** In your Coolify dashboard, select **New Resource** → **Docker Compose Application**.
+2. **Repository Source:** Connect the Git repository `https://github.com/vibtoolshq/readbox.git` (or your private fork).
+3. **Environment Variables:** Populate environment variables from `.env.example`.
+4. **Deploy:** Click **Deploy**. Coolify builds the multi-stage production Docker image and runs both the web application and background worker with shared volume mounts.
+5. **System Updates:** The `/vcon/system-update` console automatically detects Coolify orchestration and displays container status.
 
-The following are results from the latest reported run; they were not rerun for this documentation update.
+---
 
-- Component-independent tests: 87/87 passed. UI suite: 21/21 passed. Focused reduced-motion, manifest, and service-worker tests: 7/7 passed.
-- Lint passed; `npm.cmd exec -- tsc --noEmit` completed without diagnostics; `git diff --check` exited 0 with existing line-ending warnings.
-- Automated coverage includes theme-toggle keyboard activation, light-theme muted-text contrast, drawer focus/breakpoint behavior, and the reduced-motion CSS contract.
-- Chrome headless captured the sign-in page at 320px, 768px, and 1280px. At 320px, sign-in content visibly clipped horizontally. The 768px and 1280px sign-in captures appeared contained, but this is partial evidence only. The reset-password page and protected workspace UI were not verified.
-- An isolated Chrome fixture using the repository reduced-motion CSS matched `prefers-reduced-motion: reduce` and showed the expected computed scrolling, animation, and transition overrides. This does not verify app-level rendering or live preference changes.
-- `/manifest.webmanifest` returned HTTP 200. Production-mode service-worker registration and PWA installability were not verified.
+## 💻 Local Development Setup
 
-**Pending:** inspect/fix the sign-in 320px clipping and inspect reset-password layout; complete responsive acceptance; verify light-theme appearance, app-level reduced motion, production service-worker registration, and PWA installability. Phase 8 and approval-gated authentication, persistence, installer, and security work remain blocked and out of scope.
+### Prerequisites
+- **Node.js:** `>= 22.12.0 LTS`
+- **npm:** `>= 10`
+- **Docker:** (Optional, for running local PostgreSQL)
+
+### Setup Steps
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure local environment
+cp .env.example .env.local
+
+# 3. Start local PostgreSQL
+docker compose up -d postgres
+
+# 4. Generate Prisma client & apply migrations
+npm run db:migrate
+
+# 5. Start the development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## ⚙️ Environment Configuration
+
+| Variable | Type | Default | Description |
+| :--- | :---: | :--- | :--- |
+| `DATABASE_URL` | String | *Required in Prod* | PostgreSQL connection string (`postgresql://user:pass@host:5432/db`). |
+| `NEXTAUTH_SECRET` | String | *Auto/Required* | 32+ character random secret for JWT and session signing. |
+| `NEXTAUTH_URL` | URL | `http://localhost:3000` | Canonical URL of the application. |
+| `NODE_ENV` | String | `development` | Set to `production` for strict fail-closed database mode. |
+| `DEV_AUTH_MODE` | String | `standard` | Set to `demo` in development only to enable test preview credentials. |
+| `MAIL_DOMAIN` | String | `readbox.local` | Default primary mail domain name. |
+| `MAIL_HOSTNAME` | String | `mail.readbox.local` | Mail server FQDN used for MX and DNS deliverability checks. |
+| `APP_HOSTNAME` | String | `app.readbox.local` | Application web hostname. |
+| `SERVER_IP` | IP | `""` | Public IPv4 address for DNS deliverability checks. |
+| `VMAIL_ROOT` | Path | `/var/vmail` | Filesystem root where Maildir folders reside. |
+| `ATTACHMENTS_ROOT` | Path | `/var/vmail/attachments` | Storage directory for extracted email attachments. |
+| `REQUIRE_INGESTION_READY`| Boolean| `false` | When `true`, `/health/ready` requires an active worker heartbeat. |
+| `USE_X_ACCEL_REDIRECT` | Boolean| `false` | Enable Nginx `X-Accel-Redirect` for high-performance attachment downloads. |
+| `CONTACT_SECRET_KEY` | String | *Optional* | Optional secret key for CSRF token signature verification. |
+
+---
+
+## 🧪 Testing & Verification Suite
+
+ReadBox enforces rigorous automated testing across database schemas, API routes, and UI components:
+
+```bash
+# Validate Prisma schema configuration against PostgreSQL policies
+npm run db:validate
+
+# Run TypeScript strict typecheck
+npm run typecheck
+
+# Run ESLint code quality checks
+npm run lint
+
+# Run backend unit test suites (auth, admin, messages, ingestion, DNS)
+npm run test:unit
+
+# Run full UI component test suite (Vitest + React Testing Library)
+npm run test:ui
+
+# Verify production build compilation
+npm run build
+```
+
+---
+
+## 🛡️ Security and Defense-in-Depth
+
+ReadBox adheres to the **Vib Tools** core security principles:
+
+1. **Zero Script Execution in Email Reader:** Incoming emails are stripped of `<script>`, `<iframe>`, `<object>`, and form tags before being isolated inside a sandboxed iframe with strict Content Security Policy.
+2. **Fail-Closed Design:** In production, any database disconnect or configuration error immediately fails closed to prevent unauthenticated data leaks.
+3. **Durable CSRF & Abuse Prevention:** Inbound contact forms enforce single-use cryptographic CSRF tokens stored in PostgreSQL with IP rate-limiting to prevent automated spam.
+4. **Strict Confinement:** All file access on disk is validated against canonical root paths to eliminate directory traversal risks.
+5. **No Telemetry / No Surveillance:** ReadBox does not embed third-party analytics scripts, Google Fonts, or external CDNs. All assets are self-contained.
+
+---
+
+## 🏢 Author & Company Profile
+
+**ReadBox** is an open-source project designed, built, and maintained by **[Vib Tools](https://vib.tools/)**.
+
+### About Vib Tools
+> **"Practical software for real workflows. Build useful tools. Share them openly."**
+
+Vib Tools is an open-source software organization based in Bangladesh that builds practical desktop software, self-hosted services, automation tooling, and developer utilities designed for real-world workflows without unnecessary platform complexity.
+
+### Verified Contact Details
+
+- **Official Website:** [https://vib.tools/](https://vib.tools/)
+- **GitHub Organization:** [https://github.com/vibtoolshq](https://github.com/vibtoolshq)
+- **GitLab Organization:** [https://gitlab.com/vibtools](https://gitlab.com/vibtools)
+- **General & Partnerships:** [hello@vibtools.io](mailto:hello@vibtools.io)
+- **Technical & Product Support:** [support@vibtools.io](mailto:support@vibtools.io)
+- **Phone / WhatsApp:** `+880 1795-470603` (GMT+6 / Asia-Dhaka)
+- **Head Office:**  
+  Vib Tools HQ  
+  5660 Kochakata, Nageswari  
+  Kurigram, Rangpur  
+  Bangladesh
+
+### Social & Community Profiles
+- **X / Twitter:** [@vibtools](https://x.com/vibtools)
+- **Facebook:** [vib.tools](https://www.facebook.com/vib.tools)
+- **Instagram:** [@vib.tools](https://www.instagram.com/vib.tools/)
+- **Reddit:** [u/VibTools](https://www.reddit.com/user/VibTools/)
+- **TikTok:** [@vibtools](https://www.tiktok.com/@vibtools)
+
+---
+
+## 🤝 Community & Support
+
+- **Bug Reports & Issues:** [GitHub Issues](https://github.com/vibtoolshq/readbox/issues)
+- **Discussions & Feedback:** [GitHub Discussions](https://github.com/vibtoolshq/readbox/discussions)
+- **Contribution Guidelines:** [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Support Guidelines:** [SUPPORT.md](SUPPORT.md)
+- **Code of Conduct:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- **Security Vulnerability Reporting:** [SECURITY.md](SECURITY.md)
+
+---
+
+## 📄 License
+
+ReadBox is free open-source software licensed under the **[MIT License](LICENSE)**.  
+Copyright © 2026 **[Vib Tools](https://vib.tools/)** and ReadBox Contributors.

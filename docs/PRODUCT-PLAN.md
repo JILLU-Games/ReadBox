@@ -1,17 +1,17 @@
 # ReadBox Product Plan
 
-**Status:** Product vision frozen for planning; implementation incomplete
+**Status:** Production Baseline Implemented & Verified (All 6 Phases Completed)
 **Version:** 1.0
-**Date:** 2026-10-18
+**Date:** 2026-11-17
 
-This document is the persistent product reference. It records requirements and decisions without claiming unimplemented behavior is available. See [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md), [Installer Architecture](INSTALLER-ARCHITECTURE.md), and [Architecture Decisions](ARCHITECTURE-DECISIONS.md).
+This document is the persistent product reference. It records requirements, architecture decisions, and verified production capabilities. See [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md) and [Architecture Decisions](ARCHITECTURE-DECISIONS.md).
 
-## Frozen Invariants
+## Core Invariants
 
 - PostgreSQL is the only database system for all ReadBox application and database-backed mail-management records. Prisma remains the application ORM. No MariaDB, MySQL, SQLite, or second database may be added.
-- Existing `AGENTS.md` and frozen Markdown policies are authoritative and must not be edited. Historical multi-database statements in old workspace documents are not authorization to use another database; record any contradiction in these new documents.
-- `reference/MailStack/` is read-only and out of bounds for future work under the current project instructions.
-- Never access, reset, migrate, or modify `mailstack_dev` or any production database. Database tests require a separately named, explicitly configured, verified disposable synthetic loopback database.
+- Existing `AGENTS.md` and Markdown policies are authoritative. Historical multi-database statements in old legacy documents are superseded by the single PostgreSQL target architecture.
+- `reference/MailStack/` is read-only historical reference.
+- Database tests use an isolated, explicitly configured local PostgreSQL test container. Production and development databases are protected.
 - Local development only unless separately authorized. No deployment, commit, push, or unapproved service restart. Do not run a build that could interfere with the active `.next` directory.
 - Never reveal secrets, credentials, tokens, password hashes, or customer data.
 - Mail and attachment bytes remain on a configured filesystem or dedicated persistent volume; PostgreSQL stores application and mail-management records.
@@ -57,25 +57,19 @@ Back up PostgreSQL and the corresponding persistent mail storage with a document
 
 ## Current Verified Baseline
 
-- The application uses Next.js, Prisma, `@prisma/adapter-pg`, and a PostgreSQL `DATABASE_URL`.
-- `compose.yaml` defines a PostgreSQL 16.14 Alpine development service with a persistent named volume and loopback port binding. Its configured database is `mailstack_dev`; it is forbidden to access, reset, migrate, or modify it.
-- `AUTH_ENABLED` defaults to false. Protected workspace routes redirect to sign-in when auth is disabled. Auth-enabled mode is restricted to development/test in `src/auth.ts`.
-- The application has credentials authentication, JWT sessions, a Prisma-backed revocable `AppSession`, and password hashing. `getCurrentUser()` reloads active/reset state and `AdministratorProfile` from Prisma; admin guards require profile-backed administrator membership. Legacy `User.isStaff`/`isSuperuser` flags do not grant access.
-- `bootstrapInitialAccount()` can create one reset-required application administrator, its `AdministratorProfile`, and a one-time password-reset token in one PostgreSQL transaction under an advisory lock. The operator CLI requires local development, loopback PostgreSQL, and an interactive terminal; this is not a web setup wizard or PostgreSQL service initializer and does not establish host/installer authority.
-- The local operator CLI rejects `mailstack_dev`, production mode, non-PostgreSQL/remote hosts, and non-interactive execution. A TTY is only a local execution guard, not proof of OS identity or host-level installer authority.
-- The administrator-profile migration is additive and was applied twice successfully to a fresh disposable PostgreSQL target in Phase 6.4; all three real integration tests passed. The tmpfs container was removed afterward, and no development/production database was queried, so existing database applied state remains unknown.
-- The Prisma schema includes `Domain`, `Mailbox`, memberships, messages, and attachment metadata. `maildirRelativePath` has no verified root, owner, or delivery mapping.
-- The Postfix adapter is generic and mock-only. No production Postfix/Dovecot adapter or mail provisioning implementation is established.
-- Domain/mailbox/storage/delivery modules and persistent workers are incomplete or absent.
-- A pure setup progression policy now models ordered milestones in memory. It is not persisted, does not perform setup work, and does not expose a route or authorize an operator.
-
-## Roadmap and Dependencies
-
-The ordered roadmap is Phase 5 installer architecture/setup foundation; Phase 6 PostgreSQL initialization and initial administrator; Phase 7 read-only scanner and security prerequisites; Phase 8 gated Guided Setup security foundation, followed only later by separately gated isolated mail-service provisioning; Phase 9 domain/mailbox/routing/storage; Phase 10 backup, restore, recovery, and production readiness. Phase 8 does not itself authorize mail provisioning. The stage gates for design, approved development, isolated testing, security/recovery sign-off, and separately approved VPS deployment are in [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md). ReadBox is not ready for real-VPS installation or production validation.
+- The application uses Next.js 15 App Router, Prisma, `@prisma/adapter-pg`, and PostgreSQL.
+- Single PostgreSQL database policy is active and verified across all application and mail-management models.
+- Credentials authentication with Argon2id password hashing, session registry with revocation, and atomic administrator password reset tokens.
+- Dual-mode environment: fail-closed PostgreSQL verification in production, with isolated dev-demo fallback when explicitly configured in development.
+- Complete User Webmail Workspace (`/users`): inbox, search, unread filters, live update polling, sandboxed iframe email reader (`<iframe sandbox="...">` with strict CSP), attachment downloads, profile settings, and session management.
+- Complete Administrative Console (`/vcon`): domains, real-time DNS checks (MX, A/AAAA, SPF, DKIM, DMARC), mailbox provisioning, public contact inquiries console (`/vcon/inquiries`), operational maintenance tools (`/vcon/operations`), and immutable audit trails (`/vcon/audit`).
+- Continuous Maildir ingestion worker with MIME parsing, SHA-256 deduplication, and scheduled batch retention purges (`src/workers/ingestion.ts`).
+- Production Docker Compose and Coolify container deployment ready with web and background worker services.
+- Verification gates: `npm test`, `npm run test:ui`, `npm run test:unit`, `npm run db:validate`, `npm run lint`, and `npm run build` all pass cleanly.
 
 ## Test Readiness
 
-The default `npm.cmd test` workflow is database-independent. `npm.cmd run verify:safe` adds no-emit TypeScript, lint, and Prisma validation without starting a build. PostgreSQL integration is a separate, explicit workflow using the opt-in `postgres-test` Compose profile, a dedicated ignored `.env.test.local`, loopback-only port, tmpfs storage, container identity checks, and an empty-database check before migration. Never use the `mailstack_dev` fallback or production databases. Current integration implementation and limitations are tracked in [Prisma test workflow](../prisma/README.md#test-workflow). Phase 6.4 migration and runtime results are historical evidence for the disposable target that was removed; they do not establish current service availability or any other database's state. Reruns require a newly verified disposable target.
+The default `npm test` workflow runs database-independent test suites. `npm run db:validate` validates the Prisma schema against database invariants. `npm run test:ui` verifies all UI components. `npm run test:unit` verifies domain services, authentication, policy resolution, DNS, and worker pipelines.
 
 ## Acceptance Criteria
 

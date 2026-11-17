@@ -1,25 +1,28 @@
-# Core Module Map
+# Core Module Architecture
 
-> **Authoritative database policy:** ReadBox uses one PostgreSQL database only, accessed by the application through Prisma. Future database-backed Postfix/Dovecot management integration must use this same database with separate schemas and least-privilege roles where supported. Do not add MariaDB, MySQL, SQLite, or any second database. Maildir and message/attachment files remain on the filesystem.
+> **Authoritative Database Policy:** ReadBox uses exactly one PostgreSQL database for all application and database-backed mail-server management data. Prisma remains the application ORM. Maildir and message/attachment files remain on the filesystem.
 
-This foundation creates the ownership boundaries from the implementation blueprint. Domain engines are intentionally unimplemented.
+The `src/core` directory contains the domain logic, services, and infrastructure adapters that power the ReadBox web application, administrative console, and background processing tasks.
 
-| Module       | Responsibility when implemented                                                                                                          |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `accounts/`  | Managed users, access policy and mailbox memberships.                                                                                    |
-| `auth/`      | Credentials, sessions, throttling and CSRF.                                                                                              |
-| `audit/`     | Redacted application audit events.                                                                                                       |
-| `database/`  | Prisma client for the single PostgreSQL database; separate schemas and least-privilege roles for app, mail-management, and contact data. |
-| `delivery/`  | Maildir indexing and message parsing; not SMTP/LMTP.                                                                                     |
-| `domains/`   | Domain lifecycle and mail-server reconciliation.                                                                                         |
-| `dns/`       | DNS preview and separately scoped verification checks.                                                                                   |
-| `health/`    | Liveness/readiness status; current implementation does not connect to a database.                                                        |
-| `mailboxes/` | Mailbox lifecycle and cross-system provisioning orchestration.                                                                           |
-| `messages/`  | Scoped message queries and state transitions.                                                                                            |
-| `postfix/`   | Adapter to the existing MariaDB recipient views.                                                                                         |
-| `security/`  | Shared authorization, headers, validation and path policy.                                                                               |
-| `server/`    | Runtime configuration, process and logging helpers.                                                                                      |
-| `storage/`   | Confined Maildir and attachment storage.                                                                                                 |
-| `updates/`   | Future verified release request protocol.                                                                                                |
+## Core Modules Overview
 
-Only `database/`, `health/`, and `server/` contain foundation scaffolding at this stage. No Postfix, Dovecot, DNS, Maildir or message-processing code is present.
+| Module | Primary Responsibility | Key Files & Services |
+| :--- | :--- | :--- |
+| **`accounts/`** | User account management, security snapshots, access policy inheritance, and operator profiles. | `user-profile.ts`, `user-control-policy.ts` |
+| **`audit/`** | Tamper-evident, redacted operational audit logging for administrative actions, auth attempts, and security events. | `queries.ts` |
+| **`auth/`** | Credential authentication, Argon2id hashing, session registry, self-signup validation, and atomic password resets. | `credentials.ts`, `session-registry.ts`, `sign-up.ts`, `password-reset.ts` |
+| **`contact/`** | Public contact inquiry processing, durable CSRF replay verification, and rate-limiting. | `service.ts` |
+| **`database/`** | Prisma PostgreSQL client initialization with fail-closed production mode and typed database errors. | `client.ts` |
+| **`dns/`** | Live DNS resolver, MX/A/AAAA verification checks, and automated SPF, DKIM, and DMARC zone record generation. | `resolver.ts` |
+| **`domains/`** | Domain lifecycle, deliverability verification, and virtual mail mapping coordination. | `service.ts` |
+| **`health/`** | System health snapshots and strict readiness gate (`/health/ready`) requiring active worker heartbeats. | `snapshot.ts` |
+| **`ingestion/`** | RFC 822/5322 MIME email parsing, attachment extraction, size validation, and SHA-256 deduplication. | `parser.ts`, `attachments.ts`, `scanner.ts` |
+| **`mailboxes/`** | Mailbox provisioning, address validation, storage quotas, and Maildir path confinement. | `service.ts`, `validators.ts`, `paths.ts` |
+| **`mailserver/`** | PostgreSQL adapter syncing virtual domains, mailboxes, and aliases with Postfix and Dovecot. | `pg-adapter.ts` |
+| **`messages/`** | Message queries, pagination, sandboxed HTML reader preparation, soft-deletion, and retention purge engine. | `service.ts` |
+| **`operations/`** | Operational maintenance tools: Maildir sync, counter recalculations, SHA-256 body repairs, and retention purges. | `service.ts` |
+| **`security/`** | Strict Content Security Policy (CSP), security headers, and path traversal protection. | `headers.ts` |
+| **`server/`** | Structured JSON logging, safe error serialization, and runtime helpers. | `logger.ts` |
+| **`settings/`** | Site branding, singleton configuration, public CORS headers, and media upload validation. | `service.ts` |
+| **`setup/`** | System inspection, schema verification, and administrative bootstrap checks. | `trusted-operations.ts` |
+| **`updates/`** | System update preflight checks, release asset verification, and container orchestrator detection. | `service.ts` |
