@@ -2,7 +2,7 @@
 
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`.
 **Finding source:** [001-PRODUCTION-RELEASE-BLOCKERS.md](001-PRODUCTION-RELEASE-BLOCKERS.md) and the earlier forensic report.
-**Status:** R-01 and R-02 VERIFIED CLOSED (CI); `2/6` completed, 4 remaining. Next phase R-03 requires separate authorization. **Production: NO-GO.**
+**Status:** R-01 through R-03 VERIFIED CLOSED at CI implementation level; `3/6` completed, 3 remaining. External public SMTP/TLS/DNS remains R-06 acceptance. Next R-04 requires separate approval. **Production: NO-GO.**
 
 ## Implementation sequencing and shared controls
 
@@ -14,7 +14,7 @@ Implement **R-01 → R-02 → R-03 → R-04 → R-05 → R-06** in sequence only
 |---|---|---:|---|
 | R-01 | Deployment foundation + reproducibility | 7 | VERIFIED CLOSED (CI) |
 | R-02 | PostgreSQL/Postfix SQL and Maildir identity | 4 | VERIFIED CLOSED (CI; authorized readiness exception) |
-| R-03 | Inbound SMTP/LMTP mailserver and DNS/TLS | 6 | NOT STARTED |
+| R-03 | Inbound SMTP/LMTP mailserver and DNS/TLS | 6 | CI IMPLEMENTATION VERIFIED CLOSED; 2 external acceptance findings OPEN for R-06 |
 | R-04 | Operator bootstrap and fail-closed runtime health | 6 | NOT STARTED |
 | R-05 | Backup/restore, upgrade and operations safety | 6 | NOT STARTED |
 | R-06 | Full production acceptance and release governance | 3 | NOT STARTED |
@@ -100,7 +100,7 @@ One focused CI integration run on disposable PostgreSQL: migration twice and par
 
 ## R-03 — Inbound SMTP/LMTP mailserver and DNS/TLS
 
-**Position:** 3/6 · **Prerequisite:** R-02 VERIFIED CLOSED · **Current state:** NOT STARTED.
+**Position:** 3/6 · **Prerequisite:** R-02 VERIFIED CLOSED · **Current state:** CI IMPLEMENTATION VERIFIED CLOSED (external trusted TLS/DNS/public port evidence deferred to R-06's explicitly required live staging gates).
 
 **Owned findings (single owner):** `RB-P0-02`, `RB-P0-05`, `RB-P1-09`, `RB-P1-10`, `RB-P2-05`, `RB-P2-06`.
 
@@ -271,3 +271,10 @@ One consolidated CI regression/release-gate run plus authorized staging VPS acce
 - Verified code SHA: `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892`. Focused CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 (Prisma validation, TypeScript, 10 health tests, 3 R-02 parity tests, Next production build, file Scope Lock audit). Earlier PostgreSQL integration: https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332.
 - All four R-02 findings CI VERIFIED CLOSED; total completed phases **2/6**. Next approved sequence remains **R-03 → R-04 → R-05 → R-06**, requiring separate approval per phase.
 - No UI/auth/other feature or old migration changes. Real mailserver/staging GO still **NO-GO**.
+
+## R-03 phase closure and bounded production acceptance deferral (2026-11-17)
+
+- Implemented exactly approved R-03 paths: opt-in Compose mailserver profile; Postfix config/image/renderer and TLS fail-close; Dovecot private LMTP image/config; disposable SMTP→LMTP→Maildir acceptance script; DNS advisory tests and installation contract. **No application UI/auth/source feature or existing database migration changed.**
+- CI https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 SUCCESS, tested patch SHA `d0f3272ea298de012da83c6f01b588fa0513d1da` (published code SHA without temporary CI workflow). Valid sender and real mailbox delivered; unknown recipient/nonlocal relay rejected; STARTTLS and absent certificate negative passed.
+- R-03 implementation can close based on its documented exit gate, which explicitly defers **real public TCP/25, MX/PTR and trusted TLS** to R-06 staging. Accordingly `RB-P1-09`, `RB-P1-10` remain OPEN external release gates, not falsely claimed as solved. `RB-P0-02`, `RB-P0-05`, `RB-P2-05`, `RB-P2-06` CI CLOSED.
+- **Phases complete 3/6, remaining 3 (R-04→R-05→R-06)**; production GO/NO-GO stays **NO-GO** until external verification. No new micro-phase added.

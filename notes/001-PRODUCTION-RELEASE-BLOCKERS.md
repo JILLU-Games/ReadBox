@@ -1,9 +1,9 @@
 # 001 — Production Blocker Ledger & Exact Baseline Code Proof
 
 **Baseline SHA:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`, **tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`.
-**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **21 OPEN; 11 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02); R-02 VERIFIED CLOSED in CI, external SMTP/VPS remains NO-GO.**
+**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **17 OPEN; 15 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02 + 4 R-03); R-03 private mailserver implementation CI VERIFIED; external TLS/DNS/VPS release gates remain NO-GO.**
 **Primary source:** [VPS production forensic audit](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md).
-**Status:** R-01 and R-02 CI VERIFIED CLOSED; R-03 through R-06 NOT STARTED. **NO-GO** for live mailserver.
+**Status:** R-01, R-02 and R-03 implementation phases CI VERIFIED; R-04 through R-06 NOT STARTED. External public SMTP/DNS/TLS evidence remains NO-GO.
 
 Every record below has **one owner phase**, exact source filename and GitHub line permalink at the immutable baseline, source-verbatim code excerpt (with line numbers), finding/impact from the original audit and a required future outcome. Absence of a service or missing live proof is established by the whole repository/configuration and original audit; a short code excerpt alone cannot prove absence. `CONFIRMED` is static evidence, `UNVERIFIED` is lack of live proof, not a witnessed runtime error.
 
@@ -30,7 +30,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P0-02 — SMTP/MTA and mailbox-delivery services absent from production Compose
-- **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED (opt-in SMTP+LMTP container integration delivered a real message to Maildir; public VPS unverified).
 - **Audit evidence:** `docker-compose.yml:12–165` has exactly `postgres`, `web` and `worker`; web only `expose`s port 3000; no Postfix, Dovecot/LMTP, DKIM signer, SMTP service or published port 25/465/587. The README architectural diagram (`README.md:149–189`) assumes an independently running Postfix + Dovecot system.
 - **Impact:** A newly deployed VPS does not become an Internet-facing mail-receiving server merely by starting this Compose stack; externally arriving SMTP cannot be handled by these containers.
 - **Required outcome before closure:** Tested Postfix SMTP + Dovecot LMTP integration, supported ingress/ports.
@@ -83,7 +83,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-02 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P0-05 — No executable end-to-end installation of the external mailserver
-- **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED (Docker Compose opt-in mailserver provisioned and syntax/delivery tests passed).
 - **Audit evidence:** `deployment/templates/postfix/*.tpl`, `deployment/templates/dovecot/99-vibmail.conf.tpl`, `deployment/templates/systemd/vibmail-*.service.tpl` and `deployment/templates/nginx/app.conf.tpl` contain unresolved template values/legacy host paths; no root-level production mailserver installer or Compose service applies these templates, provisions `vmail`, installs system packages, wires LMTP/SQL socket contracts or starts mailserver services. `scripts/ops/backup.sh` and updater scripts presuppose such a host installation.
 - **Impact:** Repository cloning + app container deployment cannot complete Postfix/Dovecot/mail-server setup from the committed artifacts alone.
 - **Required outcome before closure:** Repeatable Postfix/Dovecot provisioning and syntax/routing tests.
@@ -261,7 +261,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-02 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-09 — DKIM signing, TLS and external DNS are not provisioned
-- **Owner:** R-03. **Baseline assessment:** CONFIRMED MISSING STACK / UNVERIFIED EXTERNALS. **Current state:** OPEN.
+- **Owner:** R-03. **Baseline assessment:** CONFIRMED MISSING STACK / UNVERIFIED EXTERNALS. **Current state:** OPEN external acceptance (CI STARTTLS with ephemeral certificate passes; production trusted TLS, renewal, DNS and DKIM signer are NOT provisioned; signer is outside inbound-only scope).
 - **Audit evidence:** `src/core/dns/opendkim.ts:52–66` only reads an already existing `mail.txt`; `docker-compose.yml` only mounts a named key volume and provides no OpenDKIM signing daemon or key-generation lifecycle; Nginx template `deployment/templates/nginx/app.conf.tpl:36–42` references external Let's Encrypt certificate files. `src/core/dns/records.ts:45–109` computes suggested DNS values rather than publishing them.
 - **Impact:** The stack cannot by itself furnish validated mail transport TLS, DKIM signing or a working public DNS configuration. DKIM is mainly essential for any future outbound signing; incoming-only operation must still validate MX/A/PTR/SMTP reachability and applicable TLS policy.
 - **Required outcome before closure:** TLS, certificates and any DKIM signing lifecycle are actually provisioned/verified.
@@ -279,7 +279,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-10 — No production port/DNS/VPS routing evidence
-- **Owner:** R-03. **Baseline assessment:** UNVERIFIED. **Current state:** OPEN.
+- **Owner:** R-03. **Baseline assessment:** UNVERIFIED. **Current state:** OPEN external acceptance (CI SMTP bound to loopback only; actual VPS port-25/MX/A/PTR/firewall/IPv6 untested).
 - **Audit evidence:** No documented successful live check of inbound TCP/25 from the Internet, VPS provider port policy, MX/A/AAAA, reverse PTR, firewall policy, IPv6, TLS certificate trust or end-to-end LMTP delivery in the checked repository and Actions evidence. `.env.example:52–55` defaults to `readbox.local` and loopback `127.0.0.1`.
 - **Impact:** Network and deliverability readiness remain unknown even if the app build succeeds.
 - **Required outcome before closure:** Real VPS public IP, port 25, DNS/MX/PTR and firewall evidence.
@@ -460,7 +460,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-02 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; closure documented in 010-R02-READINESS-CLOSURE.md with CI evidence; live acceptance remains open in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-05 — DNS record generator is advisory, not DNS automation
-- **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-03. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED as advisory boundary (DNS previews remain read-only; no provider mutation or live publication).
 - **Audit evidence:** `src/core/dns/records.ts:45–109` generates MX, A, SPF, DKIM and DMARC suggestions; `src/core/dns/resolver.ts:150–306` checks answers. No production DNS-provider credential, mutation API or zone provisioning is wired to the Compose service.
 - **Impact:** Dashboard record previews must not be interpreted as DNS records already published. Default DMARC policy `p=none` is monitoring, not enforcement.
 - **Required outcome before closure:** DNS preview remains advisory unless DNS-provider write separately authorized.
@@ -473,7 +473,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-06 — Full two-way mailbox server features are outside the demonstrated stack
-- **Owner:** R-03. **Baseline assessment:** CONFIRMED PRODUCT BOUNDARY. **Current state:** OPEN.
+- **Owner:** R-03. **Baseline assessment:** CONFIRMED PRODUCT BOUNDARY. **Current state:** CI VERIFIED CLOSED as inbound-only product boundary (no IMAP, SMTP submission or outbound sending/relay).
 - **Audit evidence:** `src/core/mailserver/pg-adapter.ts:274–275` produces a deliberately disabled mailbox password hash; `deployment/templates/dovecot/99-vibmail.conf.tpl:1` enables LMTP only; `docker-compose.yml` has no outbound SMTP submission/MTA component.
 - **Impact:** This is primarily an incoming Maildir reader/management application plus a mailserver contract, **not** proof of SMTP sending, authenticated IMAP, mailbox client interoperability or outbound deliverability.
 - **Required outcome before closure:** Incoming-only boundary explicit; no claims of SMTP submission/IMAP.
@@ -588,3 +588,9 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - `src/core/health/snapshot.ts` now reuses the existing R-02 SQL migration parity helper with an authoritative checked-in migration manifest. Missing, unfinished and inaccessible migration history returns `not_ready` (the route continues to return 503 for `not_ready`).
 - **4/4 R-02 owner findings CI CLOSED**; total 11 CI verified, 21 remaining OPEN. Historical baseline excerpts and the interim blocked phase report are preserved as forensic history.
 - No VPS, SMTP, Dovecot, external DNS or other out-of-phase capability verified. Production remains **NO-GO**. See [010](010-R02-READINESS-CLOSURE.md).
+
+## R-03 inbound private mailserver CI closure (2026-11-17)
+
+- Verified source code SHA: `d0f3272ea298de012da83c6f01b588fa0513d1da`; scoped CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810. Opt-in containerized Postfix SQL recipient checking + Dovecot private LMTP delivered a real SMTP message to the shared Maildir on a disposable runner. STARTTLS, nonlocal relay rejection, unknown recipient rejection, certificate absence fail-close, mailserver config syntax and ownership succeeded.
+- Four R-03 owner contracts CI CLOSED: `RB-P0-02`, `RB-P0-05`, `RB-P2-05`, `RB-P2-06`. **Two R-03 findings REMAIN OPEN for external acceptance:** `RB-P1-09` trusted/renewed public TLS+DNS/DKIM applicability, `RB-P1-10` public VPS port 25/MX/PTR/firewall/IPv6 reachability. They require R-06 live staging evidence; do not mistake the test's self-signed certificate for trusted production TLS.
+- **Total:** 15/32 CI verified, 17 OPEN; source UI/auth/migrations unchanged; no SMTP submission/IMAP/outbound or public DNS mutation. Production **NO-GO**.

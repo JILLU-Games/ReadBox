@@ -1,6 +1,6 @@
 # 005 — Actual Feature Implementation and Verified Working Tracker
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 2/6 CI VERIFIED CLOSED; 4 remaining. **Release:** NO-GO.
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 3/6 CI IMPLEMENTATION VERIFIED CLOSED; 3 remaining. **Release:** NO-GO.
 
 ## Terminology — critical distinction
 
@@ -26,7 +26,7 @@
 | F-10 | Health/readiness JSON endpoints and worker heartbeat logic | `src/core/health/snapshot.ts`, `src/app/health/live/route.ts`, `src/app/health/ready/route.ts` | CODE PRESENT | SMTP/LMTP readiness unverified |
 | F-11 | Multi-stage production app Dockerfile and Compose definition | `Dockerfile`, `docker-compose.yml`, `entrypoint.sh` | CONFIG PRESENT; npm build passed, not image boot | UNVERIFIED |
 | F-12 | Host-based recovery/update scripts and server templates | `scripts/ops/**`, `scripts/updater/**`, `deployment/templates/**` | SOURCE PRESENT | no Compose recovery/host installer proof |
-| F-13 | Independent Postfix/Dovecot/LMTP mailserver binaries | production `docker-compose.yml` only lists postgres/web/worker | NOT DEPLOYED | NO |
+| F-13 | Independent Postfix/Dovecot/LMTP mailserver binaries | `docker-compose.yml` now has opt-in Postfix+Dovecot `mailserver` profile | CI DOCKER VERIFIED; NOT VPS DEPLOYED | NO |
 | F-14 | SMTP submission/IMAP email-client services | `src/core/mailserver/pg-adapter.ts:274–275` disables password login; Dovecot template LMTP-only | NOT IN CURRENT PRODUCT PROOF | NO |
 
 ## B. Existing inspected CI run
@@ -47,7 +47,7 @@
 |---|---|---|---|
 | R-01 | Production vs development Compose, secrets, reproducible Docker/dependency image, correct README | CI VERIFIED | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 |
 | R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | VERIFIED CLOSED (CI; authorized health exception) | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 |
-| R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | NOT STARTED | — |
+| R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | CI VERIFIED in disposable Docker; public SMTP/DNS/TLS unverified | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 |
 | R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | NOT STARTED | — |
 | R-05 | Tested container-aware encrypted/private backup, restore and update rollback | NOT STARTED | — |
 | R-06 | Public inbound message + attachment acceptance on staging, release verification/GO | NOT STARTED | — |
@@ -89,3 +89,10 @@ Source and mirrored SHA:
 - Positive and negative health tests and Next production build pass: https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169; original disposable PostgreSQL/role/UID contract proof preserved in 009.
 - This **does not install Postfix/Dovecot**; real mailbox reception and public VPS health remain unverified. Other features, UI/auth, routes, historical migrations and existing mailbox data unchanged.
 - R-02 completed CI-wise; R-03, R-04, R-05, R-06 not started.
+
+## R-03 actual working contract (CI only, not production VPS)
+
+- Production Compose now **optionally** starts `postfix` and `dovecot` through `--profile mailserver`; default web, worker and PostgreSQL remain as before. The Postfix queue is persistently volume-backed, Dovecot writes to the existing Maildir volume as numeric UID/GID 1001. Postfix SQL queries use the same PostgreSQL role from R-02.
+- Verified real disposable-runner behavior: SMTP STARTTLS, valid `support@r03.example.test` delivery to Maildir, unknown mailbox RCPT reject, nonlocal relay reject, missing TLS refusal, Postfix and Dovecot config lint. Evidence https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810; code commit `d0f3272ea298de012da83c6f01b588fa0513d1da`.
+- `deployment/mailserver/README.md` documents private certificate handoff and DNS/MX/PTR as manual provider/VPS responsibilities. No DKIM signing daemon is included (inbound-only); previews remain advisory.
+- NOT LIVE VERIFIED: public TCP/25, MX/PTR, production cert/renewal, sender reputation, automatic DNS provisioning, IMAP/SMTP submission/outbound, actual user inbox on VPS, backup/restore. **Existing UI/auth/routes/business source unchanged.**

@@ -83,3 +83,12 @@ Frozen source contract above remains historically correct at baseline. New CI-te
 
 - `src/core/health/snapshot.ts` enforces the checked-in Prisma migration history (the original seven migrations plus future checked-in migration directories) via R-02's existing `verifyMailserverMigrationParity()` SQL helper. The status is `not_ready` if expected history is absent/incomplete/unavailable.
 - Only this migration readiness contract is CI verified; the earlier live SMTP/LMTP, actual mounted Dovecot and external DNS caveats remain unchanged. Evidence: https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169.
+
+## R-03 opt-in containerized Postfix/Dovecot topology (supersedes initial no-mailserver source state)
+
+- Actual code SHA: `d0f3272ea298de012da83c6f01b588fa0513d1da`; disposable end-to-end SMTP→LMTP→Maildir CI https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 success. This replaces the baseline-only statement that no deployable MTA exists.
+- `docker-compose.yml`: `postfix` and `dovecot` services only when `--profile mailserver`; no IMAP or SMTP submission, no outbound relay, no public PostgreSQL. `SMTP_BIND_ADDRESS` defaults to `127.0.0.1`, `SMTP_PUBLISHED_PORT` defaults to 25. Real external binding requires explicit approved VPS action and provider checks.
+- `deployment/mailserver/postfix/`: Debian Postfix with `postfix-pgsql`, rendered read-only map credentials, persistent `readbox_postfix_queue`, opportunistic STARTTLS with pre-provisioned hostname-matching certificate. STARTUP FAILS without private TLS key/cert. SMTP refuses unknown/disabled recipient via SQL lookup and nonlocal relay via recipient restrictions.
+- `deployment/mailserver/dovecot/`: inbound-only Dovecot LMTP listening on private bridge port 24 and writing Maildir as UID/GID 1001. No additional mail database. Shared `readbox_vmail` mount with web/worker.
+- `deployment/mailserver/README.md`: beginner/operator staging instructions, TLS handoff, manual MX/A/AAAA/PTR and firewall checks, no DNS provider mutation, no DKIM signer (inbound-only boundary), no SMTP submission/IMAP.
+- Historical earlier host-based templates and legacy references in the original audit remain **baseline evidence**, not a statement about current production Compose. Public/host TLS issuer and DNS and real VPS reachability are still unverified; **production remains NO-GO**.

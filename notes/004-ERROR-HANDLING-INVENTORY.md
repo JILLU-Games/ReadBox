@@ -67,9 +67,9 @@ export async function GET() {
 | EH-M04 | R-02 | SQL role no-login, DB endpoint not reachable, permission denied | safe lookup rejection; one DB only; no leakage | RB-P0-03, RB-P1-08 | CI VERIFIED contract; external Postfix/VPS unverified |
 | EH-M05 | R-02 | Maildir access denied due to differing UID/GID/ACL | no silent accepted-but-lost mail; no broad chmod | RB-P0-04 | CI VERIFIED identity; external Dovecot unverified |
 | EH-M06 | R-02 | Missing/partial/out-of-order applied migrations | not-ready/abort, no destructive fallback | RB-P2-04 | CI VERIFIED CLOSED; live VPS unverified |
-| EH-M07 | R-03 | SMTP daemon or LMTP socket missing/down | observable failed/queued/deferred delivery, mail preserved | RB-P0-02, RB-P0-05 | OPEN |
-| EH-M08 | R-03 | Invalid/disabled recipient, bad alias, oversized MIME | proper SMTP reject/policy behavior, no silent loss | RB-P0-06 | OPEN |
-| EH-M09 | R-03 | Incorrect MX/port 25/TLS/certificate/DKIM | truthful distinct failure vs advisory status | RB-P1-09, RB-P1-10 | OPEN |
+| EH-M07 | R-03 | SMTP daemon or LMTP socket missing/down | observable failed/queued/deferred delivery, mail preserved | RB-P0-02, RB-P0-05 | CI POSITIVE SMTP/LMTP PASS; LMTP-outage recovery still UNVERIFIED |
+| EH-M08 | R-03 | Invalid/disabled recipient, bad alias, oversized MIME | proper SMTP reject/policy behavior, no silent loss | RB-P0-06 | CI unknown recipient and nonlocal relay REJECT PASS; alias/oversize not verified |
+| EH-M09 | R-03 | Incorrect MX/port 25/TLS/certificate/DKIM | truthful distinct failure vs advisory status | RB-P1-09, RB-P1-10 | CI STARTTLS/missing-cert PASS; public MX/PTR/trusted TLS still OPEN |
 | EH-M10 | R-04 | Duplicate bootstrap, missing operator, wrong admin table | secure one-time flow and consistent success verification | RB-P1-03, RB-P1-04 | OPEN |
 | EH-M11 | R-04 | Worker absent/stale/stuck, Maildir unreadable | not-ready with bounded recovery and no duplicates | RB-P1-05, RB-P1-06, RB-P1-07, RB-P2-10 | OPEN |
 | EH-M12 | R-05 | Partial backup, disk full, outage, unsafe restore ownership | fail and preserve prior state; checksum/ACL/data proof | RB-P1-11, RB-P1-12, RB-P1-13 | OPEN |
@@ -99,7 +99,7 @@ PASS / FAIL / SKIPPED / NOT RUN:
 |---|---|---|---|---|
 | R-01 | Startup/lockfile guards | Short credentials, reserved-character password, missing secrets, audit | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 | CI VERIFIED |
 | R-02 | PG lookup, Maildir identity and complete health migration parity | invalid/disabled mailbox, UID mismatch, missing/unfinished/failed migration ledger, broken bundle and query errors | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 | VERIFIED CLOSED (CI) |
-| R-03 | — | — | — | NOT STARTED |
+| R-03 | Postfix SMTP and private Dovecot LMTP | unknown RCPT/relay reject, STARTTLS, Maildir delivery, missing TLS | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 | CI IMPLEMENTATION VERIFIED; external release gates OPEN |
 | R-04 | — | — | — | NOT STARTED |
 | R-05 | — | — | — | NOT STARTED |
 | R-06 | — | — | — | NOT STARTED |
@@ -121,3 +121,9 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Existing expected-history helper is now invoked by `getReadinessSnapshot`, and `checks.migrations.ok` fails closed when any required migration is missing or unfinished, a failure row exists, migration directory/file is missing/unsafe, SQL query fails, or Prisma raw-query interface is absent.
 - A complete matching history remains `ready` if all independent storage, DB/config and heartbeat requirements are also satisfied. No external user-visible error strings, login behavior or UI modified.
 - **CI evidence:** https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169. Code SHA: `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892`. **Formal R-02:** CI VERIFIED CLOSED; SMTP/LMTP and actual VPS remain unverified.
+
+## R-03 mailserver error handling verified vs remaining (2026-11-17)
+
+- Actual Docker Postfix+LMTP delivery was verified from local SMTP port to the shared 1001-owned Maildir. Postfix denied unknown local RCPT and nonlocal relay, while missing TLS certificate prevented startup: https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810.
+- No SMTP AUTH/submission ports or IMAP service were enabled. One-shot SQL credential profile remains optional; default app-only Compose stays unaffected.
+- Still **unverified** on real VPS: LMTP-down/queue replay and long outage recovery (`R-04/R-06`), bad-alias/oversized MIME acceptance policy, externally trusted/renewed certificate, public MX/PTR/firewall/provider port 25 and IPv6. Keep these cases OPEN in final acceptance; no false claims of comprehensive outage handling.
