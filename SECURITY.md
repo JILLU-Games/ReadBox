@@ -2,31 +2,40 @@
 
 ## Supported Versions
 
-We provide security patches and updates for the active release line:
+We actively provide security patches and maintenance updates for the current release line:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1.0 | :x:                |
+| Version | Supported          | Security Status |
+| ------- | ------------------ | --------------- |
+| 0.1.x   | :white_check_mark: | Active Support  |
+| < 0.1.0 | :x:                | Unsupported     |
 
-## Reporting a Vulnerability
+## Reporting a Security Vulnerability
 
-The ReadBox project takes the security of our users and their communication data seriously. If you discover a security vulnerability or suspect an authorization flaw, please report it responsibly:
+The **Vib Tools** team takes the security of our users and self-hosted mail infrastructure seriously. If you discover a potential vulnerability, authorization bypass, or security defect in ReadBox, please report it through private channels:
 
-1. **Do not create a public GitHub issue.** Public issues disclose vulnerabilities before patches can be developed.
-2. Email the maintainers directly at: **security@readbox.local** (or submit via the administrator contact portal).
-3. Include detailed reproduction steps, proof of concept (if applicable), and affected component versions.
-4. Maintain confidentiality until an advisory and fix have been published.
+1. **Do not create a public issue.** Public disclosure exposes self-hosted servers before operators have the chance to patch.
+2. **Email our security team directly:**
+   - **Support & Security:** [support@vibtools.io](mailto:support@vibtools.io)
+   - **General Inquiries:** [hello@vibtools.io](mailto:hello@vibtools.io)
+   - **Urgent WhatsApp / Phone:** `+880 1795-470603` (GMT+6)
+3. **Include the following information:**
+   - Detailed description of the vulnerability and attack vector.
+   - Exact steps or proof-of-concept (PoC) scripts to reproduce the issue.
+   - Impacted software components, routes, or APIs.
+   - Suggested mitigations if known.
 
-We acknowledge security reports within 48 hours and work with reporters to coordinate responsible disclosure.
+### Response Commitment
+- **Initial Acknowledgment:** Within 48 hours.
+- **Triage & Reproduction:** Within 5 business days.
+- **Patch & Disclosure:** A security advisory and patched container release will be published in coordination with the reporter.
 
-## Security Architecture & Defenses
+## Security Architecture & Invariants
 
-ReadBox incorporates multiple defense-in-depth mechanisms:
+ReadBox implements strict defense-in-depth principles:
 
-- **Isolated Email Rendering:** User messages render inside a restricted `<iframe sandbox="allow-same-origin allow-popups">` governed by strict `Content-Security-Policy` headers, preventing client-side script execution and cross-site scripting (XSS).
-- **Argon2id Authentication:** All user and administrative credentials use Argon2id password hashing with brute-force lockout protection.
-- **Fail-Closed Database Access:** The application fails closed in production when the PostgreSQL database is unreachable or misconfigured, preventing silent fallback to unauthenticated mock state.
-- **Path Confinement:** Filesystem operations on Maildir storage and attachment files enforce strict boundary checks to prevent path traversal attacks.
-- **Rate-Limiting & CSRF Protection:** Public-facing endpoints (such as contact inquiries) enforce single-use CSRF tokens and database-backed rate-limiting to prevent automated abuse.
-- **Audit Trails:** Administrative operations, login attempts, and policy changes are logged to an immutable audit table with sensitive fields automatically redacted.
+- **Sandboxed Email Reader:** All incoming HTML emails are rendered in an isolated `<iframe sandbox="allow-same-origin allow-popups">` with a restrictive `Content-Security-Policy: default-src 'none'; img-src data: 'self'` header. Remote scripts, forms, external tracking beacons, and parent DOM modification are blocked by design.
+- **Fail-Closed Database Access:** In production (`NODE_ENV=production`), database connections fail closed with explicit `DatabaseConfigurationError` or `DatabaseUnavailableError` exceptions. Silent fallbacks to mock data or dummy accounts are strictly prohibited.
+- **Argon2id Authentication:** All user and administrative credentials utilize Argon2id password hashing with IP and account lockout mechanisms to counter brute-force attacks.
+- **Filesystem Path Confinement:** Every Maildir operation and attachment download enforces directory confinement checks, completely preventing directory traversal attacks (`../`).
+- **Durable CSRF & Rate-Limiting:** Public endpoints, including contact submissions, validate durable CSRF tokens against PostgreSQL records and apply time-windowed IP rate limits.
+- **Redacted Audit Trails:** Administrative operations, login attempts, and policy changes are logged to an append-only audit table with sensitive fields automatically redacted.
