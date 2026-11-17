@@ -1,0 +1,105 @@
+# 004 — Error Handling Inventory (Present, Missing, Future Test)
+
+**Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **All planned error fixes OPEN / NOT STARTED.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
+
+## A. Existing error handling actually implemented in source
+
+| Error ID | Existing behavior | Exact code path / line(s) | Evidence classification |
+|---|---|---|---|
+| EH-E01 | Production PostgreSQL missing/malformed connection fails closed instead of using dev mock | `src/core/database/client.ts:66–113` | CODE PRESENT; live unverified |
+| EH-E02 | Mailbox concurrent provisioning lock reports `ELOCKED` and safe filesystem errors | `src/core/mailboxes/provisioning.ts:31–101` | CODE PRESENT; live unverified |
+| EH-E03 | Unsafe/symlink Maildir paths refused; partial directory creation rolled back | `src/core/mailboxes/provisioning.ts:106–184`, `src/core/mailboxes/paths.ts:37–124` | CODE PRESENT |
+| EH-E04 | Mailbox SQL/DB creation catch and remote/maildir cleanup attempts | `src/core/mailboxes/service.ts:447–665` | CODE PRESENT; partial rollback is not transactional proof |
+| EH-E05 | Domain create failure cleanup and structured error response | `src/core/domains/service.ts:183–310` | CODE PRESENT |
+| EH-E06 | DNS resolution timeout/unavailable reported without false DNS success | `src/core/dns/resolver.ts:62–116,150–225` | CODE PRESENT |
+| EH-E07 | Missing/unsafe source files and Maildir path confinement | `src/core/ingestion/service.ts:123–310` | CODE PRESENT |
+| EH-E08 | Worker degraded/lock-busy conditions and heartbeat | `src/workers/ingestion.ts:151–208`, `scripts/mail/ingest.ts` | CODE PRESENT; health policy gap remains |
+| EH-E09 | DB/storage readiness returns structured state and HTTP 503 when not-ready | `src/core/health/snapshot.ts:25–180`; `src/app/health/ready/route.ts:8–15` | CODE PRESENT; SMTP gate absent |
+| EH-E10 | Database migration retry and nonzero abort | `entrypoint.sh:19–41` | CODE PRESENT; no live migration evidence |
+| EH-E11 | Initial operator/bootstrap guarded and reset tokens persisted/validated | `scripts/auth/operator.ts:39–140`; `src/core/auth/password-reset.ts:108–209` | CODE PRESENT; first-admin setup gap remains |
+| EH-E12 | Host backup/restore checksum, archive/path preflight | `scripts/ops/restore.sh:1–44`; `scripts/ops/backup.sh:124–175` | CODE PRESENT; Compose restore unverified |
+| EH-E13 | Container in-app updater returns blocked/orchestrator-managed state | `src/core/updates/service.ts:433–481` | CODE PRESENT; expected limitation |
+
+### Verbatim proof from frozen code
+
+**`src/core/database/client.ts:79–87`**
+```ts
+if (!runtimeEnv.databaseUrl) {
+  if (isProduction) {
+    logger.error("database_configuration_missing_in_production");
+    throw new DatabaseConfigurationError(
+      "DATABASE_URL must be configured when running in production.",
+    );
+  }
+```
+
+**`src/core/mailboxes/provisioning.ts:81–90`**
+```ts
+} catch (error) {
+  const code = (error as { code?: string })?.code;
+  if (code === "ELOCKED") {
+    throw new ProvisioningError(
+      "lock",
+      "Mailbox provisioning is already in progress for this address; try again.",
+    );
+  }
+```
+
+**`src/app/health/ready/route.ts:8–15`**
+```ts
+export async function GET() {
+  const snapshot = await getReadinessSnapshot();
+  logger.info("health_ready", { status: snapshot.status });
+  return NextResponse.json(snapshot, {
+    status: snapshot.status === "ready" ? 200 : 503,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+```
+
+## B. Missing/uncertain production error contracts — future requirements
+
+| Error ID | Owner | Failure/negative case not validated or not handled completely | Required production response | Source audit IDs | State |
+|---|---|---|---|---|---|
+| EH-M01 | R-01 | Dev Compose selected / demo password accidentally used | explicit prod selection and fail startup | RB-P0-01, RB-P1-01 | OPEN |
+| EH-M02 | R-01 | Missing/short secret and DB URL reserved-character corruption | clear, redacted refusal; valid URL encoding | RB-P1-01, RB-P2-03 | OPEN |
+| EH-M03 | R-01 | Reproducible production install fails/advisories unresolved | abort release; capture npm audit and lockfile evidence | RB-P1-14, RB-P1-15 | OPEN |
+| EH-M04 | R-02 | SQL role no-login, DB endpoint not reachable, permission denied | safe lookup rejection; one DB only; no leakage | RB-P0-03, RB-P1-08 | OPEN |
+| EH-M05 | R-02 | Maildir access denied due to differing UID/GID/ACL | no silent accepted-but-lost mail; no broad chmod | RB-P0-04 | OPEN |
+| EH-M06 | R-02 | Missing/partial/out-of-order applied migrations | not-ready/abort, no destructive fallback | RB-P2-04 | OPEN |
+| EH-M07 | R-03 | SMTP daemon or LMTP socket missing/down | observable failed/queued/deferred delivery, mail preserved | RB-P0-02, RB-P0-05 | OPEN |
+| EH-M08 | R-03 | Invalid/disabled recipient, bad alias, oversized MIME | proper SMTP reject/policy behavior, no silent loss | RB-P0-06 | OPEN |
+| EH-M09 | R-03 | Incorrect MX/port 25/TLS/certificate/DKIM | truthful distinct failure vs advisory status | RB-P1-09, RB-P1-10 | OPEN |
+| EH-M10 | R-04 | Duplicate bootstrap, missing operator, wrong admin table | secure one-time flow and consistent success verification | RB-P1-03, RB-P1-04 | OPEN |
+| EH-M11 | R-04 | Worker absent/stale/stuck, Maildir unreadable | not-ready with bounded recovery and no duplicates | RB-P1-05, RB-P1-06, RB-P1-07, RB-P2-10 | OPEN |
+| EH-M12 | R-05 | Partial backup, disk full, outage, unsafe restore ownership | fail and preserve prior state; checksum/ACL/data proof | RB-P1-11, RB-P1-12, RB-P1-13 | OPEN |
+| EH-M13 | R-05 | Secrets leaked into archive, updater crash or rollback failure | protect config and stop safely; observable result | RB-P2-02, RB-P2-07 | OPEN |
+| EH-M14 | R-06 | Real SMTP accepted but message never appears in web inbox | production NO-GO; capture mail queue, LMTP, Maildir and worker trace | RB-P0-06, RB-P1-16 | OPEN |
+| EH-M15 | R-06 | VPS restarts/storage outage/DB fail/restore are untested | NO-GO until negative and recovery evidence exists | RB-P1-16 | OPEN |
+
+### One focused test record per error case
+
+```text
+EH-ID:
+Owner phase:
+Exact input / failure injection:
+Expected safe behavior:
+Observed response / exit / sanitized log:
+Impact on messages, attachments and DB:
+Recovery/rollback:
+CI job & tested SHA:
+PASS / FAIL / SKIPPED / NOT RUN:
+```
+
+**Current state:** Existing handlers are code-level facts; all EH-M entries remain OPEN. No error-handling functionality or UI was implemented during this planning-only task.
+
+## Error-handling closure tracker
+
+| Phase | Existing handlers re-tested | New negative tests verified | Evidence URL / SHA | Status |
+|---|---|---|---|---|
+| R-01 | — | — | — | NOT STARTED |
+| R-02 | — | — | — | NOT STARTED |
+| R-03 | — | — | — | NOT STARTED |
+| R-04 | — | — | — | NOT STARTED |
+| R-05 | — | — | — | NOT STARTED |
+| R-06 | — | — | — | NOT STARTED |
