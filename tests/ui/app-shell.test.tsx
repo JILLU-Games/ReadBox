@@ -104,6 +104,7 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(
       screen.queryByRole("navigation", { name: "Management navigation" }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Backup" })).not.toBeInTheDocument();
     expect(screen.getAllByText("inbox.user").length).toBeGreaterThan(0);
 
     cleanup();
@@ -188,6 +189,10 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(
       screen.getByRole("link", { name: "System update" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Backup" })).toHaveAttribute(
+      "href",
+      "/vcon/backup",
+    );
 
     expect(
       screen.getByRole("button", { name: /Sign out/i }),
