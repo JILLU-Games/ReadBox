@@ -20,7 +20,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install 'pip-tools==7.5.3'
+          python -m pip install 'pip==25.3' 'pip-tools==7.5.3'
           printf 'boto3==1.44.4\ncryptography==50.0.2\n' > /tmp/br03-input.in
           pip-compile --generate-hashes --allow-unsafe --no-header --no-annotate --output-file /tmp/br03-lock.txt /tmp/br03-input.in
           echo BR03_HASH_LOCK_START
