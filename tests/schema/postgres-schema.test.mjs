@@ -126,7 +126,7 @@ test("administrator profile is a unique linked identity with no automatic promot
   );
   assert.equal(
     migrationDirectories.at(-1),
-    "20261116010000_phase2_user_access_policy_inheritance",
+    "20261117010000_postfix_login_identity",
   );
   const phase1Migration = readFileSync(
     resolve(

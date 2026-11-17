@@ -30,6 +30,7 @@ services:
       start_period: 10s
 
   web:
+    user: "1001:1001"
     build:
       context: .
       dockerfile: Dockerfile
@@ -77,6 +78,8 @@ services:
 
       # Persistent Storage Paths (backed by named volumes below)
       MAIL_STORAGE_ROOT: /var/vmail
+      MAILDIR_UID: "1001"
+      MAILDIR_GID: "1001"
       ATTACHMENT_STORAGE_ROOT: /var/lib/readbox/attachments
       MEDIA_ROOT: /var/lib/readbox/media
       MAILBOX_PROVISION_LOCK_ROOT: /var/lock/readbox-provision
@@ -112,6 +115,7 @@ services:
       start_period: 25s
 
   worker:
+    user: "1001:1001"
     build:
       context: .
       dockerfile: Dockerfile
@@ -145,6 +149,8 @@ services:
       APP_HOSTNAME: ${APP_HOSTNAME:-app.readbox.local}
       SERVER_IP: ${SERVER_IP:-127.0.0.1}
       MAIL_STORAGE_ROOT: /var/vmail
+      MAILDIR_UID: "1001"
+      MAILDIR_GID: "1001"
       ATTACHMENT_STORAGE_ROOT: /var/lib/readbox/attachments
       MEDIA_ROOT: /var/lib/readbox/media
       MAILBOX_PROVISION_LOCK_ROOT: /var/lock/readbox-provision
@@ -168,6 +174,36 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+  # One-shot private-network Postfix lookup password setup, opt-in only.
+  postfix-db-credential:
+    image: postgres:16.14-alpine
+    profiles: ["postfix-setup"]
+    restart: "no"
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-readbox}
+      PGDATABASE: ${POSTGRES_DB:-readbox}
+      PGPASSWORD: ${SERVICE_PASSWORD_DB:?Set SERVICE_PASSWORD_DB in .env or Coolify}
+      POSTFIX_LOOKUP_PASSWORD: ${POSTFIX_LOOKUP_PASSWORD:-}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        if [ "$${#POSTFIX_LOOKUP_PASSWORD}" -lt 24 ]; then
+          echo "[r02] Postfix lookup password is missing or too short." >&2
+          exit 1
+        fi
+        psql -q -v ON_ERROR_STOP=1 <<'SQL'
+        \getenv postfix_password POSTFIX_LOOKUP_PASSWORD
+        SET password_encryption = 'scram-sha-256';
+        SET log_statement = 'none';
+        ALTER ROLE "readbox_postfix" PASSWORD :'postfix_password';
+        SQL
+    networks:
+      - readbox_internal
 
 volumes:
   postgres_data:
