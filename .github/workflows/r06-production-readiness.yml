@@ -66,7 +66,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash deployment/mailserver/tests/r03-smoke.sh
+          bash scripts/testing/r06-smtp-rehearsal.sh
           echo "R06_ISOLATED_PRODUCTION_IMAGES_SMTP_LMTP_PASS"
 
       - name: Disposable named volumes, encrypted backup, ACL restore and after-DB-apply rollback
