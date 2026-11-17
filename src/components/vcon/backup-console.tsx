@@ -362,7 +362,7 @@ export function BackupConsole({
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-xs text-muted-foreground">No remote objects loaded. Listing does not prove full remote verification.</p>
+            ) : <p className="text-xs text-muted-foreground">No remote objects loaded. Listing does not prove full remote verification.</p>}
           </PanelBody>
         </Panel>
 
