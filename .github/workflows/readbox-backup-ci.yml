@@ -1,0 +1,103 @@
+name: ReadBox BR02 isolated encrypted backup agent CI — NO deployment
+on:
+  push:
+    branches:
+      - maintenance/readbox-br02-20261118
+      - main
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: readbox-br02-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  br02-disposable:
+    if: github.repository == 'JILLU-Games/ReadBox'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      READBOX_BR02_DISPOSABLE: "1"
+    steps:
+      - name: Check out exact source (no credentials retained)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Node 22 locked project toolchain
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Verify exact BR02 path Scope Lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          base="83959fff1c60dde432729cd5bec95ca4b27e8bca"
+          files=set("""
+          docker-compose.yml
+          src/app/(workspace)/vcon/backup/page.tsx
+          src/components/vcon/backup-console.tsx
+          src/app/(workspace)/vcon/backup/actions.ts
+          src/app/api/vcon/backup/jobs/[id]/route.ts
+          src/core/backup/contracts.ts
+          src/core/backup/validation.ts
+          src/core/backup/permissions.ts
+          src/core/backup/agent-client.ts
+          deployment/backup-agent/agent.py
+          deployment/backup-agent/executor.py
+          deployment/backup-agent/storage.py
+          deployment/backup-agent/verification.py
+          deployment/backup-agent/systemd/readbox-backup-agent.service
+          scripts/install/readbox-backup-agent-install.sh
+          tests/backup/agent-protocol.test.mjs
+          tests/backup/compose-integration.test.mjs
+          .github/workflows/readbox-backup-ci.yml
+          """.split())
+          actual=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          assert actual==files,("BR02_SCOPE_MISMATCH",sorted(actual^files))
+          subprocess.run(["git","diff","--check",base,"HEAD"],check=True)
+          assert subprocess.check_output(["git","diff","--name-only",base,"HEAD","--","prisma/schema.prisma","Dockerfile","deployment/mailserver"],text=True).strip()==""
+          print("BR02_EXACT_18_PATH_SCOPE_PASS")
+          PY
+      - name: Frontend auth/UI, backend and build regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-fund --no-audit
+          npm run db:validate
+          npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts
+          node scripts/testing/r06-verify-lint-baseline.mjs
+          npm run typecheck
+          npm run test:unit
+          env -u DATABASE_URL npm run test:ui
+          node --test tests/operations/r05-contract.test.mjs
+          npm run build
+          echo "BR02_APP_UI_AUTH_EXISTING_FEATURES_PASS"
+      - name: Validate installer syntax and Python agent modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/install/readbox-backup-agent-install.sh
+          python3 -B -m py_compile deployment/backup-agent/{agent,executor,storage,verification}.py
+          echo "BR02_HOST_INSTALL_SYNTAX_AND_PYTHON_PASS"
+      - name: Disposable IPC auth, PostgreSQL/Maildir encrypted backup and V2 verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age acl
+          sudo env READBOX_BR02_DISPOSABLE=1 "$(command -v node)" --test tests/backup/agent-protocol.test.mjs tests/backup/compose-integration.test.mjs
+          echo "BR02_DISPOSABLE_AGENT_SNAPSHOT_VERIFY_JOURNAL_PASS"
+      - name: Existing R05 disposable recovery regression unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deployment/operations/tests/r05-rehearsal.sh
+          echo "BR02_EXISTING_ENCRYPTED_RECOVERY_REGRESSION_PASS"
