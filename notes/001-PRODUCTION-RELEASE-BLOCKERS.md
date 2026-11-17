@@ -1,9 +1,9 @@
 # 001 — Production Blocker Ledger & Exact Baseline Code Proof
 
 **Baseline SHA:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`, **tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`.
-**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **25 OPEN; 7 R-01 CI-VERIFIED CLOSED; full mailserver production NO-GO.**
+**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **22 OPEN; 10 CI-CONTRACT VERIFIED (7 R-01 + 3 R-02); RB-P2-04 OPEN; full mailserver production NO-GO.**
 **Primary source:** [VPS production forensic audit](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md).
-**Status:** documentation/planning only. **NO-GO** for real VPS mailserver.
+**Status:** R-01 closed; R-02 code patch CI verified with an unresolved out-of-scope readiness gate. **NO-GO** for real VPS mailserver.
 
 Every record below has **one owner phase**, exact source filename and GitHub line permalink at the immutable baseline, source-verbatim code excerpt (with line numbers), finding/impact from the original audit and a required future outcome. Absence of a service or missing live proof is established by the whole repository/configuration and original audit; a short code excerpt alone cannot prove absence. `CONFIRMED` is static evidence, `UNVERIFIED` is lack of live proof, not a witnessed runtime error.
 
@@ -49,7 +49,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P0-03 — Published Postfix lookup template cannot reach the Compose database as configured
-- **Owner:** R-02. **Baseline assessment:** CONFIRMED CONFIGURATION CONFLICT. **Current state:** OPEN.
+- **Owner:** R-02. **Baseline assessment:** CONFIRMED CONFIGURATION CONFLICT. **Current state:** CI CONTRACT VERIFIED (role and SQL endpoint tested on isolated PostgreSQL; external Postfix/VPS not deployed).
 - **Audit evidence:** `deployment/templates/postfix/pgsql-virtual-{domains,mailboxes,aliases}.cf.tpl:1–5` hardcode `hosts = 127.0.0.1` and expect a credentialed `POSTFIX_DB_USER`. `docker-compose.yml:13–30` defines PostgreSQL only inside `readbox_internal` with no host port published; the app connects using hostname `postgres` (`docker-compose.yml:48,134`).
 - **Impact:** Host-installed or separately containerized Postfix using the supplied template has no configured network route to this PostgreSQL endpoint. The template cannot be treated as a working production mail-routing integration.
 - **Required outcome before closure:** Postfix SQL map reaches one authenticated least-privilege PostgreSQL endpoint.
@@ -66,7 +66,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-02 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P0-04 — Maildir ownership/permissions contract incomplete across web, worker and MTA
-- **Owner:** R-02. **Baseline assessment:** CONFIRMED INTEGRATION RISK. **Current state:** OPEN.
+- **Owner:** R-02. **Baseline assessment:** CONFIRMED INTEGRATION RISK. **Current state:** CI CONTRACT VERIFIED (UID/GID=1001 and fail-closed Maildir provisioning; Dovecot live delivery unverified).
 - **Audit evidence:** `Dockerfile:42–63,82` creates and runs as `nextjs`, UID/GID 1001. `src/core/mailboxes/provisioning.ts:126–160` creates mailbox/Maildir paths with `0700` permissions and no explicit ownership mapping to a mail delivery identity. `deployment/templates/dovecot/99-vibmail.conf.tpl:6–18` uses `vmail` identity. `docker-compose.yml:96–102,153–159` shares named volumes only between web/worker; neither an external Postfix/Dovecot volume mount nor UID/GID contract is supplied.
 - **Impact:** Unless the external mail delivery process shares the precise UID or an equivalent permission contract, it cannot traverse/write the newly created Maildir. Mail receipt may fail even if DNS and Postfix are otherwise configured.
 - **Required outcome before closure:** App/worker/delivery-agent Maildir access tested under explicit UID/GID/ACL.
@@ -243,7 +243,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-04 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-08 — Postfix DB login role provisioning incomplete
-- **Owner:** R-02. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-02. **Baseline assessment:** CONFIRMED. **Current state:** CI CONTRACT VERIFIED (LOGIN role, SCRAM password, positive/negative permission tests).
 - **Audit evidence:** `prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql:103–128` creates `postfix_lookup NOLOGIN` and grants read privileges; `deployment/templates/postfix/pgsql-virtual-*.cf.tpl:1–5` expects a separate login username/password. There is no verified automatically created login principal, secret, network access rule or executable map-file deployment in the production stack.
 - **Impact:** Even with migrated tables, the Postfix virtual-lookup contract is not fully operational.
 - **Required outcome before closure:** Dedicated Postfix LOGIN role, grants and connection tested.
@@ -441,7 +441,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-04 — Setup readiness does not establish complete migration history
-- **Owner:** R-02. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-02. **Baseline assessment:** CONFIRMED. **Current state:** OPEN (isolated migration parity verified; application /health/ready still lacks expected-history enforcement).
 - **Audit evidence:** `src/core/health/snapshot.ts:99–110` checks unfinished/rolled-back rows in `_prisma_migrations`, not parity against the entire expected migration set.
 - **Impact:** A manually incomplete database with an existing migrations table could pass this limited migration condition; runtime schema usage may still fail.
 - **Required outcome before closure:** Expected migration history and real schema readiness confirmed.
@@ -574,3 +574,10 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - Seven findings CI-verified: RB-P0-01, RB-P1-01, RB-P1-02, RB-P1-14, RB-P1-15, RB-P2-03, RB-P2-09.
 - Tested source patch SHA: `113663cdabacf1460af5b06a334d99ab3db833c2`; Docker/Compose/security proof https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590; complete app regression proof https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120.
 - 25 findings OPEN. SMTP/LMTP and real VPS acceptance remain unverified. Historical code excerpts intentionally preserve the original baseline.
+
+## R-02 evidence and held readiness gate (2026-11-17)
+
+- Code SHA: `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`. Focused GitHub CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332. Seven Prisma migrations applied on disposable PostgreSQL 16, second deploy reported no pending migrations. Dedicated `readbox_postfix` login queried domain/mailbox/alias views, and password-hash, app user data and writes were denied.
+- Three CI contract findings addressed: `RB-P0-03`, `RB-P0-04`, `RB-P1-08`. These are not proof of external live Postfix/Dovecot.
+- `RB-P2-04` remains **OPEN**: `src/core/mailserver/pg-adapter.ts` now checks an expected migration manifest with unit tests, but `src/core/health/snapshot.ts` still checks only unfinished rows. That file is **not** in R-02's allowlist (it belongs to R-04); therefore scope discipline prohibits a silent edit. R-02 cannot be marked fully VERIFIED CLOSED under its own phase exit rule without separately approving a narrowly bounded health-readiness exception or explicit documented deferral.
+- Original baseline snippets are historical proof, not assertions that the patched tree still has old configuration.

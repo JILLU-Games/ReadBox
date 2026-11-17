@@ -68,3 +68,13 @@ The Postfix localhost SQL template cannot use the Compose-private PostgreSQL end
 - DNS control: preview/checking only unless DNS-provider mutation is separately requested.
 
 **No live VPS changes, network routing, DNS edits, user-mail sends, production backup actions or release publication are authorized by this plan.** Final GO only under `006`.
+
+## R-02 current implementation addendum (2026-11-17)
+
+Frozen source contract above remains historically correct at baseline. New CI-tested changes at `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`:
+
+- `docker-compose.yml` web/worker have `user: "1001:1001"`, plus `MAILDIR_UID/GID=1001`. Existing data is **never** silently recursively chowned; ownership mismatch stops provisioning. Dovecot LMTP template placeholders `VMAIL_UID/GID` must be set to the same numeric identity in R-03 integration.
+- `prisma/migrations/20261117010000_postfix_login_identity/migration.sql` adds a dedicated `readbox_postfix` LOGIN role with NO password initially; it inherits the existing `postfix_lookup` group. A profile-only `postfix-db-credential` service can set a separately managed SCRAM password without exposing PostgreSQL on host ports. Default Compose does not run this provisioning job.
+- Postfix `pgsql-virtual-{domains,mailboxes,aliases}.cf.tpl` templates now use `readbox_postfix` and explicit `POSTFIX_DB_HOST/PORT` placeholders. **The renderer, Postfix service, and externally validated network attachment do not yet exist**; supplying the wrong network host still prevents delivery.
+- Actual SQL role, positive/negative lookup and migration replay tests passed: https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332.
+- **Known residual:** `src/core/health/snapshot.ts` remains unchanged; complete expected migration-history parity is not part of its readiness gate and RB-P2-04 is OPEN until an explicitly approved bounded exception/deferral.

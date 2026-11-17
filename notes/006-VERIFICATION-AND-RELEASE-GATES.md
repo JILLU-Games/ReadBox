@@ -91,3 +91,11 @@ Rollback contracts: no modifications to applied migrations; backup before changi
 - Full app regression (167 unit + 70 UI tests, typecheck/lint, Prisma validate, Next build): https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120. Its final Docker smoke found the raw-percent credential encoding bug, so that whole workflow run is not labeled PASS.
 - Final corrected Docker/Compose/runtime smoke, immutable base digest and moderate-level production npm audit: https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 — **SUCCESS**. Targeted Dockerfile and test correction only after app regression.
 - Source code SHA: `113663cdabacf1460af5b06a334d99ab3db833c2`. R-01 finding outcomes: CI VERIFIED CLOSED; remaining R-02 to R-06 and external VPS SMTP/LMTP tests NOT RUN. Full mailserver **NO-GO**.
+
+## R-02 focused database and Maildir CI — passed; formal release/phase gate remains blocked
+
+- Code SHA `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`; CI https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 **SUCCESS**. npm clean install, Prisma schema validation, TS, existing backend tests, new R-02 tests, production Compose topology validation and one disposable PostgreSQL 16 database.
+- Positive: seven additive migrations applied once and second run no-op; dedicated Postfix login role SCRAM auth; virtual domain/mailbox/alias lookup; UID/GID delivery identity and strict Maildir permissions.
+- Negative: unknown and disabled mailbox, deny password hash table field and public app users and writes, wrong UID/GID, missing/unfinished migration manifest fixture.
+- Scope audit: **12 maintenance-branch changed paths** including temporary CI workflow; published code excludes the workflow. All executable code changes inside R-02 allowlist, no changed UI/auth/old migrations.
+- **Not tested:** SMTP to LMTP, actual Dovecot mount, host mail routing and public port 25. `RB-P2-04` remains OPEN because `/health/ready` is unchanged; no production GO or formal R-02 CLOSED claim.

@@ -46,7 +46,7 @@
 | Phase | Exact expected improvement (NOT YET WORKING-PROVEN) | State | Proof URL/commit when completed |
 |---|---|---|---|
 | R-01 | Production vs development Compose, secrets, reproducible Docker/dependency image, correct README | CI VERIFIED | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 |
-| R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | NOT STARTED | — |
+| R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | CI VERIFIED contract; formal closure blocked by health gate | https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 |
 | R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | NOT STARTED | — |
 | R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | NOT STARTED | — |
 | R-05 | Tested container-aware encrypted/private backup, restore and update rollback | NOT STARTED | — |
@@ -73,3 +73,12 @@ Source and mirrored SHA:
 - Default Compose defines `postgres`, `web`, `worker`; opt-in `compose.dev.yaml` preserves the development database setup.
 - Docker entrypoint safely encodes arbitrary DB password symbols and fails on short DB/auth credentials. Docker and production npm audit CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590.
 - Actual production VPS Postfix/Dovecot, mail receipt, real PostgreSQL migrations and disaster recovery: **NOT VERIFIED**. Existing UI, routes, auth behavior and messages unchanged.
+
+## R-02 actual working delta (isolated CI only)
+
+- **PostgreSQL 16:** seven Prisma migrations applied to disposable DB, and repeat `migrate deploy` succeeded without changes. New migration `prisma/migrations/20261117010000_postfix_login_identity/migration.sql` creates the restricted `readbox_postfix` LOGIN principal, inheriting the original `postfix_lookup` read-only group.
+- **Virtual lookups:** enabled domain/mailbox/alias SQL views returned the expected values; disabled domain, unknown mailbox and unauthorized table writes/password-hash/user SELECT were rejected. Tests used the real PostgreSQL server in CI, not a mock.
+- **Maildir:** `docker-compose.yml` pins web/worker runtime UID/GID 1001; Dovecot template now accepts matching numeric values; `src/core/mailboxes/provisioning.ts` refuses unexpected directory owners without chowning existing data.
+- **Migration parity:** `src/core/mailserver/pg-adapter.ts` exposes a checked manifest verifier; unit tests cover successful, missing and unfinished migrations. The application `/health/ready` is **NOT** connected to this checker, so `RB-P2-04` remains OPEN and R-02 phase closure is BLOCKED under Scope Lock.
+- **Proof:** https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332. Code SHA: `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`.
+- **Not verified:** real Postfix/Dovecot installed or running, external mail delivery, DB provisioning one-shot profile invocation in a deployed stack, public DNS/TLS, VPS mounts and backups. No change to app UI/routes/auth/features.

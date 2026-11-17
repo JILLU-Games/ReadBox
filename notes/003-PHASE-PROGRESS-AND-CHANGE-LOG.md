@@ -10,11 +10,11 @@
 | Completed / verified | **1/6 (CI)** |
 | In progress | **0** |
 | Remaining | **5/6** |
-| Blocked | **0** (not started is not blocked) |
+| Blocked | **1 — R-02 formal closure; RB-P2-04 readiness gap** |
 | Original forensic findings | **32** |
-| Findings verified closed | **7 (CI)** |
-| Findings OPEN | **25** |
-| Next implementation phase | **R-02 — PostgreSQL/Postfix SQL and Maildir identity** |
+| Findings verified closed | **10 (CI contract; not live VPS)** |
+| Findings OPEN | **22** |
+| Next implementation phase | **R-02 closure exception/deferral approval; R-03 remains next planned phase** |
 | Final release | **NO-GO** |
 
 ## Ordered phase ledger — no results invented
@@ -22,7 +22,7 @@
 | Phase | Findings | Next feature/bugfix scope | State | CI evidence URL | Source SHA | Mirror SHA |
 |---|---:|---|---|---|---|---|
 | R-01 | 7 | Production/dev Compose selection; standalone/Coolify secrets; URL-safe DB auth; reproducible image/deps and advisory audit; accurate quick-start documentation. | VERIFIED CLOSED (CI) | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 | `113663cdabacf1460af5b06a334d99ab3db833c2` | mirror verification pending |
-| R-02 | 4 | Single-DB virtual SQL routing with least privilege, migration parity, Maildir owner/UID/GID/ACL consistency. | NOT STARTED | — | — | — |
+| R-02 | 4 | Single-DB virtual SQL routing with least privilege, migration parity, Maildir owner/UID/GID/ACL consistency. | CODE/CI VERIFIED; CLOSE BLOCKED (RB-P2-04) | https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 | `e1efdbd0b0380a94152947f7be47eb17c5c8d70c` | pending exact final sync |
 | R-03 | 6 | Supported Postfix/Dovecot installation/integration, port and socket contract, documented DNS/TLS/DKIM boundaries; inbound-only vs other capabilities explicit. | NOT STARTED | — | — | — |
 | R-04 | 6 | First admin setup, consistent user/admin source, worker heartbeat and readiness gates, actionable errors for outages and recovery. | NOT STARTED | — | — | — |
 | R-05 | 6 | Container-aware and host-aware backup/restore, secret protection, downtime consistency, UID/ACL restore, updater repo correctness and rollback. | NOT STARTED | — | — | — |
@@ -72,3 +72,11 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Proof:** https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 (focused corrected Docker/runtime, current production npm audit) and https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120 (full original app regression pass). Last correction altered only Dockerfile encoding, its targeted contract test, temporary CI workflow.
 - **Preserved:** all `src/`, application UI/UX/layout, user/business logic, existing migrations, Postfix/Dovecot files and data. **Live VPS and SMTP:** NOT RUN; production NO-GO.
 - **Mirror:** final SHA equality verified separately after the documentation commit; no release/tag deployed.
+
+### R-02 — Single PostgreSQL / Maildir identity — 2026-11-17
+
+- **Status:** Implemented and focused CI PASS; formal phase closure BLOCKED by `RB-P2-04` because `src/core/health/snapshot.ts` is not R-02 allowlisted. Completed/closed phases remain **1/6**; **5 remain** including R-02.
+- **Code commit:** `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`. **Verified CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332. Seven migrations applied twice (second no-op), virtual domain/mailbox/alias responses, invalid/disabled negatives, insufficient privilege negatives, unit/schema and Maildir POSIX checks.
+- **Fixed/verified contract:** `RB-P0-03`, `RB-P0-04` and `RB-P1-08` at isolated CI level. Migration parity helper also verified, but the production readiness endpoint still does NOT enforce missing expected migrations (`RB-P2-04 OPEN`).
+- **Unchanged:** existing `src/app/`, `src/components/`, auth, UI/UX, original Prisma migrations, mailbox data and unrelated app code. No VPS or external Postfix/Dovecot test.
+- **Next decision:** authorize precise health-readiness scope exception or explicitly reassign `RB-P2-04` to R-04 before satisfying R-03 prerequisite. **Overall production NO-GO.**

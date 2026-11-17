@@ -2,7 +2,7 @@
 
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`.
 **Finding source:** [001-PRODUCTION-RELEASE-BLOCKERS.md](001-PRODUCTION-RELEASE-BLOCKERS.md) and the earlier forensic report.
-**Status:** R-01 VERIFIED CLOSED (CI); `1/6` implemented, 5 remaining. **Production verdict: NO-GO.**
+**Status:** R-01 VERIFIED CLOSED (CI); R-02 code verified but PHASE CLOSURE BLOCKED by RB-P2-04 Scope Lock conflict. `1/6` fully closed, five phases not yet closed. **Production: NO-GO.**
 
 ## Implementation sequencing and shared controls
 
@@ -13,7 +13,7 @@ Implement **R-01 → R-02 → R-03 → R-04 → R-05 → R-06** in sequence only
 | Phase | Scope focus | Owner findings | Status |
 |---|---|---:|---|
 | R-01 | Deployment foundation + reproducibility | 7 | VERIFIED CLOSED (CI) |
-| R-02 | PostgreSQL/Postfix SQL and Maildir identity | 4 | NOT STARTED |
+| R-02 | PostgreSQL/Postfix SQL and Maildir identity | 4 | CODE/CI VERIFIED; CLOSURE BLOCKED (RB-P2-04) |
 | R-03 | Inbound SMTP/LMTP mailserver and DNS/TLS | 6 | NOT STARTED |
 | R-04 | Operator bootstrap and fail-closed runtime health | 6 | NOT STARTED |
 | R-05 | Backup/restore, upgrade and operations safety | 6 | NOT STARTED |
@@ -60,7 +60,7 @@ One GitHub CI focused run with explicit Compose config validation, missing-secre
 
 ## R-02 — PostgreSQL/Postfix SQL and Maildir identity
 
-**Position:** 2/6 · **Prerequisite:** R-01 VERIFIED CLOSED · **Current state:** NOT STARTED.
+**Position:** 2/6 · **Prerequisite:** R-01 VERIFIED CLOSED · **Current state:** CI PATCH VERIFIED, FORMAL CLOSE BLOCKED by RB-P2-04 readiness check outside R-02 allowlist.
 
 **Owned findings (single owner):** `RB-P0-03`, `RB-P0-04`, `RB-P1-08`, `RB-P2-04`.
 
@@ -258,3 +258,9 @@ One consolidated CI regression/release-gate run plus authorized staging VPS acce
 - The seven R-01 owned findings are CI closed. Source code commit: `113663cdabacf1460af5b06a334d99ab3db833c2`.
 - Scoped checks: https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 (Docker, secrets, npm audit), https://github.com/JILLU-Games/ReadBox/actions/runs/44092311120 (167 unit/70 UI, app build).
 - No `src/`, UI/UX, business logic, Prisma migration or mailserver template changes. Next scope: **R-02** after explicit approval.
+
+## R-02 scope conflict after verification
+
+- Code SHA: `e1efdbd0b0380a94152947f7be47eb17c5c8d70c`. CI https://github.com/JILLU-Games/ReadBox/actions/runs/44099280332 PASS: repeatable single PostgreSQL migrations; Postfix role positive/negative queries; file ownership and Compose contract checks.
+- Exact change allowlist respected. `src/core/health/snapshot.ts` was NOT edited; health migration history check therefore remains incomplete (`RB-P2-04` OPEN).
+- Prerequisite to call R-02 VERIFIED CLOSED: explicit approval for a bounded migration-readiness correction in the existing R-04-owned health source, or an approved change to the roadmap assigning that residual finding to R-04. Without that decision R-03 is planned but its R-02 prerequisite is not fulfilled.
