@@ -490,6 +490,20 @@ test("Health readiness snapshot and PostgreSQL VPS templates verify production i
     assert.equal(checkConfigurationReadiness(runtimeEnv).ok, true);
 
     const now = new Date("2026-11-15T12:00:00.000Z");
+    // R-02: an operationally ready database must include every expected migration.
+    const completedMigrationRows = [
+      "20261017000000_initial_application_schema",
+      "20261017190000_local_auth_reset",
+      "20261018120000_administrator_profiles",
+      "20261115000000_mailserver_schema_and_roles",
+      "20261116000000_phase1_admin_reset_and_security",
+      "20261116010000_phase2_user_access_policy_inheritance",
+      "20261117010000_postfix_login_identity",
+    ].map((migration_name) => ({
+      migration_name,
+      finished_at: new Date("2026-11-15T11:59:00.000Z"),
+      rolled_back_at: null,
+    }));
     const readySnapshot = await getReadinessSnapshot({
       runtimeEnv,
       now,
@@ -500,6 +514,12 @@ test("Health readiness snapshot and PostgreSQL VPS templates verify production i
             return [{ pending_count: BigInt(0) }] as unknown as never;
           }
           return [{ "?column?": 1 }] as unknown as never;
+        },
+        async $queryRawUnsafe<T = unknown>() {
+          return completedMigrationRows as T;
+        },
+        async $executeRawUnsafe() {
+          return 0;
         },
         serviceHeartbeat: {
           async findUnique() {
@@ -530,6 +550,12 @@ test("Health readiness snapshot and PostgreSQL VPS templates verify production i
             return [{ pending_count: BigInt(1) }] as unknown as never;
           }
           return [{ "?column?": 1 }] as unknown as never;
+        },
+        async $queryRawUnsafe<T = unknown>() {
+          return completedMigrationRows as T;
+        },
+        async $executeRawUnsafe() {
+          return 0;
         },
       },
     });
