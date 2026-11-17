@@ -2,7 +2,7 @@
 
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`.
 **Finding source:** [001-PRODUCTION-RELEASE-BLOCKERS.md](001-PRODUCTION-RELEASE-BLOCKERS.md) and the earlier forensic report.
-**Status:** R-01 through R-04 VERIFIED CLOSED (CI); `4/6` completed, 2 remaining. External SMTP/TLS/DNS and disaster recovery still await R-06/R-05 acceptance. Next R-05 requires separate approval. **Production: NO-GO.**
+**Status:** R-01 through R-05 IMPLEMENTATION VERIFIED CLOSED (CI); `5/6` completed, 1 remaining. R-05 left two original findings OPEN for out-of-scope Nginx paths and live offsite/host evidence. R-06 requires separate approval; production NO-GO.
 
 ## Implementation sequencing and shared controls
 
@@ -16,7 +16,7 @@ Implement **R-01 → R-02 → R-03 → R-04 → R-05 → R-06** in sequence only
 | R-02 | PostgreSQL/Postfix SQL and Maildir identity | 4 | VERIFIED CLOSED (CI; authorized readiness exception) |
 | R-03 | Inbound SMTP/LMTP mailserver and DNS/TLS | 6 | CI IMPLEMENTATION VERIFIED CLOSED; 2 external acceptance findings OPEN for R-06 |
 | R-04 | Operator bootstrap and fail-closed runtime health | 6 | CI VERIFIED CLOSED |
-| R-05 | Backup/restore, upgrade and operations safety | 6 | NOT STARTED |
+| R-05 | Backup/restore, upgrade and operations safety | 6 | CI IMPLEMENTATION VERIFIED CLOSED; 4 CI findings closed, 2 OPEN code/external acceptance |
 | R-06 | Full production acceptance and release governance | 3 | NOT STARTED |
 
 **Total:** 32 finding assignments / 32 unique original IDs; all 32 covered once.
@@ -181,7 +181,7 @@ One focused CI run with clean PostgreSQL and temporary Maildir: bootstrap once, 
 
 ## R-05 — Backup/restore, upgrade and operations safety
 
-**Position:** 5/6 · **Prerequisite:** R-04 VERIFIED CLOSED · **Current state:** NOT STARTED.
+**Position:** 5/6 · **Prerequisite:** R-04 VERIFIED CLOSED · **Current state:** CI IMPLEMENTATION VERIFIED CLOSED (disposable encrypted backup→restore→post-DB-apply rollback; out-of-scope Nginx and real offsite retention remain OPEN).
 
 **Owned findings (single owner):** `RB-P1-11`, `RB-P1-12`, `RB-P1-13`, `RB-P2-01`, `RB-P2-02`, `RB-P2-07`.
 
@@ -285,3 +285,11 @@ One consolidated CI regression/release-gate run plus authorized staging VPS acce
 - Focused CI https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 SUCCESS; committed code SHA `88e57e2e81dc07a8f91b07f448df85e51d58e429`. Prisma migrations, types, existing unit/backend/UI 70/70, build; real disposable PostgreSQL bootstrap once+duplicate refusal+inspector identity; worker/storage outage negatives and recovery; strict diff audit.
 - Production operator bootstrap remains an **explicit interactive one-shot** and never auto-creates insecure default credentials; see `notes/012-R04-PATCH-AUDIT.md` for command and approval boundary. Any live VPS installation and password activation require separate authorization.
 - App readiness does **not** measure public Postfix/LMTP acceptability, DNS, TLS or mail delivery; R-06 remains an independent public acceptance gate. **Phases 4/6 completed, 2 remaining (R-05 → R-06).**
+
+## R-05 closure boundary — 2026-11-17
+
+- Verified 13 code/config/test paths inside exact approved R-05 allowlist, plus a one-time temporary CI workflow excluded from published main. Successful focused CI https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316; published code SHA `a55ec82bb2f58804e910427c66ff6352cd5c14c6`.
+- Confidential backups use age public-key encryption; only encrypted artifact leaves a private 0700 staging area; `0600` output, SHA-256 integrity, manual maintenance freezes active writers (including SMTP), and preserved Postfix queue/DB/Maildir/ACL. **Not an online snapshot**; no inbound email is accepted while an active Postfix is intentionally stopped.
+- CI demonstrably restored both PostgreSQL schemas and volume contents, rejected tampering, and automatically rolled back from an injected **post-database-apply** error. Host/systemd updater rollback code passed syntax/static checks only; no host upgrade was performed.
+- `RB-P2-01` **OPEN**: Nginx templates/legacy filenames cannot be changed in R-05 Scope Lock; requires a separate explicitly authorized exception, potentially before R-06 production GO. `RB-P2-07` **OPEN**: offsite backup transfer, retention, key custody and actual VPS/host restore evidence not yet available. Do not silently reassign or close these findings.
+- **5/6 phases implemented/CI verified, 1 remaining, 25/32 findings CI verified, 7 still OPEN, production NO-GO.** Next R-06 is final acceptance/governance and must not assume real VPS tests without separate authorization.

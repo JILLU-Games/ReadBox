@@ -1,6 +1,6 @@
 # 004 — Error Handling Inventory (Present, Missing, Future Test)
 
-**Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Historical starting status was OPEN; R-01–R-04 implementation contract fixes are now CI verified, while live VPS error gates remain OPEN.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
+**Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Historical starting status was OPEN; R-01–R-05 implementation contract fixes are now partly CI verified, while real offsite/VPS and host-recovery gates remain OPEN.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
 
 ## A. Existing error handling actually implemented in source
 
@@ -72,8 +72,8 @@ export async function GET() {
 | EH-M09 | R-03 | Incorrect MX/port 25/TLS/certificate/DKIM | truthful distinct failure vs advisory status | RB-P1-09, RB-P1-10 | CI STARTTLS/missing-cert PASS; public MX/PTR/trusted TLS still OPEN |
 | EH-M10 | R-04 | Duplicate bootstrap, missing operator, wrong admin table | secure one-time flow and consistent success verification | RB-P1-03, RB-P1-04 | CI VERIFIED; interactive VPS CLI not exercised |
 | EH-M11 | R-04 | Worker absent/stale/stuck, Maildir unreadable | not-ready with bounded recovery and no duplicates | RB-P1-05, RB-P1-06, RB-P1-07, RB-P2-10 | CI VERIFIED health-negative/recovery; live outage untested |
-| EH-M12 | R-05 | Partial backup, disk full, outage, unsafe restore ownership | fail and preserve prior state; checksum/ACL/data proof | RB-P1-11, RB-P1-12, RB-P1-13 | OPEN |
-| EH-M13 | R-05 | Secrets leaked into archive, updater crash or rollback failure | protect config and stop safely; observable result | RB-P2-02, RB-P2-07 | OPEN |
+| EH-M12 | R-05 | Partial backup, disk full, outage, unsafe restore ownership | fail and preserve prior state; checksum/ACL/data proof | RB-P1-11, RB-P1-12, RB-P1-13 | CI VERIFIED Compose data/ACL/rollback and explicit downtime; host/VPS untested |
+| EH-M13 | R-05 | Secrets leaked into archive, updater crash or rollback failure | protect config and stop safely; observable result | RB-P2-02, RB-P2-07 | CI encrypted/no-plaintext and rollback tests pass; offsite retention/key custody OPEN |
 | EH-M14 | R-06 | Real SMTP accepted but message never appears in web inbox | production NO-GO; capture mail queue, LMTP, Maildir and worker trace | RB-P0-06, RB-P1-16 | OPEN |
 | EH-M15 | R-06 | VPS restarts/storage outage/DB fail/restore are untested | NO-GO until negative and recovery evidence exists | RB-P1-16 | OPEN |
 
@@ -101,7 +101,7 @@ PASS / FAIL / SKIPPED / NOT RUN:
 | R-02 | PG lookup, Maildir identity and complete health migration parity | invalid/disabled mailbox, UID mismatch, missing/unfinished/failed migration ledger, broken bundle and query errors | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 | VERIFIED CLOSED (CI) |
 | R-03 | Postfix SMTP and private Dovecot LMTP | unknown RCPT/relay reject, STARTTLS, Maildir delivery, missing TLS | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 | CI IMPLEMENTATION VERIFIED; external release gates OPEN |
 | R-04 | First admin/operator identity + worker/readiness | reject duplicate, unsafe CLI, stale/future/missing worker, broken DB/storage; recovery | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 | CI VERIFIED CLOSED; live VPS unverified |
-| R-05 | — | — | — | NOT STARTED |
+| R-05 | Disposable encrypted PostgreSQL/Maildir/queue recovery and updater contract | post-DB apply rollback, tamper/ACL/UID checks, no plaintext env; runtime downtime explicit | https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316 | CI IMPLEMENTATION VERIFIED; external offsite/host safety OPEN |
 | R-06 | — | — | — | NOT STARTED |
 
 ## R-01 error handling patch proof
@@ -134,3 +134,10 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - `EH-M11`: production readiness fails closed if ingestion heartbeat unknown, absent, stale, degraded, running, future-dated, or query fails; missing/symlinked/unreadable mail-storage path and DB fail return `not_ready`; healthy environment recovers. Initial ingestion worker exception writes a best-effort degraded heartbeat before rethrow. Docker worker health now checks both running process and full application readiness, while web liveness stays separate to prevent cyclic dependency.
 - The JSON response explicitly shows `scope:"application"` and `checks.mailTransport.status:"not_checked"`; this is **not proof of live Postfix SMTP/LMTP**. No production operator terminal action, real outage replay or external network evidence was run.
 - Tested executable-code SHA `88e57e2e81dc07a8f91b07f448df85e51d58e429`, focused CI https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511. UI/auth policy and unrelated error surfaces unchanged. Existing original baseline examples in earlier sections remain historical facts, not current-state claims.
+
+## R-05 encrypted recovery and updater negative error handling (2026-11-17)
+
+- Exact verified executable-code SHA `a55ec82bb2f58804e910427c66ff6352cd5c14c6`, final successful CI https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316. The Compose recovery program fails before mutation if input has an unknown target project/database, wrong encrypted identity, unauthenticated ciphertext, a symlink/traversal/special archive entry, or mismatched SHA-256 hashes. Decrypted staging stays private; no plaintext env/TLS secrets are included in output. Backup output and pre-restore rollback artifacts are encrypted with `age` and mode 0600.
+- The system quiesces active Postfix/Dovecot/worker/web in a declared **SMTP downtime maintenance window**; only services previously running are restarted. A separate encrypted rollback snapshot is required before restoring any PostgreSQL data or named volume. CI injected a failure **after database apply** and explicitly required both the `R05_CI_FAILPOINT_AFTER_DATABASE_APPLY` and `R05_AUTOMATIC_ROLLBACK_PASS` markers, then compared restored pre-error public/mailserver rows and Maildir files. Tampered encrypted input failed without modifying the disposable DB.
+- Both schema SQL rows, Maildir, attachments, media, Postfix queued content, numeric UID/GID 1001 and a real POSIX ACL were verified in disposable Compose. Host scripts exclude plaintext configuration, retain archived numeric ownership, and attempt upgrade rollback. Host-mode rollback behavior was **not run live**; no claim of full disk failure/sudden power-loss resilience.
+- `RB-P2-01` still OPEN because legacy Nginx path changes fall outside R-05 allowed files. `RB-P2-07` still OPEN because verified encrypted local export alone does not demonstrate offsite retention/restore and secret-key custody. These require separately authorized future acceptance; production remains **NO-GO**.

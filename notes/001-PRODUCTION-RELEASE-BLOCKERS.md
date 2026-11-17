@@ -1,9 +1,9 @@
 # 001 — Production Blocker Ledger & Exact Baseline Code Proof
 
 **Baseline SHA:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`, **tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`.
-**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **11 OPEN; 21 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02 + 4 R-03 + 6 R-04). Production public TLS/DNS/VPS and recovery acceptance remain NO-GO.**
+**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **7 OPEN; 25 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02 + 4 R-03 + 6 R-04 + 4 R-05). Public TLS/DNS/VPS, real offsite retention and host-mode recovery remain NO-GO.**
 **Primary source:** [VPS production forensic audit](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md).
-**Status:** R-01 through R-04 implementation CI VERIFIED CLOSED; R-05/R-06 NOT STARTED. Real production deployment remains NO-GO.
+**Status:** R-01 through R-05 implementation CI VERIFIED CLOSED; R-06 NOT STARTED. Two R-05-owned findings remain OPEN (RB-P2-01 out-of-scope Nginx/legacy filenames; RB-P2-07 offsite/host recovery unverified). Production release NO-GO.
 
 Every record below has **one owner phase**, exact source filename and GitHub line permalink at the immutable baseline, source-verbatim code excerpt (with line numbers), finding/impact from the original audit and a required future outcome. Absence of a service or missing live proof is established by the whole repository/configuration and original audit; a short code excerpt alone cannot prove absence. `CONFIRMED` is static evidence, `UNVERIFIED` is lack of live proof, not a witnessed runtime error.
 
@@ -296,7 +296,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-11 — Backup and restore tools target systemd host layout, not Compose volumes
-- **Owner:** R-05. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-05. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED (disposable Docker Compose PostgreSQL public+mailserver schemas, Maildir, attachments, media and optional Postfix queue encrypted backup→restore).
 - **Audit evidence:** `scripts/ops/backup.sh:6–15,40–122` requires root, host env files, `systemctl` and system mail services; `scripts/ops/restore.sh:28–45,65–115` requires host tools, physical paths and services. `docker-compose.yml:167–175` uses Docker named volumes.
 - **Impact:** Current scripts are not demonstrated as a valid Compose/Coolify backup/restore procedure; in particular, volume names, credentials and service orchestration differ.
 - **Required outcome before closure:** Verified Docker/Coolify-compatible backup and restore.
@@ -315,7 +315,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-05 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-12 — Backup flow deliberately stops Postfix and Dovecot
-- **Owner:** R-05. **Baseline assessment:** CONFIRMED OPERATIONAL DOWNTIME. **Current state:** OPEN.
+- **Owner:** R-05. **Baseline assessment:** CONFIRMED OPERATIONAL DOWNTIME. **Current state:** CI VERIFIED CLOSED as explicit downtime contract (stops only active SMTP/LMTP/worker/web writers and restarts prior running services; no zero-downtime claim).
 - **Audit evidence:** `scripts/ops/backup.sh:86–122` builds a service list including `postfix`/`dovecot`, then stops these services before database and file backups. `scripts/updater/upgrade.sh:125–151` claims to keep them active while invoking that backup script.
 - **Impact:** Mail receipt can be interrupted during backup/upgrades in a host-mode deployment. Upgrade assumptions and backup behavior conflict.
 - **Required outcome before closure:** No undocumented Postfix downtime; backup/upgrade behavior agrees.
@@ -333,7 +333,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-05 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-13 — Restore ownership differs from Docker user identity
-- **Owner:** R-05. **Baseline assessment:** CONFIRMED RISK. **Current state:** OPEN.
+- **Owner:** R-05. **Baseline assessment:** CONFIRMED RISK. **Current state:** CI VERIFIED CLOSED (numeric UID/GID 1001, file mode, xattrs and real named-volume POSIX ACL restore verified).
 - **Audit evidence:** `scripts/ops/restore.sh:94–106` extracts data and runs `chown -R vmail:vmail` on mail, attachments and media; `Dockerfile:42–63,82` runs app/worker as `nextjs`. The backup uses ACL/xattr options (`scripts/ops/backup.sh:133–139`), while restore tar invocation does not explicitly restore the same options.
 - **Impact:** In a combined Docker/host deployment, a restore may make app data inaccessible or alter expected permissions/ACLs without an explicit UID compatibility contract.
 - **Required outcome before closure:** Restore preserves app + mail delivery identities and metadata.
@@ -396,7 +396,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-06 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-01 — Legacy service names and installation paths remain in production template files
-- **Owner:** R-05. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-05. **Baseline assessment:** CONFIRMED. **Current state:** OPEN. **R-05 PARTIAL:** systemd template internals now use ReadBox paths, but legacy template basenames and Nginx paths outside R-05 allowlist were not changed; remains OPEN pending separately approved scope.
 - **Audit evidence:** `deployment/templates/systemd/vibmail-*.service.tpl` uses `/opt/vibmail/app` and `/etc/vibmail/vibmail.env`, `deployment/templates/nginx/app.conf.tpl:15–16,54–55` uses legacy identifiers and log paths; `scripts/updater/upgrade.sh:9–18` still documents legacy paths.
 - **Impact:** Host-mode installation from these templates can mix names, paths and owners unless explicitly adapted.
 - **Required outcome before closure:** Legacy host/systemd paths normalized only in supported host deployment.
@@ -409,7 +409,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-05 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-02 — Container update control is intentionally blocked, despite UI availability
-- **Owner:** R-05. **Baseline assessment:** CONFIRMED / EXPECTED LIMITATION. **Current state:** OPEN.
+- **Owner:** R-05. **Baseline assessment:** CONFIRMED / EXPECTED LIMITATION. **Current state:** CI VERIFIED CLOSED as canonical production release-source and container-managed updater boundary (in-app Docker update remains blocked).
 - **Audit evidence:** `src/core/updates/service.ts:433–481` detects Docker/Coolify and returns a blocked updater state directing users to container orchestration. `docker-compose.yml:95` and `.env.example:83` still default `UPDATE_GITHUB_REPO=vibtools/ReadBox` rather than the synchronized target organization.
 - **Impact:** In-app update expectations and configured release source do not match a fully automated self-update workflow; stale repository metadata is present.
 - **Required outcome before closure:** Container updater is truthful; canonical repo and release source are correct.
@@ -490,7 +490,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-03 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-07 — Backup confidentiality, off-site retention and restore reproducibility unproven
-- **Owner:** R-05. **Baseline assessment:** UNVERIFIED. **Current state:** OPEN.
+- **Owner:** R-05. **Baseline assessment:** UNVERIFIED. **Current state:** OPEN. **R-05 PARTIAL:** encrypted, SHA-256-verified and reproducibly restored disposable Compose backup passes; actual offsite transfer, retention/rotation, key escrow, and VPS/host recovery remain unverified; stays OPEN.
 - **Audit evidence:** `scripts/ops/backup.sh:45–80,124–174` includes configuration files potentially containing secrets and writes local archives; no verified encrypted off-site backup, retention enforcement or container volume restore test is present.
 - **Impact:** Disaster recovery and exposure controls cannot receive a production GO from static inspection alone.
 - **Required outcome before closure:** Backup secrets protected, offsite retention and restore tested.
@@ -602,3 +602,11 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - `checks.mailTransport: { verified:false,status:"not_checked" }` and `scope:"application"` explicitly differentiate app/ingestion readiness from true external SMTP/LMTP delivery; **no mailserver GO can be inferred from an app 200 response**.
 - Six R-04 findings CI-level CLOSED: `RB-P1-03`, `RB-P1-04`, `RB-P1-05`, `RB-P1-06`, `RB-P1-07`, `RB-P2-10`. **Overall 21 CI-verified / 11 OPEN**; R-05/R-06 and real VPS production readiness remain NO-GO.
 - Interactive production operator CLI, actual production credentials and public VPS deployment were NOT executed in CI. Historical baseline evidence above preserved unchanged.
+
+## R-05 scoped encrypted Compose recovery CI reconciliation (2026-11-17)
+
+- **Verified code SHA:** `a55ec82bb2f58804e910427c66ff6352cd5c14c6`; **focused successful CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316. Disposable named Docker volumes and real PostgreSQL 16 `public`+`mailserver` schemas: age X25519-encrypted archive, SHA-256 checksum, private output (0600), restored Maildir+attachments+media+Postfix queued message, numeric UID/GID, real POSIX ACL and data parity. A forced failure **after database apply** recovered the pre-restore DB+Maildir; tampered ciphertext was rejected before mutation; active services restarted.
+- **Four R-05 findings CI verified:** `RB-P1-11`, `RB-P1-12`, `RB-P1-13`, `RB-P2-02`. **Two still OPEN:** `RB-P2-01` (unsupported Nginx/old template naming outside approved R-05 file list) and `RB-P2-07` (off-site encrypted artifact transfer/retention/key escrow and real host/VPS restore not demonstrated). Historical baseline excerpts remain immutable evidence.
+- Host `scripts/ops/backup.sh` excludes plaintext configuration; restore preserves archived numeric ownership, ACLs and xattrs. Host `upgrade.sh` includes failure rollback handling, but the host systemd execution path was **syntax/static inspected only**, not live tested. Operator must maintain credentials/TLS material in a separate approved secret manager, outside the encrypted data bundle.
+- The repo alias `vibtools/ReadBox` maps to `vibtoolshq/ReadBox` in **production** update metadata/privileged worker; Docker/Coolify self-update stays blocked, no silent upgrade.
+- **Overall:** 25/32 CI-verified, 7 OPEN, R-01…R-05 implementation phases CI closed (5/6), next R-06 separately approved. **Production NO-GO.**

@@ -1,6 +1,6 @@
 # 005 — Actual Feature Implementation and Verified Working Tracker
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 4/6 CI VERIFIED CLOSED; 2 remaining. **Release:** NO-GO.
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 5/6 CI IMPLEMENTATION VERIFIED CLOSED; 1 remaining. R-05 leaves two original findings OPEN for restricted scope/external acceptance. **Release:** NO-GO.
 
 ## Terminology — critical distinction
 
@@ -25,7 +25,7 @@
 | F-09 | Admin operations/audit/retention/settings and user workspace | `src/core/operations/service.ts`, `src/core/audit/**`, `src/core/settings/**` | CODE PRESENT; subset CI tested | UNVERIFIED |
 | F-10 | Health/readiness JSON endpoints and worker heartbeat logic | `src/core/health/snapshot.ts`, `src/app/health/live/route.ts`, `src/app/health/ready/route.ts` | R-04 production heartbeat/DB/storage negative cases CI VERIFIED | SMTP/LMTP readiness still unverified |
 | F-11 | Multi-stage production app Dockerfile and Compose definition | `Dockerfile`, `docker-compose.yml`, `entrypoint.sh` | CONFIG PRESENT; npm build passed, not image boot | UNVERIFIED |
-| F-12 | Host-based recovery/update scripts and server templates | `scripts/ops/**`, `scripts/updater/**`, `deployment/templates/**` | SOURCE PRESENT | no Compose recovery/host installer proof |
+| F-12 | Compose recovery and host update/backup/restore scripts | `deployment/operations/**`, `scripts/ops/**`, `scripts/updater/**`, `deployment/templates/systemd/**` | R-05 disposable PostgreSQL+named-volume encrypted restore/rollback CI VERIFIED; host scripts syntax/static only | REAL VPS/HOST UNVERIFIED |
 | F-13 | Independent Postfix/Dovecot/LMTP mailserver binaries | `docker-compose.yml` now has opt-in Postfix+Dovecot `mailserver` profile | CI DOCKER VERIFIED; NOT VPS DEPLOYED | NO |
 | F-14 | SMTP submission/IMAP email-client services | `src/core/mailserver/pg-adapter.ts:274–275` disables password login; Dovecot template LMTP-only | NOT IN CURRENT PRODUCT PROOF | NO |
 
@@ -49,7 +49,7 @@
 | R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | VERIFIED CLOSED (CI; authorized health exception) | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 |
 | R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | CI VERIFIED in disposable Docker; public SMTP/DNS/TLS unverified | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 |
 | R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | CI VERIFIED CLOSED | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 |
-| R-05 | Tested container-aware encrypted/private backup, restore and update rollback | NOT STARTED | — |
+| R-05 | Encrypted Compose volume and PostgreSQL backup→restore→rollback; host updater boundary | CI IMPLEMENTATION VERIFIED, 2 findings OPEN | https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316 |
 | R-06 | Public inbound message + attachment acceptance on staging, release verification/GO | NOT STARTED | — |
 
 ## Per-phase actual-working append record (only after real verification)
@@ -104,3 +104,11 @@ Source and mirrored SHA:
 - **Application readiness:** production always requires a fresh, healthy ingestion heartbeat; DB, migrations and writable/readable storage must pass; stale/future/degraded/unavailable states fail closed. Existing `/health/live` remains process liveness, worker health additionally queries `/health/ready`. No new public route, no login policy change.
 - **Transport honesty:** `scope: application` and `mailTransport: not_checked` indicate SMTP/LMTP receipt is not verified by a 200 application readiness. Existing R-03 public DNS/TLS/VPS uncertainties remain.
 - **Evidence:** https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511; SHA `88e57e2e81dc07a8f91b07f448df85e51d58e429`. No production/mailbox data modified, no live VPS tested. Next R-05/R-06 still OPEN.
+
+## R-05 actual working recovery contract (CI only)
+
+- **Published code:** `a55ec82bb2f58804e910427c66ff6352cd5c14c6`. **Full focused CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316. The new `deployment/operations/compose_recovery.py` tool stopped **active** writer containers, dumped the real disposable PostgreSQL 16 database (public + mailserver schemas), captured the web Maildir/attachments/media volume mounts and a Postfix queue volume, and wrote an `age` public-key encrypted 0600 archive with SHA-256 manifest. Configuration files and plaintext credentials were deliberately excluded.
+- Verified in same disposable Compose CI: the restore returned pre-mutation SQL rows, Maildir/attachment/media/queue bytes, numeric UID/GID 1001 and a named-volume POSIX ACL. A deliberate failure **after database apply** forced encrypted pre-restore rollback, which recovered the modified pre-state. Tampered ciphertext was rejected before service changes. Previously-running containers restarted; this is a downtime maintenance process, **not online backup**.
+- `scripts/ops/backup.sh`, `restore.sh`, host `upgrade.sh` and systemd template paths were corrected for secret exclusion, numeric owner+ACL, explicit downtime and rollback handling. **Only static and syntax CI proof exists for these host/systemd paths, not actual host upgrade or VPS restore.** The privileged updater worker normalizes obsolete release repo alias; in-app Docker self-update stays blocked and requires orchestrator-managed image deploy.
+- **Not yet working-proven:** offsite transport/retention, encryption private-key custody/recovery, actual VPS systemd/Compose restore, zero-downtime SMTP, real public MX/LMTP, service recovery after a power failure; original RB-P2-01 legacy Nginx path outside this Scope Lock. UI/auth/routes/schema/mailserver engine unchanged.
+- **Phase count 5/6**, verified findings **25/32**, remaining **7**. Full production **NO-GO**.
