@@ -1,28 +1,125 @@
-name: ReadBox BR03 dependency lock generation in disposable CI
+name: ReadBox BR03 R2 encrypted offsite and UTC schedule disposable CI — NO deployment
 on:
   push:
-    branches: [maintenance/readbox-br03-20261118]
+    branches: [maintenance/readbox-br03-20261118, main]
+  pull_request:
+    branches: [main]
+
 permissions:
   contents: read
+
+concurrency:
+  group: readbox-br03-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  generate-lock:
+  br03-disposable:
     if: github.repository == 'JILLU-Games/ReadBox'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 50
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      READBOX_BR02_DISPOSABLE: "1"
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Generate exact hashed SDK lock for Ubuntu/Python 3.12
+      - name: Verify exact BR03 phase Scope Lock and immutable unrelated source
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install 'pip==25.3' 'pip-tools==7.5.3'
-          printf 'boto3==1.44.4\ncryptography==50.0.2\n' > /tmp/br03-input.in
-          pip-compile --generate-hashes --allow-unsafe --no-header --no-annotate --output-file /tmp/br03-lock.txt /tmp/br03-input.in
-          echo BR03_HASH_LOCK_START
-          cat /tmp/br03-lock.txt
-          echo BR03_HASH_LOCK_END
+          python3 - <<'PY'
+          import subprocess
+          base="c08b9cd77ec30afc50fe36952eecb982ba90a982"
+          approved=set("""
+          src/components/vcon/backup-console.tsx
+          src/app/(workspace)/vcon/backup/actions.ts
+          src/core/backup/contracts.ts
+          src/core/backup/validation.ts
+          src/core/backup/agent-client.ts
+          deployment/backup-agent/agent.py
+          deployment/backup-agent/executor.py
+          deployment/backup-agent/storage.py
+          deployment/backup-agent/verification.py
+          .github/workflows/readbox-backup-ci.yml
+          deployment/backup-agent/r2.py
+          deployment/backup-agent/scheduler.py
+          deployment/backup-agent/requirements.lock
+          deployment/backup-agent/systemd/readbox-backup-agent.timer
+          tests/backup/r2-integration.test.mjs
+          tests/backup/scheduler.test.mjs
+          """.split())
+          notes=set("""
+          notes/backup-restore/003-PHASE-PROGRESS-AND-CHANGE-LOG.md
+          notes/backup-restore/004-ERROR-HANDLING-INVENTORY.md
+          notes/backup-restore/005-ACTUAL-WORKING-FEATURE-TRACKER.md
+          notes/backup-restore/006-RESTORE-R2-SECURITY-AND-DATA-CONTRACT.md
+          notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md
+          """.split())
+          changed=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          assert changed<=approved|notes,("BR03_SCOPE_VIOLATION",sorted(changed-(approved|notes)))
+          assert {p for p in approved if p.startswith("deployment/backup-agent/r2.") or
+                  p.endswith("requirements.lock") or p.endswith("scheduler.py") or
+                  p.endswith("readbox-backup-agent.timer") or
+                  p.endswith("r2-integration.test.mjs") or p.endswith("scheduler.test.mjs")}<=changed
+          assert not changed & {"docker-compose.yml","Dockerfile","prisma/schema.prisma","package.json",
+                                "src/app/(workspace)/vcon/backup/page.tsx"}
+          subprocess.run(["git","diff","--check",base,"HEAD"],check=True)
+          print("BR03_EXACT_APPROVED_SCOPE_PASS",len(changed))
+          PY
+      - name: Install exact hashed Python S3 SDK and cryptography from audited lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/readbox-br03-venv
+          /tmp/readbox-br03-venv/bin/python -m pip install --require-hashes --no-input --disable-pip-version-check -r deployment/backup-agent/requirements.lock
+          /tmp/readbox-br03-venv/bin/python -c 'import boto3,cryptography;print("BR03_PINNED_HASHED_SDK_PASS")'
+          /tmp/readbox-br03-venv/bin/python -m pip check
+      - name: Existing auth, frontend, mail and backup source regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run db:validate
+          npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts
+          node scripts/testing/r06-verify-lint-baseline.mjs
+          npm run typecheck
+          npm run test:unit
+          env -u DATABASE_URL npm run test:ui
+          node --test tests/operations/r05-contract.test.mjs
+          npm run build
+          echo BR03_FRONTEND_AUTH_BUILD_REGRESSION_PASS
+      - name: Python syntax and immutable restore boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/install/readbox-backup-agent-install.sh
+          /tmp/readbox-br03-venv/bin/python -m py_compile deployment/backup-agent/{agent,executor,storage,verification,r2,scheduler}.py
+          ! grep -REn 'restore\.production|delete_objects\(' deployment/backup-agent/{agent,executor,storage,verification,r2,scheduler}.py
+          echo BR03_AGENT_SOURCE_SAFETY_PASS
+      - name: Disposable R2 mock SDK + UTC scheduler + existing BR02 encrypted snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age acl
+          sudo env PATH="/tmp/readbox-br03-venv/bin:$PATH" READBOX_BR02_DISPOSABLE=1 "$(command -v node)" --test \
+            tests/backup/r2-integration.test.mjs \
+            tests/backup/scheduler.test.mjs \
+            tests/backup/agent-protocol.test.mjs \
+            tests/backup/compose-integration.test.mjs
+          echo BR03_R2_SCHEDULER_AND_BR02_DISPOSABLE_PASS
+      - name: Existing R05 disposable encrypted restore/rollback regression unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deployment/operations/tests/r05-rehearsal.sh
+          echo BR03_EXISTING_R05_RESTORE_ROLLBACK_PASS

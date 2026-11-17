@@ -105,7 +105,7 @@ class PrivateStore:
             return self._read(self.backups, identifier)
 
     def create(self, kind: str, backup_id: str | None = None) -> dict:
-        if kind not in {"backup", "verify"}:
+        if kind not in {"backup", "verify", "r2_upload"}:
             raise ValueError("Unknown job action")
         with self.mutex:
             if any(job["state"] in ACTIVE for job in self._items(self.jobs)):
@@ -129,6 +129,8 @@ class PrivateStore:
             "Backup operation failed; no completed backup was published",
             "Backup verification failed; existing archive was preserved",
             "Interrupted by agent restart; check service health before retrying.",
+            "Encrypted backup uploaded to R2 and remotely checksum verified",
+            "Cloudflare R2 upload failed; local backup was preserved",
         }:
             raise ValueError("Refusing unapproved log content")
         with self.mutex:
@@ -154,6 +156,26 @@ class PrivateStore:
             record["state"] = "verified" if verified else "needs_review"
             record["level"] = "V2" if verified else "V1"
             record["lastCheckedAt"] = now()
+            atomic_json(self.backups / (identifier + ".json"), record)
+
+    def set_remote_verified(self, identifier: str, key: str) -> None:
+        if not valid_id(identifier) or key != "readbox/managed/" + identifier + ".age":
+            raise ValueError("Invalid owned remote key")
+        with self.mutex:
+            record = self._read(self.backups, identifier)
+            if record is None or record.get("state") != "verified":
+                raise ValueError("Only verified backups can be remote verified")
+            record["remoteVerifiedAt"] = now()
+            record["remoteState"] = "remote_verified"
+            record["remoteKey"] = key
+            atomic_json(self.backups / (identifier + ".json"), record)
+
+    def mark_local_deleted(self, identifier: str) -> None:
+        with self.mutex:
+            record = self._read(self.backups, identifier)
+            if record is None or not record.get("remoteVerifiedAt"):
+                raise ValueError("Unverified remote copy cannot release local file")
+            record["localState"] = "deleted"
             atomic_json(self.backups / (identifier + ".json"), record)
 
     def save_backup(self, value: dict) -> None:
