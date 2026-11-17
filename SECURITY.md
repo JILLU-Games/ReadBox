@@ -39,3 +39,11 @@ ReadBox implements strict defense-in-depth principles:
 - **Filesystem Path Confinement:** Every Maildir operation and attachment download enforces directory confinement checks, completely preventing directory traversal attacks (`../`).
 - **Durable CSRF & Rate-Limiting:** Public endpoints, including contact submissions, validate durable CSRF tokens against PostgreSQL records and apply time-windowed IP rate limits.
 - **Redacted Audit Trails:** Administrative operations, login attempts, and policy changes are logged to an append-only audit table with sensitive fields automatically redacted.
+
+## R-06 security and release approval boundary (2026-11-17)
+
+- **Automated CI passing is not a live production security review or release approval.** See [release governance](docs/RELEASE-GOVERNANCE.md) and [staging acceptance](docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md). No production deployments, external mail sends, TLS/DNS changes, or tag/release publication occur in the R-06 workflow.
+- Original findings `RB-P0-06`, `RB-P1-09`, `RB-P1-10`, `RB-P1-16`, `RB-P2-01`, `RB-P2-07`, `RB-P2-08` remain explicitly OPEN after R-05. No GO without external proof and independent human release authorization.
+- Keep all staging evidence private/sanitized: redact raw emails, passwords, cookies, bearer tokens, PostgreSQL DSNs, SMTP credentials, TLS/DKIM keys, backup identities and private IP/address details. Never post live secrets in issues, Actions logs, JSON evidence fixtures or commits.
+- Root ReadBox MIT and historical AGPL MailStack reference are separate legal scopes. [Provenance inventory](docs/THIRD-PARTY-PROVENANCE.md) is source-level only and not distribution clearance.
+- Public SMTP is inbound-only. Do not mistake CI self-signed TLS, application readiness or a container healthcheck for independent public TCP/25/MX/PTR trust, authenticated inbox arrival, TLS renewal or mailserver integrity.

@@ -1,0 +1,119 @@
+name: ReadBox R06 production readiness - CI only, NO release
+on:
+  push:
+    branches:
+      - main
+      - maintenance/readbox-r06-20261117
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# No write, deployment, package, secrets, tags, releases or live VPS credentials.
+permissions:
+  contents: read
+
+concurrency:
+  group: r06-readonly-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consolidated-acceptance:
+    if: github.repository == 'JILLU-Games/ReadBox'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout exact immutable CI candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Node 22 from locked app toolchain
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Consolidated source, R06 negative gates and regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-fund --no-audit
+          npm run db:validate
+          npm run lint
+          npm run typecheck
+          npm run test:unit
+          env -u DATABASE_URL npm run test:ui
+          node --test tests/operations/r05-contract.test.mjs tests/integration/r06-release-gate.test.mjs
+          npm run build
+          echo "R06_APP_UI_AUTH_PROVENANCE_AND_NEGATIVE_GATES_PASS"
+
+      - name: Current production dependency advisories - release blocker if unsafe
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm audit --omit=dev --audit-level=moderate
+          echo "R06_DEPENDENCY_AUDIT_PASS"
+
+      - name: Verified ephemeral PostgreSQL 16, migration replay and auth tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/testing/r06-ephemeral-postgres.sh
+
+      - name: Isolated Docker image boot, loopback SMTP to private LMTP and Maildir
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deployment/mailserver/tests/r03-smoke.sh
+          echo "R06_ISOLATED_PRODUCTION_IMAGES_SMTP_LMTP_PASS"
+
+      - name: Disposable named volumes, encrypted backup, ACL restore and after-DB-apply rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age acl
+          bash deployment/operations/tests/r05-rehearsal.sh
+          echo "R06_ENCRYPTED_BACKUP_RESTORE_ROLLBACK_PASS"
+
+      - name: Exact R06 Scope Lock, no deployment/release and explicit NO-GO
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=c3f9dd4d146dfb28a3d23139ce0fafb3e333acca
+          git diff --check "$BASE" HEAD
+          git diff --name-only "$BASE" HEAD > /tmp/readbox-r06-diff
+          python3 - <<'PY'
+          from pathlib import Path
+          paths=Path("/tmp/readbox-r06-diff").read_text().splitlines()
+          def ok(p):
+            return (
+              p==".github/workflows/r06-production-readiness.yml"
+              or p in ("README.md","SECURITY.md")
+              or p.startswith("scripts/testing/")
+              or p.startswith("tests/integration/")
+              or p.startswith("docs/")
+              or p.startswith("notes/")
+            )
+          assert len(paths)>=9 and all(ok(p) for p in paths),paths
+          assert not any(p.startswith((
+            "src/","prisma/","deployment/mailserver/",
+            "deployment/templates/","reference/","tests/ui/","tests/auth/"
+          )) for p in paths),paths
+          print("R06_EXACT_SCOPE_NO_APP_UI_AUTH_MAILSERVER_EDIT_PASS",len(paths))
+          PY
+          node scripts/testing/r06-release-gate.mjs --ci --output "$RUNNER_TEMP/r06-sanitized-gate-result.json"
+          grep -Fq '"status": "NO_GO"' "$RUNNER_TEMP/r06-sanitized-gate-result.json"
+          grep -Fq '"open": 7' "$RUNNER_TEMP/r06-sanitized-gate-result.json"
+          echo "R06_ALL_CI_CONTRACTS_PASS_PRODUCTION_NO_GO"
+
+      - name: Upload strictly sanitized non-production gate status
+        uses: actions/upload-artifact@v4
+        with:
+          name: r06-ci-no-go-${{ github.sha }}
+          path: ${{ runner.temp }}/r06-sanitized-gate-result.json
+          retention-days: 7
+          if-no-files-found: error

@@ -1,5 +1,7 @@
 # ReadBox
 
+> **Deployment / production status (2026-11-17): NO-GO until external staging acceptance.** R-01–R-05 were verified in disposable CI; public TCP/25, DNS/MX/PTR, trusted TLS, real SMTP→LMTP→ingestion→authenticated inbox, offsite recovery, license signoff and final production approval are **not** evidenced. The R-06 workflow runs only isolated tests and **never releases or deploys**. Read the [17-gate staging runbook](docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md), [release governance](docs/RELEASE-GOVERNANCE.md) and [actual verification ledger](notes/006-VERIFICATION-AND-RELEASE-GATES.md) before following any production examples below. Run no live procedures without separate approval.
+
 <div align="center">
 
 # 📬 ReadBox
