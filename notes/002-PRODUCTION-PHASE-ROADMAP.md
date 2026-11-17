@@ -2,7 +2,7 @@
 
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`.
 **Finding source:** [001-PRODUCTION-RELEASE-BLOCKERS.md](001-PRODUCTION-RELEASE-BLOCKERS.md) and the earlier forensic report.
-**Status:** R-01 through R-05 IMPLEMENTATION VERIFIED CLOSED (CI); `5/6` completed, 1 remaining. R-05 left two original findings OPEN for out-of-scope Nginx paths and live offsite/host evidence. R-06 requires separate approval; production NO-GO.
+**Status:** R-01 through R-06 IMPLEMENTATION VERIFIED (CI); `6/6` implementation scopes complete, 0 implementation phases remaining. Final R-06 staging acceptance is BLOCKED (no live authorization/evidence), 7 original findings OPEN, production NO-GO.
 
 ## Implementation sequencing and shared controls
 
@@ -17,7 +17,7 @@ Implement **R-01 → R-02 → R-03 → R-04 → R-05 → R-06** in sequence only
 | R-03 | Inbound SMTP/LMTP mailserver and DNS/TLS | 6 | CI IMPLEMENTATION VERIFIED CLOSED; 2 external acceptance findings OPEN for R-06 |
 | R-04 | Operator bootstrap and fail-closed runtime health | 6 | CI VERIFIED CLOSED |
 | R-05 | Backup/restore, upgrade and operations safety | 6 | CI IMPLEMENTATION VERIFIED CLOSED; 4 CI findings closed, 2 OPEN code/external acceptance |
-| R-06 | Full production acceptance and release governance | 3 | NOT STARTED |
+| R-06 | Full production acceptance and release governance | 3 | CI IMPLEMENTATION VERIFIED; LIVE STAGING/FINAL ACCEPTANCE BLOCKED, all 3 owned findings OPEN |
 
 **Total:** 32 finding assignments / 32 unique original IDs; all 32 covered once.
 
@@ -216,7 +216,7 @@ One isolated backup→restore→rollback rehearsal with checksums, DB/Maildir pa
 
 ## R-06 — Full production acceptance and release governance
 
-**Position:** 6/6 · **Prerequisite:** R-05 VERIFIED CLOSED · **Current state:** NOT STARTED.
+**Position:** 6/6 · **Prerequisite:** R-05 VERIFIED CLOSED · **Current state:** CI IMPLEMENTATION VERIFIED; live staging/real release GO BLOCKED, all three R-06-owned findings OPEN.
 
 **Owned findings (single owner):** `RB-P0-06`, `RB-P1-16`, `RB-P2-08`.
 
@@ -293,3 +293,10 @@ One consolidated CI regression/release-gate run plus authorized staging VPS acce
 - CI demonstrably restored both PostgreSQL schemas and volume contents, rejected tampering, and automatically rolled back from an injected **post-database-apply** error. Host/systemd updater rollback code passed syntax/static checks only; no host upgrade was performed.
 - `RB-P2-01` **OPEN**: Nginx templates/legacy filenames cannot be changed in R-05 Scope Lock; requires a separate explicitly authorized exception, potentially before R-06 production GO. `RB-P2-07` **OPEN**: offsite backup transfer, retention, key custody and actual VPS/host restore evidence not yet available. Do not silently reassign or close these findings.
 - **5/6 phases implemented/CI verified, 1 remaining, 25/32 findings CI verified, 7 still OPEN, production NO-GO.** Next R-06 is final acceptance/governance and must not assume real VPS tests without separate authorization.
+
+## R-06 implementation closeout, external acceptance still blocked (2026-11-17)
+
+- Verified source code SHA `807ca9f38adb02db2a8b73dc0901fce23ee5e63a`, consolidated full-stack disposable CI https://github.com/JILLU-Games/ReadBox/actions/runs/44127481624. Exactly 11 published allowed workflow/scripts/testing/tests/integration/README/SECURITY/docs paths; no app/UI/auth/migration/mailserver runtime file or reference LICENSE/NOTICE modified. The read-only final workflow has no tags/releases/DNS/VPS/production credentials and explicitly outputs `R06_PRODUCTION_NO_GO`.
+- Existing app regression, production npm dependency audit, guarded tmpfs PostgreSQL migration/auth integration, Docker image boot and loopback SMTP→LMTP→Maildir, recipient/relay rejection, encrypted backup/restore and forced post-DB rollback, provenance marker tests and 11-path patch audit all PASS.
+- Two **pre-existing R-04 lint errors** inside `src/core/setup/trusted-operations.ts` were *not fixed* (outside R-06 Scope Lock). Rest of the tree linted; an exact negative baseline check refuses any extra error. The full lint gate and live RG-01–RG-17 remain NO-GO.
+- Implementation phase count **6/6**; this is **not** final staging/release acceptance. No actual VPS or independent DNS/TLS/public SMTP/user inbox/offsite/host recovery/legal approval, and original 7 findings still OPEN. R-06 exit conditions requiring authorized live staging are **NOT MET**. Only a separately approved staging acceptance and explicit exceptions for legacy template paths and old lint source can change that fact; no automatic new phase or production release.

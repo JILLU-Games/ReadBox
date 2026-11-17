@@ -1,6 +1,6 @@
 # 004 — Error Handling Inventory (Present, Missing, Future Test)
 
-**Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Historical starting status was OPEN; R-01–R-05 implementation contract fixes are now partly CI verified, while real offsite/VPS and host-recovery gates remain OPEN.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
+**Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Historical starting status was OPEN; R-01–R-06 CI implementation is now verified, but R-06 live acceptance is NOT RUN and production recovery gates remain OPEN.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
 
 ## A. Existing error handling actually implemented in source
 
@@ -102,7 +102,7 @@ PASS / FAIL / SKIPPED / NOT RUN:
 | R-03 | Postfix SMTP and private Dovecot LMTP | unknown RCPT/relay reject, STARTTLS, Maildir delivery, missing TLS | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 | CI IMPLEMENTATION VERIFIED; external release gates OPEN |
 | R-04 | First admin/operator identity + worker/readiness | reject duplicate, unsafe CLI, stale/future/missing worker, broken DB/storage; recovery | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 | CI VERIFIED CLOSED; live VPS unverified |
 | R-05 | Disposable encrypted PostgreSQL/Maildir/queue recovery and updater contract | post-DB apply rollback, tamper/ACL/UID checks, no plaintext env; runtime downtime explicit | https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316 | CI IMPLEMENTATION VERIFIED; external offsite/host safety OPEN |
-| R-06 | — | — | — | NOT STARTED |
+| R-06 | Consolidated isolated Docker/PostgreSQL/SMTP/LMTP/backup and 17-gate release reviewer | 32 finding states, 17 missing staging gates, forged all-PASS/wrong SHA, root license separation | https://github.com/JILLU-Games/ReadBox/actions/runs/44127481624 | CI gate implementation PASS; LIVE ACCEPTANCE OPEN |
 
 ## R-01 error handling patch proof
 
@@ -141,3 +141,11 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - The system quiesces active Postfix/Dovecot/worker/web in a declared **SMTP downtime maintenance window**; only services previously running are restarted. A separate encrypted rollback snapshot is required before restoring any PostgreSQL data or named volume. CI injected a failure **after database apply** and explicitly required both the `R05_CI_FAILPOINT_AFTER_DATABASE_APPLY` and `R05_AUTOMATIC_ROLLBACK_PASS` markers, then compared restored pre-error public/mailserver rows and Maildir files. Tampered encrypted input failed without modifying the disposable DB.
 - Both schema SQL rows, Maildir, attachments, media, Postfix queued content, numeric UID/GID 1001 and a real POSIX ACL were verified in disposable Compose. Host scripts exclude plaintext configuration, retain archived numeric ownership, and attempt upgrade rollback. Host-mode rollback behavior was **not run live**; no claim of full disk failure/sudden power-loss resilience.
 - `RB-P2-01` still OPEN because legacy Nginx path changes fall outside R-05 allowed files. `RB-P2-07` still OPEN because verified encrypted local export alone does not demonstrate offsite retention/restore and secret-key custody. These require separately authorized future acceptance; production remains **NO-GO**.
+
+## R-06 final release acceptance error and negative gate inventory (2026-11-17)
+
+- **Successful focused CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44127481624; code SHA `807ca9f38adb02db2a8b73dc0901fce23ee5e63a`. Full app/unit/UI CI, production npm audit, strict disposable PostgreSQL migrations, Docker web/worker/Postfix/Dovecot test STARTTLS→LMTP→Maildir and unknown/nonlocal rejection, encrypted volume/queue backup→restore→automatic rollback and no-auto-release source gate passed.
+- `EH-M14` and `EH-M15` remain **OPEN for LIVE acceptance**: no independent external sender-to-real-authenticated-inbox/attachment proof, no real public TCP/25/MX/PTR/renewing TLS or VPS storage/DB/LMTP outage replay/reboot. The existing R-03/R-05 unit/disposable failure scenarios are not substitutes.
+- New negative governance checks refused forged 17/17 PASS with unresolved original findings, duplicate/missing RG IDs, wrong SHA, unsafe userinfo/token links, future observations, missing observers and falsely claimed release permission. Current real report `R06_PRODUCTION_NO_GO` with seven original findings OPEN and **zero of 17 live gate PASS claims**. A complete document may be only `MANUAL_RELEASE_REVIEW_REQUIRED`, never an automatic publication.
+- Two pre-existing out-of-scope R-04 full-tree lint findings at `src/core/setup/trusted-operations.ts:366,386` remain; a strict lint-baseline negative gate proves exactly these two, while linting all other repository code. Do not infer full lint clean or waive them.
+- Release/deploy/DNS/source code mutation impossible through R-06 workflow; `permissions: contents: read`. R-06 live acceptance **blocked** pending separate user approval. 6/6 implementation scopes CI verified, original 7 OPEN, production NO-GO.

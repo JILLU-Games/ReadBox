@@ -1,6 +1,6 @@
 # 005 — Actual Feature Implementation and Verified Working Tracker
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 5/6 CI IMPLEMENTATION VERIFIED CLOSED; 1 remaining. R-05 leaves two original findings OPEN for restricted scope/external acceptance. **Release:** NO-GO.
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 6/6 CI IMPLEMENTATION VERIFIED; no remaining implementation phase. R-06 live staging/production acceptance NOT RUN, 7 original findings OPEN. **Release:** NO-GO.
 
 ## Terminology — critical distinction
 
@@ -50,7 +50,7 @@
 | R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | CI VERIFIED in disposable Docker; public SMTP/DNS/TLS unverified | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 |
 | R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | CI VERIFIED CLOSED | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 |
 | R-05 | Encrypted Compose volume and PostgreSQL backup→restore→rollback; host updater boundary | CI IMPLEMENTATION VERIFIED, 2 findings OPEN | https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316 |
-| R-06 | Public inbound message + attachment acceptance on staging, release verification/GO | NOT STARTED | — |
+| R-06 | Read-only final consolidated CI and 17-gate human approval; actual public inbound/inbox and disaster recovery staging | CI IMPLEMENTATION VERIFIED; 3 owned live findings OPEN | https://github.com/JILLU-Games/ReadBox/actions/runs/44127481624 |
 
 ## Per-phase actual-working append record (only after real verification)
 
@@ -112,3 +112,11 @@ Source and mirrored SHA:
 - `scripts/ops/backup.sh`, `restore.sh`, host `upgrade.sh` and systemd template paths were corrected for secret exclusion, numeric owner+ACL, explicit downtime and rollback handling. **Only static and syntax CI proof exists for these host/systemd paths, not actual host upgrade or VPS restore.** The privileged updater worker normalizes obsolete release repo alias; in-app Docker self-update stays blocked and requires orchestrator-managed image deploy.
 - **Not yet working-proven:** offsite transport/retention, encryption private-key custody/recovery, actual VPS systemd/Compose restore, zero-downtime SMTP, real public MX/LMTP, service recovery after a power failure; original RB-P2-01 legacy Nginx path outside this Scope Lock. UI/auth/routes/schema/mailserver engine unchanged.
 - **Phase count 5/6**, verified findings **25/32**, remaining **7**. Full production **NO-GO**.
+
+## R-06 actual working implementation vs external readiness (2026-11-17)
+
+- **Actual source code:** `807ca9f38adb02db2a8b73dc0901fce23ee5e63a` with `.github/workflows/r06-production-readiness.yml` (source-only, contents read, no release/tag), `scripts/testing/r06-release-gate.mjs`, `r06-ephemeral-postgres.sh`, `r06-smtp-rehearsal.sh`, `r06-verify-lint-baseline.mjs` and `tests/integration/r06-release-gate.test.mjs`; dedicated docs on staging, release/GO governance and MIT/AGPL provenance. README/SECURITY carry explicit NO-GO warning.
+- **CI actually worked:** https://github.com/JILLU-Games/ReadBox/actions/runs/44127481624: complete existing auth/unit/UI regression and build, production npm audit, disposable tmpfs PostgreSQL 16.14 auth/migration replay (verified target guard), real disposable production Docker web/worker/Postfix/Dovecot build+startup, localhost test STARTTLS→LMTP→Maildir delivery plus SMTP negatives, age encrypted PostgreSQL/Maildir/queue backup→restore with UID 1001/ACL and injected automatic rollback. 32 finding/17 formal gate metadata and strict no-go evidence tests PASS. Exact 11-source-path Scope Lock audit PASS.
+- **Limits explicitly OPEN:** no real Internet MX/A/PTR/certificate or public port 25, no live SMTP→LMTP→actual authenticated inbox+attachment success, no real VPS/storage/reboot, no actual offsite retained encrypted restore, no final license distribution review, no user approval to publish. All 7 original findings remain OPEN; `RG-01..RG-17` external staging evidence not provided.
+- **Lint debt:** full-tree ESLint has exactly two earlier R-04 unused catch bindings; source excluded narrowly from R-06 lint and checked by separate strict two-error inventory. The full lint gate remains unmet, not presented as clean.
+- **Phase implementation:** 6/6 CI complete, **production GO/NO-GO = NO-GO**. No user/app/auth/mailserver data/UX changes. Next step is separate live staging authorization and, if needed, a narrow scope exception—not another default implementation phase.

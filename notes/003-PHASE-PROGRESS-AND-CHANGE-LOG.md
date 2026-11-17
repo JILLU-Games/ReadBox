@@ -1,20 +1,20 @@
 # 003 — Phase Progress & Immutable Change Log
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` · **Log initialized:** 2026-11-17 · **R-01 through R-05 IMPLEMENTATION VERIFIED CLOSED (CI); 5/6 complete, 1 remain.**
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` · **Log initialized:** 2026-11-17 · **R-01 through R-06 IMPLEMENTATION VERIFIED (CI); 6/6 implementation scopes done, final live acceptance BLOCKED.**
 
 ## Scoreboard
 
 | Metric | Actual value |
 |---|---|
 | Total ordered phases | **6** |
-| Completed / verified | **5/6 (CI)** |
-| In progress | **0** |
-| Remaining | **1/6** |
-| Blocked | **0** (R-02 migration readiness gate resolved in CI; production GO remains NO-GO) |
+| Completed / verified | **6/6 (CI implementation only)** |
+| In progress | **0 implementation phases; live acceptance not authorized** |
+| Remaining | **0/6 implementation phases; external acceptance gates OPEN** |
+| Blocked | **R-06 live staging/release acceptance NOT RUN; production NO-GO** |
 | Original forensic findings | **32** |
 | Findings verified closed | **25 (CI contract; not live VPS)** |
 | Findings OPEN | **7** |
-| Next implementation phase | **R-06 — Full production acceptance and release governance** |
+| Next implementation phase | **None (exactly 6/6 implemented); separate staging approval and scope exceptions needed** |
 | Final release | **NO-GO** |
 
 ## Ordered phase ledger — no results invented
@@ -26,7 +26,7 @@
 | R-03 | 6 | Supported Postfix/Dovecot installation/integration, port and socket contract, documented DNS/TLS/DKIM boundaries; inbound-only vs other capabilities explicit. | CI IMPLEMENTATION VERIFIED CLOSED; public TLS/port gates OPEN | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 | `d0f3272ea298de012da83c6f01b588fa0513d1da` | final mirror SHA to confirm |
 | R-04 | 6 | First admin setup, consistent user/admin source, worker heartbeat and readiness gates, actionable errors for outages and recovery. | CI VERIFIED CLOSED | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 | `88e57e2e81dc07a8f91b07f448df85e51d58e429` | final mirror SHA verification pending |
 | R-05 | 6 | Container-aware and host-aware backup/restore, secret protection, downtime consistency, UID/ACL restore, updater repo correctness and rollback. | CI IMPLEMENTATION VERIFIED CLOSED; 2 owned findings OPEN | https://github.com/JILLU-Games/ReadBox/actions/runs/44121121316 | `a55ec82bb2f58804e910427c66ff6352cd5c14c6` | final mirror SHA pending |
-| R-06 | 3 | Final GitHub CI and separately approved staging VPS evidence: real inbound mail, DNS/TLS, runtime integration, negative tests, backup/restore, licensing and formal GO/NO-GO. | NOT STARTED | — | — | — |
+| R-06 | 3 | Final GitHub CI and separately approved staging VPS evidence: real inbound mail, DNS/TLS, runtime integration, negative tests, backup/restore, licensing and formal GO/NO-GO. | CI IMPLEMENTATION VERIFIED; live acceptance BLOCKED, 3 owned findings OPEN | https://github.com/JILLU-Games/ReadBox/actions/runs/44127481624 | `807ca9f38adb02db2a8b73dc0901fce23ee5e63a` | final mirror SHA pending |
 
 ## Scope Lock enforcement on every phase
 
@@ -115,3 +115,11 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Existing regressions:** Prisma validation, TypeScript, backend/unit contracts, UI **70/70**, Next.js build, Bash/Python syntax, static operations tests PASS. Exact 14-path branch Scope Lock audit PASS; 13 published paths within R-05 allowlist, temporary CI workflow excluded.
 - **CLI and user-facing UI:** no route, UI, auth, schema, Maildir data or Postfix/Dovecot runtime change; production update repo canonicalized while explicit dev test overrides preserved. Host/systemd rollback/upgrade logic was syntax/static verified only, not run on VPS.
 - **Findings:** CI-verified `RB-P1-11`, `RB-P1-12`, `RB-P1-13`, `RB-P2-02`; **OPEN** `RB-P2-01` (legacy Nginx and template filenames outside scope), `RB-P2-07` (real offsite retention/rotation/key custody and live VPS/host restore). Project **25/32 verified, 7 OPEN**; public DNS/TLS/SMTP and real release still NO-GO.
+
+### R-06 — Final consolidated read-only CI / production GO-NO-GO — 2026-11-17
+
+- **State:** All **6/6 implementation scopes** are CI verified; R-06 mandatory **live staging acceptance remains BLOCKED/NOT RUN** pending independent user approval. **Original findings:** 25/32 CI verified, **7 OPEN** including R-06-owned `RB-P0-06`, `RB-P1-16`, `RB-P2-08`; **17/17 live staging release gate checks not accepted**, formal **NO-GO**.
+- **Tested source SHA:** `807ca9f38adb02db2a8b73dc0901fce23ee5e63a`; **successful focused CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44127481624. Clean npm install, Prisma validate, full backend/70 UI regression, Next build, production npm audit, guarded ephemeral PostgreSQL 16 auth/migrations, disposable production web/worker/Postfix/Dovecot startup, loopback STARTTLS→LMTP→Maildir and reject tests, age encrypted backup/restored UID/ACL and post-DB-apply forced rollback, strict provenance/17-gate negatives and 11-path Scope Lock audit PASS. One bounded SMTP greet startup readiness wrapper was added in R-06 allowed scripts; R-03 mailserver source unmodified.
+- **Lint debt:** exactly two pre-existing R-04 unused `catch (err)` violations at `src/core/setup/trusted-operations.ts:366,386`; source excluded **only** from final R-06 lint invocation and validated by strict baseline, no app source edit. **Full-tree lint is not clean.** A prior CI test attempt failed on newly added JS globals; new R-06 code fixed. Another attempt showed a disposable SMTP greeting startup race; bounded startup probe fixed without modifying R-03.
+- **Documentation:** release governance, staged acceptance runbook, MIT-vs-AGPL provenance inventory, README/Security warnings, R-06 release gate/negative scripts. Workflow is **read-only with no deploy/tag/release**, and produced expected `R06_PRODUCTION_NO_GO`, `R06_FINDINGS_OPEN=7`, `R06_LIVE_GATE_PASS_CLAIMS=0/17` markers.
+- **Preserved:** src UI/UX/auth, migrations, mailserver/SMTP engine, historic LICENSE/NOTICE, actual Maildir/DB data, public DNS/VPS untouched. **No production GO.** Next action is separate explicit authorization for staging acceptance, not an automatic seventh phase.
