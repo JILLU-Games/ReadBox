@@ -146,7 +146,11 @@ test("BR02 agent backs up and re-verifies disposable PostgreSQL/Maildir with hos
     console.log("BR02_DISPOSABLE_ENCRYPTED_BACKUP_V2_VERIFY_MAILDIR_DB_AND_DURABLE_HISTORY_PASS");
   }finally{
     await stopAgent(agent);
-    try{compose("down","-v","--remove-orphans");}catch{}
+    try {
+      compose("down", "-v", "--remove-orphans");
+    } catch (error) {
+      console.error("BR02_DISPOSABLE_CLEANUP_FAILED", error instanceof Error ? error.message : "unknown");
+    }
     rmSync(temp,{recursive:true,force:true});
   }
 });
