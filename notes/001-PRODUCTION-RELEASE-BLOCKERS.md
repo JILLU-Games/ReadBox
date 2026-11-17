@@ -1,9 +1,9 @@
 # 001 — Production Blocker Ledger & Exact Baseline Code Proof
 
 **Baseline SHA:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`, **tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`.
-**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **17 OPEN; 15 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02 + 4 R-03); R-03 private mailserver implementation CI VERIFIED; external TLS/DNS/VPS release gates remain NO-GO.**
+**Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **11 OPEN; 21 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02 + 4 R-03 + 6 R-04). Production public TLS/DNS/VPS and recovery acceptance remain NO-GO.**
 **Primary source:** [VPS production forensic audit](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md).
-**Status:** R-01, R-02 and R-03 implementation phases CI VERIFIED; R-04 through R-06 NOT STARTED. External public SMTP/DNS/TLS evidence remains NO-GO.
+**Status:** R-01 through R-04 implementation CI VERIFIED CLOSED; R-05/R-06 NOT STARTED. Real production deployment remains NO-GO.
 
 Every record below has **one owner phase**, exact source filename and GitHub line permalink at the immutable baseline, source-verbatim code excerpt (with line numbers), finding/impact from the original audit and a required future outcome. Absence of a service or missing live proof is established by the whole repository/configuration and original audit; a short code excerpt alone cannot prove absence. `CONFIRMED` is static evidence, `UNVERIFIED` is lack of live proof, not a witnessed runtime error.
 
@@ -153,7 +153,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-03 — First administrator bootstrapping is not wired into Compose startup
-- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED (manual explicit production bootstrap command supported; disposable database first-admin once, no default credential or live VPS).
 - **Audit evidence:** `entrypoint.sh:1–42` creates storage paths, runs migrations and starts the passed process; it does not create an operator account. `scripts/auth/operator.ts:39–76` is an interactive privileged CLI bootstrap. `src/core/auth/operator-bootstrap.ts:23–67` creates the first admin-capable user and a one-time token.
 - **Impact:** Deploying containers does not automatically complete authenticated first-admin setup; login readiness depends on an additional operator action.
 - **Required outcome before closure:** Secure first-admin operator bootstrap verified on clean DB.
@@ -170,7 +170,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-04 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-04 — Setup inspection checks a different administrator table from the bootstrap path
-- **Owner:** R-04. **Baseline assessment:** CONFIRMED LOGIC MISMATCH. **Current state:** OPEN.
+- **Owner:** R-04. **Baseline assessment:** CONFIRMED LOGIC MISMATCH. **Current state:** CI VERIFIED CLOSED (admin login and inspector use active superuser admin_accounts source).
 - **Audit evidence:** `src/core/auth/operator-bootstrap.ts:45–64` creates a `user` and an `administratorProfile`. `src/core/setup/trusted-operations.ts:397–418` checks only `adminAccount.count()` for the "administrator-created" step.
 - **Impact:** A valid first administrator created via the project CLI can be misreported as missing by setup verification (false-negative), depending on whether a separate legacy admin row exists.
 - **Required outcome before closure:** Setup verification checks the admin identity the bootstrap actually creates.
@@ -188,7 +188,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-04 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-05 — HTTP liveness does not prove database, migration or mail readiness
-- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED (web liveness and worker full application readiness separated; public mailserver GO is not implied).
 - **Audit evidence:** `docker-compose.yml:104–109` and `Dockerfile:85–87` check `/health/live`; `src/app/health/ready/route.ts:8–15` and `src/core/health/snapshot.ts:69–180` contain the stronger readiness probe.
 - **Impact:** A green container status may coexist with broken migrations, unavailable mail storage or a failing worker.
 - **Required outcome before closure:** Separate liveness/readiness promotion; don't call green process status a mailserver GO.
@@ -205,7 +205,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-04 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-06 — Default readiness policy can accept missing worker heartbeat
-- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED (missing/stale/future/degraded heartbeat fails production readiness even when configured false).
 - **Audit evidence:** `docker-compose.yml:88` sets `REQUIRE_INGESTION_READY=false`; `src/core/health/snapshot.ts:80–81,111–130,145–158` initializes ingestion as `unknown` and in non-required mode blocks only specific degraded/stale/unavailable values.
 - **Impact:** `/health/ready` can report ready without proof that a mail ingestion heartbeat has ever been received.
 - **Required outcome before closure:** Missing/stale worker heartbeat yields not-ready under production policy.
@@ -226,7 +226,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-04 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status remains OPEN until evidence is recorded in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P1-07 — Worker container health verifies process presence, not successful ingestion
-- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED (worker healthcheck checks process plus app readiness/ingestion heartbeat; VPS recovery unverified).
 - **Audit evidence:** `docker-compose.yml:160–164` uses `pgrep -f 'scripts/mail/ingest.ts'`, while `src/workers/ingestion.ts` supports degraded heartbeat/error reporting.
 - **Impact:** Worker may be marked healthy when polling is stuck, mail storage is inaccessible, or ingestion errors persist. No full operational SLO proof is present.
 - **Required outcome before closure:** Worker health uses fresh ingestion/progress evidence.
@@ -537,7 +537,7 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Scope Lock:** ONLY R-01 allowlisted files and named contract in [002](002-PRODUCTION-PHASE-ROADMAP.md). No unrelated UI/app/schema/runtime modifications; status closed by focused R-01 CI evidence in [003](003-PHASE-PROGRESS-AND-CHANGE-LOG.md) and [006](006-VERIFICATION-AND-RELEASE-GATES.md).
 
 ### RB-P2-10 — Production readiness defaults do not require a live mailserver
-- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** OPEN.
+- **Owner:** R-04. **Baseline assessment:** CONFIRMED. **Current state:** CI VERIFIED CLOSED as application-vs-transport boundary (readiness states application only and mailTransport not_checked; live SMTP/LMTP still unverified).
 - **Audit evidence:** `src/core/health/snapshot.ts:145–180` checks config, DB, migration table, writable storage and optionally worker heartbeat; it does not open an SMTP connection to Postfix or an LMTP connection to Dovecot.
 - **Impact:** A green app readiness endpoint is **not** a full-mailserver-ready signal.
 - **Required outcome before closure:** App readiness and actual SMTP/LMTP readiness differentiated.
@@ -594,3 +594,11 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - Verified source code SHA: `d0f3272ea298de012da83c6f01b588fa0513d1da`; scoped CI: https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810. Opt-in containerized Postfix SQL recipient checking + Dovecot private LMTP delivered a real SMTP message to the shared Maildir on a disposable runner. STARTTLS, nonlocal relay rejection, unknown recipient rejection, certificate absence fail-close, mailserver config syntax and ownership succeeded.
 - Four R-03 owner contracts CI CLOSED: `RB-P0-02`, `RB-P0-05`, `RB-P2-05`, `RB-P2-06`. **Two R-03 findings REMAIN OPEN for external acceptance:** `RB-P1-09` trusted/renewed public TLS+DNS/DKIM applicability, `RB-P1-10` public VPS port 25/MX/PTR/firewall/IPv6 reachability. They require R-06 live staging evidence; do not mistake the test's self-signed certificate for trusted production TLS.
 - **Total:** 15/32 CI verified, 17 OPEN; source UI/auth/migrations unchanged; no SMTP submission/IMAP/outbound or public DNS mutation. Production **NO-GO**.
+
+## R-04 scoped CI closure proof (2026-11-17)
+
+- Code SHA `88e57e2e81dc07a8f91b07f448df85e51d58e429`; successful focused CI https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511. One disposable PostgreSQL 16 ran all migrations; the initial admin was created exactly once in `admin_accounts` with `passwordResetRequired=true`, a one-time hashed `admin_reset_tokens` record, and an unrelated normal-user table left empty. Duplicate bootstrap was rejected; the setup inspector found that same identity.
+- `/health/ready` now requires a fresh healthy/ok ingestion heartbeat in production regardless of the legacy `REQUIRE_INGESTION_READY=false` env value; absent/stale/future/failed workers, database or storage cause `not_ready`. Web liveness remains separate to prevent a circular web↔worker startup dependency; worker health additionally checks app readiness.
+- `checks.mailTransport: { verified:false,status:"not_checked" }` and `scope:"application"` explicitly differentiate app/ingestion readiness from true external SMTP/LMTP delivery; **no mailserver GO can be inferred from an app 200 response**.
+- Six R-04 findings CI-level CLOSED: `RB-P1-03`, `RB-P1-04`, `RB-P1-05`, `RB-P1-06`, `RB-P1-07`, `RB-P2-10`. **Overall 21 CI-verified / 11 OPEN**; R-05/R-06 and real VPS production readiness remain NO-GO.
+- Interactive production operator CLI, actual production credentials and public VPS deployment were NOT executed in CI. Historical baseline evidence above preserved unchanged.

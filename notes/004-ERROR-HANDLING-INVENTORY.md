@@ -1,6 +1,6 @@
 # 004 — Error Handling Inventory (Present, Missing, Future Test)
 
-**Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **All planned error fixes OPEN / NOT STARTED.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
+**Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Historical starting status was OPEN; R-01–R-04 implementation contract fixes are now CI verified, while live VPS error gates remain OPEN.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
 
 ## A. Existing error handling actually implemented in source
 
@@ -70,8 +70,8 @@ export async function GET() {
 | EH-M07 | R-03 | SMTP daemon or LMTP socket missing/down | observable failed/queued/deferred delivery, mail preserved | RB-P0-02, RB-P0-05 | CI POSITIVE SMTP/LMTP PASS; LMTP-outage recovery still UNVERIFIED |
 | EH-M08 | R-03 | Invalid/disabled recipient, bad alias, oversized MIME | proper SMTP reject/policy behavior, no silent loss | RB-P0-06 | CI unknown recipient and nonlocal relay REJECT PASS; alias/oversize not verified |
 | EH-M09 | R-03 | Incorrect MX/port 25/TLS/certificate/DKIM | truthful distinct failure vs advisory status | RB-P1-09, RB-P1-10 | CI STARTTLS/missing-cert PASS; public MX/PTR/trusted TLS still OPEN |
-| EH-M10 | R-04 | Duplicate bootstrap, missing operator, wrong admin table | secure one-time flow and consistent success verification | RB-P1-03, RB-P1-04 | OPEN |
-| EH-M11 | R-04 | Worker absent/stale/stuck, Maildir unreadable | not-ready with bounded recovery and no duplicates | RB-P1-05, RB-P1-06, RB-P1-07, RB-P2-10 | OPEN |
+| EH-M10 | R-04 | Duplicate bootstrap, missing operator, wrong admin table | secure one-time flow and consistent success verification | RB-P1-03, RB-P1-04 | CI VERIFIED; interactive VPS CLI not exercised |
+| EH-M11 | R-04 | Worker absent/stale/stuck, Maildir unreadable | not-ready with bounded recovery and no duplicates | RB-P1-05, RB-P1-06, RB-P1-07, RB-P2-10 | CI VERIFIED health-negative/recovery; live outage untested |
 | EH-M12 | R-05 | Partial backup, disk full, outage, unsafe restore ownership | fail and preserve prior state; checksum/ACL/data proof | RB-P1-11, RB-P1-12, RB-P1-13 | OPEN |
 | EH-M13 | R-05 | Secrets leaked into archive, updater crash or rollback failure | protect config and stop safely; observable result | RB-P2-02, RB-P2-07 | OPEN |
 | EH-M14 | R-06 | Real SMTP accepted but message never appears in web inbox | production NO-GO; capture mail queue, LMTP, Maildir and worker trace | RB-P0-06, RB-P1-16 | OPEN |
@@ -100,7 +100,7 @@ PASS / FAIL / SKIPPED / NOT RUN:
 | R-01 | Startup/lockfile guards | Short credentials, reserved-character password, missing secrets, audit | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 | CI VERIFIED |
 | R-02 | PG lookup, Maildir identity and complete health migration parity | invalid/disabled mailbox, UID mismatch, missing/unfinished/failed migration ledger, broken bundle and query errors | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 | VERIFIED CLOSED (CI) |
 | R-03 | Postfix SMTP and private Dovecot LMTP | unknown RCPT/relay reject, STARTTLS, Maildir delivery, missing TLS | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 | CI IMPLEMENTATION VERIFIED; external release gates OPEN |
-| R-04 | — | — | — | NOT STARTED |
+| R-04 | First admin/operator identity + worker/readiness | reject duplicate, unsafe CLI, stale/future/missing worker, broken DB/storage; recovery | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 | CI VERIFIED CLOSED; live VPS unverified |
 | R-05 | — | — | — | NOT STARTED |
 | R-06 | — | — | — | NOT STARTED |
 
@@ -127,3 +127,10 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Actual Docker Postfix+LMTP delivery was verified from local SMTP port to the shared 1001-owned Maildir. Postfix denied unknown local RCPT and nonlocal relay, while missing TLS certificate prevented startup: https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810.
 - No SMTP AUTH/submission ports or IMAP service were enabled. One-shot SQL credential profile remains optional; default app-only Compose stays unaffected.
 - Still **unverified** on real VPS: LMTP-down/queue replay and long outage recovery (`R-04/R-06`), bad-alias/oversized MIME acceptance policy, externally trusted/renewed certificate, public MX/PTR/firewall/provider port 25 and IPv6. Keep these cases OPEN in final acceptance; no false claims of comprehensive outage handling.
+
+## R-04 first-admin and worker readiness error contract (2026-11-17)
+
+- `EH-M10`: production operator CLI requires explicit `--bootstrap-production`, Docker runtime, interactive terminal, private PostgreSQL, enabled authentication and strong secret; bootstraps only dedicated `admin_accounts` with forced reset. Duplicate admin/legacy superuser is blocked, and setup inspector checks the same active superuser table. Real disposable database proof: https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511.
+- `EH-M11`: production readiness fails closed if ingestion heartbeat unknown, absent, stale, degraded, running, future-dated, or query fails; missing/symlinked/unreadable mail-storage path and DB fail return `not_ready`; healthy environment recovers. Initial ingestion worker exception writes a best-effort degraded heartbeat before rethrow. Docker worker health now checks both running process and full application readiness, while web liveness stays separate to prevent cyclic dependency.
+- The JSON response explicitly shows `scope:"application"` and `checks.mailTransport.status:"not_checked"`; this is **not proof of live Postfix SMTP/LMTP**. No production operator terminal action, real outage replay or external network evidence was run.
+- Tested executable-code SHA `88e57e2e81dc07a8f91b07f448df85e51d58e429`, focused CI https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511. UI/auth policy and unrelated error surfaces unchanged. Existing original baseline examples in earlier sections remain historical facts, not current-state claims.

@@ -1,6 +1,6 @@
 # 005 — Actual Feature Implementation and Verified Working Tracker
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 3/6 CI IMPLEMENTATION VERIFIED CLOSED; 3 remaining. **Release:** NO-GO.
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 4/6 CI VERIFIED CLOSED; 2 remaining. **Release:** NO-GO.
 
 ## Terminology — critical distinction
 
@@ -15,7 +15,7 @@
 | Feature ID | Feature / functionality actually in source | Exact path(s) | Verified level | Live VPS |
 |---|---|---|---|---|
 | F-01 | Next.js app routes, landing, user inbox and admin console | `src/app/page.tsx`, `src/app/(workspace)/users/**`, `src/app/(workspace)/vcon/**` | CODE PRESENT; build & 70 UI tests CI VERIFIED | UNVERIFIED |
-| F-02 | Auth, route authorization, local account/reset/operator CLI | `src/auth.ts`, `src/core/auth/**`, `scripts/auth/operator.ts` | CODE PRESENT; focused CI unit/contract tests | UNVERIFIED |
+| F-02 | Auth, route authorization, local account/reset/operator CLI | `src/auth.ts`, `src/core/auth/**`, `scripts/auth/operator.ts` | R-04 initial admin/CLI guard CI VERIFIED; existing login/auth policy unchanged | LIVE VPS UNVERIFIED |
 | F-03 | PostgreSQL Prisma data client + migrations | `src/core/database/client.ts`, `prisma/schema.prisma`, `prisma/migrations/**` | CODE PRESENT; static Prisma validate CI VERIFIED | LIVE MIGRATION NOT VERIFIED |
 | F-04 | Domains and managed mailbox provisioning | `src/core/domains/service.ts`, `src/core/mailboxes/service.ts` | CODE PRESENT; tests include admin contract | external SQL + Maildir unverified |
 | F-05 | Single PostgreSQL mailserver schema + virtual map adapter | `src/core/mailserver/pg-adapter.ts`, `prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql` | CODE PRESENT; adapter tests | external Postfix NOT DEPLOYED |
@@ -23,7 +23,7 @@
 | F-07 | Incoming Maildir ingestion, MIME, attachment storage and counters | `src/workers/ingestion.ts`, `src/core/ingestion/**`, `scripts/mail/ingest.ts` | CODE PRESENT; unit tests | SMTP-to-inbox UNVERIFIED |
 | F-08 | DNS suggestion/verification and DKIM public-key record reading | `src/core/dns/records.ts`, `src/core/dns/resolver.ts`, `src/core/dns/opendkim.ts` | CODE PRESENT | DNS publication and signer NOT DEPLOYED |
 | F-09 | Admin operations/audit/retention/settings and user workspace | `src/core/operations/service.ts`, `src/core/audit/**`, `src/core/settings/**` | CODE PRESENT; subset CI tested | UNVERIFIED |
-| F-10 | Health/readiness JSON endpoints and worker heartbeat logic | `src/core/health/snapshot.ts`, `src/app/health/live/route.ts`, `src/app/health/ready/route.ts` | CODE PRESENT | SMTP/LMTP readiness unverified |
+| F-10 | Health/readiness JSON endpoints and worker heartbeat logic | `src/core/health/snapshot.ts`, `src/app/health/live/route.ts`, `src/app/health/ready/route.ts` | R-04 production heartbeat/DB/storage negative cases CI VERIFIED | SMTP/LMTP readiness still unverified |
 | F-11 | Multi-stage production app Dockerfile and Compose definition | `Dockerfile`, `docker-compose.yml`, `entrypoint.sh` | CONFIG PRESENT; npm build passed, not image boot | UNVERIFIED |
 | F-12 | Host-based recovery/update scripts and server templates | `scripts/ops/**`, `scripts/updater/**`, `deployment/templates/**` | SOURCE PRESENT | no Compose recovery/host installer proof |
 | F-13 | Independent Postfix/Dovecot/LMTP mailserver binaries | `docker-compose.yml` now has opt-in Postfix+Dovecot `mailserver` profile | CI DOCKER VERIFIED; NOT VPS DEPLOYED | NO |
@@ -48,7 +48,7 @@
 | R-01 | Production vs development Compose, secrets, reproducible Docker/dependency image, correct README | CI VERIFIED | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 |
 | R-02 | Working Postfix lookup/login role, schema parity, cross-UID Maildir permissions | VERIFIED CLOSED (CI; authorized health exception) | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 |
 | R-03 | Operating SMTP→LMTP inbound mail flow, correct DNS/TLS/mailserver integration | CI VERIFIED in disposable Docker; public SMTP/DNS/TLS unverified | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 |
-| R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | NOT STARTED | — |
+| R-04 | First-admin startup, trustworthy worker heartbeat, fail-closed readiness | CI VERIFIED CLOSED | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 |
 | R-05 | Tested container-aware encrypted/private backup, restore and update rollback | NOT STARTED | — |
 | R-06 | Public inbound message + attachment acceptance on staging, release verification/GO | NOT STARTED | — |
 
@@ -96,3 +96,11 @@ Source and mirrored SHA:
 - Verified real disposable-runner behavior: SMTP STARTTLS, valid `support@r03.example.test` delivery to Maildir, unknown mailbox RCPT reject, nonlocal relay reject, missing TLS refusal, Postfix and Dovecot config lint. Evidence https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810; code commit `d0f3272ea298de012da83c6f01b588fa0513d1da`.
 - `deployment/mailserver/README.md` documents private certificate handoff and DNS/MX/PTR as manual provider/VPS responsibilities. No DKIM signing daemon is included (inbound-only); previews remain advisory.
 - NOT LIVE VERIFIED: public TCP/25, MX/PTR, production cert/renewal, sender reputation, automatic DNS provisioning, IMAP/SMTP submission/outbound, actual user inbox on VPS, backup/restore. **Existing UI/auth/routes/business source unchanged.**
+
+## R-04 actual working implementation delta (2026-11-17)
+
+- **New code-level flow:** `bootstrapInitialAdminAccount` creates one real `admin_accounts` admin with a random unusable password, `passwordResetRequired=true`, hashed expiring `admin_reset_tokens`; concurrent bootstrap guarded by transaction advisory lock. Existing legacy user bootstrap implementation remains unchanged for compatibility, but the operator's `bootstrap` action uses the correct admin-table flow.
+- **Explicit production operator path:** `scripts/auth/operator.ts --bootstrap-production` requires private-container interactive operation and never auto-runs on normal app startup. Clean disposable PostgreSQL once+duplicate+inspector parity verified at https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511; interactive VPS terminal session not tested.
+- **Application readiness:** production always requires a fresh, healthy ingestion heartbeat; DB, migrations and writable/readable storage must pass; stale/future/degraded/unavailable states fail closed. Existing `/health/live` remains process liveness, worker health additionally queries `/health/ready`. No new public route, no login policy change.
+- **Transport honesty:** `scope: application` and `mailTransport: not_checked` indicate SMTP/LMTP receipt is not verified by a 200 application readiness. Existing R-03 public DNS/TLS/VPS uncertainties remain.
+- **Evidence:** https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511; SHA `88e57e2e81dc07a8f91b07f448df85e51d58e429`. No production/mailbox data modified, no live VPS tested. Next R-05/R-06 still OPEN.

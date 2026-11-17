@@ -1,20 +1,20 @@
 # 003 — Phase Progress & Immutable Change Log
 
-**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` · **Log initialized:** 2026-11-17 · **R-01, R-02 and R-03 implementation VERIFIED CLOSED (CI); 3/6 complete, 3 remain.**
+**Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` · **Log initialized:** 2026-11-17 · **R-01 through R-04 VERIFIED CLOSED (CI); 4/6 complete, 2 remain.**
 
 ## Scoreboard
 
 | Metric | Actual value |
 |---|---|
 | Total ordered phases | **6** |
-| Completed / verified | **3/6 (CI)** |
+| Completed / verified | **4/6 (CI)** |
 | In progress | **0** |
-| Remaining | **3/6** |
+| Remaining | **2/6** |
 | Blocked | **0** (R-02 migration readiness gate resolved in CI; production GO remains NO-GO) |
 | Original forensic findings | **32** |
-| Findings verified closed | **15 (CI contract; not live VPS)** |
-| Findings OPEN | **17** |
-| Next implementation phase | **R-04 — Operator bootstrap and fail-closed runtime health** |
+| Findings verified closed | **21 (CI contract; not live VPS)** |
+| Findings OPEN | **11** |
+| Next implementation phase | **R-05 — Backup/restore, upgrades and operations safety** |
 | Final release | **NO-GO** |
 
 ## Ordered phase ledger — no results invented
@@ -24,7 +24,7 @@
 | R-01 | 7 | Production/dev Compose selection; standalone/Coolify secrets; URL-safe DB auth; reproducible image/deps and advisory audit; accurate quick-start documentation. | VERIFIED CLOSED (CI) | https://github.com/JILLU-Games/ReadBox/actions/runs/44093204590 | `113663cdabacf1460af5b06a334d99ab3db833c2` | mirror verification pending |
 | R-02 | 4 | Single-DB virtual SQL routing with least privilege, migration parity, Maildir owner/UID/GID/ACL consistency. | VERIFIED CLOSED (CI; RB-P2-04 exception) | https://github.com/JILLU-Games/ReadBox/actions/runs/44102834169 | `b6ab76119a31f9bf4e81b3990a5fcc6d802a6892` | final ref equality to be verified on mirror |
 | R-03 | 6 | Supported Postfix/Dovecot installation/integration, port and socket contract, documented DNS/TLS/DKIM boundaries; inbound-only vs other capabilities explicit. | CI IMPLEMENTATION VERIFIED CLOSED; public TLS/port gates OPEN | https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 | `d0f3272ea298de012da83c6f01b588fa0513d1da` | final mirror SHA to confirm |
-| R-04 | 6 | First admin setup, consistent user/admin source, worker heartbeat and readiness gates, actionable errors for outages and recovery. | NOT STARTED | — | — | — |
+| R-04 | 6 | First admin setup, consistent user/admin source, worker heartbeat and readiness gates, actionable errors for outages and recovery. | CI VERIFIED CLOSED | https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 | `88e57e2e81dc07a8f91b07f448df85e51d58e429` | final mirror SHA verification pending |
 | R-05 | 6 | Container-aware and host-aware backup/restore, secret protection, downtime consistency, UID/ACL restore, updater repo correctness and rollback. | NOT STARTED | — | — | — |
 | R-06 | 3 | Final GitHub CI and separately approved staging VPS evidence: real inbound mail, DNS/TLS, runtime integration, negative tests, backup/restore, licensing and formal GO/NO-GO. | NOT STARTED | — | — | — |
 
@@ -98,3 +98,12 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **R-03 findings:** `RB-P0-02`, `RB-P0-05`, `RB-P2-05`, `RB-P2-06` CI verified; `RB-P1-09`, `RB-P1-10` still OPEN for trusted public TLS, DNS/MX/PTR/port 25/provider/firewall/IPv6 real VPS validation in R-06. **Overall 15/32 CI verified; 17 OPEN.**
 - **No out-of-scope changes:** no `src/**`, UI/UX/routes, auth/business logic, database schema/migration, mail data or public DNS mutations. No live VPS or production release. Temporary CI workflow excluded from published source main.
 - **Mirror:** final exact source/target SHA and tree equality recorded by git ref verification after docs commit.
+
+### R-04 — First admin/operator parity and fail-closed app/worker readiness — 2026-11-17
+
+- **Status:** CI VERIFIED CLOSED. **Completed:** 4/6; **remaining:** 2 (R-05, R-06); **next:** R-05 only after user approval. **Production release:** NO-GO.
+- **Tested code SHA:** `88e57e2e81dc07a8f91b07f448df85e51d58e429`. **Successful focused CI:** https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511. Previous necessary retries addressed CI-only mock UI environment and a 1-ms future heartbeat fixture; the final CI reran successfully without any UI feature edits.
+- **Implemented:** manual production-only one-time `admin_accounts` bootstrap with random unusable password and forced reset-token activation; duplicate/admin identity rejection; setup inspector counts the same active superuser source; initially failed ingestion records a degraded heartbeat before exit; app snapshot requires production heartbeat even when env toggles false; unavailable DB, missing/symlink storage, stale/degraded/unknown/future heartbeat fail closed; worker Docker healthcheck validates full application readiness; web liveness separated to avoid deadlock; mailTransport remains explicitly unverified.
+- **Proof:** all schema/type/backend tests, UI **70/70**, Next build and real isolated PostgreSQL bootstrap-once/duplicate/inspection and 11-branch-path audit PASS. No production interactive operator CLI, actual SMTP/LMTP outage recovery, VPS or release executed.
+- **Scope unchanged:** no login UI/layout/colors, auth credential policy, app routing, unrelated feature, Prisma migrations/schema, Postfix/Dovecot templates or user mail data modification. Temporary CI workflow excluded from published code.
+- **Original findings:** R-04's six CI-closed => 21/32 CI verified; 11 other findings remain OPEN, including R-03 external TLS/DNS/VPS gates. Mirror target fast-forward exact final SHA/tree verification after notes commit.

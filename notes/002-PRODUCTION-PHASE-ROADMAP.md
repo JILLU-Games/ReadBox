@@ -2,7 +2,7 @@
 
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`.
 **Finding source:** [001-PRODUCTION-RELEASE-BLOCKERS.md](001-PRODUCTION-RELEASE-BLOCKERS.md) and the earlier forensic report.
-**Status:** R-01 through R-03 VERIFIED CLOSED at CI implementation level; `3/6` completed, 3 remaining. External public SMTP/TLS/DNS remains R-06 acceptance. Next R-04 requires separate approval. **Production: NO-GO.**
+**Status:** R-01 through R-04 VERIFIED CLOSED (CI); `4/6` completed, 2 remaining. External SMTP/TLS/DNS and disaster recovery still await R-06/R-05 acceptance. Next R-05 requires separate approval. **Production: NO-GO.**
 
 ## Implementation sequencing and shared controls
 
@@ -15,7 +15,7 @@ Implement **R-01 → R-02 → R-03 → R-04 → R-05 → R-06** in sequence only
 | R-01 | Deployment foundation + reproducibility | 7 | VERIFIED CLOSED (CI) |
 | R-02 | PostgreSQL/Postfix SQL and Maildir identity | 4 | VERIFIED CLOSED (CI; authorized readiness exception) |
 | R-03 | Inbound SMTP/LMTP mailserver and DNS/TLS | 6 | CI IMPLEMENTATION VERIFIED CLOSED; 2 external acceptance findings OPEN for R-06 |
-| R-04 | Operator bootstrap and fail-closed runtime health | 6 | NOT STARTED |
+| R-04 | Operator bootstrap and fail-closed runtime health | 6 | CI VERIFIED CLOSED |
 | R-05 | Backup/restore, upgrade and operations safety | 6 | NOT STARTED |
 | R-06 | Full production acceptance and release governance | 3 | NOT STARTED |
 
@@ -140,7 +140,7 @@ One disposable SMTP→LMTP→Maildir integration test including invalid recipien
 
 ## R-04 — Operator bootstrap and fail-closed runtime health
 
-**Position:** 4/6 · **Prerequisite:** R-03 VERIFIED CLOSED · **Current state:** NOT STARTED.
+**Position:** 4/6 · **Prerequisite:** R-03 VERIFIED CLOSED · **Current state:** CI VERIFIED CLOSED (one clean PostgreSQL, admin/health negatives, existing UI regression).
 
 **Owned findings (single owner):** `RB-P1-03`, `RB-P1-04`, `RB-P1-05`, `RB-P1-06`, `RB-P1-07`, `RB-P2-10`.
 
@@ -278,3 +278,10 @@ One consolidated CI regression/release-gate run plus authorized staging VPS acce
 - CI https://github.com/JILLU-Games/ReadBox/actions/runs/44107205810 SUCCESS, tested patch SHA `d0f3272ea298de012da83c6f01b588fa0513d1da` (published code SHA without temporary CI workflow). Valid sender and real mailbox delivered; unknown recipient/nonlocal relay rejected; STARTTLS and absent certificate negative passed.
 - R-03 implementation can close based on its documented exit gate, which explicitly defers **real public TCP/25, MX/PTR and trusted TLS** to R-06 staging. Accordingly `RB-P1-09`, `RB-P1-10` remain OPEN external release gates, not falsely claimed as solved. `RB-P0-02`, `RB-P0-05`, `RB-P2-05`, `RB-P2-06` CI CLOSED.
 - **Phases complete 3/6, remaining 3 (R-04→R-05→R-06)**; production GO/NO-GO stays **NO-GO** until external verification. No new micro-phase added.
+
+## R-04 verified closure (2026-11-17)
+
+- Exactly documented R-04 allowlist: CLI bootstrap `scripts/auth/operator.ts`, additive bootstrap helper in `src/core/auth/operator-bootstrap.ts`, setup inspector `src/core/setup/trusted-operations.ts`, snapshot health `src/core/health/snapshot.ts`, ingestion worker initial failure heartbeat, `docker-compose.yml` worker **healthcheck section only**, and narrow setup/admin test files. **No app UI/layout/route, credential authorization policy or unrelated feature edited.**
+- Focused CI https://github.com/JILLU-Games/ReadBox/actions/runs/44112634511 SUCCESS; committed code SHA `88e57e2e81dc07a8f91b07f448df85e51d58e429`. Prisma migrations, types, existing unit/backend/UI 70/70, build; real disposable PostgreSQL bootstrap once+duplicate refusal+inspector identity; worker/storage outage negatives and recovery; strict diff audit.
+- Production operator bootstrap remains an **explicit interactive one-shot** and never auto-creates insecure default credentials; see `notes/012-R04-PATCH-AUDIT.md` for command and approval boundary. Any live VPS installation and password activation require separate authorization.
+- App readiness does **not** measure public Postfix/LMTP acceptability, DNS, TLS or mail delivery; R-06 remains an independent public acceptance gate. **Phases 4/6 completed, 2 remaining (R-05 → R-06).**
