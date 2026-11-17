@@ -57,6 +57,9 @@ services:
       # Authentication & Proxy Trust (Coolify auto-generates SERVICE_BASE64_64_SECRET)
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       AUTH_SECRET: ${SERVICE_BASE64_64_SECRET:?Coolify auto-generates SERVICE_BASE64_64_SECRET}
+      # QIS-01 owner code is never stored in plaintext; only hash/expiry enter web.
+      READBOX_SETUP_TOKEN_SHA256: ${READBOX_SETUP_TOKEN_SHA256:-}
+      READBOX_SETUP_TOKEN_EXPIRES_AT: ${READBOX_SETUP_TOKEN_EXPIRES_AT:-}
       CONTACT_SECRET_KEY: ${CONTACT_SECRET_KEY:-}
       AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
       TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-true}

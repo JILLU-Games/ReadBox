@@ -1,0 +1,133 @@
+name: QIS-01 disposable quick install and first admin - CI only
+on:
+  push:
+    branches: [maintenance/readbox-qis01-20261117]
+permissions:
+  contents: read
+jobs:
+  qis01:
+    if: github.repository == 'JILLU-Games/ReadBox'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: QIS source regression, UI, Docker contracts and existing R04 lint baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run db:validate
+          npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts
+          node scripts/testing/r06-verify-lint-baseline.mjs
+          npm run typecheck
+          npm run test:unit
+          npm run test:ui
+          node --conditions=react-server --import tsx --test tests/setup/quick-install.test.ts
+          node --test tests/integration/quick-install-compose.test.mjs
+          bash -n scripts/install/readbox-install.sh scripts/install/readbox-update.sh
+          npm run build
+          echo QIS01_APP_AUTH_UI_AND_SOURCE_CONTRACTS_PASS
+      - name: Real isolated PostgreSQL 16 admin-once with R04 password reset parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp compose.dev.yaml compose.yaml
+          export NODE_ENV=test
+          export AUTH_TEST_DATABASE_NAME="readbox_auth_test_$(openssl rand -hex 16)"
+          export AUTH_TEST_POSTGRES_PASSWORD="QIS01_disposable_postgres_Pass_1234567890"
+          export AUTH_TEST_DATABASE_URL="postgresql://readbox_test:$AUTH_TEST_POSTGRES_PASSWORD@127.0.0.1:55432/$AUTH_TEST_DATABASE_NAME?schema=public"
+          unset DATABASE_URL
+          cleanup() {
+            docker compose --project-name readbox-auth-test -f compose.yaml --profile integration down -v --remove-orphans >/dev/null 2>&1 || true
+            rm -f compose.yaml
+          }
+          trap cleanup EXIT
+          docker compose --project-name readbox-auth-test -f compose.yaml --profile integration up -d --wait postgres-test
+          node --import tsx --input-type=module -e 'import {verifyAuthTestTarget} from "./scripts/testing/postgres-target.ts"; await verifyAuthTestTarget({requireEmpty:true});'
+          DATABASE_URL="$AUTH_TEST_DATABASE_URL" node node_modules/prisma/build/index.js migrate deploy >/dev/null
+          DATABASE_URL="$AUTH_TEST_DATABASE_URL" node --conditions=react-server --import tsx --test tests/setup/first-admin-web.test.ts
+          echo QIS01_POSTGRES_ADMIN_ONCE_CONCURRENCY_AND_RESET_PASS
+      - name: Private env first install, repeat preservation, disposable Compose boot and Postfix SQL role
+        shell: bash
+        run: |
+          set -euo pipefail
+          export READBOX_QIS_DISPOSABLE_CI=1
+          export READBOX_COMPOSE_PROJECT=readboxqisci
+          cleanup() {
+            docker compose --project-name readboxqisci -f docker-compose.yml down -v --remove-orphans >/dev/null 2>&1 || true
+            rm -f .env
+          }
+          trap cleanup EXIT
+          test ! -e .env
+          bash scripts/install/readbox-install.sh --prepare-only > "$RUNNER_TEMP/qis01-private-operator-output"
+          test "$(stat -c %a .env)" = 600
+          python3 - "$RUNNER_TEMP/qis01-private-operator-output" <<'PY'
+          from pathlib import Path
+          import hashlib
+          import sys
+          import time
+          env = dict(line.split("=", 1) for line in Path(".env").read_text().splitlines() if "=" in line and not line.startswith("#"))
+          text=Path(sys.argv[1]).read_text()
+          token=text.split("READBOX_ONE_TIME_SETUP_CODE (keep private, shown once):\n",1)[1].splitlines()[0]
+          assert len(token)==43
+          assert hashlib.sha256(token.encode()).hexdigest()==env["READBOX_SETUP_TOKEN_SHA256"]
+          assert 0 < int(env["READBOX_SETUP_TOKEN_EXPIRES_AT"])-int(time.time()) <= 3600
+          for key in ("SERVICE_PASSWORD_DB","SERVICE_BASE64_64_SECRET","POSTFIX_LOOKUP_PASSWORD"):
+              assert len(env[key])>=64
+          assert "READBOX_SETUP_TOKEN=" not in Path(".env").read_text()
+          print("QIS01_STRONG_SECRETS_HASH_ONLY_PRIVATE_0600_PASS")
+          PY
+          cp .env "$RUNNER_TEMP/qis01-private-first-env"
+          bash scripts/install/readbox-install.sh --prepare-only > /dev/null
+          cmp -s .env "$RUNNER_TEMP/qis01-private-first-env"
+          echo QIS01_RERUN_SECRETS_AND_TOKEN_UNCHANGED_PASS
+          docker compose --project-name readboxqisci -f docker-compose.yml config --quiet
+          bash scripts/install/readbox-install.sh > "$RUNNER_TEMP/qis01-private-docker-install-output"
+          docker compose --project-name readboxqisci -f docker-compose.yml exec -T postgres \
+            psql -U readbox -d readbox -Atc 'SELECT 1 FROM pg_roles WHERE rolname = '"'readbox_postfix'"'' | grep -qx 1
+          docker compose --project-name readboxqisci -f docker-compose.yml ps --status running postgres web worker >/dev/null
+          cmp -s .env "$RUNNER_TEMP/qis01-private-first-env"
+          echo QIS01_DISPOSABLE_REAL_COMPOSE_POSTGRES_WEB_WORKER_PASS
+      - name: Exact QIS01 scope and no original production blockers closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=fa774bd436bf19c35f1cc7d4ad8dfb74a288436a
+          git diff --check "$BASE" HEAD
+          git diff --name-only "$BASE" HEAD > "$RUNNER_TEMP/qis01-changed"
+          python3 - "$RUNNER_TEMP/qis01-changed" <<'PY'
+          from pathlib import Path
+          import sys
+          changed=Path(sys.argv[1]).read_text().splitlines()
+          allowed={
+            "scripts/install/readbox-install.sh",
+            "scripts/install/readbox-update.sh",
+            "docker-compose.yml",".env.example",
+            "src/core/setup/first-admin-activation.ts",
+            "src/app/initial-setup/page.tsx",
+            "src/app/initial-setup/actions.ts",
+            "src/components/setup/first-admin-form.tsx",
+            "tests/setup/quick-install.test.ts",
+            "tests/setup/first-admin-web.test.ts",
+            "tests/ui/first-admin-onboarding.test.tsx",
+            "tests/integration/quick-install-compose.test.mjs",
+            ".github/workflows/qis01-ci.yml",
+            "README.md","SECURITY.md",
+            "docs/QUICK-INSTALL-AND-FIRST-ADMIN.md",
+          }
+          assert set(changed)==allowed,changed
+          assert not any(p.startswith(("src/core/auth/","prisma/","deployment/mailserver/","reference/")) for p in changed)
+          print("QIS01_EXACT_16_PATH_SCOPE_NO_APP_AUTH_MAILSERVER_MUTATION_PASS")
+          PY
+          node scripts/testing/r06-release-gate.mjs --ci > "$RUNNER_TEMP/qis01-private-no-go.log"
+          grep -Fq 'R06_PRODUCTION_NO_GO' "$RUNNER_TEMP/qis01-private-no-go.log"
+          echo QIS01_RELEASE_REMAINS_NO_GO_PASS
