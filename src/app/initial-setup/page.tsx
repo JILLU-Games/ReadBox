@@ -20,8 +20,7 @@ export default async function InitialSetupPage() {
       process.env.DOCKER_RUNTIME === "true" &&
       process.env.AUTH_ENABLED !== "false" &&
       process.env.READBOX_SETUP_TOKEN_SHA256 &&
-      process.env.READBOX_SETUP_TOKEN_EXPIRES_AT &&
-      Number(process.env.READBOX_SETUP_TOKEN_EXPIRES_AT) * 1000 > Date.now()
+      process.env.READBOX_SETUP_TOKEN_EXPIRES_AT
     ) {
       const prisma = getPrismaClient();
       const [existing, legacy] = await Promise.all([
