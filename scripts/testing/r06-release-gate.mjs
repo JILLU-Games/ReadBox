@@ -6,7 +6,8 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, URL } from "node:url";
+import process from "node:process";
 
 export const GATE_IDS = Object.freeze(Array.from({ length: 17 }, (_, i) =>
   "RG-" + String(i + 1).padStart(2, "0")));
@@ -174,7 +175,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try { run(); }
   catch {
     // NEVER print raw evidence, URL, token, or secret in a public CI log.
-    console.error("R06_RELEASE_GATE_BLOCKED: invalid or untrusted evidence; details withheld.");
+    process.stderr.write("R06_RELEASE_GATE_BLOCKED: invalid or untrusted evidence; details withheld.\n");
     process.exitCode = 2;
   }
 }

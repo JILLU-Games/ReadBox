@@ -42,8 +42,7 @@ jobs:
           set -euo pipefail
           npm ci --no-fund --no-audit
           npm run db:validate
-          npm run lint
-          npm run typecheck
+          # R-04 introduced two pre-existing unused catch bindings in a source\n          # outside R-06 Scope Lock; track exact two, never hide new lint errors.\n          npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts\n          node scripts/testing/r06-verify-lint-baseline.mjs\n          npm run typecheck
           npm run test:unit
           env -u DATABASE_URL npm run test:ui
           node --test tests/operations/r05-contract.test.mjs tests/integration/r06-release-gate.test.mjs
