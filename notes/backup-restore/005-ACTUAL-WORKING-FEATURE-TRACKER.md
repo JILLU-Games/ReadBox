@@ -1,6 +1,6 @@
 # BR-005 — Actual Working vs Planned Feature Tracker
 
-**Original audited source SHA:** `0e8a19e583719e56c054406581bedcf5599f1ace`; **BR-01 verified code SHA:** `f742231e25c5d4969d76cb5ec441b4f23eeddfc8`. `SOURCE IMPLEMENTED` means code exists, `CI VERIFIED` means disposable tests previously succeeded, `OPERATOR-OBSERVED` means supplied VPS output/screenshots (not a fresh source-side execution), and `PLANNED` means not implemented.
+**Original audited source SHA:** `0e8a19e583719e56c054406581bedcf5599f1ace`; **BR-01 verified code SHA:** `f742231e25c5d4969d76cb5ec441b4f23eeddfc8`; **BR-02 source code SHA:** `8041efc9e9bb5c82e47c82f2dff8e69c350844cf` (tree identical to passing CI candidate `5afdd063ba90f9847fd09d9347977a61eed04b51`). `SOURCE IMPLEMENTED` means code exists, `CI VERIFIED` means disposable tests previously succeeded, `OPERATOR-OBSERVED` means supplied VPS output/screenshots (not a fresh source-side execution), and `PLANNED` means not implemented.
 
 | Feature | Status | Exact grounding / evidence boundary |
 |---|---|---|
@@ -15,10 +15,10 @@
 | Public Gmail mail receipt | OPERATOR-OBSERVED | User-provided authenticated inbox screenshots; not re-tested in this documentation task |
 | Current local GPG encrypted backup | OPERATOR-OBSERVED | `/var/backups/readbox-encrypted/20261117T205245Z.tar.gz.gpg` created and decrypt-listed earlier; not in tracked source |
 | New `/vcon/backup` UI and nav link | SOURCE + CI VERIFIED — BR-01 | `src/components/layout/app-shell.tsx:110–118`, `src/app/(workspace)/vcon/backup/page.tsx:1–9`, `src/components/vcon/backup-console.tsx:1–158`; [R-06 CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845) |
-| Manual UI-driven encrypted backup | PLANNED — BR-02 | Host agent required |
-| Persistent backup history, progress and copy logs | PLANNED — BR-02 | Current update UI React logs are volatile |
-| Backup verification from UI | PLANNED — BR-02 | No agent API yet |
-| Agent installer & IPC bridge | PLANNED — BR-02 | No `deployment/backup-agent` yet |
+| Manual UI-driven encrypted backup | SOURCE + DISPOSABLE CI VERIFIED — BR-02; **NOT VPS INSTALLED** | `src/app/(workspace)/vcon/backup/actions.ts`, `src/components/vcon/backup-console.tsx`, `deployment/backup-agent/executor.py`; [CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) |
+| Persistent backup history, progress and copy logs | SOURCE + DISPOSABLE CI VERIFIED — BR-02 | `deployment/backup-agent/storage.py` atomic root-only journal, `agent.py` status/job, `src/components/vcon/backup-console.tsx`; [CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) |
+| Backup verification from UI | SOURCE + DISPOSABLE CI VERIFIED — BR-02 | `deployment/backup-agent/verification.py` age V2 decrypt/check; CI ciphertext tamper detection; **no restore** |
+| Agent installer & IPC bridge | SOURCE + DISPOSABLE CI VERIFIED; **INSTALLER NOT RUN** | `scripts/install/readbox-backup-agent-install.sh`, `deployment/backup-agent/systemd/readbox-backup-agent.service`, Web-only `readbox_backup_ipc` mount, HMAC signed request |
 | R2 add/edit/rotate/test credentials | PLANNED — BR-03 | No R2 implementation in tracked app |
 | R2 manual/automatic upload and history | PLANNED — BR-03 | No R2 implementation |
 | Automatic backup schedule, retention | PLANNED — BR-03 | No backup timer/scheduler in tracked app |
@@ -35,8 +35,8 @@ Update only features with proof: `status` → `commit SHA` → `CI job URL / exi
 ### BR-01 actual closed
 - Admin Backup nav and read-only UI: IMPLEMENTED + CI PASS at `f742231e25c5d4969d76cb5ec441b4f23eeddfc8`; existing admin guard reused, ten future action buttons disabled, no API/host operation. This is **source UI capability only**, not a connected production backup system.
 
-### BR-02 target expected
-- Local encrypted backup, Verify, durable jobs/logs, private IPC: NOT STARTED → result pending. No R2/restore production.
+### BR-02 actual closed (source, CI only)
+- Local age-encrypted backup, Verify V2, durable root-only jobs/logs, private signed IPC: **SOURCE IMPLEMENTED + DISPOSABLE CI PASS** at source `8041efc9e9bb5c82e47c82f2dff8e69c350844cf` (tested identical tree). R2, auto schedules and all restore remain disabled. Opt-in host installer and live VPS integration **NOT EXECUTED**.
 
 ### BR-03 target expected
 - R2 and schedule: NOT STARTED → result pending. Never upload plaintext.
@@ -44,4 +44,4 @@ Update only features with proof: `status` → `commit SHA` → `CI job URL / exi
 ### BR-04 target expected
 - Isolated test restore and protected production restore *capability*: NOT STARTED → result pending. CI must not touch VPS production data.
 
-**Summary:** BR phases `1/4` complete (BR-01); `3/4` remain (BR-02–04). BR-01 changes only five approved paths plus phase-status notes; other ReadBox feature code, production data and current VPS unchanged. Phase docs completion is not live deployment.
+**Summary:** BR phases `2/4` complete (BR-01, BR-02 source/CI); `2/4` remain (BR-03–04). BR-02 changes exactly 18 approved code paths plus five phase-status notes. Other ReadBox source features, production data and VPS unchanged; source CI is **not** live deployment acceptance.

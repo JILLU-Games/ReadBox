@@ -1,6 +1,6 @@
 # BR-006 — Backup Agent, Snapshot, R2 and Restore Safety Contract
 
-**Design specification — NOT IMPLEMENTED.** Grounding: `docker-compose.yml:34–35,107–112,266–273`, `Dockerfile:105`, `deployment/operations/compose_recovery.py:24–28,99–128,151–163,166–210,213–279,282–336`, `src/core/auth/current-user.ts:114–118`, `scripts/install/readbox-update.sh:42–65`.
+**Architecture contract — BR-02 local encrypted backup/verify SOURCE + CI VERIFIED, BR-03 R2 and BR-04 restore NOT IMPLEMENTED.** Grounding: `docker-compose.yml:34–35,107–112,266–273`, `Dockerfile:105`, `deployment/operations/compose_recovery.py:24–28,99–128,151–163,166–210,213–279,282–336`, `src/core/auth/current-user.ts:114–118`, `scripts/install/readbox-update.sh:42–65`.
 
 ## Architecture and trust boundaries
 
@@ -47,3 +47,12 @@ Reuse existing `PageHeader`, `Panel`, `Badge`, `Table`, `Dialog`, `StatGrid`, `n
 ## Strong no-change boundary
 
 ReadBox session/auth source, existing Prisma schema, all mailserver services and port25 configuration, Caddy, DNS, user inbox, message parsing, existing update UI and old CLI scripts unchanged. Minimal `docker-compose.yml` Web-only IPC mount in BR-02 and minimal maintenance lock in `scripts/install/readbox-update.sh` in BR-04 are the ONLY planned existing production infrastructure edits. Both require CI guards and a documented rollback plan. No new public port.
+
+## BR-02 actual implemented boundary and verified deviations from roadmap design
+
+- **Actual RPC actions:** `status`, `job.get`, `backup.create`, `backup.verify` only; no user-supplied path/command; other roadmap actions remain future-only. Signed timestamp/nonce HMAC protects Unix IPC; kernel peer UID restricted to 0/1001; fixed socket + group-only access; agent root execution is separate from Web UID1001. No Docker socket in Web; only `readbox_backup_ipc:/run/readbox-backup-agent:ro` mount.
+- **Host side:** opt-in idempotent installer `scripts/install/readbox-backup-agent-install.sh` and restricted systemd unit are **source only**, not run on VPS. Production Compose project/root remain pinned; exact `readboxbr02-ci` + `READBOX_BR02_DISPOSABLE=1` is the sole fixture mode. Root journal `/var/lib/readbox-backup`, encrypted output `/var/backups/readbox-managed` and age identity in root-only mode are created only after separately approved installation.
+- **Crypto / snapshot:** unchanged R-05 v1 package `postgres.dump`, `web.tar.gz`, optional `queue.tar.gz`, `metadata.json`, `SHA256SUMS`. Encrypted with `age`; verification decrypts to isolated temporary path, strictly checks format, project/DB/UID, content/checksum and archive types; no write to production during V2 verify. R-05 test restore/rollback is **CI-only** and not exposed from new agent.
+- **Persistence:** atomically written per-job journal and backup metadata survive agent/Web restart; active jobs become interrupted on unclean restart; sanitized known event strings only; 30 latest jobs/backups returned, bounded by client response. Ciphertext corruption on reverify marks the backup `needs_review` rather than continuing to display V2.
+- **Operational warning:** local snapshot is **not** full system/credential/SSL DR; age private identity must be safeguarded independently. No R2 offsite storage or schedules yet. Old VPS GPG bundle remains legacy, not age-compatible. Offline disposable CI success does not prove on-VPS installer behavior.
+- **Security/acceptance evidence:** exact 18 approved code files changed (including only +3 Compose lines, no other service/port change); [BR-02 isolated CI PASS](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) verified HMAC/replay, preserved journal, age V2, tamper downgrade and R-05 disposable recovery. No production mutation or new public ports.

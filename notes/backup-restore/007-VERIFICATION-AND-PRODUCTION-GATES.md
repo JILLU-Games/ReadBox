@@ -1,6 +1,6 @@
 # BR-007 — Exact Focused Verification, Rollback and Release Gates
 
-**Source baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`; BR-01 exact code commit `f742231e25c5d4969d76cb5ec441b4f23eeddfc8` validated by [R-06 consolidated CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845). **BR-01 source/CI PASS; BR-02–04 gates NOT RUN.** Existing R-05 CI may pass, but does not prove future UI/agent/R2/production restore. Never conflate planned tests with actual results.
+**Source baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`; BR-01 exact code commit `f742231e25c5d4969d76cb5ec441b4f23eeddfc8` validated by [R-06 consolidated CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845). **BR-01 and BR-02 source/CI PASS; BR-03–04 gates NOT RUN. BR-02 live VPS/deployment gates NOT RUN.** Existing R-05 CI may pass, but does not prove future UI/agent/R2/production restore. Never conflate planned tests with actual results.
 
 ## BR-01 — focused UI contract
 
@@ -61,11 +61,11 @@ BR-01/BR-02/BR-03/BR-04 completion means **backup module capability acceptance**
 | Phase | Focused CI | App regression | Patch allowlist | Agent/restore evidence | Docs log | Closure |
 |---|---|---|---|---|---|---|
 | BR-01 | PASS — [R06 Actions](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845) | PASS — unit/UI/build | PASS — exact 5-path diff, 10/10 disabled | N/A; no agent yet | UPDATED | CLOSED (source/CI) |
-| BR-02 | NOT RUN | NOT RUN | NOT REVIEWED | NOT RUN | PLANNED | OPEN |
+| BR-02 | PASS — [Actions](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) | PASS — frontend/unit/UI/build | PASS — exact 18-code-path scope | PASS — disposable agent encrypted V2 + unchanged R05 recovery; **VPS not tested** | UPDATED | CLOSED (source/CI only) |
 | BR-03 | NOT RUN | NOT RUN | NOT REVIEWED | NOT RUN | PLANNED | OPEN |
 | BR-04 | NOT RUN | NOT RUN | NOT REVIEWED | NOT RUN | PLANNED | OPEN |
 
-BR-01 build and tests ran **only in GitHub Actions against disposable resources**; no production deployment, live SMTP sending, backup/restore execution, tag or stable release was performed in BR-01. BR-02 remains a separate approval-dependent Scope Lock.
+BR-01 build and tests ran **only in GitHub Actions against disposable resources**; no production deployment, live SMTP sending, backup/restore execution, tag or stable release was performed in BR-01. BR-02 is approved and completed at source/CI level; BR-03 remains separate approval-dependent Scope Lock.
 
 ## BR-01 implementation patch audit and evidence
 
@@ -76,3 +76,12 @@ BR-01 build and tests ran **only in GitHub Actions against disposable resources*
 - One full CI run: https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845. Code SHA `f742231e25c5d4969d76cb5ec441b4f23eeddfc8`. The consolidated frontend/type/build, dependency audit, PostgreSQL integration, SMTP+LMTP smoke, R05 disposable backup+restore+rollback and immutable historical gates completed with success.
 - CI is *not* a live VPS browser acceptance or actual host backup restore; remain honest on production readiness.
 - Next BR-02 must test host agent privilege boundary and existing functionality without allowing backup/restore from an uninstalled or unhealthy agent.
+
+## BR-02 verified implementation and release/deployment gates
+
+- **Baseline:** `83959fff1c60dde432729cd5bec95ca4b27e8bca`; **published code:** `8041efc9e9bb5c82e47c82f2dff8e69c350844cf`; **passing CI candidate:** `5afdd063ba90f9847fd09d9347977a61eed04b51` and identical tree `0e3029cd2bdfc95ba19a7461e755d8e2ed655fe4`. [Focused GitHub Actions PASS](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364). Git history was squashed to a single code commit with identical tested source tree; the closure documentation commit follows separately.
+- **Exact patch scope:** 18/18 approved code paths, 15 new and 3 modified? See Git compare for authoritative per-file counts; `docker-compose.yml` only adds a private Web IPC mount plus named volume (+3 lines), and no other existing service section changed. No Prisma/auth/session/mailserver change.
+- **Positive checks passed:** signed Unix RPC, replay/unsafe request denial; age-encrypted disposable PostgreSQL & Maildir/attachments/media/queue snapshot, V2 decrypt/manifest/checksums, archive tampering `needs_review`, persisted job journal and interruption handling; normal R-05 existing disposable backup/restore/rollback; lint, typecheck, unit/UI and production Next.js build. CLI and Web integration tests operate only on CI-owned disposable project `readboxbr02-ci`.
+- **Fixes:** initial ESLint empty-catch error fixed; explicit disposable guard propagated through sudo; production Compose vs disposable CI fixture mismatch corrected with exact CI-only guard; sanitized R-05 failure codes and safe shutdown + stale-verify downgrade tested. Existing `deployment/operations/compose_recovery.py` was **not edited**.
+- **Not done:** no production VPS deployment, managed agent install, real-mail sending, real backup/restore, Cloudflare R2, schedule, DNS/Caddy change, Git tag or release. Full production recovery/readiness remains **NO-GO without separate authorized real acceptance**; current local-only backup is single-VPS loss risk.
+- **Next separately authorized BR-03:** R2 account/bucket/credentials and connection test, verified encrypted manual upload, schedule/retention and safely scoped logs. No live restore or changes to existing unrelated UI/backend. BR-04 remains strictly separate.

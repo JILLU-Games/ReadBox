@@ -61,10 +61,17 @@ jobs:
           .github/workflows/readbox-backup-ci.yml
           """.split())
           actual=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
-          assert actual==files,("BR02_SCOPE_MISMATCH",sorted(actual^files))
+          closure_docs=set("""
+          notes/backup-restore/003-PHASE-PROGRESS-AND-CHANGE-LOG.md
+          notes/backup-restore/004-ERROR-HANDLING-INVENTORY.md
+          notes/backup-restore/005-ACTUAL-WORKING-FEATURE-TRACKER.md
+          notes/backup-restore/006-RESTORE-R2-SECURITY-AND-DATA-CONTRACT.md
+          notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md
+          """.split())
+          assert actual==files or actual==files|closure_docs,("BR02_SCOPE_MISMATCH",sorted(actual^files))
           subprocess.run(["git","diff","--check",base,"HEAD"],check=True)
           assert subprocess.check_output(["git","diff","--name-only",base,"HEAD","--","prisma/schema.prisma","Dockerfile","deployment/mailserver"],text=True).strip()==""
-          print("BR02_EXACT_18_PATH_SCOPE_PASS")
+          print("BR02_EXACT_APPROVED_SCOPE_PASS",len(actual))
           PY
       - name: Frontend auth/UI, backend and build regression
         shell: bash

@@ -1,11 +1,11 @@
 # BR-003 — Backup/Restore Implementation Phase Ledger
 
-**Baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`. **Status as of 2026-11-18:** BR-01 code implemented and CI-verified. **Implemented phases:** **1/4**. **Remaining:** **3/4**. The existing live inbound mailserver remains outside this work.
+**Baseline:** `0e8a19e583719e56c054406581bedcf5599f1ace`. **Status as of 2026-11-18:** BR-01 and BR-02 source + disposable CI verified. **Implemented phases:** **2/4**. **Remaining:** **2/4**. The existing live inbound mailserver remains outside this work.
 
 | Order | Phase | Current status | Feature delta | Focused evidence | Commit / publish |
 |---|---|---|---|---|---|
 | 1 | BR-01 | CLOSED — CI PASS | Admin Backup link, static read-only UI, route gate and tests | [R-06 full CI PASS](https://github.com/JILLU-Games/ReadBox/actions/runs/44186452845) | [`f742231e`](https://github.com/JILLU-Games/ReadBox/commit/f742231e25c5d4969d76cb5ec441b4f23eeddfc8) |
-| 2 | BR-02 | NOT STARTED | Host agent, local encrypted backup/verify, durable job/log API | NOT RUN | none |
+| 2 | BR-02 | CLOSED — SOURCE + CI PASS | Restricted host agent, private IPC, UI-driven age backup + V2 verification, durable job/status/sanitized logs | [BR-02 disposable CI PASS](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) | [`8041efc9e9bb5c82e47c82f2dff8e69c350844cf`](https://github.com/JILLU-Games/ReadBox/commit/8041efc9e9bb5c82e47c82f2dff8e69c350844cf) |
 | 3 | BR-03 | NOT STARTED | R2 config/check/list/upload, scheduling, retention | NOT RUN | none |
 | 4 | BR-04 | NOT STARTED | Isolated restore, guarded production restore, rollback | NOT RUN | none |
 
@@ -15,7 +15,7 @@
 - Repository source/mirror parity observed at baseline freeze, not proof of VPS update. `notes/backup-restore/` documents newly planned feature only.
 - Currently in Git source: R-05 CLI age encrypted backup+restore/rollback in disposable integration; host legacy scripts; admin operations/audit patterns.
 - Operator-provided live VPS observation: Gmail inbound received, services healthy, GPG encrypted local backup created/decrypt-list verified. **No actual isolated restore of this GPG bundle**; these operator observations are not feature-phase PASS.
-- Backup **page** implemented in BR-01; host agent, actual backup/R2 integration, scheduled jobs, persistent logs, automatic retention and browser-driven restore: **NOT IMPLEMENTED**.
+- Backup **page** implemented in BR-01; BR-02 now implements host agent, local age-encrypted backup, private IPC, V2 verification and persistent job/log control in **source**. VPS installation **NOT PERFORMED**. R2, scheduling, retention and UI restore remain **NOT IMPLEMENTED**.
 - Production data: do not mutate; original host backup (including plaintext local backup) stays untouched.
 
 ## Phase closure record template — append complete entry after each approved phase
@@ -35,9 +35,9 @@
 
 ## Milestone counter
 
-`Planned = 4; Complete = 1 (BR-01); In progress = 0; Remaining = 3 (BR-02–BR-04)`.
+`Planned = 4; Complete = 2 (BR-01, BR-02); In progress = 0; Remaining = 2 (BR-03–BR-04)`.
 
-**BR-01 is closed** after scoped CI and source/mirror code parity. The next permitted phase is **BR-02**, requiring a separate explicit approval prompt. BR-03 R2 and BR-04 restore remain forbidden until their own phase approvals. Do not mark a phase completed based on creating a Markdown file or assuming code works.
+**BR-01 and BR-02 are closed for source implementation** after disposable CI and scoped audits. The next permitted phase is **BR-03**, requiring a separate explicit approval prompt. BR-04 restore is forbidden until its own approval. BR-02 VPS agent installation, real data backup and operational recovery drill were **not** performed. Never infer deployed production readiness from source CI.
 
 ## BR-01 — Phase closure audit (2026-11-18, documentation close)
 
@@ -58,3 +58,14 @@
 - **Known limitation:** UI is intentionally not connected; there is no real job execution, R2 credential, restore or agent installer. Existing R-05 CLI backup remains separate. No actual browser-on-VPS verification yet; source/CI validation only.
 - **Error behavior:** existing `requireAdminUser` routing; disabled future actions and explanatory not-configured banner, no new API/backend errors; see `004`.
 - **Closure:** `BR-01 CODE/CHECKS PASS, CLOSED FOR SOURCE IMPLEMENTATION`, not full production GO. **Next BR-02 (remaining 3):** separate privileged backup-agent/IPC, local encrypted snapshot + verify, persistent job/logs; BR-03 R2/schedule and BR-04 restore follow separately with their existing Scope Locks. BR-02 may require a narrow existing `docker-compose.yml` Web-only IPC mount, which is additive but an infrastructure integration and must be isolated/tested before production install.
+
+## BR-02 — Phase closure (2026-11-18, verified source)
+
+- **Frozen parent:** `83959fff1c60dde432729cd5bec95ca4b27e8bca`. **Source code commit:** `8041efc9e9bb5c82e47c82f2dff8e69c350844cf`; complete tree **identical** to CI-tested candidate `5afdd063ba90f9847fd09d9347977a61eed04b51` (Git tree `0e3029cd2bdfc95ba19a7461e755d8e2ed655fe4`). CI [run 44198139364](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) **SUCCESS** on tested candidate; no live VPS was contacted.
+- **Exact approved 18 code paths changed:** `docker-compose.yml` (+3 lines only, Web read-only IPC named volume); existing `src/app/(workspace)/vcon/backup/page.tsx`, `src/components/vcon/backup-console.tsx`; new `src/app/(workspace)/vcon/backup/actions.ts`, `src/app/api/vcon/backup/jobs/[id]/route.ts`, `src/core/backup/{contracts,validation,permissions,agent-client}.ts`, `deployment/backup-agent/{agent,executor,storage,verification}.py`, `deployment/backup-agent/systemd/readbox-backup-agent.service`, `scripts/install/readbox-backup-agent-install.sh`, `tests/backup/{agent-protocol,compose-integration}.test.mjs`, `.github/workflows/readbox-backup-ci.yml`. No other application code changed.
+- **Source patch proof:** `docker-compose.yml` adds `readbox_backup_ipc:/run/readbox-backup-agent:ro` to Web only plus one named-volume declaration; `src/app/(workspace)/vcon/backup/page.tsx` calls `requireAdminUser()` before `readBackupDashboard()`; `actions.ts` invokes `requireBackupAdmin()` for create/verify; `agent-client.ts` sends HMAC-signed Unix socket requests with timestamp+nonce; `agent.py` limits UID0/1001 peers, replay and exact RPC allowlist; `executor.py` invokes **unchanged** R-05 backup (no restore), lock and V2 checks; `storage.py` uses root-private atomic JSON, interrupted-job reconciliation and redacted events.
+- **Original failure + fix evidence:** initial disposable CI failed before R-05 capture because the new executor targeted production `docker-compose.yml` in the disposable fixture. Scoped fix selects **only** `deployment/operations/ci-compose.yml` when project is exactly `readboxbr02-ci` and `READBOX_BR02_DISPOSABLE=1`. All other projects use only production Compose. The updated CI verified actual snapshot and existing R-05 restore; no changes to R-05 implementation.
+- **Scoped verification:** [BR-02 CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) confirms exact 18-path diff, npm lint/typecheck/unit/UI/build and database schema validate, Python/installer syntax, disposable signed IPC/replay denial/path rejection, encrypted PostgreSQL+Maildir+attachment+media snapshot, age V2 authenticated verify, ciphertext tamper downgrading to `needs_review`, durable journal across agent restart and untouched existing R-05 disposable restore/rollback **PASS**. Historical full R-06 deployment/readiness acceptance is separate.
+- **No scope deviations:** existing session/auth sources, Prisma schema and migrations, worker, mailserver/port 25, Caddy, DNS, live mailbox/DB/volumes, existing R-05 recovery code, UI themes and unrelated pages unchanged. One opt-in installer script **committed but NOT RUN**; no VPS deployment, public backup port, restore, R2, timer, tag or release.
+- **Safety limits:** new local snapshots exclude `.env`, TLS, host credentials and key recovery; stored age identity requires independent secure custody. Offline/on-VPS operational verification and offsite storage remain pending. Existing GPG backup is not compatible with age R-05 v1. Agent missing/unhealthy shows unavailable, and R2/schedule/restore actions remain disabled.
+- **Phase count:** 2 complete (BR-01/02), 2 remaining (BR-03/04). **Next BR-03**: Cloudflare R2 credential configuration, controlled connection/test, manual verified encrypted upload, scheduling and retention, with existing UI and mailserver untouched; any proposed extra file beyond the recorded BR-03 allowlist requires separate approval.
