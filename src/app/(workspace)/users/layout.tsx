@@ -11,6 +11,7 @@ import {
   createUnconfiguredUserMailboxList,
   listUserMailboxes,
 } from "@/core/messages/service";
+import { logger } from "@/core/server/logger";
 import type { ReactNode } from "react";
 
 export default async function UsersWorkspaceLayout({
@@ -24,9 +25,12 @@ export default async function UsersWorkspaceLayout({
     userId = BigInt(0);
   }
 
-  let listResult = createUnconfiguredUserMailboxList({
-    isAdministrator: user.isAdministrator,
-  });
+  let listResult = createUnconfiguredUserMailboxList(
+    { isAdministrator: user.isAdministrator },
+    env.nodeEnv === "production" && !env.databaseUrl
+      ? "Database connection is not configured."
+      : undefined,
+  );
 
   if (env.databaseUrl) {
     try {
@@ -34,15 +38,20 @@ export default async function UsersWorkspaceLayout({
         getPrismaClient(),
         {
           userId,
+          authSource: user.authSource,
           username: user.username,
           isAdministrator: user.isAdministrator,
         },
         { page: 1 },
       );
-    } catch {
-      listResult = createUnconfiguredUserMailboxList({
-        isAdministrator: user.isAdministrator,
+    } catch (error) {
+      logger.error("users_layout_db_unavailable", {
+        reason: error instanceof Error ? error.name : "unknown_error",
       });
+      listResult = createUnconfiguredUserMailboxList(
+        { isAdministrator: user.isAdministrator },
+        "Unable to connect to PostgreSQL right now. Mailbox navigation is temporarily unavailable.",
+      );
     }
   } else if (isDemoPreviewWorkspaceActive()) {
     listResult = listDemoUserMailboxes(
@@ -59,6 +68,7 @@ export default async function UsersWorkspaceLayout({
       domains={listResult.availableDomains}
       capabilities={listResult.capabilities}
       databaseConfigured={listResult.databaseConfigured}
+      databaseError={listResult.databaseError}
       createMailboxAction={createUserMailboxAction}
     >
       {children}

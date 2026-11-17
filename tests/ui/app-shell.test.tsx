@@ -177,6 +177,9 @@ describe("AppShell navigation, role gating, and sign-out", () => {
     expect(
       screen.getByRole("link", { name: "Audit & security" }),
     ).toHaveAttribute("href", "/vcon/audit");
+    expect(
+      screen.getByRole("link", { name: "Contact inquiries" }),
+    ).toHaveAttribute("href", "/vcon/inquiries");
 
     expect(systemGroupBtn).toHaveAttribute("aria-expanded", "false");
     await user.click(systemGroupBtn);

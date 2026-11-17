@@ -27,6 +27,7 @@ async function defaultRequestPasswordResetAction(
 }
 
 export interface PasswordResetFormProps {
+  readonly allowDemoTokenRequest?: boolean;
   readonly minPasswordLength?: number;
   readonly requireStrongPassword?: boolean;
   readonly requestResetAction?: (
@@ -36,6 +37,7 @@ export interface PasswordResetFormProps {
 }
 
 export function PasswordResetForm({
+  allowDemoTokenRequest = false,
   minPasswordLength = 15,
   requireStrongPassword = true,
   requestResetAction = defaultRequestPasswordResetAction,
@@ -76,58 +78,68 @@ export function PasswordResetForm({
 
   return (
     <div className="space-y-4">
-      <Panel>
-        <PanelBody className="space-y-2.5 p-3">
-          <SectionTitle>Request reset token</SectionTitle>
-          <form action={requestAction} className="space-y-2.5">
-            <FormField id="reset-identifier" label="Username or email">
-              <Input
-                autoComplete="username"
-                id="reset-identifier"
-                maxLength={254}
-                name="identifier"
-                placeholder="username or email@domain"
-                required
-              />
-            </FormField>
-            {requestState.status === "invalid" && requestState.error ? (
-              <AlertBanner variant="error">{requestState.error}</AlertBanner>
-            ) : null}
-            {requestState.status === "issued" && requestState.token ? (
-              <AlertBanner variant="success">
-                <div className="space-y-1.5">
-                  <p>
-                    Reset token issued
-                    {requestState.username ? ` for ${requestState.username}` : ""}:
-                  </p>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <code className="break-all font-mono text-xs text-foreground">
-                      {requestState.token}
-                    </code>
-                    <Button
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                      onClick={() => setTokenValue(requestState.token ?? "")}
-                    >
-                      Use token
-                    </Button>
+      {allowDemoTokenRequest ? (
+        <Panel>
+          <PanelBody className="space-y-2.5 p-3">
+            <SectionTitle>Request reset token (demo preview)</SectionTitle>
+            <form action={requestAction} className="space-y-2.5">
+              <FormField id="reset-identifier" label="Username or email">
+                <Input
+                  autoComplete="username"
+                  id="reset-identifier"
+                  maxLength={254}
+                  name="identifier"
+                  placeholder="username or email@domain"
+                  required
+                />
+              </FormField>
+              {requestState.status === "invalid" && requestState.error ? (
+                <AlertBanner variant="error">{requestState.error}</AlertBanner>
+              ) : null}
+              {requestState.status === "issued" && requestState.token ? (
+                <AlertBanner variant="success">
+                  <div className="space-y-1.5">
+                    <p>
+                      Reset token issued
+                      {requestState.username
+                        ? ` for ${requestState.username}`
+                        : ""}
+                      :
+                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <code className="break-all font-mono text-xs text-foreground">
+                        {requestState.token}
+                      </code>
+                      <Button
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                        onClick={() => setTokenValue(requestState.token ?? "")}
+                      >
+                        Use token
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </AlertBanner>
-            ) : null}
-            <Button
-              className="w-full"
-              disabled={requestPending}
-              size="sm"
-              type="submit"
-              variant="outline"
-            >
-              {requestPending ? "Issuing token..." : "Generate reset token"}
-            </Button>
-          </form>
-        </PanelBody>
-      </Panel>
+                </AlertBanner>
+              ) : null}
+              <Button
+                className="w-full"
+                disabled={requestPending}
+                size="sm"
+                type="submit"
+                variant="outline"
+              >
+                {requestPending ? "Issuing token..." : "Generate reset token"}
+              </Button>
+            </form>
+          </PanelBody>
+        </Panel>
+      ) : (
+        <p className="border border-border bg-muted/40 px-3 py-2 text-xs leading-5 text-muted-foreground">
+          Enter the one-time reset token issued by your administrator or
+          operator console.
+        </p>
+      )}
 
       <form
         action={action}

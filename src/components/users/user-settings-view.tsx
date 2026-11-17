@@ -57,6 +57,7 @@ export interface UserSettingsViewProps {
     readonly max: number;
   };
   readonly databaseConfigured: boolean;
+  readonly databaseError?: string;
   readonly updateProfileAction: (
     input: UpdateUserProfileActionInput,
   ) => Promise<UserProfileActionResult<UserProfileRecord>>;
@@ -85,6 +86,7 @@ export function UserSettingsView({
   security = DEFAULT_SECURITY,
   mailboxQuota,
   databaseConfigured,
+  databaseError,
   updateProfileAction,
   updatePasswordAction,
   revokeSessionAction,
@@ -122,11 +124,13 @@ export function UserSettingsView({
   );
   const [isSessionPending, startSessionTransition] = useTransition();
 
+  const isAdminTableAccount = savedProfile.authSource === "admin_table";
+
   const hasChanges =
     firstName.trim() !== savedProfile.firstName ||
     lastName.trim() !== savedProfile.lastName ||
     email.trim() !== savedProfile.email ||
-    phone.trim() !== savedProfile.phone;
+    (!isAdminTableAccount && phone.trim() !== savedProfile.phone);
 
   const canSubmitPassword =
     security.canManageSecurity &&
@@ -187,7 +191,7 @@ export function UserSettingsView({
           firstName,
           lastName,
           email,
-          phone,
+          phone: isAdminTableAccount ? "" : phone,
         });
 
         if (!result.ok) {
@@ -327,7 +331,15 @@ export function UserSettingsView({
         }
       />
 
-      {!databaseConfigured ? (
+      {databaseError ? (
+        <AlertBanner
+          variant="error"
+          role="alert"
+          title="Database temporarily unavailable"
+        >
+          {databaseError}
+        </AlertBanner>
+      ) : !databaseConfigured ? (
         <AlertBanner variant="warning" role="status">
           Database is not configured. Profile edits require DATABASE_URL or demo mode.
         </AlertBanner>
@@ -450,26 +462,43 @@ export function UserSettingsView({
                 <FormField
                   id="profile-phone"
                   label="Phone"
+                  hint={
+                    isAdminTableAccount
+                      ? "Not applicable for operator accounts"
+                      : undefined
+                  }
                   error={fieldErrors.phone}
                 >
-                  <Input
-                    id="profile-phone"
-                    name="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => {
-                      setPhone(event.target.value);
-                      clearFieldError("phone");
-                    }}
-                    maxLength={40}
-                    placeholder="+1 555 010 9900"
-                    autoComplete="tel"
-                    disabled={isPending || !savedProfile.editable}
-                    aria-invalid={Boolean(fieldErrors.phone)}
-                    aria-describedby={
-                      fieldErrors.phone ? "profile-phone-error" : undefined
-                    }
-                  />
+                  {isAdminTableAccount ? (
+                    <Input
+                      id="profile-phone"
+                      name="phone"
+                      type="tel"
+                      value=""
+                      placeholder="Not applicable for operator accounts"
+                      disabled
+                      readOnly
+                    />
+                  ) : (
+                    <Input
+                      id="profile-phone"
+                      name="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(event) => {
+                        setPhone(event.target.value);
+                        clearFieldError("phone");
+                      }}
+                      maxLength={40}
+                      placeholder="+1 555 010 9900"
+                      autoComplete="tel"
+                      disabled={isPending || !savedProfile.editable}
+                      aria-invalid={Boolean(fieldErrors.phone)}
+                      aria-describedby={
+                        fieldErrors.phone ? "profile-phone-error" : undefined
+                      }
+                    />
+                  )}
                 </FormField>
               </div>
 

@@ -144,6 +144,129 @@ export interface SetupVerificationInspectionResult {
   }>;
 }
 
+const REQUIRED_PUBLIC_TABLES = [
+  "users",
+  "admin_accounts",
+  "domains",
+  "mailboxes",
+  "messages",
+  "audit_logs",
+  "site_settings",
+  "user_control_settings",
+  "_prisma_migrations",
+] as const;
+
+const REQUIRED_MAILSERVER_TABLES = ["mail_domains", "mailboxes"] as const;
+
+interface RawTableRow {
+  readonly table_schema?: string;
+  readonly table_name?: string;
+}
+
+interface RawMigrationCountRow {
+  readonly applied_count?: number | bigint;
+}
+
+interface InspectableSetupPrisma {
+  readonly $queryRaw?: (
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ) => Promise<unknown>;
+  readonly adminAccount?: {
+    readonly count?: () => Promise<number>;
+  };
+}
+
+async function verifySchemaAndMigrations(client: InspectableSetupPrisma): Promise<{
+  readonly passed: boolean;
+  readonly detail: string;
+}> {
+  if (typeof client.$queryRaw !== "function") {
+    return {
+      passed: false,
+      detail: "Schema query interface unavailable",
+    };
+  }
+
+  const tableRows = (await client.$queryRaw`
+    SELECT table_schema, table_name
+    FROM information_schema.tables
+    WHERE (
+      table_schema = 'public'
+      AND table_name IN (
+        'users',
+        'admin_accounts',
+        'domains',
+        'mailboxes',
+        'messages',
+        'audit_logs',
+        'site_settings',
+        'user_control_settings',
+        '_prisma_migrations'
+      )
+    ) OR (
+      table_schema = 'mailserver'
+      AND table_name IN ('mail_domains', 'mailboxes')
+    )
+  `) as RawTableRow[];
+
+  const present = new Set(
+    (Array.isArray(tableRows) ? tableRows : [])
+      .filter(
+        (row): row is { table_schema: string; table_name: string } =>
+          typeof row?.table_schema === "string" &&
+          typeof row?.table_name === "string",
+      )
+      .map((row) => `${row.table_schema}.${row.table_name}`),
+  );
+
+  const missingPublic = REQUIRED_PUBLIC_TABLES.filter(
+    (table) => !present.has(`public.${table}`),
+  );
+  const missingMailserver = REQUIRED_MAILSERVER_TABLES.filter(
+    (table) => !present.has(`mailserver.${table}`),
+  );
+
+  if (missingPublic.length > 0 || missingMailserver.length > 0) {
+    const missing = [
+      ...missingPublic.map((t) => `public.${t}`),
+      ...missingMailserver.map((t) => `mailserver.${t}`),
+    ];
+    return {
+      passed: false,
+      detail: `Missing required schema tables: ${missing.join(", ")}`,
+    };
+  }
+
+  const migrationRows = (await client.$queryRaw`
+    SELECT COUNT(*)::int AS applied_count
+    FROM "_prisma_migrations"
+    WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
+  `) as RawMigrationCountRow[];
+
+  const appliedCountRaw = Array.isArray(migrationRows)
+    ? migrationRows[0]?.applied_count
+    : 0;
+  const appliedCount =
+    typeof appliedCountRaw === "bigint"
+      ? Number(appliedCountRaw)
+      : typeof appliedCountRaw === "number"
+        ? appliedCountRaw
+        : 0;
+
+  if (appliedCount <= 0) {
+    return {
+      passed: false,
+      detail: "No applied Prisma migrations found in _prisma_migrations",
+    };
+  }
+
+  return {
+    passed: true,
+    detail: `Verified core public & mailserver tables (${appliedCount} migration(s) applied)`,
+  };
+}
+
 export function createDefaultSetupOperations(): readonly RegisteredInstallerOperation[] {
   return [
     defineInstallerOperation({
@@ -152,7 +275,11 @@ export function createDefaultSetupOperations(): readonly RegisteredInstallerOper
       supportedLifecycles: ["not-started", "in-progress", "completed"],
       validateInput: (input): input is Record<string, unknown> =>
         typeof input === "object" && input !== null,
-      execute: async () => {},
+      execute: async () => {
+        if (!env.mailDomain?.trim() || !env.mailHostname?.trim()) {
+          throw new Error("Missing MAIL_DOMAIN or MAIL_HOSTNAME");
+        }
+      },
     }),
     defineInstallerOperation({
       id: "setup.database.availability",
@@ -160,7 +287,16 @@ export function createDefaultSetupOperations(): readonly RegisteredInstallerOper
       supportedLifecycles: ["not-started", "in-progress", "completed"],
       validateInput: (input): input is Record<string, unknown> =>
         typeof input === "object" && input !== null,
-      execute: async () => {},
+      execute: async () => {
+        if (!env.databaseUrl?.trim()) {
+          throw new Error("DATABASE_URL is unset");
+        }
+        const client = getPrismaClient() as unknown as InspectableSetupPrisma;
+        if (typeof client.$queryRaw !== "function") {
+          throw new Error("PostgreSQL client query interface unavailable");
+        }
+        await client.$queryRaw`SELECT 1`;
+      },
     }),
     defineInstallerOperation({
       id: "setup.schema.verify",
@@ -168,7 +304,16 @@ export function createDefaultSetupOperations(): readonly RegisteredInstallerOper
       supportedLifecycles: ["in-progress", "completed"],
       validateInput: (input): input is Record<string, unknown> =>
         typeof input === "object" && input !== null,
-      execute: async () => {},
+      execute: async () => {
+        if (!env.databaseUrl?.trim()) {
+          throw new Error("DATABASE_URL is unset");
+        }
+        const client = getPrismaClient() as unknown as InspectableSetupPrisma;
+        const result = await verifySchemaAndMigrations(client);
+        if (!result.passed) {
+          throw new Error(result.detail);
+        }
+      },
     }),
   ];
 }
@@ -202,21 +347,21 @@ export async function runSetupVerificationInspection(options?: {
     detail: dbConfigured ? "DATABASE_URL is defined" : "DATABASE_URL is unset",
   });
 
+  const resolvedClient = (
+    options?.prisma ?? (dbConfigured ? getPrismaClient() : null)
+  ) as InspectableSetupPrisma | null;
+
   // 3. database-verified
   let dbVerified = false;
   let dbDetail = "Database not checked";
-  if (dbConfigured) {
+  if ((dbConfigured || options?.prisma !== undefined) && resolvedClient) {
     try {
-      const client = options?.prisma ?? (getPrismaClient() as unknown);
-      if (
-        client &&
-        typeof (client as { $queryRaw?: unknown }).$queryRaw === "function"
-      ) {
-        await (
-          client as { $queryRaw: (q: unknown) => Promise<unknown> }
-        ).$queryRaw`SELECT 1`;
+      if (typeof resolvedClient.$queryRaw === "function") {
+        await resolvedClient.$queryRaw`SELECT 1`;
         dbVerified = true;
         dbDetail = "PostgreSQL connection responsive";
+      } else {
+        dbDetail = "PostgreSQL client unavailable";
       }
     } catch (err) {
       dbDetail = String(err instanceof Error ? err.message : err);
@@ -233,9 +378,15 @@ export async function runSetupVerificationInspection(options?: {
   // 4. schema-verified
   let schemaVerified = false;
   let schemaDetail = "Schema not verified";
-  if (dbVerified) {
-    schemaVerified = true;
-    schemaDetail = "Prisma schema and migrations deployed";
+  if (dbVerified && resolvedClient) {
+    try {
+      const schemaCheck = await verifySchemaAndMigrations(resolvedClient);
+      schemaVerified = schemaCheck.passed;
+      schemaDetail = schemaCheck.detail;
+    } catch (err) {
+      schemaVerified = false;
+      schemaDetail = String(err instanceof Error ? err.message : err);
+    }
   }
   steps.push({
     step: "schema-verified",
@@ -246,20 +397,17 @@ export async function runSetupVerificationInspection(options?: {
   // 5. administrator-created
   let adminCreated = false;
   let adminDetail = "Administrator account check pending";
-  if (dbVerified) {
+  if (dbVerified && resolvedClient) {
     try {
-      const client = options?.prisma as
-        | { adminAccount?: { count?: () => Promise<number> } }
-        | undefined;
-      if (client?.adminAccount?.count) {
-        const count = await client.adminAccount.count();
+      if (typeof resolvedClient.adminAccount?.count === "function") {
+        const count = await resolvedClient.adminAccount.count();
         adminCreated = count > 0;
         adminDetail = adminCreated
           ? `Found ${count} admin account(s)`
           : "No administrator accounts found";
       } else {
-        adminCreated = true;
-        adminDetail = "Administrator check verified";
+        adminCreated = false;
+        adminDetail = "Administrator account delegate unavailable";
       }
     } catch {
       adminCreated = false;

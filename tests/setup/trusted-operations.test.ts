@@ -335,10 +335,31 @@ test("Phase 06 BUG-09: default setup operations and runSetupVerificationInspecti
   const envResult = await runner.run("setup.environment.validate", {});
   assert.equal(envResult.kind, "success");
 
-  // Inspect setup verification steps with fake prisma
+  // Inspect setup verification steps with complete schema/migration query responses
+  const fullTableRows = [
+    { table_schema: "public", table_name: "users" },
+    { table_schema: "public", table_name: "admin_accounts" },
+    { table_schema: "public", table_name: "domains" },
+    { table_schema: "public", table_name: "mailboxes" },
+    { table_schema: "public", table_name: "messages" },
+    { table_schema: "public", table_name: "audit_logs" },
+    { table_schema: "public", table_name: "site_settings" },
+    { table_schema: "public", table_name: "user_control_settings" },
+    { table_schema: "public", table_name: "_prisma_migrations" },
+    { table_schema: "mailserver", table_name: "mail_domains" },
+    { table_schema: "mailserver", table_name: "mailboxes" },
+  ];
+
   const inspection = await runSetupVerificationInspection({
     prisma: {
-      async $queryRaw() {
+      async $queryRaw(query: TemplateStringsArray) {
+        const sql = query.join("");
+        if (sql.includes("information_schema.tables")) {
+          return fullTableRows;
+        }
+        if (sql.includes("_prisma_migrations")) {
+          return [{ applied_count: 3 }];
+        }
         return [{ ok: 1 }];
       },
       adminAccount: {
@@ -355,8 +376,29 @@ test("Phase 06 BUG-09: default setup operations and runSetupVerificationInspecti
   assert.equal(inspection.steps[0]?.step, "environment-validated");
   assert.equal(inspection.steps[1]?.step, "database-availability-verified");
   assert.equal(inspection.steps[2]?.step, "database-verified");
+  assert.equal(inspection.steps[2]?.passed, true);
   assert.equal(inspection.steps[3]?.step, "schema-verified");
+  assert.equal(inspection.steps[3]?.passed, true);
   assert.equal(inspection.steps[4]?.step, "administrator-created");
+  assert.equal(inspection.steps[4]?.passed, true);
   assert.equal(inspection.steps[5]?.step, "completion-verified");
+
+  // Missing mailserver schema tables or missing admin delegate must fail closed
+  const missingSchemaInspection = await runSetupVerificationInspection({
+    prisma: {
+      async $queryRaw(query: TemplateStringsArray) {
+        const sql = query.join("");
+        if (sql.includes("information_schema.tables")) {
+          return fullTableRows.filter((row) => row.table_schema === "public");
+        }
+        return [{ ok: 1 }];
+      },
+    },
+  });
+  assert.equal(missingSchemaInspection.steps[2]?.passed, true);
+  assert.equal(missingSchemaInspection.steps[3]?.passed, false);
+  assert.match(missingSchemaInspection.steps[3]!.detail, /mailserver\.mail_domains/i);
+  assert.equal(missingSchemaInspection.steps[4]?.passed, false);
+  assert.equal(missingSchemaInspection.overallReady, false);
 });
 

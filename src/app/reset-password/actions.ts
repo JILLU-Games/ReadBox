@@ -28,6 +28,16 @@ export async function requestPasswordResetAction(
   _previousState: PasswordResetRequestState,
   formData: FormData,
 ): Promise<PasswordResetRequestState> {
+  const devDemoActive =
+    env.nodeEnv === "development" && env.devAuthMode === "demo";
+  if (!devDemoActive) {
+    return {
+      status: "invalid",
+      error:
+        "Self-service token generation is disabled in production. Request a one-time reset token from your administrator or operator console.",
+    };
+  }
+
   const identifier = formData.get("identifier");
   if (typeof identifier !== "string" || !identifier.trim()) {
     return {
@@ -36,10 +46,6 @@ export async function requestPasswordResetAction(
     };
   }
 
-  const devDemoActive =
-    env.nodeEnv === "development" && env.devAuthMode === "demo";
-  const prisma = !devDemoActive && env.databaseUrl ? getPrismaClient() : null;
-
   try {
     const reqHeaders = await headers();
     const clientIp = extractClientIp(reqHeaders, {
@@ -47,8 +53,8 @@ export async function requestPasswordResetAction(
     });
     const userAgent = reqHeaders.get("user-agent") ?? "";
 
-    const result = await requestPasswordReset(prisma, identifier, {
-      devDemoActive,
+    const result = await requestPasswordReset(null, identifier, {
+      devDemoActive: true,
       clientIp,
       userAgent,
     });

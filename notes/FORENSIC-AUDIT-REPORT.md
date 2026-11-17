@@ -1,959 +1,455 @@
-# ReadBox — Production & Engine Forensic Audit Report
+# ReadBox — ফরেনসিক সোর্স-কোড অডিট রিপোর্ট (Production Readiness Audit)
 
-**Audit Type:** 100% Source-Code-Verified Deep Forensic Audit (Zero Guesswork)  
-**Scope:** Authentication, Registration & Password Reset, User Panel (`/users/*`), Admin Panel (`/vcon/*`), API Routes (`/api/*`), Core Backend Engines (`/src/core/*`), Prisma Schema & PostgreSQL Migrations (`/prisma/*`), Ops & System Updater (`/scripts/*`), and Demo Mode vs. Production Parity.  
-**Report Policy:** Strictly findings, architectural gaps, demo-vs-production discrepancies, and verified source-code proofs (`file:line` + verbatim code blocks). No implementation plan is included in this file.
+**অডিট ভার্ডিক্ট:** `NOT READY FOR PRODUCTION`  
+**অডিট মেথডোলজি:** সম্পূর্ণ স্ট্যাটিক সোর্স-কোড ফরেনসিক অডিট (শুধুমাত্র যাচাইকৃত সোর্স ফাইল, লাইন নম্বর, সিম্বল ও হুবহু কোড ব্লক প্রমাণের ভিত্তিতে রচিত; কোনো অনুমান বা পুরনো ডকুমেন্ট ব্যবহার করা হয়নি)।
 
 ---
 
-## 1. Executive Summary & Severity Matrix
+## ১. সিভিয়ারিটি সামারি ও স্কোপ
 
-| Severity | Count | Bug IDs |
+| সিভিয়ারিটি | সংখ্যা | ফাইন্ডিং আইডি |
 | --- | ---: | --- |
-| **CRITICAL** | 5 | `BUG-01`, `BUG-02`, `BUG-05`, `BUG-10`, `BUG-21` |
-| **HIGH** | 9 | `BUG-03`, `BUG-06`, `BUG-07`, `BUG-11`, `BUG-12`, `BUG-13`, `BUG-15`, `BUG-16`, `BUG-20` |
-| **MEDIUM** | 7 | `BUG-04`, `BUG-08`, `BUG-09`, `BUG-14`, `BUG-17`, `BUG-18`, `BUG-19` |
-| **LOW** | 0 | — |
-| **TOTAL** | **21** | **`BUG-01` – `BUG-21`** |
+| **CRITICAL** | **১** | `FA-001` |
+| **HIGH** | **৫** | `FA-002`, `FA-003`, `FA-004`, `FA-005`, `FA-006` |
+| **MEDIUM** | **৫** | `FA-007`, `FA-008`, `FA-009`, `FA-010`, `FA-011` |
 
 ---
 
-## 2. Classification Matrices (Per Audit Objectives)
+## ২. সিস্টেম-ভিত্তিক প্রোডাকশন-রেডিনেস ম্যাট্রিক্স
 
-### Category A — Features Working Only in Demo Mode or Silently Falling Back to Memory / Demo Data
-
-| Bug ID | Feature / Subsystem | Reality in Source Code |
+| সাবসিস্টেম / প্যানেল | বর্তমান অবস্থা | যাচাইকৃত প্রধান কারণ |
 | --- | --- | --- |
-| `BUG-05` | User Control Settings & Per-User Extended Policies (`/vcon/users/control`) | Catches DB errors and silently saves to in-memory `globalThis` demo store while returning `{ ok: true }`. `updateUserExtendedPolicy` reads `getUserControlSettings(null)` instead of DB; `listUsersControlSnapshot` injects `DEMO_VERIFIED_DOMAINS` even when `databaseConnected: true` if 0 DB domains exist; hardcodes `mailboxCount: 3` for `demo.user` despite 4 seeded mailboxes. |
-| `BUG-06` | Site Settings Persistence (`/vcon/settings`) | Swallows PostgreSQL errors when `NODE_ENV !== "production"` and returns `{ ok: true, message: "Settings saved successfully." }` from an ephemeral in-memory object. |
-| `BUG-07` | Public Contact / Inquiry Submission (`/contact`) | No Prisma model and no `/vcon` viewer exist. Inquiry payloads (`full_name`, `work_email`, `company`, `phone`, `message`) are stored only in an in-memory array (`submissionsStore`) and omitted from `audit_logs`. Uses hardcoded fallback HMAC secret when `AUTH_SECRET` / `CONTACT_SECRET_KEY` are unset. |
-| `BUG-08` | Demo Workspace Enforcement & Live Polling (`/users/*`) | Bypasses ownership, capability restrictions (`canDeleteMessages: true` hardcoded), retention checks, and user-scoped quota (`store.mailboxes.length` global check). `pollDemoLivePayload` forces admin overview (`true`), hardcodes `cursor: 100`, and always returns `messages: []`. Inbox/message pages omit actor flags when calling demo helpers. |
-| `BUG-09` | Installer / Trusted Setup Runner (`/src/core/setup/trusted-operations.ts`) | Exists only as isolated library modules with zero API routes or UI triggers anywhere in the app. |
-
-### Category B — UI-Visible Controls Broken, Incomplete, Stale, or Unreachable
-
-| Bug ID | UI Control / Flow | Reality in Source Code |
-| --- | --- | --- |
-| `BUG-11` | Self-Service Password Reset (`/reset-password`) | Displays token + password inputs, but has no "Forgot Password / Request Reset Token" flow or route, ignores dynamic `UserControlSettings.minPasswordLength` (hardcoded `minLength={15}` / `MIN_PASSWORD_LENGTH`), excludes `AdminAccount`, writes no audit log, and does not work in Demo Mode. |
-| `BUG-12` | Auto-Provision Starter Mailbox Toggle (`/vcon/users/control`) | Admin UI & `UserControlSettings.autoProvisionStarterMailbox` toggle save to DB/demo store, but neither `registerSelfSignupUser` nor `createDevDemoDynamicUser` ever provisions a mailbox on signup. |
-| `BUG-15` | Admin Switching Into `/users/*` Workspace | `AppShell` renders Management sidebar whenever `isAdministrator === true` regardless of route (`!isAdminRoute`), hiding User Workspace navigation and the sidebar **+ Add mailbox** button required by `UsersWorkspaceShell` (`readbox:open-create-mailbox` event). |
-| `BUG-16` | Admin Self-Service Profile, Password & Sessions (`/users/settings` & `/vcon/*`) | `admin_table` administrators are blocked (`editable: false`, `canManageSecurity: false`) in `/users/settings` and have no profile/password/session management page in `/vcon/*`. Meanwhile `user_table` admins get contradictory `editable: false` on initial page fallback vs `editable: true` in `getUserProfile`. |
-| `BUG-17` | Inbox Live Counters, Domain Select State, Sidebar Pagination & Silent DB Errors (`/users/*`) | `MailboxInboxView` (`liveCounts`) and `CreateUserMailboxModal` (`domainUuid`) fail to resync React state when props change on navigation. `/users/layout.tsx` fetches only `page: 1` (25 mailboxes) for sidebar Inboxes & polling scope, and `/users/*` pages swallow DB errors into unconfigured placeholders without logging. |
-| `BUG-19` | Message Reader Inline `cid:` Images & Print View | HTML sanitizer strips `img` tags unless `src` is `data:image/{png,jpeg,gif,webp};base64,...`, breaking inline `cid:` attachments despite storing `isInline` / `contentId`. Print button triggers raw `window.print()` with no print CSS isolation, printing full sidebar/header chrome. |
-
-### Category C — Critical Backend Engine, Schema, Auth/Session, Retention & Updater Defects
-
-| Bug ID | Engine / Subsystem | Reality in Source Code |
-| --- | --- | --- |
-| `BUG-01` | Prisma Schema vs SQL Migrations Drift | `prisma/schema.prisma` defines `AdminAccount`, `AdminSession`, `UserControlSettings`, `User.phone`, `User.verificationStatus`, extended `UserAccessPolicy` columns, and `ReadBox` branding defaults, none of which exist in `/prisma/migrations/*.sql`. Fresh `prisma migrate deploy` produces a broken database. |
-| `BUG-02` | Cross-Table Actor ID Collision & FK Failures | `AuditLog.actorId`, `MailboxMembership.assignedById`, `Mailbox.deletedById`, and `Message.deletedById` FK only to `users.id`. Queries look up numeric `actorId` in `prisma.user` without checking `authSource`, misattributing `AdminAccount` actions to unrelated `users.id` rows (and blocking deletion of `users.id = 1`), while direct `recordAudit` callers trigger FK failures (`audit_persistence_failed`). |
-| `BUG-03` | Message Ingestion `parse_status` CHECK Failure | PostgreSQL CHECK constraint requires `('ok', 'warning', 'error', 'oversized')`, whereas `ingestion/service.ts` writes `"failed"` and `operations/service.ts` queries `"failed"`. |
-| `BUG-04` | Mailbox Local-Part Regex Drift | Demo mode allows `+` and leading/trailing `.` / `-` / `_`, whereas `validators.ts` and `mailserver.postfix_virtual_mailboxes` SQL view reject them. |
-| `BUG-10` | Session Device / IP / Last-Seen Tracking | Production `registerAppSession` & `getActiveAppSession` never capture `ipAddress`, `userAgent`, or update `lastSeenAt`, causing all production sessions in Security settings to show `"Unknown device"` and `null` IP/activity. |
-| `BUG-13` | Admin User Creation/Update Collision & Operator Bootstrap | `createManagedUser` / `updateManagedUser` only check `prisma.user` for duplicate usernames (ignoring `prisma.adminAccount`). `bootstrapInitialAccount` creates legacy `User` + `AdministratorProfile` instead of `AdminAccount`. |
-| `BUG-14` | Demo Dynamic User Overrides & Approval Audit Missing | `listDevDemoDynamicUsers` ignores `applyAccountOverrides`; `updateDevDemoDynamicUserStatus` emits no `appendDemoSecurityEvent`. |
-| `BUG-18` | Live Polling Retention & Cross-Tab State Blindness | `pollLiveMessagesForUser` ignores user retention policy/cutoffs, sums raw unretained counters, and never notifies open tabs when existing messages are marked read/unread/deleted (`id <= requestedCursor`). |
-| `BUG-20` | Message Auto-Delete Retention Policy (`autoDeleteEnabled` / `autoDeleteDays`) | Only filters UI reads; expired DB rows, Maildir files, and attachments are never purged; `mailbox.totalMessages` / `unreadMessages` stay inflated; and `{ receivedAt: { gte } }` excludes `receivedAt = null` rows despite JS fallback allowing them. |
-| `BUG-21` | System Updater Path Mismatch & Legacy `vibmail` Hardcodes | `env-schema.ts` defaults `UPDATE_SCRIPT_PATH` to `/opt/vibmail/app/scripts/upgrade.sh` while `update_worker.py` uses `/opt/vibmail/app/scripts/updater/upgrade.sh`. Both `updates/service.ts`, `upgrade.sh`, and `backup.sh` hardcode legacy `/opt/vibmail`, `/etc/vibmail`, `/var/backups/vibmail`, `vibmail-web.service`, and `vibmail-ingestion.service`. |
+| **Authentication (`/sign-in`, `/vcon/login`, `/sign-up`, `src/auth.ts`)** | ঝুঁকিপূর্ণ (`CRITICAL`) | ক্রেডেনশিয়াল লগইন, লকআউট এবং সেশন রেজিস্ট্রি ডাটাবেসে কাজ করলেও `/reset-password` সরাসরি ব্রাউজারে রিসেট টোকেন প্রিন্ট করে (`FA-001`); `admin_accounts` রিসেট টোকেন ইন-মেমরিতে থাকে (`FA-002`)। |
+| **User Workspace (`/users`, `/users/mailboxes`, `/users/inbox/*`, `/users/settings`)** | আংশিক কার্যকর / নিরাপত্তা ও পলিসি বাগ (`HIGH`) | ইনবক্স, পোলিং (`/api/messages/live`), এবং অ্যাটাচমেন্ট ডাউনলোড ডাটাবেসে কাজ করে; তবে HTML রিডার `<iframe sandbox>` ও `SAFE_HTML_CSP_POLICY` এড়িয়ে মূল DOM-এ `dangerouslySetInnerHTML` ব্যবহার করে (`FA-003`), `authSource` ফরওয়ার্ড না হওয়ায় অডিট অ্যাট্রিবিউশন মিসম্যাচ হয় (`FA-009`), ও রিটেনশন ডিফল্ট ইনহেরিটেন্স ভেঙে যায় (`FA-006`)। |
+| **Admin Panel (`/vcon/*`: Users Control, Operations, Domains, Settings, System Update)** | আংশিক কার্যকর / অকার্যকর মডিউল (`HIGH`) | `Users/Mailboxes/Domains/Audit` CRUD কাজ করে; কিন্তু `/vcon/system-update` Docker-এ স্থায়ীভাবে ব্লকড (`FA-005`), অটো-ডিলেট পার্জ (`runRetentionPurge`) অপারেশনস বা কোনো ক্রনে যুক্ত নয় (`FA-006`), কন্টাক্ট ইনকোয়ারি দেখার UI নেই (`FA-008`), এবং DB ব্যর্থ হলে `UsersControl` ও `SiteSettings` নীরবে ডেমো/ডিফল্ট ডেটা দেখায় (`FA-007`)। |
+| **Public Site (`/`, `/contact`, `/privacy`, `/manifest.webmanifest`)** | আংশিক কার্যকর (`MEDIUM`) | পাবলিক পেজ, FAQ, JSON-LD ও `/contact` সাবমিশন কাজ করে; কিন্তু কন্টাক্ট CSRF/রেট-লিমিট মেমরি-নির্ভর (`FA-002`), ফুটারে `sourceCodeUrl` রেন্ডার হয় না (`FA-011`), ও `/manifest.webmanifest` কোল্ড-স্টার্টে কাস্টম ব্র্যান্ডিং পায় না (`FA-011`)। |
+| **Backend Engines, Workers, Docker & Coolify (`Dockerfile`, `docker-compose.yml`, `scripts/*`)** | প্রোডাকশনে অসম্পূর্ণ (`HIGH`) | `docker-compose.yml`-এ `web` ও `postgres` ছাড়া ইনজেশন ওয়ার্কার (`mail:ingest`), Postfix/Dovecot, বা রিটেনশন ক্রন নেই (`FA-004`); প্রোডাকশন ইমেজে `scripts/mail/ingest.ts` বা `tsx` কপি হয় না (`FA-004`); `restore.sh` ও `env-schema.ts`-এ পুরনো `vibmail` নাম ও হার্ডকোডেড `systemd` কমান্ড রয়েছে (`FA-005`)। |
 
 ---
 
-## 3. Complete Forensic Bug Registry (Verified Code Proofs)
+## ৩. (ক) যে ফিচারগুলো কেবল ডেমো/মেমরি মোডে চলে বা প্রোডাকশনে ডেমো ফলব্যাক ঝুঁকি তৈরি করে
 
-### BUG-01 — Prisma Schema vs. SQL Migrations Drift
-- **Severity:** CRITICAL
-- **Area:** Database Schema & Migrations (`/prisma/`)
-- **Impact:** Running `prisma migrate deploy` on a fresh PostgreSQL database omits `admin_accounts`, `admin_sessions`, `user_control_settings`, `users.phone`, `users.verification_status`, extended `user_access_policies` columns, and updated `ReadBox` defaults—causing immediate runtime query failures (`P2021`/`P2022`) in production.
-
-**Verified Code Proof — `/prisma/schema.prisma:18-58,103-143,338-353`:**
-```prisma
-// prisma/schema.prisma:18-21
-  phone        String    @default("") @db.VarChar(40)
-  isStaff      Boolean   @default(false) @map("is_staff")
-  isActive     Boolean   @default(true) @map("is_active")
-  verificationStatus String @default("verified") @map("verification_status") @db.VarChar(24)
-
-// prisma/schema.prisma:40-58
-model AdminAccount {
-  id                    BigInt         @id @default(autoincrement())
-  ...
-  @@map("admin_accounts")
-}
-
-// prisma/schema.prisma:103-143
-model UserAccessPolicy {
-  id                 BigInt   @id @default(autoincrement())
-  userId             BigInt   @unique @map("user_id")
-  canCreateMailboxes Boolean  @default(true) @map("can_create_mailboxes")
-  ...
-  maxMailboxes       Int      @default(3) @map("max_mailboxes")
-  allowedDomainUuids Json     @default("[]") @map("allowed_domain_uuids")
-  autoDeleteEnabled  Boolean  @default(false) @map("auto_delete_enabled")
-  autoDeleteDays     Int      @default(0) @map("auto_delete_days")
-...
-model UserControlSettings {
-  id                          BigInt   @id @default(autoincrement())
-  ...
-  @@map("user_control_settings")
-}
-
-// prisma/schema.prisma:340,349
-  siteName         String   @default("ReadBox") @map("site_name") @db.VarChar(120)
-  sourceCodeUrl    String   @default("https://github.com/vibtools/ReadBox") @map("source_code_url") @db.VarChar(200)
-```
-
-**Verified Code Proof — `/prisma/migrations/20261017000000_initial_application_schema/migration.sql:5-42,169-185`:**
-```sql
-CREATE TABLE "users" (
-    "id" BIGSERIAL NOT NULL,
-    "password_hash" VARCHAR(128) NOT NULL,
-    "last_login" TIMESTAMPTZ(6),
-    "is_superuser" BOOLEAN NOT NULL DEFAULT false,
-    "username" VARCHAR(150) NOT NULL,
-    "first_name" VARCHAR(150) NOT NULL DEFAULT '',
-    "last_name" VARCHAR(150) NOT NULL DEFAULT '',
-    "email" VARCHAR(254) NOT NULL DEFAULT '',
-    "is_staff" BOOLEAN NOT NULL DEFAULT false,
-    "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "date_joined" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
-);
-...
-CREATE TABLE "user_access_policies" (
-    "id" BIGSERIAL NOT NULL,
-    "user_id" BIGINT NOT NULL,
-    "can_delete_messages" BOOLEAN NOT NULL DEFAULT false,
-    "can_delete_mailboxes" BOOLEAN NOT NULL DEFAULT false,
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    CONSTRAINT "user_access_policies_pkey" PRIMARY KEY ("id")
-);
-...
-CREATE TABLE "site_settings" (
-    "id" BIGSERIAL NOT NULL,
-    "site_name" VARCHAR(120) NOT NULL DEFAULT 'MailStack',
-    ...
-    "source_code_url" VARCHAR(200) NOT NULL DEFAULT 'https://github.com/vibtools/MailStack',
-```
-*(The other 3 migrations in `/prisma/migrations/` only add `app_sessions`, `password_reset_tokens`, `administrator_profiles`, and the `mailserver` schema; none create `admin_accounts`, `admin_sessions`, or `user_control_settings`.)*
+1. **`getPrismaClient()` প্রোডাকশনেও মক ক্লায়েন্ট রিটার্ন করে (`FA-007`):** `NODE_ENV === "production"` হলেও `DATABASE_URL` না থাকলে বা `new PrismaPg(...)` ফেল করলে এরর থ্রো না করে `createMockPrismaClient()` রিটার্ন করে, যা `findMany: []`, `count: 0`, `upsert: fakeObj` দেয়।
+2. **`/sign-up` সার্ভার অ্যাকশন (`src/app/sign-up/actions.ts:17-20`):** `!env.databaseUrl` হলেই প্রোডাকশন পরিবেশেও `devDemoActive = true` সেট হয়ে মেমরিতে ডেমো রেজিস্ট্রেশন চালায়।
+3. **`Users Control` কনসোল (`src/core/accounts/user-control-policy.ts:500-532, 910-954`):** PostgreSQL query ফেল করলেই কোনো এরর ব্যানার ছাড়াই হার্ডকোডেড `DEMO_VERIFIED_DOMAINS` (`readbox.local`, `teambox.dev`) ও `DEV_DEMO_ACCOUNTS` (`demo.user`) রিটার্ন করে।
+4. **`AdminAccount` পাসওয়ার্ড রিসেট টোকেন ও `/contact` অ্যান্টি-অ্যাবিউজ (`FA-002`):** `admin_accounts` টেবিলের রিসেট টোকেন শুধুমাত্র প্রসেস মেমরি `Map`-এ (`__readboxAdminResetTokens`) থাকে; আর `/contact` পেজের `csrfTokensStore`, `submissionsStore` ও `ephemeralProductionSecret` ইন-মেমরি।
+5. **`trusted-operations.ts` (`src/core/setup/trusted-operations.ts:147-292`):** `createDefaultSetupOperations()`-এর তিনটি অপারেশনের `execute` সম্পূর্ণ খালি ফাংশন (`async () => {}`), এবং `runSetupVerificationInspection()` কেবল `SELECT 1` সফল হলেই `"schema-verified"` ধাপকে `passed: true` বলে ঘোষণা করে।
 
 ---
 
-### BUG-02 — Cross-Table Actor ID Collision & Foreign-Key Mismatch (`admin_accounts` vs `users`)
-- **Severity:** CRITICAL
-- **Area:** Database Integrity, Audit Logging & Admin Authorization (`/prisma/schema.prisma`, `/src/core/*`)
-- **Impact:** When an `admin_table` administrator (`AdminAccount`) performs actions:
-  1. `resolveActorIdForDatabase` resolves `actorId` by numeric ID alone in `prisma.user`, misattributing `AdminAccount.id = 1` actions to `users.id = 1`.
-  2. `deleteManagedUser` compares `userId === auditContext.actorId` without checking `authSource`, falsely blocking deletion of `users.id = 1`.
-  3. Callers passing raw `actorId` directly to `recordAudit` trigger PostgreSQL FK violations on `audit_logs_actor_id_fkey` whenever `AdminAccount.id` has no matching row in `users`, silently dropping audit logs (`audit_persistence_failed`).
+## ৪. (খ) যে ফিচারগুলো UI-তে আছে কিন্তু বাস্তবে অকার্যকর / Unwired / অসম্পূর্ণ
 
-**Verified Code Proof — `/prisma/schema.prisma:212,233,269,320`:**
-```prisma
-  deletedBy   User?               @relation("MailboxDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
-  assignedBy User?    @relation("MembershipAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
-  deletedBy User?        @relation("MessageDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
-  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
-```
+1. **পাবলিক পাসওয়ার্ড রিসেট (`/reset-password`) (`FA-001`):** ইমেইল/ওটিপি ডেলিভারি ছাড়াই UI-তে সরাসরি রিসেট টোকেন ও **"Use token"** বাটন দেখায় — ফলে যেকোনো ইউজার বা অ্যাডমিনের অ্যাকাউন্ট টেকওভার সম্ভব।
+2. **স্যান্ডবক্সড HTML ইমেল রিডার (`FA-003`):** `/api/messages/html/[messageUuid]` রুট `SAFE_HTML_CSP_POLICY` হেডার দিলেও `MessageReaderView` কোনো `<iframe sandbox>` ব্যবহার না করে `dangerouslySetInnerHTML`-এর মাধ্যমে সরাসরি মূল React DOM-এ HTML/CSS ইনজেক্ট করে।
+3. **ইমেল অটো-ডিলেট রিটেনশন পার্জ (`FA-006`):** `/vcon/users/control` UI-তে ঘোষণা করা আছে যে পুরনো মেসেজ *"automatically hidden and purged from governed user inboxes"*, কিন্তু `runRetentionPurge` (`src/core/operations/service.ts:962`) অ্যাপের কোথাও (না `/vcon/operations`-এ, না `workers/ingestion.ts`-এ, না Docker ক্রনে) কল করা হয়নি।
+4. **কন্টাক্ট ইনকোয়ারি ম্যানেজমেন্ট (`FA-008`):** `/contact` ফর্ম ডেটা `audit_logs`-এ সেভ করলেও এবং `listContactSubmissions` (`src/core/contact/service.ts:526`) ইমপ্লিমেন্ট করা থাকলেও `/vcon` অ্যাডমিন প্যানেলে ইনকোয়ারি দেখার কোনো পেজ বা কলার নেই।
+5. **সিস্টেম আপডেট কনসোল (`/vcon/system-update`) Docker/Coolify-তে (`FA-005`):** UI বাটন থাকলেও কন্টেইনারে `systemctl`, `nginx`, `postfix`, `doveconf`, `rsync`, `pg_dump`, `/etc/systemd/system/*` এবং `vmail` ইউজার না থাকায় `runUpdatePreflight` স্থায়ীভাবে `blocked` রিটার্ন করে।
+6. **Public Footer `Source Code URL` ও অপ্রয়োগিত ব্র্যান্ডিং ফিড (`FA-011`):** `/vcon/settings`-এ `sourceCodeUrl` এডিট ও সেভ করা গেলেও `PublicSiteFooter` (`src/components/public/public-site-footer.tsx:15-22`) সেটি গ্রহণ বা রেন্ডার করে না। আর `/manifest.webmanifest` (`src/app/manifest.ts:4-39`) ডিবি থেকে async লোড না করায় কোল্ড কন্টেইনারে ডিফল্ট `"ReadBox"` নাম ও স্ট্যাটিক আইকন দেয়।
 
-**Verified Code Proof — `/src/core/accounts/users.ts:178-188,829-835`:**
+---
+
+## ৫. (গ) ব্যাকএন্ড ইঞ্জিন, ওয়ার্কার, স্ক্রিপ্ট ও Docker/Coolify ইনফ্রাস্ট্রাকচার অমিল
+
+1. **কন্টেইনারাইজড Maildir ইনজেশন ওয়ার্কার ও Postfix/Dovecot অনুপস্থিত (`FA-004`):** `docker-compose.yml`-এ কেবল `postgres` ও `web` কন্টেইনার রয়েছে। `Dockerfile` প্রোডাকশন `runner` স্টেজে `scripts/mail/ingest.ts` বা `tsx` রাখে না, ফলে কন্টেইনারের ভেতর থেকে `npm run mail:ingest` চালানোও অসম্ভব।
+2. **Legacy `vibmail` ও `mailstack.local` কনফিগারেশন অমিল (`FA-005`):** `env-schema.ts`-এর ডিফল্টে এখনো `mailstack.local`, `/run/vibmail`, `vibmail-updater.service`, `/opt/vibmail/app/scripts/updater/upgrade.sh`; `scripts/ops/restore.sh` এখনো `vibmail-ingestion vibmail-web` ও `/etc/vibmail/vibmail.env` হার্ডকোড করে রেখেছে; `update_worker.py` কেবল `vmail` ইউজারের ফাইল গ্রহণ করে (অথচ `Dockerfile`-এ ইউজার `nextjs`)।
+3. **`/health/ready` ইনজেশন বা Mailserver কন্ট্র্যাক্ট যাচাই করে না (`FA-011`):** ইনজেশন ওয়ার্কার বন্ধ থাকলেও বা `mailserver` স্কিমা ভাঙা থাকলেও `/health/ready` (`200 OK`) দেয়।
+4. **স্টার্টার মেইলবক্স ফলব্যাক ও `maildirRelativePath` কন্ট্র্যাক্ট লঙ্ঘন (`FA-010`):** সাইন-আপের ফলব্যাক কোডে `mailserver.mailboxes` বাদ দিয়ে এবং শেষে `/` ছাড়া মেইলবক্স রো তৈরি হয়।
+5. **`UserAccessPolicy` ও `UserControlSettings` ডিফল্ট ওভাররাইড বাগ (`FA-006`):** অ্যাডমিন নতুন ইউজার তৈরি করলে `prisma/schema.prisma`-এর কংক্রিট ডিফল্ট (`autoDeleteEnabled: false, maxMailboxes: 3`) সেভ হওয়ায় গ্লোবাল রিটেনশন ও কোটা নীতি ওভাররাইট হয়ে যায়।
+
+---
+
+## ৬. (ঘ) ফরেনসিক বাগ ও সিকিউরিটি ফাইন্ডিংস ক্যাটালগ (কোড প্রমাণসহ)
+
+### `FA-001` [CRITICAL] — `/reset-password`-এ অথেনটিকেশন ছাড়াই সরাসরি ব্রাউজারে রিসেট টোকেন প্রিন্ট (Account Takeover)
+
+- **সাবসিস্টেম:** Authentication / Password Reset
+- **লোকেশন ও সিম্বল:**
+  - `src/core/auth/password-reset.ts:150-264` (`requestPasswordReset`)
+  - `src/app/reset-password/actions.ts:27-69` (`requestPasswordResetAction`)
+  - `src/components/auth/password-reset-form.tsx:96-118` (`PasswordResetForm`)
+- **প্রভাব:** ইন্টারনেট থেকে যেকোনো অননুমোদিত ব্যক্তি শুধু ইউজারনেম বা ইমেইল দিয়ে `User` অথবা `AdminAccount` উভয়ের বৈধ পাসওয়ার্ড রিসেট টোকেন পেয়ে সরাসরি পাসওয়ার্ড বদলে পুরো সিস্টেম দখল করতে পারে।
+- **কোড প্রমাণ:**
+
 ```ts
-async function resolveActorIdForDatabase(
-  tx: Pick<PrismaClient, "user">,
-  actorId: bigint,
-): Promise<bigint | null> {
-  if (actorId <= BigInt(0)) return null;
-  const existing = await tx.user.findUnique({
-    where: { id: actorId },
-    select: { id: true },
-  });
-  return existing?.id ?? null;
-}
-...
-  if (userId === auditContext.actorId) {
+// src/core/auth/password-reset.ts:206-210 & 258-262
     return {
-      ok: false,
-      code: "self_delete",
-      error: "You cannot delete your current administrator account.",
+      ok: true,
+      token,
+      username: user.username,
     };
-  }
-```
-
-**Verified Code Proof — `/src/core/accounts/user-control-policy.ts:612-613,742-743` & `/src/core/audit/record.ts:129-144`:**
-```ts
-// user-control-policy.ts:612-613
-      await recordAudit(prisma as unknown as AuditWriteClient, {
-        actorId: auditContext?.actorId ?? null,
-        action: "user_control_settings_updated",
-
-// audit/record.ts:129-144
-    const record = await prisma.auditLog.create({
-      data: {
-        actorId: normalizeActorId(input.actorId),
-        ...
-      },
-    });
-    return record as TResult;
-  } catch {
-    logger.error("audit_persistence_failed", { auditAction: action });
-    return null;
-  }
-```
-*(Same unguarded raw `actorId` pattern occurs in `src/core/settings/service.ts:594`, `src/core/updates/service.ts:658`, and `src/core/auth/sign-up.ts:421`; sibling `resolveActorIdForDatabase` helpers without `authSource` exist in `src/core/mailboxes/service.ts:129-139`, `src/core/domains/service.ts:74-84`, `src/core/operations/service.ts:209-219`, and `src/core/messages/service.ts:396-409`.)*
-
----
-
-### BUG-03 — `messages.parse_status` PostgreSQL CHECK Constraint Mismatch (`'error'` vs `'failed'`)
-- **Severity:** HIGH
-- **Area:** Ingestion & Operations Overview (`/prisma/migrations/`, `/src/core/ingestion/service.ts`, `/src/core/operations/service.ts`)
-- **Impact:** Any ingested email with `parseFailed = true` attempts to insert `parseStatus: "failed"`, violating `messages_parse_status_check` (`'ok' | 'warning' | 'error' | 'oversized'`) and aborting message ingestion. Operations dashboard counts `parseStatus: "failed"`, missing `'error'` rows.
-
-**Verified Code Proof — `/prisma/migrations/20261017000000_initial_application_schema/migration.sql:335`:**
-```sql
-ALTER TABLE "messages" ADD CONSTRAINT "messages_parse_status_check" CHECK ("parse_status" IN ('ok', 'warning', 'error', 'oversized'));
-```
-
-**Verified Code Proof — `/src/core/ingestion/service.ts:385-389`:**
-```ts
-    const parseStatus = parsed.parseFailed
-      ? "failed"
-      : warnings.length > 0
-        ? "warning"
-        : "ok";
-```
-
-**Verified Code Proof — `/src/core/operations/service.ts:335-341`:**
-```ts
-      prisma.message.count({
-        where: {
-          deletedAt: null,
-          parseStatus: "failed",
-          mailbox: { deletedAt: null },
-        },
-      }),
-```
-
----
-
-### BUG-04 — Mailbox Local-Part Regex Drift Across Demo, Validators & Postfix View
-- **Severity:** MEDIUM
-- **Area:** Mailbox Validation & Mailserver Contract
-- **Impact:** Demo workspace accepts `+` subaddressing and leading/trailing `.`/`_`/`-`, whereas production validators and the PostgreSQL `mailserver.postfix_virtual_mailboxes` view strictly reject them.
-
-**Verified Code Proof — `/src/core/messages/demo-workspace.ts:803`:**
-```ts
-  if (!/^[a-z0-9._+-]{1,64}$/.test(localPart)) {
-```
-
-**Verified Code Proof — `/src/core/mailboxes/validators.ts:3` & `/prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql:91`:**
-```ts
-// validators.ts:3
-export const LOCAL_PART_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
-```
-```sql
--- 20261115000000_mailserver_schema_and_roles/migration.sql:91
-  AND lower(m."local_part") ~ '^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$'
-```
-
----
-
-### BUG-05 — User Control Settings & Per-User Policy Silently Swallow DB Failures & Inject Demo Data
-- **Severity:** CRITICAL
-- **Area:** Admin User Control (`/src/core/accounts/user-control-policy.ts`)
-- **Impact:**
-  1. Failed PostgreSQL reads/writes in `getUserControlSettings`, `updateUserControlSettings`, `getUserExtendedPolicy`, `updateUserExtendedPolicy`, and `listUsersControlSnapshot` catch errors silently and fall back to memory (`setDemoUserControlSettings` / `setDemoUserAccessPolicy`), falsely returning `{ ok: true }` in production.
-  2. `updateUserExtendedPolicy` reads `getUserControlSettings(null)` instead of querying Prisma, normalizing per-user policies against stale in-memory defaults.
-  3. `listUsersControlSnapshot` injects `DEMO_VERIFIED_DOMAINS` (`readbox.local`, `teambox.dev`) when `dbDomains.length === 0` even if `databaseConnected: true`.
-  4. Demo branch hardcodes `mailboxCount: acc.username === "demo.user" ? 3 : 0` even though `demo-workspace.ts` seeds 4 mailboxes (`billing.ops`, `olivia.martin`, `support.desk`, `alerts.archive`).
-
-**Verified Code Proof — `/src/core/accounts/user-control-policy.ts:529-531,631-634,705,761-764,854-864,893`:**
-```ts
-// user-control-policy.ts:529-531
-  } catch {
-    return getDemoUserControlSettings();
-  }
-
-// user-control-policy.ts:631-634
-  } catch {
-    setDemoUserControlSettings(normalized);
-    return { ok: true, settings: normalized };
-  }
-
-// user-control-policy.ts:705
-  const globalSettings = await getUserControlSettings(null);
-
-// user-control-policy.ts:761-764
-  } catch {
-    setDemoUserAccessPolicy(trimmedId, normalized);
-    return { ok: true, policy: normalized };
-  }
-
-// user-control-policy.ts:854-864
+// ...
       return {
-        settings,
-        domains:
-          dbDomains.length > 0 ? dbDomains : [...DEMO_VERIFIED_DOMAINS],
-        pendingUsers,
-        governedUsers,
-        databaseConnected: true,
+        ok: true,
+        token,
+        username: admin.username,
       };
-    } catch {
-      // Fall back to demo snapshot when PostgreSQL is unreachable
-    }
+```
 
-// user-control-policy.ts:893
-    mailboxCount: acc.username === "demo.user" ? 3 : 0,
+```ts
+// src/app/reset-password/actions.ts:65-69
+    return {
+      status: "issued",
+      token: result.token,
+      username: result.username,
+    };
+```
+
+```tsx
+// src/components/auth/password-reset-form.tsx:103-115
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <code className="break-all font-mono text-xs text-foreground">
+                      {requestState.token}
+                    </code>
+                    <Button
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                      onClick={() => setTokenValue(requestState.token ?? "")}
+                    >
+                      Use token
+                    </Button>
+                  </div>
 ```
 
 ---
 
-### BUG-06 — `SiteSettings` Silently Falls Back to In-Memory Save on Non-Production DB Errors
-- **Severity:** HIGH
-- **Area:** System Settings Engine (`/src/core/settings/service.ts`)
-- **Impact:** Outside `NODE_ENV === "production"`, database errors during `saveSiteSettings` are silently ignored and reported as saved using an in-memory snapshot, masking real SQL/schema failures during staging/local DB testing.
+### `FA-002` [HIGH] — `AdminAccount` রিসেট টোকেন এবং `/contact` CSRF ও রেট-লিমিট কেবল ইন-মেমরিতে সংরক্ষিত
 
-**Verified Code Proof — `/src/core/settings/service.ts:549-565`:**
-```ts
-        savedRecord = await client.siteSettings.upsert({
-          where: { id: BigInt(1) },
-          create: payload,
-          update: payload,
-        });
-        dbConnected = true;
-        dbCheckCooldownUntil = 0;
-      } catch (dbError) {
-        if (env.nodeEnv === "production") {
-          throw dbError;
-        }
-        savedRecord = {
-          id: BigInt(1),
-          ...payload,
-          updatedAt: new Date(),
-        };
-      }
+- **সাবসিস্টেম:** Admin Reset Persistence & Public Contact Security
+- **লোকেশন ও সিম্বল:**
+  - `prisma/schema.prisma:162-173` (`PasswordResetToken` — কেবল `userId` রিলেশন)
+  - `src/core/auth/password-reset.ts:228-242, 341-348` (`getAdminResetTokenStore`)
+  - `src/core/contact/service.ts:98-122` (`csrfTokensStore`, `submissionsStore`, `getSecretKey`)
+- **প্রভাব:** সার্ভার রিস্টার্ট বা মাল্টি-ওয়ার্ক/মাল্টি-রেপ্লিকা ডিপ্লয়মেন্টে অ্যাডমিন রিসেট টোকেন, `/contact` CSRF টোকেন ও রেট-লিমিট কাউন্টার মুছে যায়। প্রোডাকশনে `AUTH_SECRET` ও `CONTACT_SECRET_KEY` না থাকলে (`CONTACT_SECRET_KEY` `env-schema.ts`-এ ডিক্লেয়ার্ডই নয়) র‍্যান্ডম `ephemeralProductionSecret` তৈরি হয়ে CSRF/IP হ্যাশ ইনভ্যালিড হয়।
+- **কোড প্রমাণ:**
+
+```prisma
+// prisma/schema.prisma:162-170
+model PasswordResetToken {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @unique @map("user_id")
+  tokenHash String   @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 ```
 
----
-
-### BUG-07 — Public Contact Inquiries Stored Only in Volatile RAM (No DB Persistence or Admin Inbox)
-- **Severity:** HIGH
-- **Area:** Public Contact Engine (`/src/core/contact/service.ts`, `/prisma/schema.prisma`)
-- **Impact:** Customer contact submissions (`full_name`, `work_email`, `company`, `phone`, `message`) are pushed only to an in-memory array `submissionsStore` and discarded from PostgreSQL (`recordAudit` omits every field containing the sender's name, email, company, phone, or message). No Prisma table or `/vcon` admin view exists to inspect inquiries, and `getSecretKey()` falls back to a hardcoded static HMAC string when `AUTH_SECRET` / `CONTACT_SECRET_KEY` are unset.
-
-**Verified Code Proof — `/src/core/contact/service.ts:70-78,409-441`:**
 ```ts
+// src/core/contact/service.ts:98-119
 const csrfTokensStore = new Map<string, CsrfTokenEntry>();
 const submissionsStore: SubmissionRateEntry[] = [];
+let ephemeralProductionSecret: string | null = null;
+let warnedEphemeralSecret = false;
 
 function getSecretKey(): string {
-  return (
-    env.authSecret ||
-    process.env.CONTACT_SECRET_KEY ||
-    "readbox-public-contact-default-hmac-secret-key-2026"
-  );
-}
-...
-  const requestId = randomBytes(16).toString("hex");
-  submissionsStore.push({
-    requestId,
-    ipHash,
-    emailHash,
-    createdAt: nowSeconds,
-    cleaned: options.cleaned,
-  });
-...
-      await recordAudit(client, {
-        actorId: null,
-        action: "public_contact_submitted",
-        targetType: "contact_inquiry",
-        targetIdentifier: requestId,
-        headers: options.headers,
-        details: {
-          service_type: options.cleaned.service_type,
-          service_label: SERVICE_LABELS[options.cleaned.service_type] ?? options.cleaned.service_type,
-          team_size: options.cleaned.team_size || "not_specified",
-          work_email_domain: options.cleaned.work_email.split("@")[1] ?? "",
-          has_company: Boolean(options.cleaned.company),
-          has_phone: Boolean(options.cleaned.phone),
-        },
-      });
-```
-
----
-
-### BUG-08 — Demo Workspace Bypasses Ownership, Delete Capabilities, Retention & Live Polling
-- **Severity:** MEDIUM
-- **Area:** Demo Workspace (`/src/core/messages/demo-workspace.ts`, `/src/app/(workspace)/users/inbox/*`)
-- **Impact:**
-  1. `resolveDemoCapabilities` hardcodes `canDeleteMessages: true` even when disabled in policy.
-  2. `createDemoMailbox` enforces `maxMailboxes` against global `store.mailboxes.length` instead of per-user count.
-  3. `listDemoMailboxMessages`, `getDemoMessageDetail`, `getDemoMessageHtml`, `getDemoAttachmentDownload`, `deleteDemoMailbox`, `bulkDeleteDemoMailboxes`, `markDemoMessageUnread`, and `softDeleteDemoMessage` skip user ownership/capability enforcement, and `getDemoMessageDetail` bypasses retention checks and hardcodes `canDeleteMessage: true`.
-  4. `pollDemoLivePayload` forces admin overview (`getDemoUserOverview(true)`), hardcodes `cursor: 100`, and always returns `messages: []`.
-  5. Both `/users/inbox/[mailboxUuid]/page.tsx` and `[messageUuid]/page.tsx` omit `user.isAdministrator` and `user.id` when calling demo helpers.
-
-**Verified Code Proof — `/src/core/messages/demo-workspace.ts:390,683-696,737,786,869-879,959-995`:**
-```ts
-// demo-workspace.ts:390
-  return {
-    canDeleteMessages: true,
-    canDeleteMailboxes: effective.canDeleteMailboxes,
-
-// demo-workspace.ts:683-696,737
-export function getDemoMessageDetail(
-  mailboxUuid: string,
-  messageUuid: string,
-): UserMessageDetail | null {
-...
-  msg.isRead = true;
-  const stats = computeMailboxStats(store, mailbox.uuid);
-...
-    canDeleteMessage: true,
-
-// demo-workspace.ts:786
-    const quotaCheck = canUserCreateMoreMailboxes(store.mailboxes.length, {
-
-// demo-workspace.ts:959-963,981-995
-export function pollDemoLivePayload(
-  mailboxUuids: readonly string[],
-): LiveUpdatePayload {
-  const store = getDemoStore();
-  const overview = getDemoUserOverview(true);
-...
-  return {
-    cursor: 100,
-    has_more: false,
-...
-    messages: [],
-  };
-```
-
-**Verified Code Proof — `/src/app/(workspace)/users/inbox/[mailboxUuid]/page.tsx:63-68` & `[messageUuid]/page.tsx:72,85`:**
-```tsx
-// [mailboxUuid]/page.tsx:63-68
-    : listDemoMailboxMessages(mailboxUuid, {
-        query: searchParams.q,
-        read: readParam,
-        attachments: searchParams.attachments,
-        page: Number(searchParams.page) || 1,
-      });
-
-// [messageUuid]/page.tsx:72,85
-    : getDemoMessageDetail(mailboxUuid, messageUuid);
-...
-    : listDemoMailboxMessages(mailboxUuid, filters);
-```
-
----
-
-### BUG-09 — Setup / Installer Execution Framework Completely Orphaned
-- **Severity:** MEDIUM
-- **Area:** Setup & Provisioning (`/src/core/setup/trusted-operations.ts`)
-- **Impact:** `defineInstallerOperation` and `createTrustedOperationRunner` exist solely as unused core modules with zero API routes, CLI entrypoints, or UI workflows wired to them.
-
-**Verified Code Proof — `/src/core/setup/trusted-operations.ts:45-79`:**
-```ts
-export function defineInstallerOperation<TInput>(
-  definition: InstallerOperationDefinition<TInput>,
-): RegisteredInstallerOperation {
-...
-export function createTrustedOperationRunner(
-  definitions: readonly RegisteredInstallerOperation[],
-  authorize?: TrustedOperationAuthorizer,
-): {
-  run(operationId: string, input: unknown): Promise<InstallerOperationResult>;
-} {
-```
-*(No route under `/src/app/` or caller outside `/src/core/setup/` invokes `createTrustedOperationRunner`.)*
-
----
-
-### BUG-10 — Production Sessions Never Record `ipAddress`, `userAgent`, or `lastSeenAt`
-- **Severity:** CRITICAL
-- **Area:** Authentication & Session Security (`/src/auth.ts`, `/src/core/auth/session-registry.ts`, `/src/core/accounts/user-profile.ts`)
-- **Impact:** Unlike Demo Mode (which synthesizes `"Local demo browser"`), production `registerAppSession` inserts sessions without `ipAddress` or `userAgent`, and `getActiveAppSession` never updates `lastSeenAt`. All production active sessions in User Settings display `"Unknown device"`, `ipAddress: null`, and `lastSeenAt: null`.
-
-**Verified Code Proof — `/src/auth.ts:137-143`:**
-```ts
-          registered = devDemoActive
-            ? registerDevDemoSession(env.nodeEnv, user.id, sessionId)
-            : await registerAppSession(
-                getPrismaClient(),
-                user.id,
-                sessionId,
-                expiresAt,
-                { authSource },
-              );
-```
-
-**Verified Code Proof — `/src/core/auth/session-registry.ts:33-57` & `/src/core/accounts/user-profile.ts:347-355`:**
-```ts
-// session-registry.ts:33-39,50-56
-      await transaction.adminSession.create({
-        data: {
-          adminId: id,
-          tokenHash: hashOpaqueToken(sessionId),
-          expiresAt,
-        },
-      });
-...
-    await transaction.appSession.create({
-      data: {
-        userId: id,
-        tokenHash: hashOpaqueToken(sessionId),
-        expiresAt,
-      },
-    });
-
-// user-profile.ts:347-355
-      activeSessions: sessions.map((session) => ({
-        id: session.id.toString(),
-        label: formatUserAgentSummary(session.userAgent),
-        ipAddress: session.ipAddress ?? null,
-        createdAt: session.createdAt.toISOString(),
-        lastSeenAt: session.lastSeenAt ? session.lastSeenAt.toISOString() : null,
-        expiresAt: session.expiresAt.toISOString(),
-        isCurrent: Boolean(currentHash && session.tokenHash === currentHash),
-      })),
-```
-
----
-
-### BUG-11 — Password Reset Lacks Self-Service Request Flow, Ignores Dynamic Policy, Excludes Admins & Demo Mode
-- **Severity:** HIGH
-- **Area:** Password Reset (`/src/core/auth/password-reset.ts`, `/src/components/auth/password-reset-form.tsx`)
-- **Impact:**
-  1. No self-service "Forgot password" request flow or email/token generator exists—users cannot initiate a reset without an admin manually issuing a token out-of-band.
-  2. `completePasswordReset` enforces hardcoded `MIN_PASSWORD_LENGTH` (`15`) and ignores `UserControlSettings.minPasswordLength` / `requireStrongPassword`.
-  3. Form hardcodes HTML `minLength={15}` and does not prefill `?token=` query parameters.
-  4. Excludes `AdminAccount` rows, writes zero `AuditLog` entries, and has no Demo Mode implementation.
-
-**Verified Code Proof — `/src/core/auth/password-reset.ts:17-20,51-95` & `/src/components/auth/password-reset-form.tsx:48-80`:**
-```ts
-// password-reset.ts:17-20,57-64,86-93
-const newPasswordSchema = z
-  .string()
-  .min(MIN_PASSWORD_LENGTH)
-  .max(MAX_PASSWORD_LENGTH);
-...
-  const parsedPassword = newPasswordSchema.safeParse(newPassword);
-...
-    await transaction.user.update({
-      where: { id: resetToken.userId },
-      data: { passwordHash, passwordResetRequired: false },
-    });
-    await transaction.appSession.deleteMany({
-      where: { userId: resetToken.userId },
-    });
-    return true;
-```
-```tsx
-// password-reset-form.tsx:49-67
-        <Input
-          autoComplete="off"
-          id="reset-token"
-          maxLength={43}
-          name="token"
-          required
-          spellCheck={false}
-        />
-...
-        <Input
-          autoComplete="new-password"
-          id="new-password"
-          maxLength={128}
-          minLength={15}
-          name="password"
-          required
-          type="password"
-        />
-```
-
----
-
-### BUG-12 — `autoProvisionStarterMailbox` Policy Toggle Is Completely Unimplemented
-- **Severity:** HIGH
-- **Area:** Self-Service Registration & Mailbox Provisioning (`/src/core/auth/sign-up.ts`, `/prisma/schema.prisma`)
-- **Impact:** Enabling `autoProvisionStarterMailbox` in Admin User Control persists the flag, but neither immediate-verified signups nor admin-approved pending signups ever create a starter mailbox or `MailboxMembership`.
-
-**Verified Code Proof — `/prisma/schema.prisma:134` & `/src/core/auth/sign-up.ts:304-357,410-433`:**
-```ts
-// sign-up.ts:304-357 (creates user, userAccessPolicy, and auditLog — zero mailbox creation)
-    const created = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({ ... });
-      await tx.userAccessPolicy.create({ ... });
-      if ("auditLog" in tx && tx.auditLog) {
-        await recordAudit(tx as unknown as AuditWriteClient, { ... });
-      }
-      return user;
-    });
-
-// sign-up.ts:410-433 (admin approval updates user.verificationStatus & isActive — zero mailbox creation)
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          verificationStatus: decision,
-          isActive: decision === "verified",
-        },
-      });
-```
-
----
-
-### BUG-13 — Managed User Username Collisions Across `admin_accounts` & Legacy Operator Bootstrap
-- **Severity:** HIGH
-- **Area:** Account Management & Bootstrap (`/src/core/accounts/users.ts`, `/src/core/auth/operator-bootstrap.ts`)
-- **Impact:**
-  1. `createManagedUser` and `updateManagedUser` only check `prisma.user` for duplicate usernames, permitting a regular user to share the same username as an `AdminAccount` (ambiguous login namespace).
-  2. `bootstrapInitialAccount` still creates a legacy `User` + `AdministratorProfile` instead of an `AdminAccount` in `admin_accounts`.
-
-**Verified Code Proof — `/src/core/accounts/users.ts:389-400,601-615`:**
-```ts
-// users.ts:389-393
-    const existingUsername = await prisma.user.findFirst({
-      where: { username: { equals: data.username, mode: "insensitive" } },
-      select: { id: true },
-    });
-    if (existingUsername) {
-
-// users.ts:601-608
-    const duplicateUsername = await prisma.user.findFirst({
-      where: {
-        username: { equals: data.username, mode: "insensitive" },
-        id: { not: userId },
-      },
-      select: { id: true },
-    });
-```
-
-**Verified Code Proof — `/src/core/auth/operator-bootstrap.ts:43-65`:**
-```ts
-    if ((await transaction.user.count()) !== 0) return null;
-
-    const user = await transaction.user.create({
-      data: {
-        username,
-        firstName: parsedInput.data.firstName,
-        lastName: parsedInput.data.lastName,
-        email: parsedInput.data.email.toLowerCase(),
-        passwordHash,
-        passwordResetRequired: true,
-        isActive: true,
-      },
-      select: { id: true },
-    });
-
-    await transaction.administratorProfile.create({
-      data: { userId: user.id, isSuperuser: true },
-    });
-```
-
----
-
-### BUG-14 — Demo Dynamic Users Ignore Profile Overrides & Skip Approval Audit Events
-- **Severity:** MEDIUM
-- **Area:** Demo Authentication Store (`/src/core/auth/dev-demo-auth.ts`)
-- **Impact:** Profile updates made by dynamically signed-up demo users are not reflected in admin snapshots (`listDevDemoDynamicUsers`), and approving/rejecting pending demo users creates no security event (`appendDemoSecurityEvent`).
-
-**Verified Code Proof — `/src/core/auth/dev-demo-auth.ts:300-317`:**
-```ts
-export function listDevDemoDynamicUsers(): DevDemoAccount[] {
-  return Array.from(getDynamicUserStore().values());
-}
-
-export function updateDevDemoDynamicUserStatus(
-  userId: string,
-  status: "verified" | "rejected",
-): DevDemoAccount | null {
-  const existing = getDynamicUserStore().get(userId);
-  if (!existing) return null;
-  const updated: DevDemoAccount = {
-    ...existing,
-    isActive: status === "verified",
-    verificationStatus: status,
-  };
-  getDynamicUserStore().set(userId, updated);
-  return updated;
-}
-```
-
----
-
-### BUG-15 — Administrators Visiting `/users/*` Get Management Sidebar & Break `Add mailbox` Modal Trigger
-- **Severity:** HIGH
-- **Area:** Workspace Navigation & Shell (`/src/components/layout/app-shell.tsx`, `/src/components/users/users-workspace-shell.tsx`)
-- **Impact:** `AppShell` checks only `isAdministrator` (`:307`) rather than `isAdministrator && isAdminRoute`, so admins opening `/users` or `/users/inbox/*` see only the `/vcon` Management sidebar—losing the User sidebar links, Inboxes quick-switch list, and the `+ Add mailbox` button that dispatches `readbox:open-create-mailbox`.
-
-**Verified Code Proof — `/src/components/layout/app-shell.tsx:140-141,307,418-436`:**
-```tsx
-  const isAdministrator = user?.isAdministrator === true;
-  const isAdminRoute = pathname.startsWith("/vcon");
-...
-          {isAdministrator ? (
-            <>
-              <div className="px-3 pb-1.5 pt-3">
-                <CaptionText className="font-medium text-sidebar-muted">
-                  Management
-                </CaptionText>
-              </div>
-...
-              {!isAdminRoute ? (
-                <div className="px-2 pt-2">
-                  <Button
-...
-                    onClick={() => {
-                      closeMobileNavigation();
-                      window.dispatchEvent(
-                        new CustomEvent("readbox:open-create-mailbox"),
-                      );
-                    }}
-                  >
-                    <Icon glyph={Plus} />
-                    <span>Add mailbox</span>
-                  </Button>
-                </div>
-              ) : null}
-```
-
----
-
-### BUG-16 — Admin Accounts Have Zero Self-Service Profile, Password Change, or Session Management UI
-- **Severity:** HIGH
-- **Area:** User & Admin Account Settings (`/src/core/accounts/user-profile.ts`, `/src/app/(workspace)/users/settings/page.tsx`)
-- **Impact:** `admin_table` admins have `editable: false` and `canManageSecurity: false` in `/users/settings`, and `/vcon/*` provides zero self-settings pages for profile updates, password rotation, or session revocation. Moreover, `users/settings/page.tsx:50` initializes `editable: !user.isAdministrator && user.authSource === "user_table"` while `getUserProfile` (`user-profile.ts:140`) sets `editable: true` for `user_table` accounts.
-
-**Verified Code Proof — `/src/core/accounts/user-profile.ts:100-103,140,170-176,284-291` & `/src/app/(workspace)/users/settings/page.tsx:50`:**
-```ts
-// user-profile.ts:100-103
-          isAdministrator: true,
-          authSource: "admin_table",
-          editable: false,
-...
-// user-profile.ts:140
-        editable: true,
-...
-// user-profile.ts:170-176
-  if (actor.authSource === "admin_table") {
-    return {
-      ok: false,
-      code: "admin_protected",
-      error: "Administrator accounts cannot update personal profile fields here.",
-    };
+  const configured =
+    env.authSecret?.trim() || process.env.CONTACT_SECRET_KEY?.trim();
+  if (configured) {
+    return configured;
   }
-...
-// user-profile.ts:284-291
-  if (actor.authSource === "admin_table" || actor.userId <= BigInt(0)) {
-    return {
-      passwordPolicy,
-      activeSessions: [],
-      recentEvents: [],
-      canManageSecurity: false,
-    };
-  }
-```
-```tsx
-// users/settings/page.tsx:50
-    editable: !user.isAdministrator && user.authSource === "user_table",
-```
-
----
-
-### BUG-17 — Stale Client State, 25-Mailbox Sidebar Cap & Silent DB Catch Blocks in `/users/*`
-- **Severity:** MEDIUM
-- **Area:** User Workspace Components & Layouts (`/src/components/users/*`, `/src/app/(workspace)/users/*`)
-- **Impact:**
-  1. `MailboxInboxView` initializes `liveCounts` with `useState` and never resets it when navigating between mailboxes (`mailbox.uuid` / props change).
-  2. `CreateUserMailboxModal` initializes `domainUuid` with `useState` and never syncs if `domains` updates.
-  3. `/users/layout.tsx` queries `{ page: 1 }` only (capped at 25 mailboxes), hiding mailbox 26+ from the sidebar and live-poll list.
-  4. DB errors in `/users/layout.tsx` (and sibling `/users` pages) are silently caught and converted to `unconfigured` fallbacks without error logging.
-
-**Verified Code Proof — `/src/components/users/mailbox-inbox-view.tsx:72-80`, `/src/components/users/create-user-mailbox-modal.tsx:68`, `/src/app/(workspace)/users/layout.tsx:31-46`:**
-```tsx
-// mailbox-inbox-view.tsx:72-80
-  const [liveCounts, setLiveCounts] = useState<{
-    totalMessages: number;
-    unreadMessages: number;
-    status: string;
-  }>({
-    totalMessages: mailbox.totalMessages,
-    unreadMessages: mailbox.unreadMessages,
-    status: mailbox.status,
-  });
-
-// create-user-mailbox-modal.tsx:68
-  const [domainUuid, setDomainUuid] = useState(defaultDomain?.uuid ?? "");
-
-// users/layout.tsx:33-46
-      listResult = await listUserMailboxes(
-        getPrismaClient(),
-        {
-          userId,
-          username: user.username,
-          isAdministrator: user.isAdministrator,
-        },
-        { page: 1 },
-      );
-    } catch {
-      listResult = createUnconfiguredUserMailboxList({
-        isAdministrator: user.isAdministrator,
-      });
+  if (env.nodeEnv === "production") {
+    if (!ephemeralProductionSecret) {
+      ephemeralProductionSecret = randomBytes(32).toString("hex");
     }
 ```
 
 ---
 
-### BUG-18 — `pollLiveMessagesForUser` Ignores Retention Policy & Misses Cross-Tab Read/Delete Updates
-- **Severity:** MEDIUM
-- **Area:** Live Updates Engine (`/src/core/messages/service.ts`)
-- **Impact:** `pollLiveMessagesForUser` never calls `resolveActorCapabilities` / `resolveActorRetentionCutoff`, summing raw `mailbox.totalMessages` and `unreadMessages` (including expired/hidden messages) and returning new messages strictly with `id > requestedCursor`, failing to push cross-tab read/unread/delete state transitions.
+### `FA-003` [HIGH] — HTML ইমেল রিডার `<iframe sandbox>` ও `SAFE_HTML_CSP_POLICY` বাইপাস করে মূল DOM-এ ইনজেক্ট করে
 
-**Verified Code Proof — `/src/core/messages/service.ts:1599-1607,1622-1623,1643-1666,1742-1755`:**
-```ts
-export async function pollLiveMessagesForUser(
-  prisma: Pick<PrismaClient, "mailbox" | "message">,
-  actor: Pick<UserWorkspaceActor, "userId" | "isAdministrator">,
-  input: {
-    readonly bootstrap?: boolean;
-    readonly cursor?: number | bigint;
-    readonly mailboxUuids?: readonly string[];
-  } = {},
-): Promise<LiveUpdatePayload> {
-...
-  const mailboxWhere = buildAccessibleMailboxWhere(actor);
-  const messageWhere = buildAccessibleMessageWhere(actor);
-...
-    prisma.mailbox.aggregate({
-      where: mailboxWhere,
-      _sum: {
-        totalMessages: true,
-        unreadMessages: true,
-      },
-      _max: {
-        lastReceivedAt: true,
-      },
-    }),
-...
-    const rows = await prisma.message.findMany({
-      where: {
-        ...messageWhere,
-        id: { gt: requestedCursor },
-      },
-```
+- **সাবসিস্টেম:** User Workspace / Sandboxed Reader
+- **লোকেশন ও সিম্বল:**
+  - `src/app/api/messages/html/[messageUuid]/route.ts:74-83`
+  - `src/core/messages/service.ts:1404` (`getMessageDetailForUser`)
+  - `src/components/users/message-reader-view.tsx:298-388, 798-805`
+- **প্রভাব:** যদিও API রুট `SAFE_HTML_CSP_POLICY` সহ ডকুমেন্ট রিটার্ন করে, `MessageReaderView` কোনোরকম `<iframe sandbox>` রেন্ডার করে না; বরং RSC পেলোডের `message.htmlBody` (`service.ts:1404`) অথবা fetch-করা HTML থেকে regex-এ CSS স্কোপ করে `dangerouslySetInnerHTML={{ __html: scopedHtml }}` দিয়ে অথেনটিকেটেড প্যারেন্ট DOM-এর ভেতরেই HTML বসিয়ে দেয়। ফলে ইমেইলের CSS/DOM ওভারলে সরাসরি ReadBox অ্যাপের সেশন পেজে প্রভাব ফেলতে পারে।
+- **কোড প্রমাণ:**
 
----
-
-### BUG-19 — Message Reader Strips Inline `cid:` Images & Prints Full AppShell Chrome
-- **Severity:** MEDIUM
-- **Area:** Email HTML Sanitizer & Message Reader (`/src/core/ingestion/sanitizer.ts`, `/src/components/users/message-reader-view.tsx`)
-- **Impact:**
-  1. Ingestion stores inline `cid:` attachments (`isInline`, `contentId`), yet `sanitizer.ts` removes every `<img>` whose `src` does not match `data:image/(png|jpeg|gif|webp);base64,...`, breaking inline newsletter/signature images.
-  2. Clicking Print calls `window.print()` directly without print CSS isolation, printing the entire sidebar, header, and message list alongside the email.
-
-**Verified Code Proof — `/src/core/ingestion/sanitizer.ts:612-615,648-651` & `/src/components/users/message-reader-view.tsx:417-421`:**
-```ts
-// sanitizer.ts:612-615,648-651
-    allowedSchemesByTag: {
-      a: ["http", "https", "mailto"],
-      img: ["data"],
-    },
-...
-    exclusiveFilter: (frame) => {
-      if (frame.tag === "img") {
-        return !isSafeRasterDataImageUri(frame.attribs.src);
-      }
-```
 ```tsx
-// message-reader-view.tsx:417-421
-  function handlePrintMessage() {
-    if (typeof window !== "undefined" && typeof window.print === "function") {
-      window.print();
-    }
-  }
+// src/components/users/message-reader-view.tsx:798-805
+          {scopedHtml ? (
+            <div
+              className={cn(
+                "readbox-mail-body readbox-scrollable max-w-full overflow-x-auto",
+                scopeClass,
+              )}
+              dangerouslySetInnerHTML={{ __html: scopedHtml }}
+            />
+```
+
+```ts
+// src/core/messages/service.ts:1404
+    textBody: message.textBody,
+    htmlBody: resolvedHtmlBody,
+    hasHtmlBody: resolvedHtmlBody.trim().length > 0,
 ```
 
 ---
 
-### BUG-20 — `autoDeleteEnabled` / `autoDeleteDays` Retention Is Read-Filter-Only (No Purge Worker & Skewed Counters)
-- **Severity:** HIGH
-- **Area:** Data Retention Engine (`/src/core/messages/service.ts`, `/src/core/accounts/user-control-policy.ts`)
-- **Impact:** Enabling `autoDeleteEnabled` / `autoDeleteDays` only hides aged messages inside list/detail queries. No background job or purge routine deletes expired DB rows, stored attachments, or Maildir files; `mailbox.totalMessages` and `unreadMessages` counters stay inflated; and Prisma filters `{ receivedAt: { gte: retentionCutoff } }` drop `receivedAt = null` rows in SQL before the JS fallback filter (`!msg.receivedAt || ...`) can see them.
+### `FA-004` [HIGH] — Docker/Coolify স্ট্যাকে ইনজেশন ওয়ার্কার, `ingest.ts` ও Postfix/Dovecot ইনফ্রা অনুপস্থিত
 
-**Verified Code Proof — `/src/core/messages/service.ts:470-478,544-545,563-567`:**
-```ts
-  const retentionCutoff = resolveActorRetentionCutoff(
-    capabilities,
-    actor.isAdministrator,
-  );
-  const mailboxWhere = buildAccessibleMailboxWhere(actor);
-  const messageWhere = buildAccessibleMessageWhere(
-    actor,
-    retentionCutoff ? { receivedAt: { gte: retentionCutoff } } : {},
-  );
-...
-        totalMessages: true,
-        unreadMessages: true,
-...
-  const recentMessages = retentionCutoff
-    ? recentMessagesRaw.filter(
-        (msg) => !msg.receivedAt || msg.receivedAt >= retentionCutoff,
-      )
-    : recentMessagesRaw;
+- **সাবসিস্টেম:** Docker / Coolify Deployment & Mail Ingestion
+- **লোকেশন ও সিম্বল:**
+  - `Dockerfile:53-75`
+  - `docker-compose.yml:1-106`
+- **প্রভাব:** `docker-compose.yml`-এ শুধুমাত্র `postgres` এবং `web` (`node server.js`) সার্ভিস রয়েছে। কোনো ব্যাকগ্রাউন্ড Maildir ইনজেশন কন্টেইনার, রিটেনশন ক্রন বা Postfix/Dovecot কন্টেইনার নেই। এমনকি `Dockerfile` প্রোডাকশন `runner` ইমেজে `scripts/mail/ingest.ts` বা `tsx` প্যাকেজ কপিই করে না — তাই কন্টেইনারের ভেতর থেকে `npm run mail:ingest` ম্যানুয়ালি চালানোও সম্ভব নয়।
+- **কোড প্রমাণ:**
+
+```dockerfile
+# Dockerfile:54-61
+COPY --from=migrator --chown=nextjs:nodejs /migrator/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
+```
+
+```yaml
+# docker-compose.yml:1-24 (শুধুমাত্র postgres ও web সার্ভিস সংজ্ঞায়িত)
+services:
+  postgres:
+    image: postgres:16.14-alpine
+# ...
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
 ```
 
 ---
 
-### BUG-21 — System Updater Default Script Path Mismatch & Legacy `vibmail` Infrastructure Hardcodes
-- **Severity:** CRITICAL
-- **Area:** System Updater & Operations Scripts (`/src/config/env-schema.ts`, `/src/core/updates/service.ts`, `/scripts/updater/*`, `/scripts/ops/backup.sh`)
-- **Impact:**
-  1. `env-schema.ts` defaults `UPDATE_SCRIPT_PATH` to `/opt/vibmail/app/scripts/upgrade.sh` (missing `/updater/`), while the real script and `update_worker.py` use `/opt/vibmail/app/scripts/updater/upgrade.sh`—blocking preflight with `"upgrade script executable"` failure.
-  2. `updates/service.ts`, `upgrade.sh`, and `backup.sh` hardcode legacy `vibmail` paths and systemd unit names (`/opt/vibmail/app`, `/etc/vibmail/vibmail.env`, `/var/backups/vibmail`, `vibmail-web.service`, `vibmail-ingestion.service`, `/etc/nginx/sites-available/vibmail-app.conf`, `/etc/dovecot/conf.d/99-vibmail.conf`).
-  3. `queueUpdateRequest` calls `recordAudit` with raw `options?.actorId` (also subject to `BUG-02`).
+### `FA-005` [HIGH] — সিস্টেম আপডেট ইঞ্জিন, `env-schema` ও অপস স্ক্রিপ্ট `systemd` + পুরনো `vibmail` পাথে হার্ডকোড করা
 
-**Verified Code Proof — `/src/config/env-schema.ts:199-210`, `/scripts/updater/update_worker.py:17-23`, `/src/core/updates/service.ts:328-332,420-428,657-659`, `/scripts/updater/upgrade.sh:59-63,112,130`:**
+- **সাবসিস্টেম:** System Update Engine (`/vcon/system-update`), Ops Scripts & Env Config
+- **লোকেশন ও সিম্বল:**
+  - `src/core/updates/service.ts:430-518` (`runUpdatePreflight`)
+  - `src/config/env-schema.ts:111, 121, 131, 201, 205, 213`
+  - `scripts/ops/restore.sh:45, 69, 94-95`
+  - `scripts/updater/update_worker.py:44-54`
+- **প্রভাব:** Docker/Coolify কন্টেইনারে `systemctl`, `nginx`, `postfix`, `doveconf`, `rsync`, `pg_dump`, `/etc/systemd/system/*.service` ও `vmail` ইউজার না থাকায় `runUpdatePreflight` সবসময় `blocked` থাকে। পাশাপাশি `restore.sh` এখনো `vibmail-ingestion`, `vibmail-web` ও `/etc/vibmail/vibmail.env` হার্ডকোড করে রেখেছে এবং `update_worker.py` `vmail` ইউজারের UID খোঁজে (কন্টেইনারে ইউজার হলো `nextjs`)।
+- **কোড প্রমাণ:**
+
 ```ts
-// env-schema.ts:199-210
-    UPDATE_RUNTIME_DIR: z.preprocess(
-      emptyToUndefined,
-      z.string().trim().min(1).default("/run/vibmail"),
-    ),
-    UPDATE_SERVICE_NAME: z.preprocess(
-      emptyToUndefined,
-      z.string().trim().min(1).default("vibmail-updater.service"),
-    ),
-    UPDATE_SCRIPT_PATH: z.preprocess(
-      emptyToUndefined,
-      z.string().trim().min(1).default("/opt/vibmail/app/scripts/upgrade.sh"),
-    ),
+// src/core/updates/service.ts:430-473
+  const requiredCommands = [
+    "node", "flock", "rsync", "tar", "sha256sum", "systemctl",
+    "curl", "nginx", "postfix", "realpath", "readlink", "doveconf", "pg_dump",
+  ] as const;
+// ...
+  const requiredServices = [
+    normalizedUnitName, "postgresql.service", "postfix.service",
+    "dovecot.service", "nginx.service", webServiceName, ingestionServiceName,
+  ] as const;
 ```
-```python
-# scripts/updater/update_worker.py:17-23
-RUNTIME_DIR = Path(os.environ.get("UPDATE_RUNTIME_DIR", "/run/vibmail"))
-...
-UPGRADE_SCRIPT = Path(
-    os.environ.get("UPDATE_SCRIPT_PATH", "/opt/vibmail/app/scripts/updater/upgrade.sh")
-)
-```
-```ts
-// updates/service.ts:328-332,425-427
-  const upgradeScriptPath = options?.upgradeScriptPath ?? env.updateScriptPath;
-  const appRoot = options?.appRoot ?? "/opt/vibmail/app";
-  const envFilePath = options?.envFilePath ?? "/etc/vibmail/vibmail.env";
-  const backupRoot = options?.backupRoot ?? "/var/backups/vibmail";
-  const systemdUnitDir = options?.systemdUnitDir ?? "/etc/systemd/system";
-...
-    "nginx.service",
-    "vibmail-web.service",
-    "vibmail-ingestion.service",
-```
+
 ```bash
-# scripts/updater/upgrade.sh:59-63,112,130
-APP_ROOT=${APP_ROOT:-/opt/vibmail/app}
+# scripts/ops/restore.sh:45, 69, 94-95
+SERVICES=(postfix dovecot vibmail-ingestion vibmail-web)
+# ...
 ENV_FILE=${VIBMAIL_ENV_FILE:-/etc/vibmail/vibmail.env}
-LOCK_FILE=${UPGRADE_LOCK_FILE:-/run/vibmail/vibmail-upgrade.lock}
-UPGRADE_ROOT=${UPGRADE_ROOT:-/var/backups/vibmail/upgrades}
-STAGING_ROOT=${STAGING_ROOT:-/opt/vibmail-upgrades}
-...
-systemctl stop vibmail-ingestion.service vibmail-web.service
-...
-systemctl start vibmail-web.service vibmail-ingestion.service
+# ...
+chown root:vmail /etc/vibmail/vibmail.env
+chmod 0640 /etc/vibmail/vibmail.env
 ```
+
+```python
+# scripts/updater/update_worker.py:44-52
+def valid_request_file(request_path: Path = REQUEST_PATH) -> bool:
+    try:
+        request_stat = request_path.lstat()
+        vmail_uid = pwd.getpwnam("vmail").pw_uid
+        return (
+            stat.S_ISREG(request_stat.st_mode)
+            and request_stat.st_uid == vmail_uid
+```
+
+---
+
+### `FA-006` [HIGH] — রিটেনশন পলিসি ইনহেরিটেন্স বাগ এবং অসংযুক্ত `runRetentionPurge` ইঞ্জিন
+
+- **সাবসিস্টেম:** Users Control Governance & Operations Retention Engine
+- **লোকেশন ও সিম্বল:**
+  - `prisma/schema.prisma:103-112` (`UserAccessPolicy`)
+  - `src/core/accounts/users.ts:464-470, 719-730` (`createManagedUser`, `updateManagedUser`)
+  - `src/core/accounts/user-control-policy.ts:364-397` (`resolveEffectiveUserPolicy`)
+  - `src/core/operations/service.ts:962` (`runRetentionPurge` — শূন্য কলার)
+  - `src/core/messages/service.ts:2015-2159` (`purgeExpiredMessagesForRetention`)
+- **প্রভাব:**
+  1. `/vcon/users` থেকে ইউজার তৈরি/এডিট করার সময় `tx.userAccessPolicy.create/upsert`-এ শুধু `canDeleteMessages` ও `canDeleteMailboxes` পাঠানো হয়; ফলে স্কিমার কংক্রিট ডিফল্ট (`autoDeleteEnabled: false, maxMailboxes: 3, canCreateMailboxes: true`) ডাটাবেসে সেভ হয়ে যায়। এরপর `resolveEffectiveUserPolicy` `userPolicy?.autoDeleteEnabled !== undefined` চেক করে সেই `false` মানকেই গ্রহণ করে — অর্থাৎ গ্লোবাল `UserControlSettings`-এর অটো-ডিলেট পলিসি নীরবে উপেক্ষিত হয়।
+  2. `runRetentionPurge` ফাংশনটি `src/app/(workspace)/vcon/operations/actions.ts`, `workers/ingestion.ts` বা কোনো ক্রনের সাথে সংযুক্তই নয়; ফলে পুরনো মেসেজ ডিস্ক/ডাটাবেস থেকে পার্জ হয় না এবং পার্জ লজিক প্রতি মেইলবক্সের সব মেসেজ মেমরিতে লোড করে লুপ চালিয়ে `prisma.message.update` করে (অ্যাটাচমেন্ট বা Maildir ফাইল মুছে না)।
+- **কোড প্রমাণ:**
+
+```ts
+// src/core/accounts/user-control-policy.ts:377-380
+  const autoDeleteEnabled =
+    userPolicy?.autoDeleteEnabled !== undefined
+      ? normalized.autoDeleteEnabled
+      : globalSettings.autoDeleteEnabled;
+```
+
+```ts
+// src/core/accounts/users.ts:464-470
+      await tx.userAccessPolicy.create({
+        data: {
+          userId: user.id,
+          canDeleteMessages: data.canDeleteMessages,
+          canDeleteMailboxes: data.canDeleteMailboxes,
+        },
+      });
+```
+
+---
+
+### `FA-007` [MEDIUM] — প্রোডাকশনে DB এরর লুকিয়ে মক/ডেমো ডেটা রিটার্ন করার ফলব্যাক
+
+- **সাবসিস্টেম:** Database Layer & Control Fallbacks
+- **লোকেশন ও সিম্বল:**
+  - `src/core/database/client.ts:42-59` (`getPrismaClient`)
+  - `src/app/sign-up/actions.ts:17-20` (`registerUserSignupAction`)
+  - `src/core/accounts/user-control-policy.ts:500-532, 910-954`
+  - `src/core/settings/service.ts:386-396`
+- **প্রভাব:** প্রোডাকশনে PostgreSQL সংযোগ বিচ্ছিন্ন বা ভুল থাকলে সত্যিকারের ব্যর্থতা না দেখিয়ে নীরবে মক ক্লায়েন্ট অথবা হার্ডকোডেড ডেমো ডোমেইন/অ্যাকাউন্ট (`readbox.local`, `teambox.dev`, `demo.user`) পরিবেশিত হয়।
+- **কোড প্রমাণ:**
+
+```ts
+// src/core/database/client.ts:42-56
+export function getPrismaClient(): PrismaClient {
+  if (!env.databaseUrl) {
+    console.warn("[AI Studio] Database not connected — using mock");
+    return createMockPrismaClient();
+  }
+
+  if (!globalForPrisma.mailstackPrisma) {
+    try {
+      const adapter = new PrismaPg({ connectionString: env.databaseUrl });
+      globalForPrisma.mailstackPrisma = new PrismaClient({ adapter });
+    } catch {
+      console.warn("[AI Studio] Database not connected — using mock");
+      return createMockPrismaClient();
+    }
+  }
+```
+
+```ts
+// src/app/sign-up/actions.ts:17-20
+  const devDemoActive =
+    !env.databaseUrl ||
+    (env.nodeEnv === "development" && env.devAuthMode === "demo");
+```
+
+---
+
+### `FA-008` [MEDIUM] — `/contact` ইনকোয়ারি `audit_logs`-এ সেভ হলেও কোনো অ্যাডমিন UI নেই
+
+- **সাবসিস্টেম:** Public Contact & Admin Console
+- **লোকেশন ও সিম্বল:** `src/core/contact/service.ts:465-491, 526-605` (`submitContactInquiry`, `listContactSubmissions`)
+- **প্রভাব:** ভিজিটররা `/contact` ফর্ম সাবমিট করলে তা `audit_logs`-এ (`action: "public_contact_submitted"`, `targetType: "contact_inquiry"`) সেভ হয়, কিন্তু `listContactSubmissions()` পুরো কোডবেজে কোথাও ইমপোর্ট বা কল করা হয়নি (`grep` দ্বারা যাচাইকৃত)। অ্যাডমিনের ইনকোয়ারি দেখার বা রিপ্লাই দেওয়ার কোনো আলাদা ইনবক্স/UI নেই।
+- **কোড প্রমাণ:**
+
+```ts
+// src/core/contact/service.ts:526-547 (পুরো src/ ও scripts/-এ কোনো কলার নেই)
+export async function listContactSubmissions(options?: {
+  readonly prisma?: ContactInquiryReadClient | null;
+  readonly limit?: number;
+}): Promise<readonly PersistedContactSubmissionItem[]> {
+```
+
+---
+
+### `FA-009` [MEDIUM] — `admin_accounts` অডিট `targetType` অমিল ও `authSource` ফরওয়ার্ডিং গ্যাপ
+
+- **সাবসিস্টেম:** Admin Security Audit, API Routes & Workspace Attribution
+- **লোকেশন ও সিম্বল:**
+  - `src/core/auth/credentials.ts:182` (`targetType: "admin_account"`)
+  - `src/core/auth/password-reset.ts:250, 376` (`targetType: "user"`)
+  - `src/core/accounts/user-profile.ts:405-419` (`targetType: "admin"`)
+  - `src/app/api/messages/attachment/[attachmentUuid]/route.ts:69-77` ও `src/app/api/messages/html/[messageUuid]/route.ts:46-54`
+- **প্রভাব:**
+  1. অ্যাডমিন লগইন ইভেন্ট লগ হয় `targetType: "admin_account"` হিসেবে, অ্যাডমিন পাসওয়ার্ড রিসেট লগ হয় `targetType: "user"` হিসেবে, অথচ সিকিউরিটি সেটিংস (`getUserSecuritySnapshot`) কোয়েরি করে শুধু `targetType: "admin"` — ফলে অ্যাডমিনের নিজস্ব সিকিউরিটি অ্যাক্টিভিটি লগে লগইন ও রিসেট ইভেন্ট মিসিং থাকে।
+  2. মেসেজ HTML ও অ্যাটাচমেন্ট ডাউনলোড API রুটগুলোতে `authSource: user.authSource` পাস করা হয়নি; ফলে `admin_table` অ্যাডমিন (যার `admin_accounts.id` ও `users.id` কাকতালীয়ভাবে একই হতে পারে, যেমন `1`) অডিট লগে ভুল `User` হিসেবে অ্যাট্রিবিউট হতে পারে।
+- **কোড প্রমাণ:**
+
+```ts
+// src/core/accounts/user-profile.ts:405-410
+        prisma.auditLog.findMany({
+          where: {
+            action: { in: [...USER_SECURITY_AUDIT_ACTIONS] },
+            targetType: "admin",
+            ...(actor.username ? { targetIdentifier: actor.username } : {}),
+          },
+```
+
+```ts
+// src/app/api/messages/attachment/[attachmentUuid]/route.ts:71-77 (authSource অনুপস্থিত)
+      {
+        userId,
+        username: user.username,
+        isAdministrator: user.isAdministrator,
+        headers: request.headers,
+        trustProxyHeaders: env.trustProxyHeaders,
+      },
+```
+
+---
+
+### `FA-010` [MEDIUM] — স্টার্টার মেইলবক্স ফলব্যাক Postfix/Mailserver কন্ট্র্যাক্ট ভঙ্গ করে
+
+- **সাবসিস্টেম:** Self-Service Sign-Up (`tryProvisionStarterMailbox`)
+- **লোকেশন ও সিম্বল:** `src/core/auth/sign-up.ts:233-288`
+- **প্রভাব:** সাইন-আপের সময় `provisionMailbox()` কনফ্লিক্ট ছাড়া অন্য কারণে (যেমন ডিস্ক পারমিশন বা mailserver স্কিমা ত্রুটি) ব্যর্থ হলে ফলব্যাক সরাসরি `prisma.mailbox.create` করে দেয় — কিন্তু `maildirRelativePath`-এর শেষে `/` যোগ করে না (Postfix ভার্চুয়াল কন্ট্র্যাক্ট রেগেক্স ভঙ্গ করে), `mailserver.mailboxes`-এ কোনো রো তৈরি করে না এবং ডিস্কে Maildir ফোল্ডারও তৈরি করে না। ফলে এই মেইলবক্স কোনোদিন ইনকামিং ইমেইল রিসিভ করতে পারবে না।
+- **কোড প্রমাণ:**
+
+```ts
+// src/core/auth/sign-up.ts:246-253
+      const createdMailbox = await prisma.mailbox.create({
+        data: {
+          domainId: targetDomain.id,
+          localPart: candidateLocal,
+          emailAddress,
+          status: "active",
+          maildirRelativePath: `${targetDomain.name.toLowerCase()}/${candidateLocal}/Maildir`,
+        },
+```
+
+---
+
+### `FA-011` [MEDIUM] — অসংযুক্ত / অসম্পূর্ণ কনফিগ ও হেলথ চেক গ্যাপসমূহ
+
+- **লোকেশন ও প্রমাণ:**
+  1. **Setup Verification স্টাবস (`src/core/setup/trusted-operations.ts:147-292`):** `createDefaultSetupOperations()` তিনটি খালি `execute: async () => {}` স্টাব দেয় এবং `runSetupVerificationInspection()` কেবল `SELECT 1` দিয়েই `"schema-verified"` `passed: true` মার্ক করে (সারা প্রজেক্টে কোনো কলার নেই)।
+  2. **Public Footer `sourceCodeUrl` উপেক্ষিত (`src/components/public/public-site-footer.tsx:5-22`):** `PublicSiteFooterProps`-এ `sourceCodeUrl` থাকলেও কম্পোনেন্টটি সেটি ডিস্ট্রাকচার বা রেন্ডার করে না।
+  3. **PWA Manifest ডাইনামিক ব্র্যান্ডিং মিস করে (`src/app/manifest.ts:4-18`):** `await getSiteSettings()`-এর বদলে সিঙ্ক্রোনাস `getCachedSiteSettingsSnapshot()` পড়ায় কাস্টম `siteName`/`siteTagline` কোল্ড কন্টেইনারে আসে না এবং অ্যাডমিনের আপলোড করা কাস্টম আইকন/ফেভিকন ব্যবহার হয় না।
+  4. **`/health/ready` ইনজেশন ওয়ার্কার চেক করে না (`src/core/health/snapshot.ts:139-145`):** `ready` ফ্ল্যাগে কেবল কনফিগ, DB, মাইগ্রেশন ও স্টোরেজ চেক হয় — `mailServices.connected` (`maildir_ingestion` হার্টবিট) ইনক্লুড করা হয়নি, তাই ওয়ার্কার বন্ধ থাকলেও `200 OK` রিটার্ন করে।
+  5. **DNS IP ম্যাচ স্কিপ (`src/core/dns/resolver.ts:180-185`):** `SERVER_IP` ডিফল্ট `127.0.0.1` হলে `verifyRoutingDns` A/AAAA রেকর্ড আসল সার্ভারের IP-র সাথে ম্যাচ না করেই `targetAddresses.length > 0` হলে `targetOk: true` দিয়ে দেয়।
+  6. **অসংজ্ঞায়িত Env Var (`src/app/api/messages/attachment/[attachmentUuid]/route.ts:95-103`):** `USE_X_ACCEL_REDIRECT` সরাসরি `process.env` থেকে পড়া হয়েছে (`env-schema.ts` বা `.env.example`-এ সংজ্ঞায়িত নয়)।
+
+```ts
+// src/core/health/snapshot.ts:140-145 (mailServices.connected চেক করা হয়নি)
+  const ready =
+    configuration.ok &&
+    databaseOk &&
+    migrationsOk &&
+    mailStorage.ok &&
+    attachmentStorage.ok;
+```
+
+```ts
+// src/core/dns/resolver.ts:181-184
+    const targetOk =
+      targetIp && targetIp !== "127.0.0.1"
+        ? targetAddresses.includes(targetIp)
+        : targetAddresses.length > 0;
+```
+
+---
+
+## ৭. প্রোডাকশন রিলিজ ব্লকার সামারি
+
+বর্তমান অবস্থায় ReadBox প্রোডাকশন রিলিজের জন্য প্রস্তুত নয় কারণ:
+1. **`/reset-password` (FA-001)** আনঅথেনটিকেটেড ফুল-অ্যাকাউন্ট (অ্যাডমিনসহ) টেকওভার তৈরি করে।
+2. **Docker/Coolify ডিপ্লয়মেন্টে (FA-004, FA-005)** কন্টিনিউয়াস Maildir ইনজেশন ওয়ার্কার, `ingest.ts` রানটাইম, Postfix/Dovecot ইনফ্রা, রিটেনশন ক্রন এবং কন্টেইনার-কম্প্যাটিবল আপডেটার নেই।
+3. **রিটেনশন ও স্যান্ডবক্সিং (FA-003, FA-006)** মূল ইনবক্স সিকিউরিটি (parent DOM HTML injection) এবং ইউজার পলিসি-এনফোর্সমেন্ট (`resolveEffectiveUserPolicy` + `runRetentionPurge`) অসম্পূর্ণ অবস্থায় রেখেছে।
+4. **সাইলেন্ট ডেমো ফলব্যাক ও অডিট অমিল (FA-002, FA-007, FA-009, FA-010)** প্রোডাকশন এরর, অডিট ট্রেইল ও Postfix কন্ট্র্যাক্টকে অসামঞ্জস্যপূর্ণ করে তুলেছে।

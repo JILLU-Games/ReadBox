@@ -42,7 +42,7 @@ validate_tar_archive "$BACKUP/attachments.tar.gz"
 validate_tar_archive "$BACKUP/media.tar.gz"
 validate_tar_archive "$BACKUP/configuration.tar.gz"
 
-SERVICES=(postfix dovecot vibmail-ingestion vibmail-web)
+SERVICES=(postfix dovecot readbox-ingestion readbox-web vibmail-ingestion vibmail-web)
 ACTIVE_SERVICES=()
 for service in "${SERVICES[@]}"; do
   if systemctl is-active --quiet "$service.service"; then
@@ -66,7 +66,13 @@ for service in "${SERVICES[@]}"; do
   systemctl stop "$service.service" 2>/dev/null || true
 done
 
-ENV_FILE=${VIBMAIL_ENV_FILE:-/etc/vibmail/vibmail.env}
+if [[ -n "${READBOX_ENV_FILE:-}" ]]; then
+  ENV_FILE="$READBOX_ENV_FILE"
+elif [[ -r /etc/readbox/readbox.env ]]; then
+  ENV_FILE=/etc/readbox/readbox.env
+else
+  ENV_FILE=${VIBMAIL_ENV_FILE:-/etc/vibmail/vibmail.env}
+fi
 if [[ -r "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   set -a
@@ -91,8 +97,14 @@ tar --numeric-owner -C "$(dirname "$MEDIA_ROOT")" -xzf "$BACKUP/media.tar.gz"
 tar --numeric-owner -C / -xzf "$BACKUP/configuration.tar.gz"
 
 chown -R vmail:vmail "$MAIL_STORAGE_ROOT" "$ATTACHMENT_STORAGE_ROOT" "$MEDIA_ROOT"
-chown root:vmail /etc/vibmail/vibmail.env
-chmod 0640 /etc/vibmail/vibmail.env
+if [[ -e /etc/readbox/readbox.env ]]; then
+  chown root:vmail /etc/readbox/readbox.env
+  chmod 0640 /etc/readbox/readbox.env
+fi
+if [[ -e /etc/vibmail/vibmail.env ]]; then
+  chown root:vmail /etc/vibmail/vibmail.env
+  chmod 0640 /etc/vibmail/vibmail.env
+fi
 
 systemctl daemon-reload
 postfix check

@@ -83,6 +83,7 @@ export interface UpdateRuntimeOptions {
   readonly systemdUnitDir?: string;
   readonly webServiceName?: string;
   readonly ingestionServiceName?: string;
+  readonly containerRuntime?: boolean;
   readonly fetchImpl?: typeof fetch;
   readonly preflightOverride?: () => Promise<UpdatePreflightResult>;
   readonly prisma?: AuditWriteClient | null;
@@ -90,6 +91,31 @@ export interface UpdateRuntimeOptions {
   readonly authSource?: "admin_table" | "user_table";
   readonly actorUsername?: string;
   readonly headers?: Pick<Headers, "get">;
+}
+
+export function isContainerRuntime(options?: {
+  readonly dockerEnvExists?: boolean;
+  readonly envVars?: Record<string, string | undefined>;
+}): boolean {
+  const envVars = options?.envVars ?? process.env;
+  if (envVars.DOCKER_RUNTIME === "false") {
+    return false;
+  }
+  if (
+    envVars.DOCKER_RUNTIME === "true" ||
+    Boolean(envVars.COOLIFY_RESOURCE_UUID?.trim()) ||
+    Boolean(envVars.COOLIFY_CONTAINER_NAME?.trim())
+  ) {
+    return true;
+  }
+  if (options?.dockerEnvExists !== undefined) {
+    return options.dockerEnvExists;
+  }
+  return (
+    existsSync("/.dockerenv") ||
+    existsSync("/run/.containerenv") ||
+    findCommandOnPath("systemctl") === null
+  );
 }
 
 export async function getCurrentSystemVersion(
@@ -347,20 +373,23 @@ export async function runUpdatePreflight(
   const appRoot =
     options?.appRoot ??
     process.env.READBOX_APP_ROOT ??
-    (existsSync("/opt/readbox/app") ? "/opt/readbox/app" : "/opt/vibmail/app");
+    (existsSync("/opt/vibmail/app") && !existsSync("/opt/readbox/app")
+      ? "/opt/vibmail/app"
+      : "/opt/readbox/app");
   const envFilePath =
     options?.envFilePath ??
     process.env.READBOX_ENV_FILE ??
     process.env.VIBMAIL_ENV_FILE ??
-    (existsSync("/etc/readbox/readbox.env")
-      ? "/etc/readbox/readbox.env"
-      : "/etc/vibmail/vibmail.env");
+    (existsSync("/etc/vibmail/vibmail.env") &&
+    !existsSync("/etc/readbox/readbox.env")
+      ? "/etc/vibmail/vibmail.env"
+      : "/etc/readbox/readbox.env");
   const backupRoot =
     options?.backupRoot ??
     process.env.READBOX_BACKUP_ROOT ??
-    (existsSync("/var/backups/readbox")
-      ? "/var/backups/readbox"
-      : "/var/backups/vibmail");
+    (existsSync("/var/backups/vibmail") && !existsSync("/var/backups/readbox")
+      ? "/var/backups/vibmail"
+      : "/var/backups/readbox");
   const systemdUnitDir = options?.systemdUnitDir ?? "/etc/systemd/system";
 
   const statusPath = join(/*turbopackIgnore: true*/ runtimeDir, "update_status.json");
@@ -399,6 +428,57 @@ export async function runUpdatePreflight(
   } catch {
     updaterUnitExists = false;
   }
+
+  const containerMode =
+    options?.containerRuntime !== undefined
+      ? options.containerRuntime
+      : !updaterUnitExists && isContainerRuntime();
+
+  if (containerMode) {
+    check(
+      "deployment runtime",
+      true,
+      "Container runtime (Docker Compose / Coolify)",
+    );
+    check(
+      "application root",
+      existsSync(process.cwd()),
+      process.cwd(),
+    );
+    for (const cmd of ["node", "tar", "sha256sum"] as const) {
+      const found = findCommandOnPath(cmd);
+      check(`command: ${cmd}`, found !== null, cmd);
+    }
+    try {
+      const targetForDisk = runtimeDirIsDirectory ? runtimeDir : process.cwd();
+      const fsStats = await statfs(targetForDisk);
+      const freeBytes = Number(fsStats.bavail) * Number(fsStats.bsize);
+      check(
+        "runtime disk space",
+        freeBytes >= MIN_RUNTIME_FREE_BYTES,
+        `${freeBytes} bytes free`,
+      );
+    } catch (error) {
+      check(
+        "runtime disk space",
+        false,
+        error instanceof Error ? error.message : "disk check failed",
+      );
+    }
+    check(
+      "container orchestrator update policy",
+      false,
+      "Managed by container orchestrator (Coolify / Docker Compose)",
+    );
+
+    return {
+      status: "blocked",
+      checks,
+      message:
+        "Managed by container orchestrator (Coolify / Docker Compose). Deploy new releases by pulling or rebuilding the container image.",
+    };
+  }
+
   check("updater worker installed", updaterUnitExists, updaterUnitPath);
   check(
     "upgrade script executable",
@@ -452,15 +532,17 @@ export async function runUpdatePreflight(
   const webServiceName =
     options?.webServiceName ??
     process.env.READBOX_WEB_SERVICE ??
-    (existsSync(join(systemdUnitDir, "readbox-web.service"))
-      ? "readbox-web.service"
-      : "vibmail-web.service");
+    (existsSync(join(systemdUnitDir, "vibmail-web.service")) &&
+    !existsSync(join(systemdUnitDir, "readbox-web.service"))
+      ? "vibmail-web.service"
+      : "readbox-web.service");
   const ingestionServiceName =
     options?.ingestionServiceName ??
     process.env.READBOX_INGESTION_SERVICE ??
-    (existsSync(join(systemdUnitDir, "readbox-ingestion.service"))
-      ? "readbox-ingestion.service"
-      : "vibmail-ingestion.service");
+    (existsSync(join(systemdUnitDir, "vibmail-ingestion.service")) &&
+    !existsSync(join(systemdUnitDir, "readbox-ingestion.service"))
+      ? "vibmail-ingestion.service"
+      : "readbox-ingestion.service");
 
   const requiredServices = [
     normalizedUnitName,

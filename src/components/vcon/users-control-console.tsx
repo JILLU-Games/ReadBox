@@ -54,6 +54,10 @@ export interface UsersControlConsoleProps {
   readonly domains: readonly ControlDomainOption[];
   readonly pendingUsers: readonly PendingSignupUserItem[];
   readonly governedUsers: readonly GovernedUserPolicyItem[];
+  readonly databaseConfigured?: boolean;
+  readonly databaseConnected?: boolean;
+  readonly databaseError?: string;
+  readonly demoMode?: boolean;
   readonly onSaveSettings: (
     input: unknown,
   ) => Promise<SaveUserControlSettingsActionResult>;
@@ -81,6 +85,10 @@ export function UsersControlConsole({
   domains,
   pendingUsers,
   governedUsers,
+  databaseConfigured = true,
+  databaseConnected = true,
+  databaseError,
+  demoMode = false,
   onSaveSettings,
   onDecidePendingUser,
   onSaveUserOverride,
@@ -319,6 +327,24 @@ export function UsersControlConsole({
           </Button>
         }
       />
+
+      {!databaseConfigured && !demoMode ? (
+        <AlertBanner
+          variant="warning"
+          title="Database not configured"
+        >
+          Users control settings, verified domain allowlists, and user policy
+          overrides require PostgreSQL configuration.
+        </AlertBanner>
+      ) : !databaseConnected && !demoMode ? (
+        <AlertBanner
+          variant="error"
+          title="Database temporarily unavailable"
+        >
+          {databaseError ??
+            "Live domains and governed user policies could not be loaded from PostgreSQL. Verify connectivity and refresh."}
+        </AlertBanner>
+      ) : null}
 
       {errorBanner ? (
         <AlertBanner variant="error">{errorBanner}</AlertBanner>

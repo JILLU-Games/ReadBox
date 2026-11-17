@@ -172,6 +172,16 @@ export function SettingsConsole({
         }
       />
 
+      {!settings.databaseConnected ? (
+        <AlertBanner
+          variant="error"
+          title="Database connection unavailable"
+        >
+          Live site settings could not be loaded from PostgreSQL. Changes
+          cannot be persisted reliably until database connectivity is restored.
+        </AlertBanner>
+      ) : null}
+
       {errorBanner ? (
         <AlertBanner variant="error">{errorBanner}</AlertBanner>
       ) : null}

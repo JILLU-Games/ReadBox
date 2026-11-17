@@ -302,6 +302,13 @@ function createFakeWorkspacePrisma(options?: {
     ) {
       if (!(row.id > (where.id as { gt: bigint }).gt)) return false;
     }
+    if (
+      where.id &&
+      typeof where.id === "object" &&
+      Array.isArray((where.id as { in?: bigint[] }).in)
+    ) {
+      if (!(where.id as { in: bigint[] }).in.includes(row.id)) return false;
+    }
     if (typeof where.uuid === "string" && row.uuid !== where.uuid) return false;
     if (typeof where.mailboxId === "bigint" && row.mailboxId !== where.mailboxId)
       return false;
@@ -333,11 +340,32 @@ function createFakeWorkspacePrisma(options?: {
       }
     }
     if (
+      where.receivedAt &&
+      typeof where.receivedAt === "object" &&
+      (where.receivedAt as { lt?: Date }).lt instanceof Date
+    ) {
+      if (
+        !row.receivedAt ||
+        !(row.receivedAt < (where.receivedAt as { lt: Date }).lt)
+      ) {
+        return false;
+      }
+    }
+    if (
       where.createdAt &&
       typeof where.createdAt === "object" &&
       (where.createdAt as { gte?: Date }).gte instanceof Date
     ) {
       if (row.createdAt < (where.createdAt as { gte: Date }).gte) {
+        return false;
+      }
+    }
+    if (
+      where.createdAt &&
+      typeof where.createdAt === "object" &&
+      (where.createdAt as { lt?: Date }).lt instanceof Date
+    ) {
+      if (!(row.createdAt < (where.createdAt as { lt: Date }).lt)) {
         return false;
       }
     }
@@ -552,6 +580,21 @@ function createFakeWorkspacePrisma(options?: {
         if (data.deletedById !== undefined)
           found.deletedById = data.deletedById;
         return found;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: Record<string, unknown>;
+        data: {
+          deletedAt?: Date | null;
+        };
+      }) => {
+        const matched = messages.filter((m) => matchesMessageWhere(m, where));
+        for (const row of matched) {
+          if (data.deletedAt !== undefined) row.deletedAt = data.deletedAt;
+        }
+        return { count: matched.length };
       },
     },
     attachment: {
@@ -806,7 +849,7 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
 
   it("6. builds strict CSP sandboxed HTML document and blocks unauthorized users", async () => {
     assert.match(SAFE_HTML_CSP_POLICY, /default-src 'none'/);
-    assert.match(SAFE_HTML_CSP_POLICY, /img-src data:/);
+    assert.match(SAFE_HTML_CSP_POLICY, /img-src data: 'self'/);
     assert.match(SAFE_HTML_CSP_POLICY, /style-src 'unsafe-inline'/);
     assert.match(SAFE_HTML_CSP_POLICY, /base-uri 'none'/);
     assert.match(SAFE_HTML_CSP_POLICY, /form-action 'none'/);
@@ -814,6 +857,16 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     assert.doesNotMatch(SAFE_HTML_CSP_POLICY, /navigate-to/);
 
     const fake = createFakeWorkspacePrisma();
+    const detail = await getMessageDetailForUser(
+      fake as never,
+      { userId: BigInt(101), isAdministrator: false },
+      MAILBOX_A_UUID,
+      MESSAGE_A1_UUID,
+    );
+    assert.ok(detail);
+    assert.equal(detail.hasHtmlBody, true);
+    assert.equal(detail.htmlBody, undefined);
+
     const html = await getSanitizedMessageHtmlForUser(
       fake as never,
       { userId: BigInt(101), isAdministrator: false },
@@ -821,8 +874,22 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     );
     assert.ok(html);
     assert.match(html, /<!doctype html>/i);
+    assert.match(html, /<meta name='readbox-html-body' content='1'>/);
     assert.match(html, /November invoice/);
     assert.ok(fake.auditLogs.some((a) => a.action === "message_html_view"));
+
+    const hardenedLinksHtml = buildSanitizedHtmlDocument(
+      '<p><a href="https://vendor.example/inv">Invoice</a> <a href="mailto:support@vendor.example">Support</a> <button>Action</button></p>',
+    );
+    assert.match(
+      hardenedLinksHtml,
+      /href="https:\/\/vendor\.example\/inv" target="_blank" rel="noopener noreferrer"/,
+    );
+    assert.match(
+      hardenedLinksHtml,
+      /<a href="mailto:support@vendor\.example">Support<\/a>/,
+    );
+    assert.match(hardenedLinksHtml, /<button type="button">Action<\/button>/);
 
     const fallbackHtml = buildSanitizedHtmlDocument("");
     assert.match(fallbackHtml, /No HTML body is available\./);
@@ -1300,6 +1367,78 @@ describe("Phase 5 — User Workspace (/users Inbox, Sandboxed Reader, Attachment
     } finally {
       resetDemoUserControlSettings();
     }
+  });
+
+  it("14. Phase 3 FA-006: retention purge uses batched updateMany and respects per-user policy overrides alongside global inheritance", async () => {
+    const { purgeExpiredMessagesForRetention } = await import(
+      "@/core/messages/service"
+    );
+
+    const fake = createFakeWorkspacePrisma();
+    // Mailbox 10 (Alice, uid 101) has message #1 from 15 days ago and message #2 from 2 days ago
+    fake.messages[0]!.receivedAt = new Date("2026-11-01T00:00:00.000Z");
+    fake.messages[0]!.createdAt = new Date("2026-11-01T00:00:00.000Z");
+    fake.messages[1]!.receivedAt = new Date("2026-11-14T00:00:00.000Z");
+    fake.messages[1]!.createdAt = new Date("2026-11-14T00:00:00.000Z");
+
+    // Mailbox 20 (Bob, uid 202) has message #3 from 15 days ago
+    fake.messages[2]!.receivedAt = new Date("2026-11-01T00:00:00.000Z");
+    fake.messages[2]!.createdAt = new Date("2026-11-01T00:00:00.000Z");
+
+    let updateManyCalls = 0;
+    const origUpdateMany = fake.message.updateMany;
+    fake.message.updateMany = async (args) => {
+      updateManyCalls += 1;
+      return origUpdateMany(args);
+    };
+
+    // Attach per-user policy overrides: global is disabled, Alice has 7-day retention, Bob explicitly disables auto-delete
+    (fake as Record<string, unknown>).mailboxMembership = {
+      findMany: async () => [
+        {
+          mailboxId: BigInt(10),
+          user: {
+            isActive: true,
+            accessPolicy: {
+              canCreateMailboxes: null,
+              canDeleteMessages: true,
+              canDeleteMailboxes: false,
+              maxMailboxes: null,
+              allowedDomainUuids: [],
+              autoDeleteEnabled: true,
+              autoDeleteDays: 7,
+            },
+          },
+        },
+        {
+          mailboxId: BigInt(20),
+          user: {
+            isActive: true,
+            accessPolicy: {
+              canCreateMailboxes: null,
+              canDeleteMessages: false,
+              canDeleteMailboxes: false,
+              maxMailboxes: null,
+              allowedDomainUuids: [],
+              autoDeleteEnabled: false,
+              autoDeleteDays: 0,
+            },
+          },
+        },
+      ],
+    };
+
+    const summary = await purgeExpiredMessagesForRetention(fake as never, {
+      dryRun: false,
+      now: new Date("2026-11-16T00:00:00.000Z"),
+    });
+
+    assert.equal(updateManyCalls, 1);
+    assert.equal(summary.affectedMailboxes, 1);
+    assert.equal(summary.purgedMessages, 1);
+    assert.notEqual(fake.messages[0]!.deletedAt, null);
+    assert.equal(fake.messages[1]!.deletedAt, null);
+    assert.equal(fake.messages[2]!.deletedAt, null);
   });
 });
 

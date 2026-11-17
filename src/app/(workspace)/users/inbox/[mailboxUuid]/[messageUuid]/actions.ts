@@ -62,6 +62,7 @@ export async function markMessageUnreadAction(input: {
     getPrismaClient(),
     {
       userId,
+      authSource: user.authSource,
       username: user.username,
       isAdministrator: user.isAdministrator,
       headers: reqHeaders,
@@ -117,6 +118,7 @@ export async function softDeleteMessageAction(input: {
     getPrismaClient(),
     {
       userId,
+      authSource: user.authSource,
       username: user.username,
       isAdministrator: user.isAdministrator,
       headers: reqHeaders,

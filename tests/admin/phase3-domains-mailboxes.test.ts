@@ -71,9 +71,9 @@ afterEach(() => {
 
 test("env-schema provides Phase 3 mail/DNS defaults and validates SERVER_IP", () => {
   const defaults = parseEnvironment({});
-  assert.equal(defaults.mailDomain, "mailstack.local");
-  assert.equal(defaults.mailHostname, "mail.mailstack.local");
-  assert.equal(defaults.appHostname, "app.mailstack.local");
+  assert.equal(defaults.mailDomain, "readbox.local");
+  assert.equal(defaults.mailHostname, "mail.readbox.local");
+  assert.equal(defaults.appHostname, "app.readbox.local");
   assert.equal(defaults.serverIp, "127.0.0.1");
   assert.equal(defaults.mailboxDefaultQuotaBytes, 2_147_483_648);
   assert.equal(defaults.dnsLookupTimeoutSeconds, 3);
@@ -215,6 +215,17 @@ test("OpenDKIM parser, 5-record DNS builder, Cloudflare zone, and split DNS chec
   assert.equal(routingRes.verified, true);
   assert.equal(routingRes.mxOk, true);
   assert.equal(routingRes.targetOk, true);
+
+  // FA-011: Loopback default SERVER_IP=127.0.0.1 must not silently pass routing verification
+  const loopbackRoutingRes = await verifyRoutingDns("Example.Test", {
+    mailHostname: "mail.example.test",
+    expectedServerIp: "127.0.0.1",
+    lookup: routingOnlyLookup,
+  });
+  assert.equal(loopbackRoutingRes.verified, false);
+  assert.equal(loopbackRoutingRes.mxOk, true);
+  assert.equal(loopbackRoutingRes.targetOk, false);
+  assert.match(loopbackRoutingRes.message, /non-loopback SERVER_IP/i);
 
   const fullRes = await verifyAllDnsRecords("example.test", {
     mailHostname: "mail.example.test",

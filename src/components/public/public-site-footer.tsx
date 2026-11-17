@@ -12,12 +12,30 @@ export interface PublicSiteFooterProps {
   readonly supportEmail?: string;
 }
 
+function normalizeSafeHref(raw?: string): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    return trimmed;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function PublicSiteFooter({
   siteName,
   logoUrl,
   footerDescription,
   copyrightText,
   privacyUrl,
+  sourceCodeUrl,
   supportEmail,
 }: PublicSiteFooterProps) {
   const year = new Date().getFullYear();
@@ -27,6 +45,7 @@ export function PublicSiteFooter({
   const resolvedCopyright =
     copyrightText?.trim() || "All rights reserved.";
   const resolvedPrivacyHref = privacyUrl?.trim() || "/privacy";
+  const resolvedSourceCodeHref = normalizeSafeHref(sourceCodeUrl);
 
   return (
     <footer className="border-t border-border bg-card text-xs text-muted-foreground">
@@ -132,6 +151,20 @@ export function PublicSiteFooter({
                   Privacy policy
                 </Link>
               </li>
+              {resolvedSourceCodeHref ? (
+                <li>
+                  <a
+                    href={resolvedSourceCodeHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-source-code-url
+                    className="inline-flex items-center gap-1 hover:text-foreground"
+                  >
+                    <span>Source code</span>
+                    <Icon glyph={ArrowUpRight} className="size-3" />
+                  </a>
+                </li>
+              ) : null}
             </ul>
           </div>
         </div>

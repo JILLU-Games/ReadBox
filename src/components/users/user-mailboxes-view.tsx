@@ -232,7 +232,15 @@ export function UserMailboxesView({
           </Button>
         }
       >
-        {!listResult.databaseConfigured ? (
+        {listResult.databaseError ? (
+          <AlertBanner
+            variant="error"
+            className="mb-2.5"
+            title="Database temporarily unavailable"
+          >
+            {listResult.databaseError}
+          </AlertBanner>
+        ) : !listResult.databaseConfigured ? (
           <AlertBanner variant="warning" className="mb-2.5">
             Database connection is not configured.
           </AlertBanner>

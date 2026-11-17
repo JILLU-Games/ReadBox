@@ -15,10 +15,19 @@ RUN if [ -f package-lock.json ]; then \
       npm install --no-audit --no-fund; \
     fi
 
-# 2. Isolated minimal Prisma CLI + dotenv dependencies for idempotent runtime migrations
+# 2. Isolated Prisma CLI + worker runtime dependencies (tsx + Maildir parser/locking)
 FROM base AS migrator
 WORKDIR /migrator
-RUN npm install --no-save --no-audit --no-fund prisma@7.10.1 dotenv@18.0.8
+RUN npm install --no-save --no-audit --no-fund \
+  prisma@7.10.1 \
+  dotenv@18.0.8 \
+  tsx@4.23.15 \
+  postal-mime@4.2.1 \
+  proper-lockfile@4.1.2 \
+  sanitize-html@2.18.2 \
+  css-tree@3.2.1 \
+  zod@4.6.7 \
+  server-only@0.0.1
 
 # 3. Build Next.js standalone production bundle
 FROM base AS builder
@@ -29,7 +38,7 @@ ENV NODE_ENV=production
 ENV AUTH_ENABLED=false
 RUN npx prisma generate && npm run build
 
-# 4. Compact, non-root production runtime image
+# 4. Compact, non-root production runtime image (serves both web and Maildir ingestion worker)
 FROM base AS runner
 RUN apk add --no-cache libc6-compat openssl
 
@@ -41,6 +50,7 @@ RUN addgroup --system --gid 1001 nodejs \
     /var/lib/readbox/media \
     /var/lock/readbox-provision \
     /etc/opendkim/keys \
+    /run/readbox \
     /run/vibmail \
   && chown -R nextjs:nodejs \
     /app \
@@ -48,21 +58,26 @@ RUN addgroup --system --gid 1001 nodejs \
     /var/lib/readbox \
     /var/lock/readbox-provision \
     /etc/opendkim/keys \
+    /run/readbox \
     /run/vibmail
 
-# Copy Prisma CLI dependencies first, then Next.js standalone bundle (standalone runtime wins on shared libs)
+# Copy worker/migration dependencies first, then Next.js standalone bundle
 COPY --from=migrator --chown=nextjs:nodejs /migrator/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV DOCKER_RUNTIME=true
 
 USER nextjs
 

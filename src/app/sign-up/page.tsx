@@ -3,6 +3,7 @@ import { registerUserSignupAction } from "@/app/sign-up/actions";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
+  AlertBanner,
   BrandLogo,
   Button,
   PageTitle,
@@ -35,7 +36,16 @@ export default async function SignUpPage() {
   const devDemoActive =
     env.nodeEnv === "development" && env.devAuthMode === "demo";
   const authActive = env.authEnabled || devDemoActive;
-  const prisma = env.databaseUrl ? getPrismaClient() : null;
+  let prisma = null;
+  let dbUnavailable = !env.databaseUrl && !devDemoActive;
+  if (env.databaseUrl) {
+    try {
+      prisma = getPrismaClient();
+    } catch {
+      prisma = null;
+      dbUnavailable = true;
+    }
+  }
   const [currentUser, settings, userControl] = await Promise.all([
     authActive ? getCurrentUser() : Promise.resolve(null),
     getSiteSettings(),
@@ -77,6 +87,15 @@ export default async function SignUpPage() {
                 </form>
               </div>
             </div>
+          ) : dbUnavailable ? (
+            <AlertBanner
+              variant="error"
+              title="Account registration unavailable"
+            >
+              PostgreSQL database connectivity is required to create new user
+              accounts right now. Please try again later or contact an
+              administrator.
+            </AlertBanner>
           ) : (
             <SignUpForm
               settings={userControl}

@@ -294,6 +294,7 @@ export default async function PublicContactPage(props: {
         footerDescription={settings.footerDescription}
         copyrightText={settings.copyrightText}
         privacyUrl={settings.privacyUrl}
+        sourceCodeUrl={settings.sourceCodeUrl}
         supportEmail={settings.supportEmail}
       />
     </div>

@@ -9,6 +9,7 @@ import {
   runProvisionMaildirs,
   runRebuildMailIndex,
   runRepairMessageBodies,
+  runRetentionPurge,
   runSyncMailserverMailboxes,
   runUpdateMailboxCounters,
   runVerifyPostfixContract,
@@ -17,6 +18,7 @@ import {
   type OperationsActionResult,
   type OperationsPrismaClient,
   type OperationsRuntimeConfig,
+  type RetentionPurgeSummary,
 } from "@/core/operations/service";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -191,5 +193,33 @@ export async function repairMessageBodiesAction(input: {
     },
   );
   if (result.ok && !input.dryRun) revalidateOperationsPaths();
+  return result;
+}
+
+export async function runRetentionPurgeAction(input: {
+  readonly dryRun: boolean;
+  readonly retentionDays?: number;
+  readonly mailboxUuid?: string;
+}): Promise<OperationsActionResult<RetentionPurgeSummary>> {
+  const actor = await requireAdminUser();
+  if (!env.databaseUrl) return databaseUnavailableResult();
+
+  const requestHeaders = await headers();
+  const result = await runRetentionPurge(
+    getPrismaClient() as unknown as OperationsPrismaClient,
+    input,
+    {
+      actorId: actor.id,
+      authSource: actor.authSource,
+      actorUsername: actor.username,
+      headers: requestHeaders,
+      trustProxyHeaders: env.trustProxyHeaders,
+    },
+  );
+  if (result.ok && !input.dryRun) {
+    revalidateOperationsPaths();
+    revalidatePath("/users");
+    revalidatePath("/users/mailboxes");
+  }
   return result;
 }

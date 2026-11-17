@@ -38,7 +38,14 @@ export default async function SignInPage() {
   const devDemoActive =
     env.nodeEnv === "development" && env.devAuthMode === "demo";
   const authActive = env.authEnabled || devDemoActive;
-  const prisma = env.databaseUrl ? getPrismaClient() : null;
+  let prisma = null;
+  if (env.databaseUrl) {
+    try {
+      prisma = getPrismaClient();
+    } catch {
+      prisma = null;
+    }
+  }
   const [currentUser, settings, userControl] = await Promise.all([
     authActive ? getCurrentUser() : Promise.resolve(null),
     getSiteSettings(),

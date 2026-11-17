@@ -131,6 +131,21 @@ describe("Phase 4 /vcon/operations console UI", () => {
       },
       message: "Repair finished.",
     }));
+    const onRetentionPurge = vi.fn(async (input) => ({
+      ok: true as const,
+      data: {
+        dryRun: input.dryRun,
+        retentionDays: input.retentionDays ?? 30,
+        cutoffIso: "2026-10-17T00:00:00.000Z",
+        scannedMailboxes: 1,
+        affectedMailboxes: 1,
+        purgedMessages: 2,
+        errors: 0,
+      },
+      message: input.dryRun
+        ? "Dry-run retention scan finished."
+        : "Retention cleanup completed.",
+    }));
 
     const { container } = render(
       <OperationsConsole
@@ -141,6 +156,7 @@ describe("Phase 4 /vcon/operations console UI", () => {
         onRebuildIndex={onRebuildIndex}
         onRecalculateCounters={onRecalculateCounters}
         onRepairBodies={onRepairBodies}
+        onRetentionPurge={onRetentionPurge}
       />,
     );
 
@@ -187,6 +203,45 @@ describe("Phase 4 /vcon/operations console UI", () => {
       });
     });
 
+    // Panel 7: Retention purge confirmation guard, override & dry-run
+    expect(
+      screen.getByText(/7\. Run email retention purge/i),
+    ).toBeInTheDocument();
+    const purgeBtn = screen.getByRole("button", {
+      name: "Purge expired emails",
+    });
+    expect(purgeBtn).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/Retention days override/i), "14");
+    await user.click(
+      screen.getByRole("button", { name: "Dry run retention" }),
+    );
+    await waitFor(() => {
+      expect(onRetentionPurge).toHaveBeenCalledWith({
+        dryRun: true,
+        retentionDays: 14,
+        mailboxUuid: "11111111-1111-4111-8111-111111111111",
+      });
+    });
+
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /Confirm batch purge of retention-expired emails/i,
+      }),
+    );
+    expect(purgeBtn).toBeEnabled();
+    await user.click(purgeBtn);
+    await waitFor(() => {
+      expect(onRetentionPurge).toHaveBeenCalledWith({
+        dryRun: false,
+        retentionDays: 14,
+        mailboxUuid: "11111111-1111-4111-8111-111111111111",
+      });
+    });
+    expect(
+      screen.getByText(/Retention purge: 2 expired message\(s\)/i),
+    ).toBeInTheDocument();
+
     await user.click(
       screen.getByRole("button", { name: "Verify Postfix contract" }),
     );
@@ -210,6 +265,7 @@ describe("Phase 4 /vcon/operations console UI", () => {
         onRebuildIndex={noop}
         onRecalculateCounters={noop}
         onRepairBodies={noop}
+        onRetentionPurge={noop}
       />,
     );
 
@@ -221,6 +277,9 @@ describe("Phase 4 /vcon/operations console UI", () => {
     ).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Ingest unindexed files" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Dry run retention" }),
     ).toBeDisabled();
   });
 });

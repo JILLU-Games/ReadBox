@@ -128,7 +128,7 @@ async function tryProvisionStarterMailbox(
   const baseLocalPart = deriveStarterMailboxLocalPart(params.username);
   const preferredDomainUuid = params.settings.allowedDomainUuids[0];
 
-  if (params.devDemoActive || !prisma) {
+  if (params.devDemoActive) {
     const firstTry = createDemoMailbox(
       { localPart: baseLocalPart, domainUuid: preferredDomainUuid },
       { isAdministrator: true, userId: params.userId },
@@ -151,7 +151,13 @@ async function tryProvisionStarterMailbox(
     return null;
   }
 
-  if (!("domain" in prisma) || !prisma.domain || !("mailbox" in prisma) || !prisma.mailbox) {
+  if (
+    !prisma ||
+    !("domain" in prisma) ||
+    !prisma.domain ||
+    !("mailbox" in prisma) ||
+    !prisma.mailbox
+  ) {
     return null;
   }
 
@@ -230,61 +236,11 @@ async function tryProvisionStarterMailbox(
         continue;
       }
 
-      // If running against a lightweight database/test environment without maildir or mailserver schema,
-      // fall back to creating the application Mailbox + MailboxMembership record directly.
-      const emailAddress = `${candidateLocal}@${targetDomain.name.toLowerCase()}`;
-      const existingMailbox = await prisma.mailbox.findFirst({
-        where: {
-          emailAddress: { equals: emailAddress, mode: "insensitive" },
-        },
-        select: { id: true },
+      logger.warn("starter_mailbox_autoprovision_skipped", {
+        reasonCode: provisioned.code,
+        domain: targetDomain.name,
       });
-      if (existingMailbox) {
-        continue;
-      }
-
-      const createdMailbox = await prisma.mailbox.create({
-        data: {
-          domainId: targetDomain.id,
-          localPart: candidateLocal,
-          emailAddress,
-          status: "active",
-          maildirRelativePath: `${targetDomain.name.toLowerCase()}/${candidateLocal}/Maildir`,
-        },
-        select: { id: true, emailAddress: true },
-      });
-
-      if ("mailboxMembership" in prisma && prisma.mailboxMembership) {
-        await prisma.mailboxMembership.createMany({
-          data: [
-            {
-              userId: numericUserId,
-              mailboxId: createdMailbox.id,
-              assignedById: numericUserId,
-            },
-          ],
-          skipDuplicates: true,
-        });
-      }
-
-      if ("auditLog" in prisma && prisma.auditLog) {
-        await recordAudit(prisma as unknown as AuditWriteClient, {
-          actorId: numericUserId,
-          authSource: "user_table",
-          actorUsername: params.username,
-          action: "mailbox_create",
-          targetType: "mailbox",
-          targetIdentifier: createdMailbox.emailAddress,
-          clientIp: params.clientIp,
-          userAgent: params.userAgent,
-          details: {
-            assigned_user_ids: [numericUserId.toString()],
-            starter_mailbox: true,
-          },
-        });
-      }
-
-      return createdMailbox.emailAddress;
+      break;
     }
   } catch {
     logger.warn("starter_mailbox_autoprovision_skipped");

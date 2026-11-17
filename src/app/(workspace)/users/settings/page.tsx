@@ -28,6 +28,7 @@ import {
   listDemoUserMailboxes,
 } from "@/core/messages/demo-workspace";
 import { listUserMailboxes } from "@/core/messages/service";
+import { logger } from "@/core/server/logger";
 
 export default async function UserSettingsPage() {
   const user = await requireWorkspaceUser();
@@ -60,6 +61,10 @@ export default async function UserSettingsPage() {
     canManageSecurity: true,
   };
   let databaseConfigured = false;
+  let databaseError: string | undefined =
+    env.nodeEnv === "production" && !env.databaseUrl
+      ? "Database connection is not configured."
+      : undefined;
   let mailboxUsed = 0;
   let mailboxMax = 0;
 
@@ -84,6 +89,7 @@ export default async function UserSettingsPage() {
           prisma,
           {
             userId,
+            authSource: user.authSource,
             username: user.username,
             isAdministrator: user.isAdministrator,
           },
@@ -93,12 +99,69 @@ export default async function UserSettingsPage() {
 
       if (profileResult.ok) {
         profile = profileResult.data;
+        security = securitySnapshot;
+        mailboxUsed = mailboxList.totalCount;
+        mailboxMax = mailboxList.capabilities.maxMailboxes ?? 0;
+      } else if (isDemoPreviewWorkspaceActive()) {
+        const demoProfile = getDevDemoProfile(user.id.toString());
+        if (demoProfile) {
+          profile = demoProfile;
+        }
+        const demoControl = getDemoUserControlSettings();
+        security = getDevDemoSecuritySnapshot(
+          user.id.toString(),
+          currentSessionId,
+          {
+            minLength: Math.max(8, demoControl.minPasswordLength),
+            requireStrongPassword: demoControl.requireStrongPassword,
+          },
+        );
+        const demoMailboxes = listDemoUserMailboxes(
+          user.isAdministrator,
+          { page: 1 },
+          user.id,
+        );
+        mailboxUsed = demoMailboxes.totalCount;
+        mailboxMax = demoMailboxes.capabilities.maxMailboxes ?? 0;
+      } else {
+        databaseError =
+          profileResult.error ||
+          "Unable to load live profile settings from PostgreSQL.";
+        security = securitySnapshot;
+        mailboxUsed = mailboxList.totalCount;
+        mailboxMax = mailboxList.capabilities.maxMailboxes ?? 0;
       }
-      security = securitySnapshot;
-      mailboxUsed = mailboxList.totalCount;
-      mailboxMax = mailboxList.capabilities.maxMailboxes ?? 0;
-    } catch {
-      databaseConfigured = false;
+    } catch (error) {
+      if (isDemoPreviewWorkspaceActive()) {
+        databaseConfigured = true;
+        const demoProfile = getDevDemoProfile(user.id.toString());
+        if (demoProfile) {
+          profile = demoProfile;
+        }
+        const demoControl = getDemoUserControlSettings();
+        security = getDevDemoSecuritySnapshot(
+          user.id.toString(),
+          currentSessionId,
+          {
+            minLength: Math.max(8, demoControl.minPasswordLength),
+            requireStrongPassword: demoControl.requireStrongPassword,
+          },
+        );
+        const demoMailboxes = listDemoUserMailboxes(
+          user.isAdministrator,
+          { page: 1 },
+          user.id,
+        );
+        mailboxUsed = demoMailboxes.totalCount;
+        mailboxMax = demoMailboxes.capabilities.maxMailboxes ?? 0;
+      } else {
+        databaseConfigured = false;
+        logger.error("users_settings_db_unavailable", {
+          reason: error instanceof Error ? error.name : "unknown_error",
+        });
+        databaseError =
+          "Unable to connect to PostgreSQL right now. Profile and session controls are temporarily unavailable.";
+      }
     }
   } else if (isDemoPreviewWorkspaceActive()) {
     databaseConfigured = true;
@@ -126,6 +189,7 @@ export default async function UserSettingsPage() {
       security={security}
       mailboxQuota={{ used: mailboxUsed, max: mailboxMax }}
       databaseConfigured={databaseConfigured}
+      databaseError={databaseError}
       updateProfileAction={updateUserProfileAction}
       updatePasswordAction={updateUserPasswordAction}
       revokeSessionAction={revokeUserSessionAction}

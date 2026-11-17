@@ -8,6 +8,7 @@ import {
   getUserControlSettings,
   getUserExtendedPolicy,
   isDomainAllowedForUser,
+  resolveEffectiveUserPolicy,
 } from "@/core/accounts/user-control-policy";
 import { recordAudit } from "@/core/audit/record";
 import type { AuditWriteClient } from "@/core/audit/types";
@@ -37,7 +38,7 @@ export const LIVE_UPDATE_VISIBLE_MAILBOX_LIMIT = 50;
 
 export const SAFE_HTML_CSP_POLICY = [
   "default-src 'none'",
-  "img-src data:",
+  "img-src data: 'self'",
   "style-src 'unsafe-inline'",
   "base-uri 'none'",
   "form-action 'none'",
@@ -86,6 +87,7 @@ export interface UserRecentMessageItem {
 
 export interface UserWorkspaceOverviewSnapshot {
   readonly databaseConfigured: boolean;
+  readonly databaseError?: string;
   readonly totalMailboxes: number;
   readonly activeMailboxes: number;
   readonly disabledMailboxes: number;
@@ -100,6 +102,7 @@ export interface UserWorkspaceOverviewSnapshot {
 
 export interface UserMailboxListResult {
   readonly databaseConfigured: boolean;
+  readonly databaseError?: string;
   readonly items: readonly UserMailboxSummaryItem[];
   readonly totalCount: number;
   readonly page: number;
@@ -465,6 +468,17 @@ export function buildRetentionFilterClause(
   };
 }
 
+export function buildExpiredRetentionFilterClause(
+  retentionCutoff: Date,
+): Record<string, unknown> {
+  return {
+    OR: [
+      { receivedAt: { lt: retentionCutoff } },
+      { receivedAt: null, createdAt: { lt: retentionCutoff } },
+    ],
+  };
+}
+
 export function isMessageWithinRetention(
   msg: {
     readonly receivedAt?: Date | null;
@@ -516,9 +530,11 @@ async function resolveActorIdForDatabase(
 
 export function createUnconfiguredUserWorkspaceOverview(
   actor: Pick<UserWorkspaceActor, "isAdministrator">,
+  databaseError?: string,
 ): UserWorkspaceOverviewSnapshot {
   return {
     databaseConfigured: false,
+    ...(databaseError ? { databaseError } : {}),
     totalMailboxes: 0,
     activeMailboxes: 0,
     disabledMailboxes: 0,
@@ -542,9 +558,11 @@ export function createUnconfiguredUserWorkspaceOverview(
 
 export function createUnconfiguredUserMailboxList(
   actor: Pick<UserWorkspaceActor, "isAdministrator">,
+  databaseError?: string,
 ): UserMailboxListResult {
   return {
     databaseConfigured: false,
+    ...(databaseError ? { databaseError } : {}),
     items: [],
     totalCount: 0,
     page: 1,
@@ -1368,10 +1386,7 @@ export async function getMessageDetailForUser(
     details: { mailbox: mailbox.emailAddress },
   });
 
-  const resolvedHtmlBody = resolveInlineCidAttachmentsInHtml(
-    message.sanitizedHtmlBody,
-    message.attachments,
-  );
+  const hasHtmlBody = message.sanitizedHtmlBody.trim().length > 0;
 
   return {
     id: message.id.toString(),
@@ -1401,8 +1416,7 @@ export async function getMessageDetailForUser(
     parseStatus: message.parseStatus,
     parseWarning: message.parseWarning,
     textBody: message.textBody,
-    htmlBody: resolvedHtmlBody,
-    hasHtmlBody: resolvedHtmlBody.trim().length > 0,
+    hasHtmlBody,
     attachments: message.attachments.map((att) => ({
       uuid: att.uuid,
       originalFilename: att.originalFilename,
@@ -1570,14 +1584,57 @@ export interface SanitizedHtmlRenderOptions {
   readonly theme?: "light" | "dark";
 }
 
+function hardenSanitizedEmailHtmlForIframe(rawHtml: string): string {
+  let working = rawHtml.replace(
+    /<a\b([^>]*?)>/gi,
+    (fullTag, attrs: string) => {
+      const hrefMatch = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(
+        attrs,
+      );
+      const href = (
+        hrefMatch?.[1] ??
+        hrefMatch?.[2] ??
+        hrefMatch?.[3] ??
+        ""
+      ).trim();
+      if (!href) {
+        return fullTag;
+      }
+      const isMailtoOrHash =
+        href.toLowerCase().startsWith("mailto:") || href.startsWith("#");
+      let cleanedAttrs = attrs
+        .replace(/\btarget\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+        .replace(/\brel\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+        .trim();
+      if (!isMailtoOrHash) {
+        cleanedAttrs = `${cleanedAttrs} target="_blank" rel="noopener noreferrer"`.trim();
+      }
+      return `<a ${cleanedAttrs}>`;
+    },
+  );
+
+  working = working.replace(
+    /<button\b([^>]*?)>/gi,
+    (fullTag, attrs: string) => {
+      if (/\btype\s*=/i.test(attrs)) {
+        return fullTag;
+      }
+      return `<button type="button"${attrs}>`;
+    },
+  );
+
+  return working;
+}
+
 export function buildSanitizedHtmlDocument(
   sanitizedHtmlBody: string,
   options?: SanitizedHtmlRenderOptions,
 ): string {
-  const body =
+  const rawBody =
     sanitizedHtmlBody && sanitizedHtmlBody.trim().length > 0
       ? sanitizedHtmlBody
       : "<p>No HTML body is available.</p>";
+  const body = hardenSanitizedEmailHtmlForIframe(rawBody);
 
   const lightCss =
     "*{scrollbar-width:none;-ms-overflow-style:none;}*::-webkit-scrollbar{display:none;width:0;height:0;}" +
@@ -1603,6 +1660,7 @@ export function buildSanitizedHtmlDocument(
   return (
     "<!doctype html><html><head><meta charset='utf-8'>" +
     "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+    "<meta name='readbox-html-body' content='1'>" +
     `<style>${themeCss}</style></head><body>` +
     body +
     "</body></html>"
@@ -2010,11 +2068,39 @@ export interface RetentionPurgeSummary {
   readonly scannedMailboxes: number;
   readonly affectedMailboxes: number;
   readonly purgedMessages: number;
+  readonly errors?: number;
+}
+
+const RETENTION_PURGE_BATCH_SIZE = 500;
+
+interface RetentionMembershipRow {
+  readonly mailboxId: bigint;
+  readonly user?: {
+    readonly isActive?: boolean;
+    readonly accessPolicy?: {
+      readonly canCreateMailboxes?: boolean | null;
+      readonly canDeleteMessages?: boolean | null;
+      readonly canDeleteMailboxes?: boolean | null;
+      readonly maxMailboxes?: number | null;
+      readonly allowedDomainUuids?: readonly string[] | null;
+      readonly autoDeleteEnabled?: boolean | null;
+      readonly autoDeleteDays?: number | null;
+    } | null;
+  } | null;
 }
 
 export async function purgeExpiredMessagesForRetention(
   prisma: Pick<PrismaClient, "mailbox" | "message"> &
-    Partial<Pick<PrismaClient, "userControlSettings" | "user" | "auditLog">>,
+    Partial<
+      Pick<
+        PrismaClient,
+        | "userControlSettings"
+        | "user"
+        | "auditLog"
+        | "mailboxMembership"
+        | "userAccessPolicy"
+      >
+    >,
   options: {
     readonly dryRun?: boolean;
     readonly retentionDays?: number;
@@ -2033,17 +2119,17 @@ export async function purgeExpiredMessagesForRetention(
       ? Math.max(0, Math.floor(options.retentionDays))
       : undefined;
 
-  const effectiveDays =
+  const globalDays =
     explicitDays !== undefined
       ? explicitDays
       : globalSettings.autoDeleteEnabled
         ? globalSettings.autoDeleteDays
         : 0;
 
-  const cutoff =
-    effectiveDays > 0
+  const globalCutoff =
+    globalDays > 0
       ? computeMessageRetentionCutoff(
-          { autoDeleteEnabled: true, autoDeleteDays: effectiveDays },
+          { autoDeleteEnabled: true, autoDeleteDays: globalDays },
           now,
         )
       : null;
@@ -2064,57 +2150,229 @@ export async function purgeExpiredMessagesForRetention(
     },
   });
 
-  if (!cutoff || mailboxes.length === 0) {
+  if (mailboxes.length === 0) {
     return {
       dryRun,
-      retentionDays: effectiveDays,
-      cutoffIso: cutoff ? cutoff.toISOString() : null,
-      scannedMailboxes: mailboxes.length,
+      retentionDays: globalDays,
+      cutoffIso: globalCutoff ? globalCutoff.toISOString() : null,
+      scannedMailboxes: 0,
       affectedMailboxes: 0,
       purgedMessages: 0,
+      errors: 0,
     };
+  }
+
+  // When no explicit override is supplied, resolve per-mailbox retention from
+  // assigned users' effective policies (inheriting global UserControlSettings
+  // whenever per-user fields are NULL).
+  const membershipsByMailbox = new Map<bigint, RetentionMembershipRow[]>();
+  if (
+    explicitDays === undefined &&
+    prisma.mailboxMembership &&
+    typeof prisma.mailboxMembership.findMany === "function"
+  ) {
+    try {
+      const rows = (await prisma.mailboxMembership.findMany({
+        where: {
+          mailboxId: { in: mailboxes.map((mbx) => mbx.id) },
+        },
+        select: {
+          mailboxId: true,
+          user: {
+            select: {
+              isActive: true,
+              accessPolicy: {
+                select: {
+                  canCreateMailboxes: true,
+                  canDeleteMessages: true,
+                  canDeleteMailboxes: true,
+                  maxMailboxes: true,
+                  allowedDomainUuids: true,
+                  autoDeleteEnabled: true,
+                  autoDeleteDays: true,
+                },
+              },
+            },
+          },
+        },
+      })) as unknown as RetentionMembershipRow[];
+
+      for (const row of rows) {
+        if (!row || typeof row.mailboxId !== "bigint") continue;
+        const list = membershipsByMailbox.get(row.mailboxId) ?? [];
+        list.push(row);
+        membershipsByMailbox.set(row.mailboxId, list);
+      }
+    } catch {
+      // Partial mock or unavailable membership relation: fall back to global retention cutoff.
+    }
+  }
+
+  function resolveMailboxRetentionDays(mailboxId: bigint): number {
+    if (explicitDays !== undefined) {
+      return explicitDays;
+    }
+    const members = membershipsByMailbox.get(mailboxId);
+    if (!members || members.length === 0) {
+      return globalDays;
+    }
+    const activeMembers = members.filter((m) => m.user?.isActive !== false);
+    const relevantMembers = activeMembers.length > 0 ? activeMembers : members;
+
+    const effectiveDaysList = relevantMembers.map((member) => {
+      const effective = resolveEffectiveUserPolicy(
+        globalSettings,
+        member.user?.accessPolicy ?? null,
+      );
+      return effective.autoDeleteEnabled ? effective.autoDeleteDays : 0;
+    });
+
+    // If any active member has retention disabled (0), do not purge shared messages.
+    if (effectiveDaysList.some((days) => days <= 0)) {
+      return 0;
+    }
+    return Math.max(...effectiveDaysList);
   }
 
   let affectedMailboxes = 0;
   let purgedMessages = 0;
+  let errors = 0;
+  let maxAppliedRetentionDays = globalDays;
+  let latestRepresentativeCutoff = globalCutoff;
+
+  const messageDelegate = prisma.message as unknown as {
+    count?: (args: { where: Record<string, unknown> }) => Promise<number>;
+    findMany: (args: {
+      where: Record<string, unknown>;
+      select: Record<string, boolean>;
+      orderBy?: Record<string, "asc" | "desc">;
+      take?: number;
+    }) => Promise<Array<{ id: bigint; receivedAt?: Date | null; createdAt?: Date | null }>>;
+    updateMany?: (args: {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    }) => Promise<{ count: number }>;
+    update: (args: {
+      where: { id: bigint };
+      data: Record<string, unknown>;
+    }) => Promise<unknown>;
+  };
 
   for (const mailbox of mailboxes) {
-    const activeMessages = await prisma.message.findMany({
-      where: {
-        mailboxId: mailbox.id,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-        uuid: true,
-        receivedAt: true,
-        createdAt: true,
-      },
-    });
+    const mailboxDays = resolveMailboxRetentionDays(mailbox.id);
+    const mailboxCutoff =
+      mailboxDays > 0
+        ? computeMessageRetentionCutoff(
+            { autoDeleteEnabled: true, autoDeleteDays: mailboxDays },
+            now,
+          )
+        : null;
 
-    const expiredMessages = activeMessages.filter(
-      (msg) => !isMessageWithinRetention(msg, cutoff),
-    );
-
-    if (expiredMessages.length === 0) {
+    if (!mailboxCutoff) {
       continue;
     }
 
-    affectedMailboxes += 1;
-    purgedMessages += expiredMessages.length;
+    if (mailboxDays > maxAppliedRetentionDays) {
+      maxAppliedRetentionDays = mailboxDays;
+      latestRepresentativeCutoff = mailboxCutoff;
+    } else if (!latestRepresentativeCutoff) {
+      latestRepresentativeCutoff = mailboxCutoff;
+    }
 
-    if (!dryRun) {
-      for (const expired of expiredMessages) {
-        await prisma.message.update({
-          where: { id: expired.id },
-          data: {
-            deletedAt: now,
-          },
-        });
+    const expiredWhere: Record<string, unknown> = {
+      mailboxId: mailbox.id,
+      deletedAt: null,
+      ...buildExpiredRetentionFilterClause(mailboxCutoff),
+    };
+
+    try {
+      if (dryRun) {
+        let expiredCount = 0;
+        if (typeof messageDelegate.count === "function") {
+          expiredCount = await messageDelegate.count({ where: expiredWhere });
+        } else {
+          const rows = await messageDelegate.findMany({
+            where: expiredWhere,
+            select: { id: true, receivedAt: true, createdAt: true },
+          });
+          expiredCount = rows.filter(
+            (msg) => !isMessageWithinRetention(msg, mailboxCutoff),
+          ).length;
+        }
+
+        if (expiredCount > 0) {
+          affectedMailboxes += 1;
+          purgedMessages += expiredCount;
+        }
+        continue;
       }
-      await recalculateMailboxCounters(prisma, mailbox.id);
+
+      let mailboxPurged = 0;
+      while (true) {
+        const batch = await messageDelegate.findMany({
+          where: expiredWhere,
+          select: { id: true },
+          orderBy: { id: "asc" },
+          take: RETENTION_PURGE_BATCH_SIZE,
+        });
+
+        if (batch.length === 0) {
+          break;
+        }
+
+        const batchIds = batch.map((row) => row.id);
+        let updatedCount = 0;
+
+        if (typeof messageDelegate.updateMany === "function") {
+          const result = await messageDelegate.updateMany({
+            where: {
+              id: { in: batchIds },
+              deletedAt: null,
+            },
+            data: { deletedAt: now },
+          });
+          updatedCount =
+            typeof result?.count === "number" ? result.count : batchIds.length;
+        } else {
+          for (const id of batchIds) {
+            await messageDelegate.update({
+              where: { id },
+              data: { deletedAt: now },
+            });
+            updatedCount += 1;
+          }
+        }
+
+        mailboxPurged += updatedCount;
+        if (batch.length < RETENTION_PURGE_BATCH_SIZE || updatedCount === 0) {
+          break;
+        }
+      }
+
+      if (mailboxPurged > 0) {
+        affectedMailboxes += 1;
+        purgedMessages += mailboxPurged;
+        await recalculateMailboxCounters(prisma, mailbox.id);
+      }
+    } catch (error) {
+      errors += 1;
+      logger.error("retention_purge_mailbox_failed", {
+        mailboxUuid: mailbox.uuid,
+        reason: error instanceof Error ? error.name : "RetentionError",
+      });
     }
   }
+
+  const effectiveSummaryDays =
+    explicitDays !== undefined
+      ? explicitDays
+      : globalDays > 0
+        ? globalDays
+        : maxAppliedRetentionDays;
+  const effectiveSummaryCutoff =
+    explicitDays !== undefined || globalCutoff
+      ? globalCutoff
+      : latestRepresentativeCutoff;
 
   if (!dryRun && purgedMessages > 0 && prisma.auditLog) {
     const rawActorId = options.actor?.userId;
@@ -2139,21 +2397,27 @@ export async function purgeExpiredMessagesForRetention(
       userAgent: options.actor?.userAgent,
       trustProxyHeaders: options.actor?.trustProxyHeaders,
       details: {
-        retention_days: effectiveDays,
-        cutoff_iso: cutoff.toISOString(),
+        retention_days: effectiveSummaryDays,
+        cutoff_iso: effectiveSummaryCutoff
+          ? effectiveSummaryCutoff.toISOString()
+          : null,
         scanned_mailboxes: mailboxes.length,
         affected_mailboxes: affectedMailboxes,
         purged_messages: purgedMessages,
+        errors,
       },
     });
   }
 
   return {
     dryRun,
-    retentionDays: effectiveDays,
-    cutoffIso: cutoff.toISOString(),
+    retentionDays: effectiveSummaryDays,
+    cutoffIso: effectiveSummaryCutoff
+      ? effectiveSummaryCutoff.toISOString()
+      : null,
     scannedMailboxes: mailboxes.length,
     affectedMailboxes,
     purgedMessages,
+    errors,
   };
 }

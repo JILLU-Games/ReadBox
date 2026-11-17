@@ -79,6 +79,16 @@ function makePhase1Prisma() {
       ipAddress?: string | null;
       userAgent?: string;
     }[],
+    adminResetTokens: [] as {
+      adminId: bigint;
+      tokenHash: string;
+      expiresAt: Date;
+    }[],
+    passwordResetTokens: [] as {
+      userId: bigint;
+      tokenHash: string;
+      expiresAt: Date;
+    }[],
     appSessions: [] as {
       userId: bigint;
       tokenHash: string;
@@ -278,6 +288,79 @@ function makePhase1Prisma() {
               row.adminId !== args.where.adminId),
         );
         return { count: before - state.adminSessions.length };
+      },
+    },
+    adminResetToken: {
+      create: async (args: {
+        data: { adminId: bigint; tokenHash: string; expiresAt: Date };
+      }) => {
+        state.adminResetTokens.push(args.data);
+        return args.data;
+      },
+      findUnique: async (args: { where: { tokenHash: string } }) => {
+        const token = state.adminResetTokens.find(
+          (row) => row.tokenHash === args.where.tokenHash,
+        );
+        if (!token) return null;
+        const admin = state.admins.find((row) => row.id === token.adminId);
+        return {
+          ...token,
+          admin: admin ? { username: admin.username } : null,
+        };
+      },
+      deleteMany: async (args: {
+        where: {
+          adminId?: bigint;
+          tokenHash?: string;
+          expiresAt?: { gt: Date };
+        };
+      }) => {
+        const matches = state.adminResetTokens.filter(
+          (row) =>
+            (args.where.adminId === undefined ||
+              row.adminId === args.where.adminId) &&
+            (args.where.tokenHash === undefined ||
+              row.tokenHash === args.where.tokenHash) &&
+            (!args.where.expiresAt?.gt ||
+              row.expiresAt > args.where.expiresAt.gt),
+        );
+        state.adminResetTokens = state.adminResetTokens.filter(
+          (row) => !matches.includes(row),
+        );
+        return { count: matches.length };
+      },
+    },
+    passwordResetToken: {
+      create: async (args: {
+        data: { userId: bigint; tokenHash: string; expiresAt: Date };
+      }) => {
+        state.passwordResetTokens.push(args.data);
+        return args.data;
+      },
+      findUnique: async (args: { where: { tokenHash: string } }) =>
+        state.passwordResetTokens.find(
+          (row) => row.tokenHash === args.where.tokenHash,
+        ) ?? null,
+      deleteMany: async (args: {
+        where: {
+          userId?: bigint;
+          tokenHash?: string;
+          expiresAt?: { gt: Date };
+        };
+      }) => {
+        const matches = state.passwordResetTokens.filter(
+          (row) =>
+            (args.where.userId === undefined ||
+              row.userId === args.where.userId) &&
+            (args.where.tokenHash === undefined ||
+              row.tokenHash === args.where.tokenHash) &&
+            (!args.where.expiresAt?.gt ||
+              row.expiresAt > args.where.expiresAt.gt),
+        );
+        state.passwordResetTokens = state.passwordResetTokens.filter(
+          (row) => !matches.includes(row),
+        );
+        return { count: matches.length };
       },
     },
     user: {
@@ -734,6 +817,48 @@ test("dev demo auth and policy helpers enforce scope, domain access, mailbox quo
   const now = new Date("2026-11-15T00:00:00.000Z");
   const cutoff = computeMessageRetentionCutoff(effective, now);
   assert.equal(cutoff?.toISOString(), "2026-11-08T00:00:00.000Z");
+
+  // Phase 2 FA-006: nullable UserAccessPolicy columns inherit global UserControlSettings dynamically
+  const updatedGlobal = normalizeUserControlSettings({
+    ...DEFAULT_USER_CONTROL_SETTINGS,
+    defaultCanCreateMailboxes: false,
+    defaultMaxMailboxes: 5,
+    autoDeleteEnabled: true,
+    autoDeleteDays: 14,
+    allowedDomainUuids: ["dom-9"],
+  });
+  const inheritedFromNull = resolveEffectiveUserPolicy(updatedGlobal, {
+    canCreateMailboxes: null,
+    canDeleteMessages: true,
+    canDeleteMailboxes: false,
+    maxMailboxes: null,
+    allowedDomainUuids: [],
+    autoDeleteEnabled: null,
+    autoDeleteDays: null,
+  });
+  assert.equal(inheritedFromNull.canCreateMailboxes, false);
+  assert.equal(inheritedFromNull.canDeleteMessages, true);
+  assert.equal(inheritedFromNull.canDeleteMailboxes, false);
+  assert.equal(inheritedFromNull.maxMailboxes, 5);
+  assert.deepEqual(inheritedFromNull.allowedDomainUuids, ["dom-9"]);
+  assert.equal(inheritedFromNull.autoDeleteEnabled, true);
+  assert.equal(inheritedFromNull.autoDeleteDays, 14);
+
+  // Explicit non-null overrides win over global UserControlSettings
+  const explicitOverride = resolveEffectiveUserPolicy(updatedGlobal, {
+    canCreateMailboxes: true,
+    canDeleteMessages: false,
+    canDeleteMailboxes: false,
+    maxMailboxes: 1,
+    allowedDomainUuids: ["dom-custom"],
+    autoDeleteEnabled: false,
+    autoDeleteDays: 0,
+  });
+  assert.equal(explicitOverride.canCreateMailboxes, true);
+  assert.equal(explicitOverride.maxMailboxes, 1);
+  assert.deepEqual(explicitOverride.allowedDomainUuids, ["dom-custom"]);
+  assert.equal(explicitOverride.autoDeleteEnabled, false);
+  assert.equal(explicitOverride.autoDeleteDays, 0);
 });
 
 test("Phase-02 BUG-11, BUG-12, BUG-13, BUG-14: password reset, starter mailbox auto-provisioning, cross-table username uniqueness, and demo dynamic user overrides", async () => {
@@ -875,10 +1000,14 @@ test("Phase-02 BUG-11, BUG-12, BUG-13, BUG-14: password reset, starter mailbox a
     }),
   );
 
-  // BUG-11: AdminAccount self-service password reset updates admin_accounts and writes audit log
+  // BUG-11 & FA-002: AdminAccount password reset persists in admin_reset_tokens (survives memory clear) and logs targetType admin_account
   const adminResetReq = await requestPasswordReset(prisma, "ops.admin");
   assert.equal(adminResetReq.ok, true);
   assert.ok(adminResetReq.token);
+  assert.equal(state.adminResetTokens.length, 1);
+
+  // Simulate process/worker restart by clearing any in-memory token store
+  clearAdminResetTokenStore();
 
   const adminResetDone = await completePasswordResetDetailed(
     prisma,
@@ -888,8 +1017,92 @@ test("Phase-02 BUG-11, BUG-12, BUG-13, BUG-14: password reset, starter mailbox a
     { policy: { minLength: 12, requireStrongPassword: true } },
   );
   assert.equal(adminResetDone.ok, true);
+  assert.equal(state.adminResetTokens.length, 0);
   assert.equal(
-    state.audits.some((a) => a.action === "password_reset_completed"),
+    state.audits.some(
+      (a) =>
+        a.action === "password_reset_requested" &&
+        a.targetType === "admin_account",
+    ),
     true,
   );
+  assert.equal(
+    state.audits.some(
+      (a) =>
+        a.action === "password_reset_completed" &&
+        a.targetType === "admin_account",
+    ),
+    true,
+  );
+
+  // Replay of already-used DB admin reset token must fail
+  const replayAdminReset = await completePasswordResetDetailed(
+    prisma,
+    adminResetReq.token!,
+    "NextAdminPass#2026!",
+    "NextAdminPass#2026!",
+    { policy: { minLength: 12, requireStrongPassword: true } },
+  );
+  assert.equal(replayAdminReset.ok, false);
+});
+
+test("Phase 3 FA-010: starter mailbox auto-provisioning refuses partial DB-only fallback when full Maildir/mailserver contract fails", async () => {
+  const { prisma } = makePhase1Prisma();
+  let bareMailboxCreates = 0;
+
+  const clientObj = prisma as unknown as Record<string, unknown>;
+  clientObj.domain = {
+    findMany: async () => [
+      {
+        id: BigInt(1),
+        uuid: "11111111-1111-4111-8111-111111111111",
+        name: "readbox.test",
+      },
+    ],
+    findUnique: async () => ({
+      id: BigInt(1),
+      uuid: "11111111-1111-4111-8111-111111111111",
+      name: "readbox.test",
+      status: "active",
+      verificationStatus: "verified",
+    }),
+  };
+  clientObj.mailboxMembership = {
+    count: async () => 0,
+  };
+  clientObj.mailbox = {
+    findFirst: async () => null,
+    create: async () => {
+      bareMailboxCreates += 1;
+      throw new Error("Should never fall back to bare mailbox.create");
+    },
+  };
+  // Force provisionMailbox to fail cleanly on mailserver SQL/lock step
+  clientObj.$queryRaw = async () => {
+    throw new Error("mailserver schema unavailable");
+  };
+
+  const starterSettings = normalizeUserControlSettings({
+    ...DEFAULT_USER_CONTROL_SETTINGS,
+    autoProvisionStarterMailbox: true,
+  });
+
+  const registered = await registerUserAccount(
+    prisma,
+    {
+      username: "contract.user",
+      password: "ContractPass#2026!",
+      passwordConfirmation: "ContractPass#2026!",
+      firstName: "Contract",
+      lastName: "User",
+      email: "contract@readbox.test",
+    },
+    { settings: starterSettings, devDemoActive: false },
+  );
+
+  assert.equal(registered.ok, true);
+  if (registered.ok) {
+    assert.equal(registered.starterMailboxEmail, null);
+  }
+  assert.equal(bareMailboxCreates, 0);
 });

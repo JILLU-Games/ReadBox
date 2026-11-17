@@ -21,6 +21,7 @@ import {
   LogOut,
   Mail,
   Menu,
+  MessageSquare,
   Plus,
   ScrollText,
   Settings,
@@ -98,6 +99,11 @@ const managementGroups = [
         icon: SlidersHorizontal,
       },
       { href: "/vcon/audit", label: "Audit & security", icon: ScrollText },
+      {
+        href: "/vcon/inquiries",
+        label: "Contact inquiries",
+        icon: MessageSquare,
+      },
     ],
   },
   {

@@ -47,6 +47,7 @@ export default async function UserMailboxInboxPage(props: {
         getPrismaClient(),
         {
           userId,
+          authSource: user.authSource,
           username: user.username,
           isAdministrator: user.isAdministrator,
           headers: reqHeaders,

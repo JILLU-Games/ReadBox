@@ -62,6 +62,10 @@ const environmentSchema = z
       emptyToUndefined,
       z.string().min(32).optional(),
     ),
+    CONTACT_SECRET_KEY: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().min(16).optional(),
+    ),
     AUTH_TRUST_HOST: z.preprocess(
       emptyToUndefined,
       z
@@ -108,7 +112,7 @@ const environmentSchema = z
         .min(3)
         .max(253)
         .transform((value) => value.toLowerCase().replace(/\.+$/, ""))
-        .default("mailstack.local"),
+        .default("readbox.local"),
     ),
     MAIL_HOSTNAME: z.preprocess(
       emptyToUndefined,
@@ -118,7 +122,7 @@ const environmentSchema = z
         .min(3)
         .max(253)
         .transform((value) => value.toLowerCase().replace(/\.+$/, ""))
-        .default("mail.mailstack.local"),
+        .default("mail.readbox.local"),
     ),
     APP_HOSTNAME: z.preprocess(
       emptyToUndefined,
@@ -128,7 +132,7 @@ const environmentSchema = z
         .min(3)
         .max(253)
         .transform((value) => value.toLowerCase().replace(/\.+$/, ""))
-        .default("app.mailstack.local"),
+        .default("app.readbox.local"),
     ),
     SERVER_IP: z.preprocess(
       emptyToUndefined,
@@ -172,6 +176,13 @@ const environmentSchema = z
       emptyToUndefined,
       z.coerce.number().int().min(1).max(3_600).default(15),
     ),
+    REQUIRE_INGESTION_READY: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(["true", "false"])
+        .default("false")
+        .transform((value) => value === "true"),
+    ),
     INGESTION_LOCK_FILE: z.preprocess(
       emptyToUndefined,
       z.string().trim().min(1).default("/var/lock/readbox-ingestion.lock"),
@@ -192,17 +203,24 @@ const environmentSchema = z
       emptyToUndefined,
       z.string().trim().min(1).default("/var/lib/readbox/media"),
     ),
+    USE_X_ACCEL_REDIRECT: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(["true", "false"])
+        .default("false")
+        .transform((value) => value === "true"),
+    ),
     PUBLIC_SITE_ORIGIN: z.preprocess(
       emptyToUndefined,
       z.string().trim().url().optional(),
     ),
     UPDATE_RUNTIME_DIR: z.preprocess(
       emptyToUndefined,
-      z.string().trim().min(1).default("/run/vibmail"),
+      z.string().trim().min(1).default("/run/readbox"),
     ),
     UPDATE_SERVICE_NAME: z.preprocess(
       emptyToUndefined,
-      z.string().trim().min(1).default("vibmail-updater.service"),
+      z.string().trim().min(1).default("readbox-updater.service"),
     ),
     UPDATE_SCRIPT_PATH: z.preprocess(
       emptyToUndefined,
@@ -210,7 +228,7 @@ const environmentSchema = z
         .string()
         .trim()
         .min(1)
-        .default("/opt/vibmail/app/scripts/updater/upgrade.sh"),
+        .default("/opt/readbox/app/scripts/updater/upgrade.sh"),
     ),
     UPDATE_GITHUB_REPO: z.preprocess(
       emptyToUndefined,
@@ -251,6 +269,7 @@ export type ReadBoxEnv = Readonly<{
   databaseUrl: string | undefined;
   authEnabled: boolean;
   authSecret: string | undefined;
+  contactSecretKey: string | undefined;
   authTrustHost: boolean;
   trustProxyHeaders: boolean;
   devAuthMode: "off" | "bypass" | "demo";
@@ -271,11 +290,13 @@ export type ReadBoxEnv = Readonly<{
   dnsLookupTimeoutSeconds: number;
   ingestionStaleAfterSeconds: number;
   ingestionIntervalSeconds: number;
+  requireIngestionReady: boolean;
   ingestionLockFile: string;
   maxMessageSizeMb: number;
   maxAttachmentSizeMb: number;
   maxAttachmentsPerMessage: number;
   mediaRoot: string;
+  useXAccelRedirect: boolean;
   publicSiteOrigin: string | undefined;
   updateRuntimeDir: string;
   updateServiceName: string;
@@ -305,6 +326,7 @@ export function parseEnvironment(
     databaseUrl: result.data.DATABASE_URL,
     authEnabled: result.data.AUTH_ENABLED,
     authSecret: result.data.AUTH_SECRET,
+    contactSecretKey: result.data.CONTACT_SECRET_KEY,
     authTrustHost: result.data.AUTH_TRUST_HOST,
     trustProxyHeaders: result.data.TRUST_PROXY_HEADERS,
     devAuthMode,
@@ -325,11 +347,13 @@ export function parseEnvironment(
     dnsLookupTimeoutSeconds: result.data.DNS_LOOKUP_TIMEOUT_SECONDS,
     ingestionStaleAfterSeconds: result.data.INGESTION_STALE_AFTER_SECONDS,
     ingestionIntervalSeconds: result.data.INGESTION_INTERVAL_SECONDS,
+    requireIngestionReady: result.data.REQUIRE_INGESTION_READY,
     ingestionLockFile: result.data.INGESTION_LOCK_FILE,
     maxMessageSizeMb: result.data.MAX_MESSAGE_SIZE_MB,
     maxAttachmentSizeMb: result.data.MAX_ATTACHMENT_SIZE_MB,
     maxAttachmentsPerMessage: result.data.MAX_ATTACHMENTS_PER_MESSAGE,
     mediaRoot: result.data.MEDIA_ROOT,
+    useXAccelRedirect: result.data.USE_X_ACCEL_REDIRECT,
     publicSiteOrigin: result.data.PUBLIC_SITE_ORIGIN,
     updateRuntimeDir: result.data.UPDATE_RUNTIME_DIR,
     updateServiceName: result.data.UPDATE_SERVICE_NAME,

@@ -11,8 +11,23 @@ import { extractClientIp } from "@/core/auth/proxy-request";
 import { requireAdminUser } from "@/core/auth/route-guards";
 import { updatePendingUserVerification } from "@/core/auth/sign-up";
 import { getPrismaClient } from "@/core/database/client";
+import { logger } from "@/core/server/logger";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+
+function tryResolveControlPrisma() {
+  if (!env.databaseUrl) {
+    return { prisma: null, initError: false as const };
+  }
+  try {
+    return { prisma: getPrismaClient(), initError: false as const };
+  } catch (error) {
+    logger.error("vcon_users_control_action_db_unavailable", {
+      reason: error instanceof Error ? error.name : "unknown_error",
+    });
+    return { prisma: null, initError: true as const };
+  }
+}
 
 export interface SaveUserControlSettingsActionResult {
   readonly ok: boolean;
@@ -27,17 +42,30 @@ export async function saveUserControlSettingsAction(
 ): Promise<SaveUserControlSettingsActionResult> {
   const admin = await requireAdminUser();
   const reqHeaders = await headers();
-  const prisma = env.databaseUrl ? getPrismaClient() : null;
+  const devDemoActive =
+    env.nodeEnv === "development" && env.devAuthMode === "demo";
+  const { prisma, initError } = tryResolveControlPrisma();
+  if (initError) {
+    return {
+      ok: false,
+      error: "Database is temporarily unavailable. Please try again shortly.",
+    };
+  }
 
-  const result = await updateUserControlSettings(prisma, input, {
-    actorId: admin.id,
-    authSource: admin.authSource,
-    actorUsername: admin.username,
-    clientIp: extractClientIp(reqHeaders, {
-      trustProxyHeaders: env.trustProxyHeaders,
-    }),
-    userAgent: reqHeaders.get("user-agent") ?? "",
-  });
+  const result = await updateUserControlSettings(
+    prisma,
+    input,
+    {
+      actorId: admin.id,
+      authSource: admin.authSource,
+      actorUsername: admin.username,
+      clientIp: extractClientIp(reqHeaders, {
+        trustProxyHeaders: env.trustProxyHeaders,
+      }),
+      userAgent: reqHeaders.get("user-agent") ?? "",
+    },
+    { allowDemoFallback: devDemoActive },
+  );
 
   if (!result.ok) {
     return {
@@ -65,10 +93,22 @@ export async function decidePendingUserAction(
 ): Promise<{ readonly ok: boolean; readonly message?: string; readonly error?: string }> {
   const admin = await requireAdminUser();
   const reqHeaders = await headers();
-  const prisma = env.databaseUrl ? getPrismaClient() : null;
   const devDemoActive =
-    !env.databaseUrl ||
-    (env.nodeEnv === "development" && env.devAuthMode === "demo");
+    env.nodeEnv === "development" && env.devAuthMode === "demo";
+  const { prisma, initError } = tryResolveControlPrisma();
+  if (initError) {
+    return {
+      ok: false,
+      error: "Database is temporarily unavailable. Please try again shortly.",
+    };
+  }
+  if (!prisma && !devDemoActive) {
+    return {
+      ok: false,
+      error:
+        "Database connection is required to review pending registrations.",
+    };
+  }
 
   const result = await updatePendingUserVerification(prisma, userId, decision, {
     devDemoActive,
@@ -111,17 +151,31 @@ export async function saveUserPolicyOverrideAction(
 }> {
   const admin = await requireAdminUser();
   const reqHeaders = await headers();
-  const prisma = env.databaseUrl ? getPrismaClient() : null;
+  const devDemoActive =
+    env.nodeEnv === "development" && env.devAuthMode === "demo";
+  const { prisma, initError } = tryResolveControlPrisma();
+  if (initError) {
+    return {
+      ok: false,
+      error: "Database is temporarily unavailable. Please try again shortly.",
+    };
+  }
 
-  const result = await updateUserExtendedPolicy(prisma, userId, input, {
-    actorId: admin.id,
-    authSource: admin.authSource,
-    actorUsername: admin.username,
-    clientIp: extractClientIp(reqHeaders, {
-      trustProxyHeaders: env.trustProxyHeaders,
-    }),
-    userAgent: reqHeaders.get("user-agent") ?? "",
-  });
+  const result = await updateUserExtendedPolicy(
+    prisma,
+    userId,
+    input,
+    {
+      actorId: admin.id,
+      authSource: admin.authSource,
+      actorUsername: admin.username,
+      clientIp: extractClientIp(reqHeaders, {
+        trustProxyHeaders: env.trustProxyHeaders,
+      }),
+      userAgent: reqHeaders.get("user-agent") ?? "",
+    },
+    { allowDemoFallback: devDemoActive },
+  );
 
   if (!result.ok) {
     return {

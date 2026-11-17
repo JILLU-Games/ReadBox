@@ -48,9 +48,15 @@ describe("PasswordResetForm", () => {
     cleanup();
   });
 
-  it("renders accessible reset fields and password requirements", () => {
+  it("renders accessible reset fields and hides self-issue token generator by default (FA-001)", () => {
     render(<PasswordResetForm />);
 
+    expect(
+      screen.queryByRole("button", { name: "Generate reset token" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/one-time reset token issued by your administrator/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Reset token" })).toBeRequired();
     expect(screen.getByLabelText("New password")).toHaveAttribute(
       "minLength",
@@ -60,6 +66,14 @@ describe("PasswordResetForm", () => {
       "type",
       "password",
     );
+  });
+
+  it("shows demo preview token generator only when allowDemoTokenRequest is true", () => {
+    render(<PasswordResetForm allowDemoTokenRequest={true} />);
+
+    expect(
+      screen.getByRole("button", { name: "Generate reset token" }),
+    ).toBeInTheDocument();
   });
 
   it("shows mismatch feedback and does not submit mismatched passwords", async () => {

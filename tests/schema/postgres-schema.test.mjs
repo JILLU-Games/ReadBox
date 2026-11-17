@@ -38,6 +38,9 @@ const migrationLock = readFileSync(
 test("Prisma models the verified app entities and excludes infrastructure databases", () => {
   for (const model of [
     "User",
+    "AdminAccount",
+    "AdminSession",
+    "AdminResetToken",
     "AdministratorProfile",
     "LoginAttempt",
     "UserAccessPolicy",
@@ -118,9 +121,44 @@ test("administrator profile is a unique linked identity with no automatic promot
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
+  assert.ok(
+    migrationDirectories.includes("20261115000000_mailserver_schema_and_roles"),
+  );
   assert.equal(
     migrationDirectories.at(-1),
-    "20261115000000_mailserver_schema_and_roles",
+    "20261116010000_phase2_user_access_policy_inheritance",
+  );
+  const phase1Migration = readFileSync(
+    resolve(
+      workspaceRoot,
+      "prisma/migrations/20261116000000_phase1_admin_reset_and_security/migration.sql",
+    ),
+    "utf8",
+  );
+  assert.match(phase1Migration, /CREATE TABLE IF NOT EXISTS "admin_reset_tokens"/);
+
+  const phase2Migration = readFileSync(
+    resolve(
+      workspaceRoot,
+      "prisma/migrations/20261116010000_phase2_user_access_policy_inheritance/migration.sql",
+    ),
+    "utf8",
+  );
+  assert.match(
+    phase2Migration,
+    /ALTER COLUMN "can_create_mailboxes" DROP NOT NULL/,
+  );
+  assert.match(
+    phase2Migration,
+    /ALTER COLUMN "auto_delete_enabled" DROP NOT NULL/,
+  );
+  assert.match(
+    prismaSchema,
+    /canCreateMailboxes\s+Boolean\?\s+@map\("can_create_mailboxes"\)/,
+  );
+  assert.match(
+    prismaSchema,
+    /autoDeleteEnabled\s+Boolean\?\s+@map\("auto_delete_enabled"\)/,
   );
 });
 

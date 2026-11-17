@@ -39,6 +39,7 @@ import {
   purgeExpiredMessagesForRetention,
   type RetentionPurgeSummary,
 } from "@/core/messages/service";
+export type { RetentionPurgeSummary } from "@/core/messages/service";
 import { logger } from "@/core/server/logger";
 import type { PrismaClient } from "@prisma/client";
 import "server-only";
@@ -976,6 +977,19 @@ export async function runRetentionPurge(
     };
   }
 
+  if (
+    input.retentionDays !== undefined &&
+    (!Number.isInteger(input.retentionDays) ||
+      input.retentionDays < 1 ||
+      input.retentionDays > 3650)
+  ) {
+    return {
+      ok: false,
+      code: "validation",
+      error: "Retention override must be an integer between 1 and 3650 days.",
+    };
+  }
+
   const summary = await purgeExpiredMessagesForRetention(
     prisma as unknown as Parameters<typeof purgeExpiredMessagesForRetention>[0],
     {
@@ -994,11 +1008,16 @@ export async function runRetentionPurge(
     },
   );
 
+  const errorSuffix =
+    summary.errors && summary.errors > 0
+      ? ` (${summary.errors} mailbox error(s) encountered)`
+      : "";
+
   return {
     ok: true,
     data: summary,
     message: summary.dryRun
-      ? `Dry-run retention scan: ${summary.purgedMessages} expired message(s) across ${summary.affectedMailboxes} mailbox(es).`
-      : `Retention cleanup completed: ${summary.purgedMessages} expired message(s) purged across ${summary.affectedMailboxes} mailbox(es).`,
+      ? `Dry-run retention scan: ${summary.purgedMessages} expired message(s) across ${summary.affectedMailboxes} mailbox(es).${errorSuffix}`
+      : `Retention cleanup completed: ${summary.purgedMessages} expired message(s) purged across ${summary.affectedMailboxes} mailbox(es).${errorSuffix}`,
   };
 }

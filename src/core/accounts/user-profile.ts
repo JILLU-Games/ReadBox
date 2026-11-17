@@ -177,6 +177,17 @@ export async function updateUserProfile(
   }
 
   if (actor.authSource === "admin_table") {
+    if (validated.data.phone.length > 0) {
+      return {
+        ok: false,
+        code: "validation",
+        error: "Phone numbers are not stored for operator accounts.",
+        fieldErrors: {
+          phone: "Not applicable for operator accounts.",
+        },
+      };
+    }
+
     try {
       const savedAdmin = await prisma.$transaction(async (tx) => {
         const existing = await tx.adminAccount.findUnique({
@@ -405,7 +416,7 @@ export async function getUserSecuritySnapshot(
         prisma.auditLog.findMany({
           where: {
             action: { in: [...USER_SECURITY_AUDIT_ACTIONS] },
-            targetType: "admin",
+            targetType: { in: ["admin", "admin_account"] },
             ...(actor.username ? { targetIdentifier: actor.username } : {}),
           },
           orderBy: [{ createdAt: "desc" }],

@@ -55,6 +55,7 @@ export default async function UserMessageDetailPage(props: {
 
   const actor = {
     userId,
+    authSource: user.authSource,
     username: user.username,
     isAdministrator: user.isAdministrator,
     headers: reqHeaders,

@@ -3,7 +3,7 @@ import {
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
   MAX_BODY_BYTES,
-  consumeContactCsrfToken,
+  consumeContactCsrfTokenDurable,
   recordContactSubmission,
   validateContactPayload,
 } from "@/core/contact/service";
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const sessionCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value ?? "";
   const csrfHeader = request.headers.get(CSRF_HEADER_NAME) ?? "";
 
-  if (!consumeContactCsrfToken(sessionCookie, csrfHeader)) {
+  if (!(await consumeContactCsrfTokenDurable(sessionCookie, csrfHeader))) {
     return NextResponse.json(
       {
         message:

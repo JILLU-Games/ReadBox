@@ -594,6 +594,26 @@ describe("User personal profile validation, demo persistence, and DB service", (
     assert.equal(profileAudit?.actorId, null);
     assert.equal(profileAudit?.targetType, "admin");
 
+    // FA-009: Rejects non-empty phone on admin_table rather than silently dropping it
+    const rejectedPhoneUpdate = await updateUserProfile(
+      fakePrisma,
+      { userId: BigInt(10), authSource: "admin_table" },
+      {
+        firstName: "Super",
+        lastName: "Administrator",
+        email: "super.admin@readbox.local",
+        phone: "+1 555 010 9900",
+      },
+    );
+    assert.equal(rejectedPhoneUpdate.ok, false);
+    if (!rejectedPhoneUpdate.ok) {
+      assert.equal(rejectedPhoneUpdate.code, "validation");
+      assert.match(
+        rejectedPhoneUpdate.fieldErrors?.phone ?? "",
+        /Not applicable for operator accounts/i,
+      );
+    }
+
     // 3. getUserSecuritySnapshot returns active AdminSession list with canManageSecurity: true
     const snap = await getUserSecuritySnapshot(
       fakePrisma,

@@ -3,6 +3,7 @@ import {
   rebuildMailIndexAction,
   recalculateCountersAction,
   repairMessageBodiesAction,
+  runRetentionPurgeAction,
   syncMailserverMailboxesAction,
   verifyPostfixContractAction,
 } from "@/app/(workspace)/vcon/operations/actions";
@@ -51,6 +52,7 @@ export default async function AdminOperationsPage() {
       onRebuildIndex={rebuildMailIndexAction}
       onRecalculateCounters={recalculateCountersAction}
       onRepairBodies={repairMessageBodiesAction}
+      onRetentionPurge={runRetentionPurgeAction}
     />
   );
 }

@@ -1,5 +1,10 @@
 import { parseEnvironment } from "@/config/env-schema";
 import {
+  DatabaseConfigurationError,
+  DatabaseUnavailableError,
+  resolvePrismaClient,
+} from "@/core/database/client";
+import {
   authorizeDevDemoCredentials,
   clearDevDemoSessions,
   DEV_DEMO_ACCOUNTS,
@@ -313,4 +318,43 @@ test("parseEnvironment provides safe defaults and validates lockout settings", (
   assert.equal(custom.loginLockoutSeconds, 1200);
 
   assert.throws(() => parseEnvironment({ LOGIN_FAILURE_LIMIT: "0" }));
+});
+
+test("Phase 4 EH-07 & EH-01: validates USE_X_ACCEL_REDIRECT and resolvePrismaClient fails closed in production", () => {
+  const defaults = parseEnvironment({});
+  assert.equal(defaults.useXAccelRedirect, false);
+
+  const enabled = parseEnvironment({ USE_X_ACCEL_REDIRECT: "true" });
+  assert.equal(enabled.useXAccelRedirect, true);
+  assert.throws(() => parseEnvironment({ USE_X_ACCEL_REDIRECT: "yes" }));
+
+  assert.throws(
+    () =>
+      resolvePrismaClient(
+        { nodeEnv: "production", databaseUrl: undefined },
+        { useGlobalCache: false },
+      ),
+    DatabaseConfigurationError,
+  );
+
+  assert.throws(
+    () =>
+      resolvePrismaClient(
+        { nodeEnv: "production", databaseUrl: VALID_DB_URL },
+        {
+          useGlobalCache: false,
+          buildClient: () => {
+            throw new Error("ECONNREFUSED");
+          },
+        },
+      ),
+    DatabaseUnavailableError,
+  );
+
+  // Non-production retains safe local mock fallback
+  const devMock = resolvePrismaClient(
+    { nodeEnv: "development", databaseUrl: undefined },
+    { useGlobalCache: false },
+  );
+  assert.ok(devMock);
 });

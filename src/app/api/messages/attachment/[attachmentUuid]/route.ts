@@ -70,6 +70,7 @@ export async function GET(
       getPrismaClient(),
       {
         userId,
+        authSource: user.authSource,
         username: user.username,
         isAdministrator: user.isAdministrator,
         headers: request.headers,
@@ -92,7 +93,7 @@ export async function GET(
       "Cache-Control": "private, no-store",
     };
 
-    if (process.env.USE_X_ACCEL_REDIRECT === "true") {
+    if (env.useXAccelRedirect) {
       return new NextResponse(null, {
         status: 200,
         headers: {

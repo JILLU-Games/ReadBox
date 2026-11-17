@@ -45,7 +45,15 @@ import {
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useId, useMemo, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 export interface MessageReaderNavigation {
   readonly currentIndex: number;
@@ -71,153 +79,10 @@ export interface MessageReaderViewProps {
   readonly navigation?: MessageReaderNavigation | null;
 }
 
-function scopeCssSelectors(selectorGroup: string, scopeClass: string): string {
-  return selectorGroup
-    .split(",")
-    .map((sel) => {
-      const s = sel.trim();
-      if (!s) return "";
-      if (/^(html|body|:root)\b/i.test(s)) {
-        return s.replace(/^(html|body|:root)\b/i, `.${scopeClass}`);
-      }
-      if (s === "*") {
-        return `.${scopeClass} *`;
-      }
-      return `.${scopeClass} ${s}`;
-    })
-    .filter(Boolean)
-    .join(", ");
-}
+const HTML_IFRAME_LOAD_TIMEOUT_MS = 12_000;
+const HTML_IFRAME_MIN_HEIGHT_PX = 260;
 
-function scopeCssText(cssText: string, scopeClass: string): string {
-  let out = "";
-  let i = 0;
-  const len = cssText.length;
-
-  while (i < len) {
-    // Preserve CSS comments without breaking braces inside them
-    if (cssText[i] === "/" && cssText[i + 1] === "*") {
-      const endComment = cssText.indexOf("*/", i + 2);
-      if (endComment === -1) break;
-      i = endComment + 2;
-      continue;
-    }
-
-    const openBrace = cssText.indexOf("{", i);
-    if (openBrace === -1) {
-      out += cssText.slice(i);
-      break;
-    }
-
-    const prelude = cssText.slice(i, openBrace).trim();
-    // Find matching closing brace accounting for nesting
-    let depth = 1;
-    let j = openBrace + 1;
-    while (j < len && depth > 0) {
-      if (cssText[j] === "{") depth += 1;
-      else if (cssText[j] === "}") depth -= 1;
-      j += 1;
-    }
-
-    const inner = cssText.slice(openBrace + 1, Math.max(openBrace + 1, j - 1));
-    if (!prelude) {
-      i = j;
-      continue;
-    }
-
-    if (prelude.startsWith("@")) {
-      const lowered = prelude.toLowerCase();
-      if (lowered.startsWith("@media") || lowered.startsWith("@supports")) {
-        out += `${prelude}{${scopeCssText(inner, scopeClass)}}`;
-      } else {
-        out += `${prelude}{${inner}}`;
-      }
-    } else {
-      const scoped = scopeCssSelectors(prelude, scopeClass);
-      if (scoped) {
-        out += `${scoped}{${inner}}`;
-      }
-    }
-
-    i = j;
-  }
-
-  return out;
-}
-
-function extractAndScopeEmailHtml(rawHtml: string, scopeClass: string): string {
-  if (!rawHtml || !rawHtml.trim()) {
-    return "";
-  }
-
-  let working = rawHtml.trim();
-
-  // If full HTML document was returned by API endpoint, extract email style tags and body innerHTML
-  // while skipping buildSanitizedHtmlDocument's iframe-only base wrapper stylesheet (avoids double padding).
-  const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(working);
-  if (bodyMatch) {
-    const isReadBoxIframeWrapper = (styleTag: string) =>
-      styleTag.includes("scrollbar-width:none") &&
-      styleTag.includes("padding:16px") &&
-      styleTag.includes("overflow-wrap:anywhere");
-    const styleMatches = (working.match(/<style[^>]*>[\s\S]*?<\/style>/gi) ?? []).filter(
-      (styleTag) => !isReadBoxIframeWrapper(styleTag),
-    );
-    const bodyInner = bodyMatch[1] ?? "";
-    working = `${styleMatches.join("\n")}${bodyInner}`;
-  }
-
-  // Scope <style> rules cleanly (including nested @media blocks) so email styles never leak outside
-  working = working.replace(
-    /<style[^>]*>([\s\S]*?)<\/style>/gi,
-    (_full, cssText: string) => {
-      const scopedCss = scopeCssText(cssText, scopeClass);
-      return scopedCss.trim() ? `<style>${scopedCss}</style>` : "";
-    },
-  );
-
-  // Ensure all anchor links open safely and remain interactive + right-click copyable
-  working = working.replace(
-    /<a\b([^>]*?)>/gi,
-    (fullTag, attrs: string) => {
-      const hrefMatch = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(
-        attrs,
-      );
-      const href = (
-        hrefMatch?.[1] ??
-        hrefMatch?.[2] ??
-        hrefMatch?.[3] ??
-        ""
-      ).trim();
-      if (!href) {
-        return fullTag;
-      }
-      const isMailtoOrHash =
-        href.toLowerCase().startsWith("mailto:") || href.startsWith("#");
-      let cleanedAttrs = attrs
-        .replace(/\btarget\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-        .replace(/\brel\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-        .trim();
-      if (!isMailtoOrHash) {
-        cleanedAttrs = `${cleanedAttrs} target="_blank" rel="noopener noreferrer"`.trim();
-      }
-      return `<a ${cleanedAttrs}>`;
-    },
-  );
-
-  // Prevent email <button> elements without type from acting as submit buttons
-  working = working.replace(
-    /<button\b([^>]*?)>/gi,
-    (fullTag, attrs: string) => {
-      if (/\btype\s*=/i.test(attrs)) {
-        return fullTag;
-      }
-      return `<button type="button"${attrs}>`;
-    },
-  );
-
-  return working;
-}
+type IframeLoadStatus = "loading" | "loaded" | "error";
 
 const URL_OR_EMAIL_TOKEN_RE =
   /(https?:\/\/[^\s<>"')]+|mailto:[^\s<>"')]+|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b)/gi;
@@ -278,114 +143,146 @@ export function MessageReaderView({
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const activeTheme = resolvedTheme === "dark" ? "dark" : "light";
-  const rawScopeId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const scopeClass = `readbox-mail-scope-${rawScopeId}`;
 
-  const [fetchedHtmlByKey, setFetchedHtmlByKey] = useState<
-    Record<string, string>
-  >({});
-  const [htmlFetchErrorKey, setHtmlFetchErrorKey] = useState<string | null>(
-    null,
-  );
   const [retryCounter, setRetryCounter] = useState(0);
+  const currentIframeKey = `${message.uuid}:${activeTheme}:${retryCounter}`;
+  const [iframeLoadState, setIframeLoadState] = useState<{
+    readonly key: string;
+    readonly status: IframeLoadStatus;
+  }>({
+    key: currentIframeKey,
+    status: message.hasHtmlBody ? "loading" : "loaded",
+  });
+  const [iframePlainText, setIframePlainText] = useState<{
+    readonly key: string;
+    readonly text: string;
+  }>({
+    key: currentIframeKey,
+    text: "",
+  });
+
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const directHtml = (message.htmlBody ?? "").trim();
-  const fetchCacheKey = `${message.uuid}:${activeTheme}`;
-  const fetchedHtml = (fetchedHtmlByKey[fetchCacheKey] ?? "").trim();
+  const effectiveIframeStatus: IframeLoadStatus = !message.hasHtmlBody
+    ? "loaded"
+    : iframeLoadState.key === currentIframeKey
+      ? iframeLoadState.status
+      : "loading";
+
+  const htmlFetchFailed =
+    message.hasHtmlBody && effectiveIframeStatus === "error";
+  const showHtmlIframe = message.hasHtmlBody && !htmlFetchFailed;
+  const iframeSrc = `/api/messages/html/${message.uuid}?theme=${activeTheme}`;
+
+  const syncIframeDimensions = useCallback((iframe: HTMLIFrameElement) => {
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    const measuredHeight = Math.max(
+      HTML_IFRAME_MIN_HEIGHT_PX,
+      doc.documentElement?.scrollHeight ?? 0,
+      doc.body?.scrollHeight ?? 0,
+    );
+    iframe.style.height = `${measuredHeight}px`;
+  }, []);
 
   useEffect(() => {
-    if (directHtml.length > 0 || !message.hasHtmlBody) {
+    const iframe = iframeRef.current;
+    if (!iframe || !message.hasHtmlBody) {
       return;
     }
-    if (typeof window === "undefined" || typeof window.fetch !== "function") {
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    window
-      .fetch(`/api/messages/html/${message.uuid}?theme=${activeTheme}`, {
-        method: "GET",
-        credentials: "same-origin",
-        signal: controller.signal,
-      })
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        return res.text();
-      })
-      .then((htmlText) => {
-        if (!cancelled && htmlText && htmlText.trim().length > 0) {
-          setHtmlFetchErrorKey(null);
-          setFetchedHtmlByKey((prev) => ({
-            ...prev,
-            [fetchCacheKey]: htmlText,
-          }));
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-        setHtmlFetchErrorKey(fetchCacheKey);
+    const handleNativeError = () => {
+      setIframeLoadState({
+        key: currentIframeKey,
+        status: "error",
       });
+    };
+    iframe.addEventListener("error", handleNativeError);
+    return () => {
+      iframe.removeEventListener("error", handleNativeError);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, [currentIframeKey, htmlFetchFailed, message.hasHtmlBody]);
+
+  useEffect(() => {
+    if (!message.hasHtmlBody || effectiveIframeStatus !== "loading") {
+      return;
+    }
+    if (typeof window === "undefined") {
+      return;
+    }
+    const timerId = window.setTimeout(() => {
+      setIframeLoadState({
+        key: currentIframeKey,
+        status: "error",
+      });
+    }, HTML_IFRAME_LOAD_TIMEOUT_MS);
 
     return () => {
-      cancelled = true;
-      controller.abort();
+      window.clearTimeout(timerId);
     };
-  }, [activeTheme, directHtml, fetchCacheKey, message.hasHtmlBody, message.uuid, retryCounter]);
+  }, [currentIframeKey, effectiveIframeStatus, message.hasHtmlBody]);
 
-  const effectiveHtml = directHtml || fetchedHtml;
-  const htmlFetchFailed =
-    !directHtml &&
-    !fetchedHtml &&
-    message.hasHtmlBody &&
-    htmlFetchErrorKey === fetchCacheKey;
-  const scopedHtml = useMemo(() => {
-    if (!effectiveHtml) return "";
-    let resolved = effectiveHtml;
-    if (message.attachments.length > 0 && /cid:/i.test(resolved)) {
-      const cidLookup = new Map<string, string>();
-      for (const att of message.attachments) {
-        if (!att.uuid) continue;
-        const url = `/api/messages/attachment/${att.uuid}`;
-        const cid = (att.contentId ?? "").replace(/^<|>$/g, "").trim();
-        if (cid) {
-          cidLookup.set(cid, url);
-          cidLookup.set(cid.toLowerCase(), url);
-        }
-        if (att.isInline) {
-          if (att.originalFilename) {
-            cidLookup.set(att.originalFilename, url);
-            cidLookup.set(att.originalFilename.toLowerCase(), url);
-          }
-          if (att.safeFilename) {
-            cidLookup.set(att.safeFilename, url);
-            cidLookup.set(att.safeFilename.toLowerCase(), url);
-          }
-        }
-      }
-      if (cidLookup.size > 0) {
-        resolved = resolved.replace(
-          /(<img\b[^>]*?\bsrc\s*=\s*["'])cid:([^"']+)(["'])/gi,
-          (fullMatch, prefix: string, rawCid: string, suffix: string) => {
-            const cleanedCid = rawCid.replace(/^<|>$/g, "").trim();
-            const mapped =
-              cidLookup.get(cleanedCid) ??
-              cidLookup.get(cleanedCid.toLowerCase());
-            return mapped ? `${prefix}${mapped}${suffix}` : fullMatch;
-          },
-        );
-      }
+  function handleIframeLoad() {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    const hasMarker = Boolean(
+      doc?.querySelector('meta[name="readbox-html-body"]'),
+    );
+
+    if (!iframe || !doc || !hasMarker) {
+      setIframeLoadState({
+        key: currentIframeKey,
+        status: "error",
+      });
+      return;
     }
-    return extractAndScopeEmailHtml(resolved, scopeClass);
-  }, [effectiveHtml, message.attachments, scopeClass]);
+
+    setIframeLoadState({
+      key: currentIframeKey,
+      status: "loaded",
+    });
+
+    const extractedText = (doc.body?.innerText ?? doc.body?.textContent ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (extractedText) {
+      setIframePlainText({
+        key: currentIframeKey,
+        text: extractedText,
+      });
+    }
+
+    syncIframeDimensions(iframe);
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
+
+    if (typeof ResizeObserver !== "undefined" && doc.body) {
+      const observer = new ResizeObserver(() => {
+        if (iframeRef.current) {
+          syncIframeDimensions(iframeRef.current);
+        }
+      });
+      observer.observe(doc.body);
+      resizeObserverRef.current = observer;
+    }
+  }
+
+  function handleIframeError() {
+    setIframeLoadState({
+      key: currentIframeKey,
+      status: "error",
+    });
+  }
+
+  function handleRetryHtmlLoad() {
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
+    setRetryCounter((c) => c + 1);
+  }
 
   const { mailbox } = message;
   const senderDisplay =
@@ -401,15 +298,20 @@ export function MessageReaderView({
     if (message.textBody && message.textBody.trim().length > 0) {
       return message.textBody.trim();
     }
-    if (effectiveHtml) {
-      return effectiveHtml
-        .replace(/<style[\s\S]*?<\/style>/gi, " ")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+    if (
+      iframePlainText.key === currentIframeKey &&
+      iframePlainText.text.length > 0
+    ) {
+      return iframePlainText.text;
     }
     return message.subject || "";
-  }, [effectiveHtml, message.subject, message.textBody]);
+  }, [
+    currentIframeKey,
+    iframePlainText.key,
+    iframePlainText.text,
+    message.subject,
+    message.textBody,
+  ]);
 
   function handleMarkUnread() {
     startTransition(async () => {
@@ -766,7 +668,7 @@ export function MessageReaderView({
           ) : null}
         </header>
 
-        {/* Unified Gmail-style Email Content Canvas (Global CSS tokens + safe scoping) */}
+        {/* Isolated Sandboxed Email Content Canvas */}
         <section
           aria-label="Email body"
           data-testid="email-body-content"
@@ -781,10 +683,7 @@ export function MessageReaderView({
                   type="button"
                   size="xs"
                   variant="outline"
-                  onClick={() => {
-                    setHtmlFetchErrorKey(null);
-                    setRetryCounter((c) => c + 1);
-                  }}
+                  onClick={handleRetryHtmlLoad}
                 >
                   <Icon glyph={RotateCcw} className="size-3" />
                   Retry
@@ -795,14 +694,29 @@ export function MessageReaderView({
             </AlertBanner>
           ) : null}
 
-          {scopedHtml ? (
-            <div
-              className={cn(
-                "readbox-mail-body readbox-scrollable max-w-full overflow-x-auto",
-                scopeClass,
-              )}
-              dangerouslySetInnerHTML={{ __html: scopedHtml }}
-            />
+          {showHtmlIframe ? (
+            <div className="space-y-2">
+              {effectiveIframeStatus === "loading" ? (
+                <p
+                  role="status"
+                  className="text-xs text-muted-foreground"
+                >
+                  Loading formatted email…
+                </p>
+              ) : null}
+              <iframe
+                key={currentIframeKey}
+                ref={iframeRef}
+                title="Formatted email message"
+                data-testid="message-html-iframe"
+                src={iframeSrc}
+                sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                referrerPolicy="no-referrer"
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+                className="block min-h-[260px] w-full border-0 bg-card"
+              />
+            </div>
           ) : message.textBody.trim().length > 0 ? (
             <div className="readbox-mail-body space-y-2 whitespace-pre-wrap break-words text-foreground">
               {message.textBody.split("\n").map((line, index) => (

@@ -44,7 +44,7 @@ describe("Public Website UI Components", () => {
     expect(logoImg).toHaveAttribute("referrerpolicy", "no-referrer");
   });
 
-  it("renders PublicSiteFooter with Sign up, Sign in, dynamic support email, privacy policy, and copyright", () => {
+  it("renders PublicSiteFooter with Sign up, Sign in, dynamic support email, privacy policy, sourceCodeUrl, and copyright", () => {
     render(
       <PublicSiteFooter
         siteName="ReadBox"
@@ -52,6 +52,7 @@ describe("Public Website UI Components", () => {
         footerDescription="Hardened custom-domain email operations."
         copyrightText="All rights reserved."
         privacyUrl="/privacy"
+        sourceCodeUrl="https://github.com/example/readbox"
       />,
     );
 
@@ -67,6 +68,21 @@ describe("Public Website UI Components", () => {
     expect(
       screen.getByRole("link", { name: /Privacy policy/i }),
     ).toHaveAttribute("href", "/privacy");
+    const sourceLink = screen.getByRole("link", { name: /Source code/i });
+    expect(sourceLink).toHaveAttribute(
+      "href",
+      "https://github.com/example/readbox",
+    );
+    expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
+
+    cleanup();
+    render(
+      <PublicSiteFooter
+        siteName="ReadBox"
+        sourceCodeUrl="javascript:alert(1)"
+      />,
+    );
+    expect(screen.queryByRole("link", { name: /Source code/i })).toBeNull();
   });
 
   it("toggles FAQ items in PublicFaqAccordion", async () => {

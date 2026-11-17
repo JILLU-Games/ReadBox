@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 
 async function loadSidebarMailboxes(user: {
   readonly id: bigint;
+  readonly authSource: "admin_table" | "user_table";
   readonly username: string;
   readonly isAdministrator: boolean;
 }): Promise<readonly AppShellMailboxLink[]> {
@@ -23,6 +24,7 @@ async function loadSidebarMailboxes(user: {
         getPrismaClient(),
         {
           userId: user.id,
+          authSource: user.authSource,
           username: user.username,
           isAdministrator: user.isAdministrator,
         },

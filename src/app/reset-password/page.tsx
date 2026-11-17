@@ -31,7 +31,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ResetPasswordPage() {
   const devDemoActive =
     env.nodeEnv === "development" && env.devAuthMode === "demo";
-  const prisma = !devDemoActive && env.databaseUrl ? getPrismaClient() : null;
+  let prisma = null;
+  if (!devDemoActive && env.databaseUrl) {
+    try {
+      prisma = getPrismaClient();
+    } catch {
+      prisma = null;
+    }
+  }
   const [settings, userControl] = await Promise.all([
     getSiteSettings(),
     getUserControlSettings(prisma),
@@ -53,9 +60,12 @@ export default async function ResetPasswordPage() {
         </PanelHeader>
         <PanelBody className="p-4">
           <PasswordResetForm
+            allowDemoTokenRequest={devDemoActive}
             minPasswordLength={Math.max(8, userControl.minPasswordLength)}
             requireStrongPassword={userControl.requireStrongPassword}
-            requestResetAction={requestPasswordResetAction}
+            requestResetAction={
+              devDemoActive ? requestPasswordResetAction : undefined
+            }
           />
         </PanelBody>
       </Panel>

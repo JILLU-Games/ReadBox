@@ -8,15 +8,17 @@ for dir in \
   "${MEDIA_ROOT:-/var/lib/readbox/media}" \
   "${MAILBOX_PROVISION_LOCK_ROOT:-/var/lock/readbox-provision}" \
   "${OPENDKIM_KEYS_ROOT:-/etc/opendkim/keys}" \
-  "${UPDATE_RUNTIME_DIR:-/run/vibmail}"
+  "${UPDATE_RUNTIME_DIR:-/run/readbox}"
 do
   if [ -n "$dir" ] && [ ! -d "$dir" ]; then
     mkdir -p "$dir" 2>/dev/null || true
   fi
 done
 
-# Run idempotent Prisma migrations on container boot (never drops or resets data)
-if [ -n "${DATABASE_URL:-}" ]; then
+# Run idempotent Prisma migrations on container boot unless explicitly skipped (e.g. secondary worker container)
+if [ "${SKIP_MIGRATIONS:-false}" = "true" ]; then
+  echo "[entrypoint] SKIP_MIGRATIONS=true; skipping Prisma migrate deploy."
+elif [ -n "${DATABASE_URL:-}" ]; then
   echo "[entrypoint] Applying idempotent Prisma migrations..."
   max_attempts=10
   attempt=1
@@ -34,5 +36,5 @@ else
   echo "[entrypoint] WARNING: DATABASE_URL is not set; skipping database migrations." >&2
 fi
 
-echo "[entrypoint] Starting ReadBox server on ${HOSTNAME:-0.0.0.0}:${PORT:-3000}..."
+echo "[entrypoint] Starting ReadBox process ($*)..."
 exec "$@"

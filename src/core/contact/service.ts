@@ -102,7 +102,9 @@ let warnedEphemeralSecret = false;
 
 function getSecretKey(): string {
   const configured =
-    env.authSecret?.trim() || process.env.CONTACT_SECRET_KEY?.trim();
+    env.contactSecretKey?.trim() ||
+    env.authSecret?.trim() ||
+    process.env.CONTACT_SECRET_KEY?.trim();
   if (configured) {
     return configured;
   }
@@ -112,8 +114,8 @@ function getSecretKey(): string {
     }
     if (!warnedEphemeralSecret) {
       warnedEphemeralSecret = true;
-      logger.warn("contact_csrf_ephemeral_secret_active", {
-        reason: "missing_auth_or_contact_secret_key",
+      logger.error("contact_csrf_secret_unconfigured_in_production", {
+        reason: "missing_contact_secret_key_and_auth_secret",
       });
     }
     return ephemeralProductionSecret;
@@ -243,6 +245,64 @@ export function consumeContactCsrfToken(
     createdAt: expiresAt - CSRF_TTL_SECONDS,
     expiresAt,
     usedAt: nowSeconds,
+  });
+
+  return true;
+}
+
+export async function consumeContactCsrfTokenDurable(
+  sessionValue: string | null | undefined,
+  tokenValue: string | null | undefined,
+  prisma?: (AuditWriteClient & ContactInquiryReadClient) | null,
+  nowMs: number = Date.now(),
+): Promise<boolean> {
+  if (!consumeContactCsrfToken(sessionValue, tokenValue, nowMs)) {
+    return false;
+  }
+
+  const client =
+    prisma !== undefined
+      ? prisma
+      : env.databaseUrl
+        ? (getPrismaClient() as unknown as AuditWriteClient &
+            ContactInquiryReadClient)
+        : null;
+
+  if (!client) {
+    return true;
+  }
+
+  const token = (tokenValue ?? "").trim();
+  const tokenHash = digestContactValue(`token:${token}`);
+
+  if (client.auditLog?.findMany) {
+    try {
+      const existing = await client.auditLog.findMany({
+        where: {
+          action: "contact_csrf_consumed",
+          targetType: "contact_csrf",
+          targetIdentifier: tokenHash,
+          createdAt: { gte: new Date(nowMs - CSRF_TTL_SECONDS * 1000) },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      });
+      if (existing.length > 0) {
+        return false;
+      }
+    } catch {
+      logger.warn("contact_csrf_db_replay_lookup_failed");
+    }
+  }
+
+  await recordAudit(client, {
+    actorId: null,
+    action: "contact_csrf_consumed",
+    targetType: "contact_csrf",
+    targetIdentifier: tokenHash,
+    details: {
+      consumed_at: new Date(nowMs).toISOString(),
+    },
   });
 
   return true;
@@ -442,6 +502,14 @@ export async function recordContactSubmission(options: {
   const ipHash = digestContactValue(`ip:${options.requestIp || "127.0.0.1"}`);
   const emailHash = digestContactValue(`email:${options.cleaned.work_email}`);
 
+  const client =
+    options.prisma !== undefined
+      ? (options.prisma as AuditWriteClient & ContactInquiryReadClient)
+      : env.databaseUrl
+        ? (getPrismaClient() as unknown as AuditWriteClient &
+            ContactInquiryReadClient)
+        : null;
+
   const rateLimit = checkContactRateLimit(ipHash, emailHash, nowMs);
   if (!rateLimit.allowed) {
     return {
@@ -452,15 +520,76 @@ export async function recordContactSubmission(options: {
     };
   }
 
+  if (client?.auditLog?.findMany) {
+    try {
+      const dayAgo = new Date(nowMs - 86_400_000);
+      const recentRows = await client.auditLog.findMany({
+        where: {
+          action: "public_contact_submitted",
+          targetType: "contact_inquiry",
+          createdAt: { gte: dayAgo },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+      });
+
+      let dbIp15m = 0;
+      let dbIpDay = 0;
+      let dbEmailHour = 0;
+      const min15AgoMs = nowMs - 900_000;
+      const hourAgoMs = nowMs - 3_600_000;
+
+      for (const row of recentRows) {
+        const details =
+          row.details && typeof row.details === "object"
+            ? (row.details as Record<string, unknown>)
+            : {};
+        const createdMs = row.createdAt.getTime();
+        if (details.ip_hash === ipHash) {
+          dbIpDay += 1;
+          if (createdMs >= min15AgoMs) {
+            dbIp15m += 1;
+          }
+        }
+        if (details.email_hash === emailHash && createdMs >= hourAgoMs) {
+          dbEmailHour += 1;
+        }
+      }
+
+      if (dbIp15m >= 5) {
+        return {
+          ok: false,
+          status: 429,
+          retryAfterSeconds: 900,
+          message:
+            "Too many inquiries were submitted. Please wait before trying again.",
+        };
+      }
+      if (dbIpDay >= 20) {
+        return {
+          ok: false,
+          status: 429,
+          retryAfterSeconds: 86_400,
+          message:
+            "Too many inquiries were submitted. Please wait before trying again.",
+        };
+      }
+      if (dbEmailHour >= 3) {
+        return {
+          ok: false,
+          status: 429,
+          retryAfterSeconds: 3_600,
+          message:
+            "Too many inquiries were submitted. Please wait before trying again.",
+        };
+      }
+    } catch {
+      logger.warn("contact_rate_limit_db_lookup_fallback");
+    }
+  }
+
   const requestId = randomBytes(16).toString("hex");
   const submittedAt = new Date(nowMs).toISOString();
-
-  const client =
-    options.prisma !== undefined
-      ? options.prisma
-      : env.databaseUrl
-        ? (getPrismaClient() as unknown as AuditWriteClient)
-        : null;
 
   if (client) {
     const auditRecord = await recordAudit(client, {

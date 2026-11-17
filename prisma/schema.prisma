@@ -52,6 +52,7 @@ model AdminAccount {
   updatedAt             DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   sessions              AdminSession[]
+  resetToken            AdminResetToken?
 
   @@index([username])
   @@map("admin_accounts")
@@ -103,13 +104,13 @@ model LoginAttempt {
 model UserAccessPolicy {
   id                 BigInt   @id @default(autoincrement())
   userId             BigInt   @unique @map("user_id")
-  canCreateMailboxes Boolean  @default(true) @map("can_create_mailboxes")
+  canCreateMailboxes Boolean? @map("can_create_mailboxes")
   canDeleteMessages  Boolean  @default(false) @map("can_delete_messages")
   canDeleteMailboxes Boolean  @default(false) @map("can_delete_mailboxes")
-  maxMailboxes       Int      @default(3) @map("max_mailboxes")
+  maxMailboxes       Int?     @map("max_mailboxes")
   allowedDomainUuids Json     @default("[]") @map("allowed_domain_uuids")
-  autoDeleteEnabled  Boolean  @default(false) @map("auto_delete_enabled")
-  autoDeleteDays     Int      @default(0) @map("auto_delete_days")
+  autoDeleteEnabled  Boolean? @map("auto_delete_enabled")
+  autoDeleteDays     Int?     @map("auto_delete_days")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -170,6 +171,19 @@ model PasswordResetToken {
 
   @@index([expiresAt])
   @@map("password_reset_tokens")
+}
+
+model AdminResetToken {
+  id        BigInt   @id @default(autoincrement())
+  adminId   BigInt   @unique @map("admin_id")
+  tokenHash String   @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  admin AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("admin_reset_tokens")
 }
 
 model Domain {

@@ -343,4 +343,57 @@ describe("Users Panel — Sidebar Add mailbox & /users/settings", () => {
       "Signed out 1 other active session(s).",
     );
   });
+
+  it("FA-009: disables Phone input with operator notice when authSource is admin_table and submits empty phone", async () => {
+    const user = userEvent.setup();
+    const updateAction = vi.fn(async (input) => ({
+      ok: true as const,
+      message: "Profile settings saved.",
+      data: {
+        ...sampleProfile,
+        id: "10",
+        username: "admin.super",
+        isAdministrator: true,
+        authSource: "admin_table" as const,
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        email: input.email.trim(),
+        phone: "",
+      },
+    }));
+
+    render(
+      <UserSettingsView
+        profile={{
+          ...sampleProfile,
+          id: "10",
+          username: "admin.super",
+          isAdministrator: true,
+          authSource: "admin_table",
+        }}
+        security={sampleSecurity}
+        mailboxQuota={{ used: 2, max: 0 }}
+        databaseConfigured={true}
+        updateProfileAction={updateAction}
+      />,
+    );
+
+    const phoneInput = screen.getByLabelText("Phone");
+    expect(phoneInput).toBeDisabled();
+    expect(
+      screen.getByText("Not applicable for operator accounts"),
+    ).toBeInTheDocument();
+
+    const firstNameInput = screen.getByLabelText("First name");
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, "RootAdmin");
+    await user.click(screen.getByRole("button", { name: /Save changes/i }));
+
+    expect(updateAction).toHaveBeenCalledWith({
+      firstName: "RootAdmin",
+      lastName: "User",
+      email: "user@readbox.local",
+      phone: "",
+    });
+  });
 });

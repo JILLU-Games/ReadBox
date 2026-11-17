@@ -1,7 +1,10 @@
 import { env } from "@/config/env";
 import { bootstrapInitialAccount } from "@/core/auth/operator-bootstrap";
 import { getOperatorEnvironmentError } from "@/core/auth/operator-environment";
-import { issuePasswordResetToken } from "@/core/auth/password-reset";
+import {
+  issueAdminPasswordResetToken,
+  issuePasswordResetToken,
+} from "@/core/auth/password-reset";
 import { getPrismaClient } from "@/core/database/client";
 import { stderr, stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
@@ -85,22 +88,40 @@ async function main(): Promise<void> {
         return;
       }
 
-      const target = await prisma.user.findFirst({
+      const targetUser = await prisma.user.findFirst({
         where: {
           username: { equals: username.data, mode: "insensitive" },
         },
         select: { id: true },
       });
-      if (!target) {
-        stdout.write("Account could not be reset.\n");
+      if (targetUser) {
+        const resetToken = await issuePasswordResetToken(prisma, targetUser.id);
+        stdout.write(
+          "Password reset is required for the selected local user account.\n",
+        );
+        displayResetToken(resetToken);
         return;
       }
 
-      const resetToken = await issuePasswordResetToken(prisma, target.id);
-      stdout.write(
-        "Password reset is required for the selected local account.\n",
-      );
-      displayResetToken(resetToken);
+      const targetAdmin = await prisma.adminAccount.findFirst({
+        where: {
+          username: { equals: username.data, mode: "insensitive" },
+        },
+        select: { id: true },
+      });
+      if (targetAdmin) {
+        const resetToken = await issueAdminPasswordResetToken(
+          prisma,
+          targetAdmin.id,
+        );
+        stdout.write(
+          "Password reset is required for the selected local administrator account.\n",
+        );
+        displayResetToken(resetToken);
+        return;
+      }
+
+      stdout.write("Account could not be reset.\n");
       return;
     }
 

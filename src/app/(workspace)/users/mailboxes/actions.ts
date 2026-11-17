@@ -74,6 +74,7 @@ export async function createUserMailboxAction(input: {
     getPrismaClient() as unknown as MailboxPrismaClient,
     {
       userId,
+      authSource: user.authSource,
       username: user.username,
       isAdministrator: user.isAdministrator,
       headers: reqHeaders,
@@ -129,6 +130,7 @@ export async function deleteUserMailboxAction(input: {
     getPrismaClient() as unknown as MailboxPrismaClient,
     {
       userId,
+      authSource: user.authSource,
       username: user.username,
       isAdministrator: user.isAdministrator,
       headers: reqHeaders,
@@ -187,6 +189,7 @@ export async function bulkDeleteUserMailboxesAction(input: {
     getPrismaClient() as unknown as MailboxPrismaClient,
     {
       userId,
+      authSource: user.authSource,
       username: user.username,
       isAdministrator: user.isAdministrator,
       headers: reqHeaders,

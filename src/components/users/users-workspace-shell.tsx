@@ -18,6 +18,7 @@ export interface UsersWorkspaceShellProps {
   readonly domains: readonly MailboxCreationDomainOption[];
   readonly capabilities?: UserAccessCapabilities;
   readonly databaseConfigured: boolean;
+  readonly databaseError?: string;
   readonly createMailboxAction: (input: {
     readonly localPart: string;
     readonly domainUuid?: string;
@@ -37,6 +38,7 @@ export function UsersWorkspaceShell({
   domains,
   capabilities,
   databaseConfigured,
+  databaseError,
   createMailboxAction,
   children,
 }: UsersWorkspaceShellProps) {
@@ -89,7 +91,7 @@ export function UsersWorkspaceShell({
   return (
     <UsersLiveProvider
       visibleMailboxUuids={visibleUuids}
-      pollingEnabled={databaseConfigured}
+      pollingEnabled={databaseConfigured && !databaseError}
       openCreateMailboxModal={openCreateModal}
     >
       {({ notificationPermission, handleEnableNotifications }) => (

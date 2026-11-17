@@ -135,7 +135,14 @@ export function UserOverview({
         }
       />
 
-      {!snapshot.databaseConfigured ? (
+      {snapshot.databaseError ? (
+        <AlertBanner
+          variant="error"
+          title="Database temporarily unavailable"
+        >
+          {snapshot.databaseError}
+        </AlertBanner>
+      ) : !snapshot.databaseConfigured ? (
         <AlertBanner variant="warning">
           Database connection is not configured.
         </AlertBanner>

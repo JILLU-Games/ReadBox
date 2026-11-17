@@ -711,6 +711,7 @@ export default async function PublicLandingPage() {
         footerDescription={settings.footerDescription}
         copyrightText={settings.copyrightText}
         privacyUrl={settings.privacyUrl}
+        sourceCodeUrl={settings.sourceCodeUrl}
         supportEmail={settings.supportEmail}
       />
     </div>

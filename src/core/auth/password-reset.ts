@@ -147,6 +147,68 @@ export async function issuePasswordResetToken(
   return token;
 }
 
+export async function issueAdminPasswordResetToken(
+  prisma: PrismaClient,
+  adminId: bigint,
+  options: Pick<PasswordResetOptions, "clientIp" | "userAgent"> = {},
+): Promise<string> {
+  const token = createOpaqueToken();
+  const tokenHash = hashOpaqueToken(token);
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+
+  await prisma.$transaction(async (transaction) => {
+    const admin = await transaction.adminAccount.findUnique({
+      where: { id: adminId },
+      select: { id: true, username: true },
+    });
+    if (!admin) throw new Error("Reset target not found");
+
+    await transaction.adminAccount.update({
+      where: { id: adminId },
+      data: { passwordResetRequired: true },
+    });
+    if ("adminSession" in transaction && transaction.adminSession) {
+      await transaction.adminSession.deleteMany({ where: { adminId } });
+    }
+
+    if ("adminResetToken" in transaction && transaction.adminResetToken) {
+      await transaction.adminResetToken.deleteMany({ where: { adminId } });
+      await transaction.adminResetToken.create({
+        data: { adminId, tokenHash, expiresAt },
+      });
+    } else {
+      const store = getAdminResetTokenStore();
+      for (const [key, entry] of store.entries()) {
+        if (entry.adminId === admin.id || entry.expiresAt <= Date.now()) {
+          store.delete(key);
+        }
+      }
+      store.set(tokenHash, {
+        adminId: admin.id,
+        username: admin.username,
+        tokenHash,
+        expiresAt: expiresAt.getTime(),
+      });
+    }
+
+    if ("auditLog" in transaction && transaction.auditLog) {
+      await recordAudit(transaction as unknown as AuditWriteClient, {
+        actorId: null,
+        authSource: "admin_table",
+        actorUsername: admin.username,
+        action: "password_reset_requested",
+        targetType: "admin_account",
+        targetIdentifier: admin.username,
+        clientIp: options.clientIp,
+        userAgent: options.userAgent,
+        details: { forced: true, account_table: "admin_accounts" },
+      });
+    }
+  });
+
+  return token;
+}
+
 export async function requestPasswordReset(
   prisma: PrismaClient | null,
   identifier: string,
@@ -227,33 +289,45 @@ export async function requestPasswordReset(
     if (admin) {
       const token = createOpaqueToken();
       const tokenHash = hashOpaqueToken(token);
-      const expiresAt = Date.now() + RESET_TOKEN_TTL_MS;
-      const store = getAdminResetTokenStore();
-      for (const [key, entry] of store.entries()) {
-        if (entry.adminId === admin.id || entry.expiresAt <= Date.now()) {
-          store.delete(key);
-        }
-      }
-      store.set(tokenHash, {
-        adminId: admin.id,
-        username: admin.username,
-        tokenHash,
-        expiresAt,
-      });
+      const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
 
-      if ("auditLog" in prisma && prisma.auditLog) {
-        await recordAudit(prisma as unknown as AuditWriteClient, {
-          actorId: null,
-          authSource: "admin_table",
-          actorUsername: admin.username,
-          action: "password_reset_requested",
-          targetType: "user",
-          targetIdentifier: admin.username,
-          clientIp: options.clientIp,
-          userAgent: options.userAgent,
-          details: { self_service: true, account_table: "admin_accounts" },
-        });
-      }
+      await prisma.$transaction(async (transaction) => {
+        if ("adminResetToken" in transaction && transaction.adminResetToken) {
+          await transaction.adminResetToken.deleteMany({
+            where: { adminId: admin.id },
+          });
+          await transaction.adminResetToken.create({
+            data: { adminId: admin.id, tokenHash, expiresAt },
+          });
+        } else {
+          const store = getAdminResetTokenStore();
+          for (const [key, entry] of store.entries()) {
+            if (entry.adminId === admin.id || entry.expiresAt <= Date.now()) {
+              store.delete(key);
+            }
+          }
+          store.set(tokenHash, {
+            adminId: admin.id,
+            username: admin.username,
+            tokenHash,
+            expiresAt: expiresAt.getTime(),
+          });
+        }
+
+        if ("auditLog" in transaction && transaction.auditLog) {
+          await recordAudit(transaction as unknown as AuditWriteClient, {
+            actorId: null,
+            authSource: "admin_table",
+            actorUsername: admin.username,
+            action: "password_reset_requested",
+            targetType: "admin_account",
+            targetIdentifier: admin.username,
+            clientIp: options.clientIp,
+            userAgent: options.userAgent,
+            details: { self_service: true, account_table: "admin_accounts" },
+          });
+        }
+      });
 
       return {
         ok: true,
@@ -338,6 +412,85 @@ export async function completePasswordResetDetailed(
   const tokenHash = hashOpaqueToken(trimmedToken);
   const now = new Date();
 
+  if ("adminResetToken" in prisma && prisma.adminResetToken) {
+    const dbAdminResetToken = await prisma.adminResetToken.findUnique({
+      where: { tokenHash },
+      select: {
+        adminId: true,
+        expiresAt: true,
+        admin: { select: { username: true } },
+      },
+    });
+    if (dbAdminResetToken) {
+      if (dbAdminResetToken.expiresAt <= now) {
+        return {
+          ok: false,
+          error: "Reset token is invalid or has expired.",
+          fieldErrors: { token: "Reset token is invalid or has expired." },
+        };
+      }
+
+      const passwordHash = await hashPassword(newPassword);
+      const completedAdminReset = await prisma.$transaction(
+        async (transaction) => {
+          const claimed = await transaction.adminResetToken.deleteMany({
+            where: {
+              adminId: dbAdminResetToken.adminId,
+              tokenHash,
+              expiresAt: { gt: new Date() },
+            },
+          });
+          if (claimed.count !== 1) return false;
+
+          const updatedAdmin = await transaction.adminAccount.update({
+            where: { id: dbAdminResetToken.adminId },
+            data: { passwordHash, passwordResetRequired: false },
+          });
+          if ("adminSession" in transaction && transaction.adminSession) {
+            await transaction.adminSession.deleteMany({
+              where: { adminId: dbAdminResetToken.adminId },
+            });
+          }
+          if ("auditLog" in transaction && transaction.auditLog) {
+            const adminUsername =
+              updatedAdmin &&
+              typeof updatedAdmin === "object" &&
+              "username" in updatedAdmin &&
+              typeof updatedAdmin.username === "string"
+                ? updatedAdmin.username
+                : dbAdminResetToken.admin?.username ??
+                  dbAdminResetToken.adminId.toString();
+
+            await recordAudit(transaction as unknown as AuditWriteClient, {
+              actorId: null,
+              authSource: "admin_table",
+              actorUsername: adminUsername,
+              action: "password_reset_completed",
+              targetType: "admin_account",
+              targetIdentifier: adminUsername,
+              clientIp: options.clientIp,
+              userAgent: options.userAgent,
+              details: { account_table: "admin_accounts" },
+            });
+          }
+          return true;
+        },
+      );
+
+      if (!completedAdminReset) {
+        return {
+          ok: false,
+          error: "Reset token is invalid or has already been used.",
+          fieldErrors: {
+            token: "Reset token is invalid or has already been used.",
+          },
+        };
+      }
+
+      return { ok: true };
+    }
+  }
+
   const adminTokenStore = getAdminResetTokenStore();
   const adminResetEntry = adminTokenStore.get(tokenHash);
   if (
@@ -373,7 +526,7 @@ export async function completePasswordResetDetailed(
           authSource: "admin_table",
           actorUsername: adminResetEntry.username,
           action: "password_reset_completed",
-          targetType: "user",
+          targetType: "admin_account",
           targetIdentifier: adminResetEntry.username,
           clientIp: options.clientIp,
           userAgent: options.userAgent,
@@ -385,10 +538,13 @@ export async function completePasswordResetDetailed(
     return { ok: true };
   }
 
-  const resetToken = await prisma.passwordResetToken.findUnique({
-    where: { tokenHash },
-    select: { userId: true, expiresAt: true },
-  });
+  const resetToken =
+    "passwordResetToken" in prisma && prisma.passwordResetToken
+      ? await prisma.passwordResetToken.findUnique({
+          where: { tokenHash },
+          select: { userId: true, expiresAt: true },
+        })
+      : null;
   if (!resetToken || resetToken.expiresAt <= now) {
     return {
       ok: false,
