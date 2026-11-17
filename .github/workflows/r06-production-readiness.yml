@@ -78,32 +78,89 @@ jobs:
           bash deployment/operations/tests/r05-rehearsal.sh
           echo "R06_ENCRYPTED_BACKUP_RESTORE_ROLLBACK_PASS"
 
-      - name: Exact R06 Scope Lock, no deployment/release and explicit NO-GO
+      - name: Immutable R06 and QIS01 separate Scope Locks, no deployment/release, NO-GO
         shell: bash
         run: |
           set -euo pipefail
-          BASE=c3f9dd4d146dfb28a3d23139ce0fafb3e333acca
-          git diff --check "$BASE" HEAD
-          git diff --name-only "$BASE" HEAD > /tmp/readbox-r06-diff
+          # Do NOT compare the R05 base to moving HEAD: a later, separately
+          # authorized QIS01 implementation must not re-open R06's frozen scope.
+          # Verify four immutable phase-specific Git ranges independently.
           python3 - <<'PY'
-          from pathlib import Path
-          paths=Path("/tmp/readbox-r06-diff").read_text().splitlines()
-          def ok(p):
-            return (
-              p==".github/workflows/r06-production-readiness.yml"
-              or p in ("README.md","SECURITY.md")
-              or p.startswith("scripts/testing/")
-              or p.startswith("tests/integration/")
-              or p.startswith("docs/")
-              or p.startswith("notes/")
-            )
-          assert len(paths)>=9 and all(ok(p) for p in paths),paths
-          assert not any(p.startswith((
-            "src/","prisma/","deployment/mailserver/",
-            "deployment/templates/","reference/","tests/ui/","tests/auth/"
-          )) for p in paths),paths
-          print("R06_EXACT_SCOPE_NO_APP_UI_AUTH_MAILSERVER_EDIT_PASS",len(paths))
+          import subprocess
+
+          R05 = "c3f9dd4d146dfb28a3d23139ce0fafb3e333acca"
+          R06 = "807ca9f38adb02db2a8b73dc0901fce23ee5e63a"
+          R06_CLOSED = "fa774bd436bf19c35f1cc7d4ad8dfb74a288436a"
+          QIS01 = "2833f1f1e1be76d501cdd3fa2210d0c1084d9b47"
+          QIS01_CLOSED = "4467636a1300fd45b85b35cf556fdb106faa0ec9"
+
+          def git(*args):
+              return subprocess.check_output(("git", *args), text=True).strip()
+
+          def check_range(label, base, head, files):
+              expected = set(files.splitlines())
+              actual = set(git("diff", "--name-only", base, head).splitlines())
+              if actual != expected:
+                  raise SystemExit(f"{label}_FAIL unexpected/missing files: {sorted(actual ^ expected)}")
+              subprocess.run(("git", "diff", "--check", base, head), check=True)
+              print(f"{label}_PASS {len(expected)}")
+
+          for sha in (R05, R06, R06_CLOSED, QIS01, QIS01_CLOSED):
+              subprocess.run(("git", "merge-base", "--is-ancestor", sha, "HEAD"), check=True)
+
+          check_range("R06_HISTORICAL_IMPLEMENTATION_SCOPE", R05, R06, """
+          .github/workflows/r06-production-readiness.yml
+          README.md
+          SECURITY.md
+          docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md
+          docs/RELEASE-GOVERNANCE.md
+          docs/THIRD-PARTY-PROVENANCE.md
+          scripts/testing/r06-ephemeral-postgres.sh
+          scripts/testing/r06-release-gate.mjs
+          scripts/testing/r06-smtp-rehearsal.sh
+          scripts/testing/r06-verify-lint-baseline.mjs
+          tests/integration/r06-release-gate.test.mjs
+          """.strip().replace("          ", ""))
+
+          check_range("R06_HISTORICAL_NOTES_SCOPE", R06, R06_CLOSED, """
+          notes/001-PRODUCTION-RELEASE-BLOCKERS.md
+          notes/002-PRODUCTION-PHASE-ROADMAP.md
+          notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md
+          notes/004-ERROR-HANDLING-INVENTORY.md
+          notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md
+          notes/006-VERIFICATION-AND-RELEASE-GATES.md
+          notes/007-VPS-MAILSERVER-CONTRACTS.md
+          notes/014-R06-PATCH-AUDIT.md
+          """.strip().replace("          ", ""))
+
+          check_range("QIS01_APPROVED_IMPLEMENTATION_SCOPE", R06_CLOSED, QIS01, """
+          .env.example
+          .github/workflows/qis01-ci.yml
+          README.md
+          SECURITY.md
+          docker-compose.yml
+          docs/QUICK-INSTALL-AND-FIRST-ADMIN.md
+          scripts/install/readbox-install.sh
+          scripts/install/readbox-update.sh
+          src/app/initial-setup/actions.ts
+          src/app/initial-setup/page.tsx
+          src/components/setup/first-admin-form.tsx
+          src/core/setup/first-admin-activation.ts
+          tests/integration/quick-install-compose.test.mjs
+          tests/setup/first-admin-web.test.ts
+          tests/setup/quick-install.test.ts
+          tests/ui/first-admin-onboarding.test.tsx
+          """.strip().replace("          ", ""))
+
+          check_range("QIS01_APPROVED_NOTES_SCOPE", QIS01, QIS01_CLOSED, """
+          notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md
+          notes/006-VERIFICATION-AND-RELEASE-GATES.md
+          notes/015-QIS01-PATCH-AUDIT.md
+          """.strip().replace("          ", ""))
+
+          print("R06_QIS01_IMMUTABLE_SCOPE_AUDITS_PASS")
           PY
+          # Formal release governance is unchanged and MUST remain NO-GO.
           node scripts/testing/r06-release-gate.mjs --ci --output "$RUNNER_TEMP/r06-sanitized-gate-result.json"
           grep -Fq '"status": "NO_GO"' "$RUNNER_TEMP/r06-sanitized-gate-result.json"
           grep -Fq '"open": 7' "$RUNNER_TEMP/r06-sanitized-gate-result.json"
