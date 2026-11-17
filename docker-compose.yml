@@ -1,5 +1,7 @@
 # ==============================================================================
 # ReadBox Production Stack (PostgreSQL 16 + Next.js Web + Maildir Worker)
+# R-03 SMTP+LMTP containers are OPT-IN (--profile mailserver), not implicit services.
+# Default SMTP bind 127.0.0.1:25; explicit external-network approval required to expose it.
 # Default docker compose now selects THIS file; compose.dev.yaml is opt-in development.
 #
 # Postfix / Dovecot Host or Sidecar Integration Contract:
@@ -175,6 +177,57 @@ services:
       retries: 3
       start_period: 20s
 
+  # R-03: Dovecot LMTP uses only the internal Compose network.
+  # The same Maildir volume is shared with web+worker (numeric UID/GID 1001).
+  dovecot:
+    profiles: ["mailserver"]
+    build:
+      context: .
+      dockerfile: deployment/mailserver/dovecot/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-readbox.local}
+      VMAIL_UID: "1001"
+      VMAIL_GID: "1001"
+    volumes:
+      - readbox_vmail:/var/vmail
+    expose:
+      - "24"
+    networks:
+      - readbox_internal
+
+  # R-03: inbound SMTP ONLY; no AUTH/587/465/IMAP or outbound relay.
+  # Bind loopback by default; a separate approved VPS install may set
+  # SMTP_BIND_ADDRESS=0.0.0.0 after public port/TLS/DNS checks.
+  postfix:
+    profiles: ["mailserver"]
+    build:
+      context: .
+      dockerfile: deployment/mailserver/postfix/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+      dovecot:
+        condition: service_healthy
+    environment:
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.readbox.local}
+      POSTFIX_DB_HOST: postgres
+      POSTFIX_DB_PORT: "5432"
+      PG_DB_NAME: ${POSTGRES_DB:-readbox}
+      POSTFIX_LOOKUP_PASSWORD: ${POSTFIX_LOOKUP_PASSWORD:-}
+      MAIL_TLS_DIR: /run/readbox/tls
+    volumes:
+      - readbox_postfix_queue:/var/spool/postfix
+      - ${MAIL_TLS_DIR:-./deployment/mailserver/tls-not-configured}:/run/readbox/tls:ro
+    ports:
+      - "${SMTP_BIND_ADDRESS:-127.0.0.1}:${SMTP_PUBLISHED_PORT:-25}:25"
+    networks:
+      - readbox_internal
+
   # One-shot private-network Postfix lookup password setup, opt-in only.
   postfix-db-credential:
     image: postgres:16.14-alpine
@@ -212,6 +265,7 @@ volumes:
   readbox_media:
   readbox_locks:
   readbox_opendkim:
+  readbox_postfix_queue:
 
 networks:
   readbox_internal:
