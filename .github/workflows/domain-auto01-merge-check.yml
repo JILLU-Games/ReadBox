@@ -1,4 +1,4 @@
-name: ReadBox DOMAIN-AUTO-02 explicit zone - disposable Linux CI
+name: ReadBox MERGE-GATE-02 blocker-only disposable Linux CI
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: domain-auto02-zone-${{ github.ref }}
+  group: merge-gate02-blocker-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   focused-check:
@@ -19,58 +19,53 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - name: Checkout without persisted credentials
+      - name: Checkout candidate without write credentials
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Exact DOMAIN-AUTO-02 source Scope Lock
+      - name: Immutable frozen baseline and exact MG-02 changed-path audit
         shell: bash
         run: |
           set -euo pipefail
           test ! -e .env
           python3 - <<'PY'
           import subprocess
-          base = "dffbcf89444a380b501ef07e15080ff611e8cb9e"
-          paths = set(subprocess.check_output(
-              ["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines())
+          base = "ff72192c4d73d324134d311bbfd31ec7c785b250"
           allowed = {
-              "src/core/dns/cloudflare-auto.ts",
-              "src/core/dns/domain-automation.ts",
-              "src/core/domains/service.ts",
-              "src/app/(workspace)/vcon/domains/actions.ts",
-              "src/app/api/vcon/domains/[uuid]/dkim/route.ts",
-              "src/app/api/vcon/domains/cloudflare-zones/route.ts",
-              "src/components/vcon/domain-form.tsx",
-              "tests/dns/domain-automation.test.ts",
-              "tests/dns/domain-zone-selection.test.ts",
-              "tests/admin/phase3-domains-mailboxes.test.ts",
-              "tests/ui/domain-zone-selection.test.tsx",
-              ".github/workflows/domain-auto01-merge-check.yml",
-              "docs/DOMAIN-AUTOMATION.md",
-              "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
-              "notes/004-ERROR-HANDLING-INVENTORY.md",
-              "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
-              "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
+            "src/core/domains/service.ts",
+            "src/components/users/user-settings-view.tsx",
+            "tests/dns/domain-zone-selection.test.ts",
+            "tests/admin/phase3-domains-mailboxes.test.ts",
+            "tests/ui/vcon-phase3.test.tsx",
+            "tests/ui/users-settings.test.tsx",
+            ".github/workflows/domain-auto01-merge-check.yml",
+            "docs/DOMAIN-AUTOMATION.md",
+            "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/004-ERROR-HANDLING-INVENTORY.md",
+            "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
+            "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
+          }
+          required = {
+            "src/core/domains/service.ts",
+            "tests/admin/phase3-domains-mailboxes.test.ts",
+            "tests/ui/vcon-phase3.test.tsx",
+            "tests/ui/users-settings.test.tsx",
+            ".github/workflows/domain-auto01-merge-check.yml",
           }
           subprocess.run(["git", "merge-base", "--is-ancestor", base, "HEAD"], check=True)
-          assert paths <= allowed and {
-              "src/core/dns/cloudflare-auto.ts",
-              "src/core/dns/domain-automation.ts",
-              "src/core/domains/service.ts",
-              "src/app/api/vcon/domains/cloudflare-zones/route.ts",
-              "tests/dns/domain-zone-selection.test.ts",
-              "tests/ui/domain-zone-selection.test.tsx",
-          } <= paths, ("DOMAIN_AUTO02_SCOPE_FAIL", sorted(paths ^ allowed))
+          paths = set(subprocess.check_output(
+            ["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines())
+          assert paths <= allowed and required <= paths, ("MERGE_GATE02_SCOPE_FAIL", sorted(paths - allowed), sorted(required-paths))
           subprocess.run(["git", "diff", "--check", base, "HEAD"], check=True)
-          print("DOMAIN_AUTO02_EXACT_SCOPE_PASS", len(paths))
+          print("MERGE_GATE02_EXACT_SCOPE_PASS", len(paths))
           PY
-      - name: Install pinned Node 22
+      - name: Setup locked Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-      - name: One focused type, DNS, database contract, UI and security verification
+      - name: One focused verification including FULL UI regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -81,11 +76,9 @@ jobs:
             tests/dns/domain-zone-selection.test.ts \
             tests/dns/dkim-provision.test.ts \
             tests/admin/phase3-domains-mailboxes.test.ts
-          npx vitest run --config vitest.config.mts tests/ui/domain-zone-selection.test.tsx
+          npx vitest run --config vitest.config.mts
           python3 tests/dns/test_domain_host_bridge.py
           npm audit --omit=dev --audit-level=moderate
-          echo DOMAIN_AUTO02_FOCUSED_DISPOSABLE_PASS
-      - name: Confirm no live operations
-        run: echo DOMAIN_AUTO02_SOURCE_ONLY_NO_VPS_R2_DNS_KEYS_RELEASE
-
-# DOMAIN-AUTO-02 focused repair recheck: explicit Prisma JSON serialization.
+          echo MERGE_GATE02_FOCUSED_DISPOSABLE_PASS
+      - name: Confirm source-only safety boundary
+        run: echo MERGE_GATE02_NO_VPS_MAIN_PUSH_RELEASE_DNS_R2_OR_SECRETS

@@ -210,3 +210,11 @@ PASS / FAIL / SKIPPED / NOT RUN:
 
 - **Focused negative evidence:** missing ID refuses API calls; selected ID/name mismatch and inactive zone are refused; bound zone cannot be silently switched; stale metadata compare-and-swap refuses overwrite; active-zone list excludes inactive entries; DNS/DKIM and host broker regressions pass. [CI #44365459171](https://github.com/JILLU-Games/ReadBox/actions/runs/44365459171) SUCCESS.
 - **Residual/unverified:** live Cloudflare account-level authorization, network outages after remote write, actual R2 escrow and end-to-end DNS propagation were NOT RUN. JSON metadata binding uses optimistic CAS for initial repair and preservation on normal DNS rechecks; concurrent DNS verification and first-time binding interleavings are not independently stress-tested on PostgreSQL, so production readiness remains NO-GO.
+
+
+## MERGE-GATE-02 — concurrency and regression behavior
+
+- Previously, a routing check loaded `verificationDetails`, resolved DNS, then replaced the entire JSON object without a CAS guard. Concurrent first-time zone binding could be discarded.
+- Now, routing verification updates only when the current JSON equals the snapshot; on mismatch it re-reads and merges the current JSON before retry. After a maximum of three attempts it returns `unavailable`, logs an internal event and does not record a false success audit.
+- The existing root escrow, zone-binding immutability, DNS safety preflight, manual-mode opt-out and authorization rules are unchanged.
+- MG-02 was a stale manual-path UI test assumption. MG-03 was a React pending-transition test timing race; no runtime security change is authorized without proof of a real defect.

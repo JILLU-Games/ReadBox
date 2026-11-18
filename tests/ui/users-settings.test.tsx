@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -332,16 +332,24 @@ describe("Users Panel — Sidebar Add mailbox & /users/settings", () => {
 
     // Test revoking a specific session and revoking all other sessions
     await user.click(screen.getByRole("button", { name: "Revoke" }));
-    expect(revokeSessionAction).toHaveBeenCalledWith("sess-2");
-    expect(mockNotify.success).toHaveBeenCalledWith("Session revoked.");
+    await waitFor(() => {
+      expect(revokeSessionAction).toHaveBeenCalledWith("sess-2");
+      expect(mockNotify.success).toHaveBeenCalledWith("Session revoked.");
+    });
 
-    await user.click(
-      screen.getByRole("button", { name: /Sign out other sessions/i }),
-    );
-    expect(revokeOtherSessionsAction).toHaveBeenCalledTimes(1);
-    expect(mockNotify.success).toHaveBeenCalledWith(
-      "Signed out 1 other active session(s).",
-    );
+    // A previous React transition disables the next security action until it
+    // settles. Do not click the still-disabled control or assume sync effects.
+    const revokeOthers = screen.getByRole("button", {
+      name: /Sign out other sessions/i,
+    });
+    await waitFor(() => expect(revokeOthers).toBeEnabled());
+    await user.click(revokeOthers);
+    await waitFor(() => {
+      expect(revokeOtherSessionsAction).toHaveBeenCalledTimes(1);
+      expect(mockNotify.success).toHaveBeenCalledWith(
+        "Signed out 1 other active session(s).",
+      );
+    });
   });
 
   it("FA-009: disables Phone input with operator notice when authSource is admin_table and submits empty phone", async () => {

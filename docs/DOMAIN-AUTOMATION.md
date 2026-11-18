@@ -117,3 +117,28 @@ readback, and routing verified/pending gates remain in force.
 **Acceptance:** disposable Linux checks only; not live Cloudflare access,
 real R2 key custody, authoritative DNS propagation or VPS acceptance.
 Test branch only, no `main` or production changes in this phase.
+
+
+## MERGE-GATE-02 — concurrent DNS verification and zone binding
+
+Domain `verificationDetails` is one PostgreSQL JSON value shared by routing
+verification and the first Cloudflare zone binding. The DNS verifier must never
+blindly replace JSON read before a concurrent binding. Its write now uses
+`updateMany` with an exact JSON compare-and-swap predicate and re-reads fresh
+metadata after a conflict (at most three attempts). It preserves the selected
+zone and other metadata while updating routing check fields. Exhausted attempts
+return an unavailable result without falsely claiming verification or writing
+an audit success. No migration, zone reassignment, key rotation or new DNS
+publication is involved.
+
+Disposable regression tests deterministically cause a repair to commit a
+binding between a routing check's snapshot and its first CAS attempt, assert
+the stale write loses, and assert the retried update preserves both results.
+A second test forces repeated CAS conflicts to verify bounded fail-closed
+behavior. Full domain UI tests retain the manual path by explicitly turning
+off default Cloudflare automation. The session-revoke UI timing test waits
+for its prior asynchronous React transition, without changing the runtime
+session/auth policies.
+
+This merge-gate is source-only. R06 staging/production acceptance remains
+separately gated and cannot be inferred from mocked/CI tests.

@@ -217,3 +217,15 @@ Final notes-only closure commits change documentation, not the tested code or fr
 - **DOMAIN-AUTO-02 focused acceptance:** source commit `013a20b704e3910046d6b839037e536de5f1f02e`; [Linux CI #44365459171](https://github.com/JILLU-Games/ReadBox/actions/runs/44365459171) PASS: 23 Node + 2 UI + 3 Python tests; typecheck, exact path and production dependency gates PASS. This confirms source behavior using mocked Cloudflare; not a live provider pass.
 - Explicit per-domain selected active zone is sent to admin actions/repair; existing Cloudflare binding is kept in `verificationDetails` without a migration. Existing domain HTTP API/UX outside the selector, DKIM escrow/root agent and private keys are unchanged.
 - No production/VPS deployment, live provider DNS, R2 write, tag/release, source/mirror main promotion or local workstation sync.
+
+
+## MERGE-GATE-02 — blocker-only source patch
+
+| Feature | Status |
+|---|---|
+| MG-01 stale routing-JSON overwrite | PATCHED: CAS predicate, fresh read, bounded retry; CI pending |
+| MG-01 forced interleaving and retry exhaustion tests | ADDED: deterministic mocks; CI pending |
+| MG-02 legacy manual-DNS UI test contract | PATCHED: explicit manual selection; CI pending |
+| MG-03 session-revoke UI transition timing | PATCHED: awaited control re-enable; CI pending |
+| Auth/session runtime, Prisma schema, DKIM escrow and DNS writer | UNCHANGED |
+| Main promotion, live DNS/R2, VPS, tag/release | NOT AUTHORIZED |

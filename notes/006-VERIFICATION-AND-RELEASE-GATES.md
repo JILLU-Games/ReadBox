@@ -269,3 +269,11 @@ source change; no live secrets or external production writes.
 - **DOMAIN-AUTO-02 verified:** code SHA `013a20b704e3910046d6b839037e536de5f1f02e`, tree `c5d24b77f3a9d621fcba7d0358b9d4451b73b4d2`. [CI #44365459171](https://github.com/JILLU-Games/ReadBox/actions/runs/44365459171) SUCCESS. Exact patch/scope 16/16, TS PASS, 23/23 Node, 2/2 UI, 3/3 Python, `npm audit --omit=dev` 0 vulnerabilities. Initial #44365024814 TypeScript FAIL repaired by a single in-scope Prisma JSON serialization correction before recheck.
 - Branch `ci/domain-auto01-merge` only; final notes-only closure changes documentation, not tested code. JILLU-Games/main remains baseline `952516a2cac27649824bf14329f511eae6ae9294`. Exact source/mirror/local main parity **NOT ATTEMPTED / outside authorization**.
 - **Production gate: NO-GO** until separate integration/merge review, concurrent metadata stress validation, live Cloudflare/R2 custody and VPS staging evidence. No secrets, DNS write, key rotation, deployment, tag or release in this phase.
+
+
+## MERGE-GATE-02 — frozen candidate and verification boundary
+
+- Baseline: `ff72192c4d73d324134d311bbfd31ec7c785b250`.
+- Focused disposable Linux test gate: exact changed paths + patch, `npm run typecheck`, Node DNS/DKIM/domain contracts including forced JSON interleaving, full Vitest UI suite including session/legacy domain, Python escrow bridge and `npm audit --omit=dev` at moderate severity.
+- Status at implementation: CI PENDING; no test success asserted until logs and SHA verified.
+- Even on CI success, R06 whole-project production gate and the existing seven open staging/live findings remain NO-GO. No live key/DNS, offsite data, production deployment or source/mirror/main sync.

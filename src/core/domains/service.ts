@@ -513,24 +513,59 @@ export async function checkDomainDns(
       }
     }
 
-    await prisma.domain.update({
-      where: { id: domain.id },
-      data: {
-        verificationStatus: result.verified ? "verified" : "failed",
-        lastCheckedAt: new Date(),
-        verificationDetails: {
-          ...toJsonDetails(domain.verificationDetails),
-          mx: [...result.mx],
-          target: result.target,
-          targetAddresses: [...result.targetAddresses],
-          mxOk: result.mxOk,
-          targetOk: result.targetOk,
-          message: result.message,
-          ...(result.errorCode ? { errorCode: result.errorCode } : {}),
+    // MG-01: a concurrent repair can bind the Cloudflare zone while DNS
+    // verification is resolving records. Never replace a stale JSON snapshot:
+    // compare and swap the entire metadata value, then re-read on a conflict.
+    // The bounded retry cannot overwrite a newer binding or spin indefinitely.
+    let currentDetails = toJsonDetails(domain.verificationDetails);
+    let saved = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const changed = await prisma.domain.updateMany({
+        where: {
+          id: domain.id,
+          verificationDetails: {
+            equals: currentDetails as Prisma.InputJsonValue,
+          },
         },
-        ...(result.verified ? {} : { status: "disabled" }),
-      },
-    });
+        data: {
+          verificationStatus: result.verified ? "verified" : "failed",
+          lastCheckedAt: new Date(),
+          verificationDetails: {
+            ...currentDetails,
+            mx: [...result.mx],
+            target: result.target,
+            targetAddresses: [...result.targetAddresses],
+            mxOk: result.mxOk,
+            targetOk: result.targetOk,
+            message: result.message,
+            ...(result.errorCode ? { errorCode: result.errorCode } : {}),
+          },
+          ...(result.verified ? {} : { status: "disabled" }),
+        },
+      });
+      if (changed.count === 1) {
+        saved = true;
+        break;
+      }
+      if (attempt < 2) {
+        const fresh = await prisma.domain.findUnique({
+          where: { uuid: uuid.trim() },
+          select: { id: true, verificationDetails: true },
+        });
+        if (!fresh || fresh.id !== domain.id) break;
+        currentDetails = toJsonDetails(fresh.verificationDetails);
+      }
+    }
+    if (!saved) {
+      logger.error("domain_dns_verification_metadata_conflict", {
+        domain: domain.name,
+      });
+      return {
+        ok: false,
+        code: "unavailable",
+        error: "Unable to check domain DNS right now.",
+      };
+    }
 
     const resolvedActorId = await resolveActorIdForDatabase(
       prisma,

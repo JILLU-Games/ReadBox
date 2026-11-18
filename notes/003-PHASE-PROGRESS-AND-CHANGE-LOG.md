@@ -203,3 +203,11 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Verified DOMAIN-AUTO-02 candidate:** `013a20b704e3910046d6b839037e536de5f1f02e`, immutable tested tree `c5d24b77f3a9d621fcba7d0358b9d4451b73b4d2`. First focused [CI #44365024814](https://github.com/JILLU-Games/ReadBox/actions/runs/44365024814) FAIL with two Prisma JSON TypeScript assignability errors; minimal scoped serialization fix made; **one necessary focused recheck** [CI #44365459171](https://github.com/JILLU-Games/ReadBox/actions/runs/44365459171) SUCCESS.
 - **Verified:** exact 16-file Scope Lock; Next/TypeScript; 23 Node tests (DNS, zones, DKIM and domain/mailbox contracts); 2 zone UI tests; 3 Python broker tests; production-only npm audit 0 vulnerabilities. Final documentation-only closure does not change tested application files.
 - **Repository boundary:** changed branch `JILLU-Games/ReadBox:ci/domain-auto01-merge` only. JILLU-Games main stays `952516a2cac27649824bf14329f511eae6ae9294`; source/mirror main and user's separate PC clone deliberately not synchronized in this approval. This is branch-scoped completion, **not** production release/whole-project GO.
+
+
+## MERGE-GATE-02 / BLOCKER-FIX — pending verification (2026-11-19)
+
+- Frozen branch baseline: `ff72192c4d73d324134d311bbfd31ec7c785b250`, branch `ci/domain-auto01-merge`, JILLU-Games main immutable `952516a2cac27649824bf14329f511eae6ae9294`.
+- MG-01: DNS verification JSON metadata replaced with compare-and-swap + bounded three-attempt retry with fresh metadata read; deterministic repair/dns interleaving and rejection tests.
+- MG-02: manual DNS legacy UI test explicitly unchecks default automatic provisioning. MG-03: session-revocation UI test awaits prior session transition and asynchronous effect before second click. Production session/auth logic unchanged.
+- Dedicated disposable Linux CI: typecheck, DNS/DKIM & domain contracts, full UI suite, Python broker and production-only dependency audit. CI result recorded only after actual run; no main push/deployment/real secrets/Cloudflare/R2.
