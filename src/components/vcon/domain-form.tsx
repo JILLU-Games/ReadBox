@@ -51,6 +51,7 @@ export interface DomainFormProps {
     readonly name: string;
     readonly dnsConfirmed: boolean;
     readonly autoDkim?: boolean;
+    readonly zoneId?: string;
   }) => Promise<DomainActionResult<{ uuid: string; name: string }>>;
   readonly onUpdateStatus?: (
     uuid: string,
@@ -135,6 +136,16 @@ export function DomainForm({
   const [dnsConfirmed, setDnsConfirmed] = useState(false);
   const [autoDkim, setAutoDkim] = useState(true);
   const [dkimPublish, setDkimPublish] = useState(true);
+  const rawBoundZone = initialDomain?.verificationDetails.cloudflareZone;
+  const boundZone = rawBoundZone && typeof rawBoundZone === "object" &&
+    !Array.isArray(rawBoundZone) && "id" in rawBoundZone &&
+    typeof rawBoundZone.id === "string" && "name" in rawBoundZone &&
+    typeof rawBoundZone.name === "string"
+      ? { id: rawBoundZone.id, name: rawBoundZone.name } : null;
+  const [zoneId, setZoneId] = useState(boundZone?.id ?? "");
+  const [zoneChoices, setZoneChoices] = useState<readonly { id: string; name: string }[]>([]);
+  const [zoneLoading, setZoneLoading] = useState(false);
+  const [zoneError, setZoneError] = useState<string | null>(null);
   const [dkimStatus, setDkimStatus] = useState<DkimStatus | null>(null);
   const [dkimError, setDkimError] = useState<string | null>(null);
   const [dkimBusy, setDkimBusy] = useState(false);
@@ -168,14 +179,46 @@ export function DomainForm({
     return () => { active = false; };
   }, [initialDomain?.uuid]);
 
+  useEffect(() => {
+    if (!databaseConfigured) return;
+    let current = true;
+    setZoneLoading(true);
+    fetch("/api/vcon/domains/cloudflare-zones", { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json() as {
+          zones?: Array<{ id: string; name: string }>; error?: string;
+        };
+        if (!res.ok || !Array.isArray(data.zones)) throw new Error(data.error ?? "Cloudflare zones unavailable");
+        return data.zones;
+      })
+      .then((zones) => { if (current) { setZoneChoices(zones); setZoneError(null); } })
+      .catch((error: unknown) => {
+        if (current) setZoneError(error instanceof Error ? error.message : "Cloudflare zones unavailable");
+      })
+      .finally(() => { if (current) setZoneLoading(false); });
+    return () => { current = false; };
+  }, [databaseConfigured]);
+
+  const normalizedName = name.trim().replace(/\.+$/, "").toLowerCase();
+  const compatibleZones = zoneChoices.filter((zone) =>
+    normalizedName === zone.name || normalizedName.endsWith("." + zone.name));
+  // Keep a previously bound zone visible during a temporary Cloudflare read error.
+  const visibleZones = boundZone && !compatibleZones.some((z) => z.id === boundZone.id)
+    ? [boundZone, ...compatibleZones] : compatibleZones;
+
   async function handleProvisionDkim() {
     if (!initialDomain || dkimBusy) return;
+    if (dkimPublish && !zoneId) {
+      setDkimError("Select a Cloudflare zone before publishing DNS.");
+      return;
+    }
     setDkimBusy(true);
     setDkimError(null);
     try {
       const response = await fetch("/api/vcon/domains/" + initialDomain.uuid + "/dkim", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publish: dkimPublish }),
+        body: JSON.stringify({ publish: dkimPublish,
+          ...(dkimPublish ? { zoneId } : {}) }),
       });
       const result = await response.json() as {
         ok?: boolean; code?: string; provision?: string; dns?: string;
@@ -244,11 +287,17 @@ export function DomainForm({
         setFormError(msg);
         return;
       }
+      if (autoDkim && !zoneId) {
+        const msg = "Select a Cloudflare zone before automatic setup.";
+        setFieldErrors({ zoneId: msg });
+        setFormError(msg);
+        return;
+      }
       if (!onCreate) return;
       setPending(true);
       try {
         const result = await onCreate(autoDkim
-          ? { name, dnsConfirmed: true, autoDkim: true }
+          ? { name, dnsConfirmed: true, autoDkim: true, zoneId }
           : { name, dnsConfirmed });
         if (!result.ok) {
           setFormError(result.error);
@@ -582,6 +631,40 @@ export function DomainForm({
             </div>
           </PanelBody>
         </Panel>
+
+        {(isCreate ? autoDkim : dkimPublish) ? (
+          <Panel data-testid="cloudflare-zone-panel">
+            <PanelHeader>
+              <SectionTitle>Cloudflare zone for this domain</SectionTitle>
+            </PanelHeader>
+            <PanelBody className="space-y-2 p-4">
+              <FormField
+                id="domain-cloudflare-zone"
+                label="Select an active Cloudflare zone"
+                hint="The selected zone is verified by the server and bound to this domain. Existing bindings cannot be silently changed."
+                error={fieldErrors.zoneId}
+              >
+                <Select
+                  id="domain-cloudflare-zone"
+                  name="zoneId"
+                  value={zoneId}
+                  onChange={(event) => { setZoneId(event.target.value); setDkimError(null); }}
+                  disabled={Boolean(boundZone) || zoneLoading || dkimBusy || pending}
+                  className="w-full"
+                >
+                  <option value="">Select a Cloudflare zone</option>
+                  {visibleZones.map((zone) =>
+                    <option key={zone.id} value={zone.id}>{zone.name}</option>)}
+                </Select>
+              </FormField>
+              {zoneLoading ? <p className="text-xs text-muted-foreground">Loading Cloudflare zones...</p> : null}
+              {zoneError ? <AlertBanner variant="warning">{zoneError}. Manual DNS setup remains available.</AlertBanner> : null}
+              {boundZone ? <p className="text-xs text-muted-foreground">Bound zone: {boundZone.name}</p> : null}
+              {!zoneLoading && !zoneError && !visibleZones.length
+                ? <p className="text-xs text-muted-foreground">No active zone matches this domain.</p> : null}
+            </PanelBody>
+          </Panel>
+        ) : null}
 
         <Panel>
           <PanelHeader>

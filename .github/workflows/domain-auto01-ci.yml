@@ -1,73 +1,96 @@
-name: ReadBox DOMAIN-AUTO-01 — disposable verification
+name: ReadBox DNS-FINAL primary source - disposable Linux verification
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - ci/dns-final-primary
     paths:
-      - "src/core/dns/**"
-      - "src/core/backup/agent-client.ts"
-      - "src/core/backup/validation.ts"
-      - "src/app/(workspace)/vcon/domains/actions.ts"
-      - "src/app/api/vcon/domains/**"
-      - "src/components/vcon/domain-form.tsx"
-      - "deployment/backup-agent/agent.py"
-      - "tests/dns/**"
-      - ".github/workflows/domain-auto01-ci.yml"
+      - .github/workflows/domain-auto01-ci.yml
+      - src/core/dns/**
+      - src/core/domains/service.ts
+      - src/app/(workspace)/vcon/domains/actions.ts
+      - src/app/api/vcon/domains/**
+      - src/components/vcon/domain-form.tsx
+      - tests/dns/**
+      - tests/admin/phase3-domains-mailboxes.test.ts
+      - tests/ui/domain-zone-selection.test.tsx
+      - tests/ui/vcon-phase3.test.tsx
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: readbox-dns-final-scope
+  cancel-in-progress: true
 jobs:
-  disposable:
+  dns-final:
     if: github.repository == 'vibtoolshq/ReadBox'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - name: Checkout exact source candidate
+      - name: Checkout immutable primary source without stored credentials
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Exact Scope Lock and secret isolation
+      - name: Exact primary DNS-only Scope Lock and negative patch audit
         shell: bash
         run: |
           set -euo pipefail
           test ! -e .env
           python3 - <<'PY'
           import subprocess
-          base = "952516a2cac27649824bf14329f511eae6ae9294"
+          base = "46936f7fa9c2fac2d254501ce955fab7c6b476a5"
+          allowed = {
+            "src/core/dns/cloudflare-auto.ts",
+            "src/core/dns/domain-automation.ts",
+            "src/core/domains/service.ts",
+            "src/app/(workspace)/vcon/domains/actions.ts",
+            "src/app/api/vcon/domains/[uuid]/dkim/route.ts",
+            "src/app/api/vcon/domains/cloudflare-zones/route.ts",
+            "src/components/vcon/domain-form.tsx",
+            "tests/dns/domain-zone-selection.test.ts",
+            "tests/admin/phase3-domains-mailboxes.test.ts",
+            "tests/ui/domain-zone-selection.test.tsx",
+            "tests/ui/vcon-phase3.test.tsx",
+            "docs/DOMAIN-AUTOMATION.md",
+            ".github/workflows/domain-auto01-ci.yml",
+            "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/004-ERROR-HANDLING-INVENTORY.md",
+            "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
+            "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
+          }
+          required = {
+            "src/core/dns/cloudflare-auto.ts",
+            "src/core/dns/domain-automation.ts",
+            "src/core/domains/service.ts",
+            "src/app/(workspace)/vcon/domains/actions.ts",
+            "src/app/api/vcon/domains/[uuid]/dkim/route.ts",
+            "src/app/api/vcon/domains/cloudflare-zones/route.ts",
+            "src/components/vcon/domain-form.tsx",
+            "tests/dns/domain-zone-selection.test.ts",
+            "tests/admin/phase3-domains-mailboxes.test.ts",
+            "tests/ui/domain-zone-selection.test.tsx",
+            "tests/ui/vcon-phase3.test.tsx",
+            "docs/DOMAIN-AUTOMATION.md",
+            ".github/workflows/domain-auto01-ci.yml",
+          }
           subprocess.run(["git", "merge-base", "--is-ancestor", base, "HEAD"], check=True)
-          paths = set(subprocess.check_output(
-              ["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines())
-          exact = {
-              "src/core/domains/service.ts",
-              "src/app/(workspace)/vcon/domains/actions.ts",
-              "src/app/api/vcon/domains/[uuid]/dkim/route.ts",
-              "src/components/vcon/domain-form.tsx",
-              "deployment/backup-agent/agent.py",
-              "src/core/backup/agent-client.ts",
-              "src/core/backup/validation.ts",
-              ".github/workflows/domain-auto01-ci.yml",
-              "docs/DOMAIN-AUTOMATION.md",
-          }
-          allow = exact | {
-              "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
-              "notes/004-ERROR-HANDLING-INVENTORY.md",
-              "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
-              "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
-          }
-          assert all(p in allow or p.startswith("src/core/dns/") or
-                     p.startswith("tests/dns/") for p in paths), sorted(paths)
-          assert "deployment/backup-agent/agent.py" in paths
-          assert "src/core/dns/cloudflare-auto.ts" in paths
-          assert "src/core/dns/domain-automation.ts" in paths
+          changed = set(subprocess.check_output(
+            ["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines())
+          assert required <= changed and changed <= allowed, (
+            "DNS_FINAL_SCOPE_FAIL", sorted(changed - allowed), sorted(required - changed))
           subprocess.run(["git", "diff", "--check", base, "HEAD"], check=True)
-          print("DOMAIN_AUTO01_EXACT_SCOPE_PASS", len(paths))
+          print("DNS_FINAL_PRIMARY_EXACT_SCOPE_PASS", len(changed))
           PY
-      - name: Install pinned Node dependencies
+      - name: Install pinned Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-      - name: One focused type, DNS and host-broker verification
+      - name: One focused primary DNS, admin, UI, broker and security check
         shell: bash
         run: |
           set -euo pipefail
@@ -76,8 +99,14 @@ jobs:
           npm run typecheck
           node --conditions=react-server --import tsx --test \
             tests/dns/domain-automation.test.ts \
-            tests/dns/dkim-provision.test.ts
-          PYTHONDONTWRITEBYTECODE=1 python3 tests/dns/test_domain_host_bridge.py
-          echo DOMAIN_AUTO01_FOCUSED_DISPOSABLE_PASS
-      - name: No live secrets, DNS write, VPS deployment or release
-        run: echo DOMAIN_AUTO01_SOURCE_ONLY_NO_LIVE_DNS_OR_VPS
+            tests/dns/domain-zone-selection.test.ts \
+            tests/dns/dkim-provision.test.ts \
+            tests/admin/phase3-domains-mailboxes.test.ts
+          npx vitest run --config vitest.config.mts \
+            tests/ui/domain-zone-selection.test.tsx \
+            tests/ui/vcon-phase3.test.tsx
+          python3 tests/dns/test_domain_host_bridge.py
+          npm audit --omit=dev --audit-level=moderate
+          echo DNS_FINAL_PRIMARY_DISPOSABLE_PASS
+      - name: No live Cloudflare R2 VPS or publish operation
+        run: echo DNS_FINAL_NO_LIVE_DNS_R2_VPS_SECRETS_TAG_OR_RELEASE

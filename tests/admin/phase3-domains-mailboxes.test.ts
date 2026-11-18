@@ -7,6 +7,7 @@ import {
   verifyRoutingDns,
 } from "@/core/dns/resolver";
 import {
+  bindCloudflareZone,
   checkDomainDns,
   createDomain,
   deleteDomain,
@@ -290,6 +291,7 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
     status: "disabled",
     verificationStatus: "pending",
     isDefault: false,
+    verificationDetails: {} as Record<string, unknown>,
   };
   let mailboxCount = 0;
   let forceCreateFail = false;
@@ -308,15 +310,27 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
     domain: {
       findFirst: async () => null,
       findUnique: async () => domainRow,
-      create: async () => {
+      create: async (args: { data: { verificationDetails: Record<string, unknown> } }) => {
         if (forceCreateFail) throw new Error("DB error");
+        domainRow.verificationDetails = args.data.verificationDetails;
         return { uuid: domainRow.uuid, name: domainRow.name };
       },
       update: async (args: { data: Partial<typeof domainRow> }) => {
         domainRow = { ...domainRow, ...args.data };
         return domainRow;
       },
-      updateMany: async () => ({ count: 1 }),
+      updateMany: async (args: {
+        where: { id: bigint; verificationDetails: { equals: Record<string, unknown> } };
+        data: Partial<typeof domainRow>;
+      }) => {
+        if (args.where.id !== domainRow.id ||
+            JSON.stringify(args.where.verificationDetails.equals) !==
+              JSON.stringify(domainRow.verificationDetails)) {
+          return { count: 0 };
+        }
+        domainRow = { ...domainRow, ...args.data };
+        return { count: 1 };
+      },
       delete: async () => domainRow,
     },
     $transaction: async (ops: unknown[]) => Promise.all(ops),
@@ -346,11 +360,14 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
   forceCreateFail = false;
   const created = await createDomain(
     mockPrisma,
-    { name: "Example.Test", dnsConfirmed: true },
+    { name: "Example.Test", dnsConfirmed: true,
+      cloudflareZone: { id: "a".repeat(32), name: "example.test" } },
     ctx,
     mailserverExecutor,
   );
   assert.equal(created.ok, true);
+  assert.deepEqual(domainRow.verificationDetails.cloudflareZone,
+    { id: "a".repeat(32), name: "example.test" });
   assert.equal(mailserverDomains.get("example.test"), false);
 
   // Rename blocked
@@ -391,6 +408,8 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
   );
   assert.equal(passedCheck.ok, true);
   assert.equal(domainRow.verificationStatus, "verified");
+  assert.deepEqual(domainRow.verificationDetails.cloudflareZone,
+    { id: "a".repeat(32), name: "example.test" });
   assert.equal(domainRow.status, "disabled");
 
   // Enable now succeeds
@@ -763,4 +782,111 @@ test("Mailbox provisioning creates 0700 Maildir, rolls back only new trees on DB
       /already in progress/i,
     );
   });
+});
+
+
+// MG-01: deterministic interleaving. Bind the zone precisely between the
+// DNS check's read/lookup and its first compare-and-swap write.
+test("MG-01 DNS verification retries stale metadata without losing the zone binding", async () => {
+  const uuid = "11111111-1111-4111-8111-111111111111";
+  const zone = { id: "a".repeat(32), name: "example.test" };
+  let row = {
+    id: BigInt(17), uuid, name: "example.test", status: "disabled",
+    verificationStatus: "pending", verificationDetails: { note: "preserve" } as
+      Record<string, unknown>,
+  };
+  let injectBinding = true;
+  let rejectedCas = 0;
+  let successfulCas = 0;
+  let lookupCount = 0;
+  const db = {
+    user: { findUnique: async () => ({ id: BigInt(1) }) },
+    auditLog: { create: async () => ({}) },
+    domain: {
+      findUnique: async () => ({
+        ...row, verificationDetails: structuredClone(row.verificationDetails),
+      }),
+      updateMany: async (args: {
+        where: {
+          id?: bigint; uuid?: string;
+          verificationDetails: { equals: Record<string, unknown> };
+        };
+        data: { verificationDetails: Record<string, unknown>;
+          verificationStatus?: string; status?: string };
+      }) => {
+        if (injectBinding) {
+          injectBinding = false;
+          // The repair's own CAS commits a new binding before this DNS CAS.
+          await bindCloudflareZone(db as unknown as DomainPrismaClient, uuid, zone);
+        }
+        if ((args.where.id !== undefined && args.where.id !== row.id) ||
+            (args.where.uuid !== undefined && args.where.uuid !== row.uuid) ||
+            JSON.stringify(args.where.verificationDetails.equals) !==
+              JSON.stringify(row.verificationDetails)) {
+          rejectedCas++;
+          return { count: 0 };
+        }
+        row = { ...row, ...args.data };
+        successfulCas++;
+        return { count: 1 };
+      },
+    },
+  } as unknown as DomainPrismaClient;
+
+  const sqlExecutor: SqlQueryExecutor = {
+    query: async () => ({ rows: [], rowCount: 0 }),
+  };
+  const check = await checkDomainDns(db, uuid, {
+    mailHostname: "mail.example.test",
+    serverIp: "192.0.2.10",
+    lookup: {
+      async resolve(_hostname, type) {
+        lookupCount++;
+        if (type === "MX") return ["mail.example.test"];
+        if (type === "A") return ["192.0.2.10"];
+        return [];
+      },
+    },
+  }, { actorId: BigInt(1) }, sqlExecutor);
+
+  assert.equal(check.ok, true);
+  assert.equal(rejectedCas, 1, "stale DNS check must lose its first CAS");
+  assert.equal(successfulCas, 2, "binding + DNS writes, each atomic");
+  assert.equal(row.verificationStatus, "verified");
+  assert.deepEqual(row.verificationDetails.cloudflareZone, zone);
+  assert.equal(row.verificationDetails.note, "preserve");
+  assert.equal(row.verificationDetails.mxOk, true);
+  assert.ok(lookupCount > 0);
+});
+
+test("MG-01 repeated JSON CAS conflicts fail closed without overwriting metadata", async () => {
+  const uuid = "11111111-1111-4111-8111-111111111111";
+  const zone = { id: "b".repeat(32), name: "example.test" };
+  const details = { cloudflareZone: zone, note: "untouched" };
+  let attempts = 0;
+  let audits = 0;
+  const db = {
+    domain: {
+      findUnique: async () => ({
+        id: BigInt(19), uuid, name: "example.test", status: "disabled",
+        verificationDetails: { ...details },
+      }),
+      updateMany: async () => { attempts++; return { count: 0 }; },
+    },
+    user: { findUnique: async () => ({ id: BigInt(1) }) },
+    auditLog: { create: async () => { audits++; return {}; } },
+  } as unknown as DomainPrismaClient;
+  const check = await checkDomainDns(db, uuid, {
+    mailHostname: "mail.example.test", serverIp: "192.0.2.10",
+    lookup: {
+      async resolve(_host, type) {
+        return type === "MX" ? ["mail.example.test"] : ["192.0.2.10"];
+      },
+    },
+  }, { actorId: BigInt(1) }, { query: async () => ({ rows: [], rowCount: 0 }) });
+  assert.equal(check.ok, false);
+  if (!check.ok) assert.equal(check.code, "unavailable");
+  assert.equal(attempts, 3, "no unbounded CAS loop");
+  assert.equal(audits, 0, "no false success audit on stale metadata");
+  assert.deepEqual(details.cloudflareZone, zone);
 });

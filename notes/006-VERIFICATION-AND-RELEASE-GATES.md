@@ -250,3 +250,10 @@ declared ready until its own MX/mail-host routing verification succeeds.
 
 - **Focused disposable CI:** [source run #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274) SUCCESS on `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`. Exact Scope Lock 17/17 PASS; TypeScript typecheck PASS; mocked Node tests 14/14 PASS; host broker Python tests 3/3 PASS; no environment secrets, DNS writes, VPS deployment or release. **One CI run.**
 - **Synchronization blocker:** mirror JILLU-Games/ReadBox refuses source commit SHA as missing object (GitHub API 422/UNPROCESSABLE); Windows git HTTPS unreachable. Mirror main remains `952516a2cac27649824bf14329f511eae6ae9294` — no divergent commit or force-push. Source/mirror/local exact SHA parity is **BLOCKED**, not PASS. Live deployment remains NO-GO.
+
+
+## DNS-FINAL — primary candidate verification boundary
+
+- Frozen primary baseline `46936f7fa9c2fac2d254501ce955fab7c6b476a5`. Source candidate `JILLU-Games/ReadBox` `1fc33bed704569843a689e22f123a8560af3b049`. DNS-only patch exact allowlist: 12 source/test/doc paths, one existing `.github/workflows/domain-auto01-ci.yml`, notes/003–006; **no merge of unrelated candidate changes**.
+- A single disposable `ci/dns-final-primary` Linux CI must validate typecheck, Node DNS/DKIM/domain regression, zone UI, Python bridge, production npm audit, and exact changed path/security audit. No test PASS assertion before verified run URL/head SHA.
+- Formal ReadBox full-production release and live DNS acceptance remain **NO-GO** until a separately approved real Cloudflare/DNS/R2/VPS test. Exact same Git SHA source/backup synchronization is required where fast-forward and object transfer are safe; otherwise record BLOCKED, never force-push.

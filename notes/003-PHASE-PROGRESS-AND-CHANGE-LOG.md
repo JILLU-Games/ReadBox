@@ -190,3 +190,11 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Focused local recheck:** after the Windows checkout's missing generated Prisma Client was regenerated, `npm run typecheck` PASS and mocked Node DNS/DKIM tests **14/14 PASS**. Initial typecheck was blocked solely by absent local generated Prisma client; no Prisma schema/source edits. Host Python and GitHub CI acceptance remain unverified until CI.
 
 - **GitHub source focused CI SUCCESS:** [DOMAIN-AUTO-01 #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274), tested source commit `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`. Scope check 17 paths PASS, Next/TypeScript PASS, Node DNS/DKIM 14/14 PASS, Python host-broker 3/3 PASS. No live calls. Source main published; **mirror exact SHA sync BLOCKED** because repositories have separate Git objects and the connected Windows host's GitHub HTTPS access failed. No force update or divergent mirror commit made.
+
+
+## DNS-FINAL — Primary integration candidate (2026-11-19)
+
+- **Primary authority:** `vibtoolshq/ReadBox`, frozen `main` `46936f7fa9c2fac2d254501ce955fab7c6b476a5`. Candidate source: `JILLU-Games/ReadBox` `ci/domain-auto01-merge` at `1fc33bed704569843a689e22f123a8560af3b049`. The 12 strictly allowlisted DNS-source/test/doc files are copied by exact file content, not by merging 20 candidate commits or 118 unrelated changed paths.
+- Integration: explicit admin zone listing/selection, exact active Cloudflare zone validation, immutable domain binding in existing JSON, safe create/repair and idempotent DNS publishing, CAS-protected concurrent DNS verification; existing DKIM escrow/host agent, manual opt-out, application/UI/security contracts preserved.
+- One isolated `ci/dns-final-primary` GitHub Linux CI verifies DNS/admin/UI/host-broker and audit. This initial candidate note **does not claim a CI result**. One scoped CI then exact patch/security audit required before any primary `main` update; backup same-SHA synchronization requires explicit remote object/fast-forward verification.
+- No Prisma migration, live Cloudflare/R2, VPS, production keys, tag/release, MailStack reference or unrelated source.

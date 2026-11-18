@@ -4,7 +4,7 @@ import {
 } from "./dkim-provision";
 import { readOpenDkimRecord } from "./opendkim";
 import {
-  DomainAutomationError, findCloudflareZone, publishManagedDomainDns,
+  DomainAutomationError, resolveSelectedCloudflareZone, publishManagedDomainDns,
 } from "./cloudflare-auto";
 import { validateDomain } from "@/core/mailboxes/validators";
 import { isIP } from "node:net";
@@ -22,6 +22,7 @@ export async function automateDomainSetup(
   domainInput: string,
   settings: {
     readonly publish: boolean;
+    readonly zoneId?: string;
     readonly opendkimKeysRoot: string;
     readonly mailHostname: string;
     readonly serverIp: string;
@@ -35,7 +36,8 @@ export async function automateDomainSetup(
   }
   // Refuse to generate private keys when the requested automatic Cloudflare
   // zone is not configured, active or visible to this scoped token.
-  const zone = settings.publish ? await findCloudflareZone(domain) : null;
+  const zone = settings.publish ?
+    await resolveSelectedCloudflareZone(domain, settings.zoneId ?? "") : null;
   try {
     await requestDkimProvision(domain);
   } catch (error) {

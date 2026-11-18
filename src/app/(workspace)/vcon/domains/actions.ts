@@ -5,6 +5,7 @@ import { requireAdminUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
 import type { RoutingVerificationResult } from "@/core/dns/resolver";
 import { automateDomainSetup, domainSetupErrorCode } from "@/core/dns/domain-automation";
+import { resolveSelectedCloudflareZone, type CloudflareZoneChoice } from "@/core/dns/cloudflare-auto";
 import {
   checkDomainDns,
   createDomain,
@@ -41,16 +42,30 @@ export async function createDomainAction(input: {
   readonly name: string;
   readonly dnsConfirmed: boolean;
   readonly autoDkim?: boolean;
+  readonly zoneId?: string;
 }): Promise<DomainActionResult<{ uuid: string; name: string }>> {
   const actor = await requireAdminUser();
   if (!env.databaseUrl) {
     return databaseUnavailableResult();
   }
 
+  let zoneBinding: CloudflareZoneChoice | undefined;
+  if (input.autoDkim === true) {
+    try {
+      const zone = await resolveSelectedCloudflareZone(input.name, input.zoneId ?? "");
+      zoneBinding = { id: zone.id, name: zone.name };
+    } catch (error) {
+      const code = domainSetupErrorCode(error);
+      return { ok: false, code: "validation", error: code,
+        fieldErrors: { zoneId: code } };
+    }
+  }
+
   const requestHeaders = await headers();
   const result = await createDomain(
     getPrismaClient() as unknown as DomainPrismaClient,
-    { name: input.name, dnsConfirmed: input.dnsConfirmed || input.autoDkim === true },
+    { name: input.name, dnsConfirmed: input.dnsConfirmed || input.autoDkim === true,
+      ...(zoneBinding ? { cloudflareZone: zoneBinding } : {}) },
     {
       actorId: actor.id,
       authSource: actor.authSource,
@@ -66,6 +81,7 @@ export async function createDomainAction(input: {
       try {
         const setup = await automateDomainSetup(result.data.name, {
           publish: true,
+          zoneId: zoneBinding!.id,
           opendkimKeysRoot: env.opendkimKeysRoot,
           mailHostname: env.mailHostname,
           serverIp: env.serverIp,

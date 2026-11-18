@@ -200,3 +200,16 @@ Final notes-only closure commits change documentation, not the tested code or fr
 - One focused test workflow and no-secret documentation added. Source-only: live token setup, VPS rollout and live provider acceptance remain pending.
 
 - **Verification/source status:** source commit `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`; dedicated [source CI #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274) SUCCESS (exact 17-path scope, TS, 14 Node + 3 Python tests). Local checkout staged tree matches published source tree. Independent mirror remains at original baseline pending exact non-force Git object transfer; **not phase-closed/synced**.
+
+
+## DNS-FINAL — primary-only integration candidate
+
+| Item | State |
+|---|---|
+| DOMAIN-AUTO-01 DNS/escrow baseline in vibtoolshq/main | SOURCE PRESENT before phase |
+| DOMAIN-AUTO-02 selector/zone API/create and repair binding | DNS-only content integrated into isolated primary candidate; CI pending |
+| CAS-safe domain DNS verification and regression tests | Integrated; CI pending |
+| Legacy manual opt-out UI contract | Focused test integrated; CI pending |
+| Production provider/DNS/R2/host deployment | NOT RUN |
+| Primary main publication / backup exact SHA parity | PENDING scoped CI PASS and safe non-force refs |
+| Additional features or MailStack reference changes | OUT OF SCOPE / NO EDIT |

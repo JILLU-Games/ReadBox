@@ -196,3 +196,10 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - DNS propagation pending -> saved domain disabled; retries operate on original domain identity, never create a duplicate or rotate keys.
 
 - **Verified negative cases:** cross-zone refusal, inactive zone, missing token, conflicting SPF/DKIM, proxied mail A, malformed/domain-traversal broker commands; idempotent repeat and unrelated TXT preserved. Focused source CI `44345525274` PASS (Node 14/14, broker Python 3/3). Live reverse-proxy Origin/Cloudflare DNS token acceptance, R2 and DNS propagation remain NOT RUN.
+
+
+## DNS-FINAL — primary source integration failure and safety contracts
+
+- Explicit Cloudflare zone ID is required before automatic DKIM staging/DNS publishing; invalid/foreign/inactive ID, conflicting record, missing token, stale zone or inconsistent metadata must fail closed. Admin-only read-only zone-list returns sanitized ID/name, never bearer token.
+- CAS-controlled `checkDomainDns` re-reads JSON after a conflicting concurrent zone binding and retries at most three times, preserving unrelated metadata; exhausted CAS refuses false verification/audit. Guarded DKIM root escrow receipts, DNS record preflight and no overwrite/delete remain unchanged.
+- Evidence basis until new primary CI: mocked JILLU tests only. **No real Cloudflare API write, real R2 escrow or production delivery accepted.** Primary focused verification pending.
