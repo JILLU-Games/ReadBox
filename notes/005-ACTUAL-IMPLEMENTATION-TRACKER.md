@@ -248,3 +248,19 @@ Final notes-only closure commits change documentation, not the tested code or fr
 | Documentation-only blocker report | notes/003–006 only |
 
 No application bug fix was authorized or performed. A future manual workflow dispatch must be verified at its exact run SHA.
+
+
+## MERGE-GATE-03 — full candidate R06 integration verification VERIFIED
+
+| Exact gate | Evidence |
+|---|---|
+| Operator manual dispatch on intended candidate | `workflow_dispatch`, `ci/domain-auto01-merge`, SHA `ff614db384f77a218d7916a726b298f27a068ae5` |
+| App lint, unit/full UI (20 files), build | PASS, `R06_APP_UI_AUTH_PROVENANCE_AND_NEGATIVE_GATES_PASS` |
+| Production dependency scan | PASS, 0 vulnerabilities |
+| PostgreSQL 16/migration/auth integration | PASS, `R06_EPHEMERAL_POSTGRES_TARGET_GUARDED_INTEGRATION_PASS` |
+| Docker SMTP/LMTP/Maildir and TLS negative guards | PASS, `R06_ISOLATED_PRODUCTION_IMAGES_SMTP_LMTP_PASS` |
+| Encrypted backup, restore, ACL, failure rollback | PASS, `R06_ENCRYPTED_BACKUP_RESTORE_ROLLBACK_PASS` |
+| Historical R06/QIS01 Scope Locks | PASS, `R06_QIS01_IMMUTABLE_SCOPE_AUDITS_PASS` |
+| Formal stable production release | NO-GO, seven original findings OPEN, live acceptance 0/17 |
+
+Full run: https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430. No code patch, branch promotion, live deployment, source/mirror synchronization, tag or release.

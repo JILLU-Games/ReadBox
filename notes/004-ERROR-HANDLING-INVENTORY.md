@@ -230,3 +230,10 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Classification: **external invocation/tool limitation**, not a confirmed source defect or an R06 test failure.
 - Repo workflow `.github/workflows/r06-production-readiness.yml` defines `workflow_dispatch` and a read-only consolidated job. The available connected GitHub API tools do not expose a create-workflow-dispatch operation. No run was started and no CI output exists for the frozen `69208ffb4fa4053be0db0448c1752aa9661af1eb` candidate.
 - Safe recovery: operator may launch existing workflow manually from GitHub Actions, select exact branch `ci/domain-auto01-merge`, and provide the run URL; independently confirm run `head_sha` and event before auditing results. Do not claim success or change workflow triggers to bypass this restriction. Existing seven production acceptance findings remain OPEN.
+
+
+## MERGE-GATE-03 — completed evidence and residual gates
+
+- Previous blocker was inability of connected GitHub tools to create a workflow dispatch; **resolved operationally** by the user's manual GitHub Actions dispatch, without editing the workflow. It was never an application bug.
+- [R06 #44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) at tested SHA `ff614db384f77a218d7916a726b298f27a068ae5`: no failing CI steps, job `success`. Isolated SMTP rejected unsafe relay/missing TLS; R05 rehearsal passed tamper/no-mutation and after-DB-apply automatic rollback guards. The logs include non-fatal build/deprecation warnings, but no failed gate.
+- **Residuals remain:** live external SMTP/DNS/DKIM/TLS/PTR/VPS, real offsite R2 custody/retention and operator recovery evidence, historical-source provenance review. R06 software-CI success does not close seven original OPEN findings or any of 17 live staging gates.

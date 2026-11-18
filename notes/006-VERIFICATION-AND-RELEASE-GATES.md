@@ -291,3 +291,10 @@ source change; no live secrets or external production writes.
 - Full consolidated candidate gates (lint, unit/UI/build, ephemeral PostgreSQL/migrations/auth, Docker SMTP→LMTP→Maildir, encrypted backup/recovery and formal release governance): **NOT VERIFIED** for this candidate.
 - Scope: notes-only blocked closure. No code/workflow/test edits, source/mirror/main sync, VPS, live DNS/R2/SMTP, tag, prerelease or release. Production remains **NO-GO**, original seven release findings OPEN.
 - Recovery requires operator-triggered existing GitHub Actions R06 workflow on `ci/domain-auto01-merge` plus a separate review of actual run SHA, logs and outcome. This blocked phase must not be marked fully closed as a verified implementation.
+
+
+## MERGE-GATE-03 — final verified R06 disposition
+
+- **CI gate = SUCCESS**: operator-triggered GitHub Actions [#44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430), job `135048964258`, `workflow_dispatch` event, exact tested SHA `ff614db384f77a218d7916a726b298f27a068ae5`, branch `ci/domain-auto01-merge`, completion `success`. All consolidated app/build/security/PostgreSQL/isolated Docker SMTP→LMTP/backup restore rollback/historical immutable scope jobs PASS. Sanitized status artifact `r06-ci-no-go-ff614db384f77a218d7916a726b298f27a068ae5` (artifact ID `14459189773`) uploaded.
+- **Formal production gate = NO-GO**, verified exact log markers `R06_PRODUCTION_NO_GO`, `R06_FINDINGS_OPEN=7`, `R06_LIVE_GATE_PASS_CLAIMS=0/17`. R06 CI is non-production evidence only. Never claim all live acceptance gates closed.
+- Closure is documentation-only notes/003–006. The verified application tree is unchanged after R06; final closure commit itself is not a separately run R06 test SHA. JILLU-Games `main` remains at `952516a2cac27649824bf14329f511eae6ae9294`. No main merge/push, source/mirror sync, VPS operations, live DNS/R2/SMTP, credentials, deployment, tag, prerelease or release. Separate MERGE-GATE-04 approval required for any promotion decision.
