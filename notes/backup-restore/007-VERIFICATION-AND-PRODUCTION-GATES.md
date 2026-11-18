@@ -123,8 +123,8 @@ Do not count mocked R2 or synthetic host-loss as actual offsite production recov
 
 | Gate | Evidence | Status |
 |---|---|---|
-| Frozen source/mirror main baseline | Both \`f641339021029b09f1a785aa81f27908fe9b5911\` at entry | PASS |
-| Tested code SHA/tree | \`a466a829b4cabdd7554a81100475037ee5ab393b\` / \`fe8502f8154aedc8b171f73f27eccb6ee212ce4b\` | PASS |
+| Frozen source/mirror main baseline | Both `f641339021029b09f1a785aa81f27908fe9b5911` at entry | PASS |
+| Tested code SHA/tree | `a466a829b4cabdd7554a81100475037ee5ab393b` / `fe8502f8154aedc8b171f73f27eccb6ee212ce4b` | PASS |
 | One focused AU01 GitHub Actions run | [#44246833530](https://github.com/JILLU-Games/ReadBox/actions/runs/44246833530) exact tested code head | **SUCCESS** |
 | Scope/security diff | 13 changed approved code/test/docs paths, zero deletion or unauthorized source paths; closure adds only notes 003–007 | PASS |
 | Docker source/main parity, invalid SHA, source vs stable metadata | New Node tests and existing Phase6 admin regression | PASS (mock public responses) |
