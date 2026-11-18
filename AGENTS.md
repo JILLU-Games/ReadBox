@@ -21,6 +21,21 @@ These rules are authoritative for all future ReadBox updates, fixes and features
 4. **Close immediately after evidence:** record exact source SHA, CI/job result, modified paths, safety findings, implemented versus unverified features, remaining blockers and source/mirror SHA parity in the approved phase notes; commit and perform non-force exact sync. Do not delay closure for optional repeated testing. If verification or sync is blocked, report it explicitly and do not claim a fully closed phase.
 5. **Next phase requires user approval:** provide a compact phase summary and one short copy-ready next-phase command. No unapproved VPS action, live sending, restore, release/tag or production credential use. Avoid time-consuming verification for its own sake.
 
+## Mandatory Approval Handoff — Never Stop at “Approval Required” (Authoritative)
+
+Whenever work cannot safely or legitimately continue without **new user approval**—including a new phase, scope exception, newly discovered blocker, production/VPS change, credential operation, deployment, migration, restore, release, or security-sensitive action—the agent **must not stop with only “approval needed”**. In the **same response**, provide an actionable approval handoff with all of the following:
+
+1. **Why approval is necessary:** identify the precise blocker, finding or authorization boundary; explain why the existing approval does not cover the requested work. Distinguish confirmed facts from assumptions and unverified risks.
+2. **Where the change will happen:** identify the project/repository and exact component, host/environment or service that would be affected. State explicitly whether this is source-only, disposable CI, local, staging or production work.
+3. **What will be implemented/fixed:** describe the concrete expected behavior, bugs, missing integration, security protections and acceptance result, without claiming any unperformed work is complete.
+4. **Exact Scope Lock before editing:** name the frozen baseline/commit if known; enumerate the **specific allowed file paths, components and operations**. Explicitly list protected/out-of-scope areas and prohibited actions. If exact paths cannot yet be verified, say so, restrict the request to an **audit-only scope-discovery approval**, and do not fabricate an allowlist or change files outside current authorization.
+5. **Compact implementation and verification plan:** specify the sequence (audit/freeze → minimal change → focused disposable tests/CI → exact patch/security audit → notes/commit/sync if authorized), required success/failure gates and safe rollback or stop conditions. Avoid long verification loops.
+6. **One immediately copy-paste-ready approval command:** include a short, unambiguous **natural-language authorization prompt** with the phase name, exact approved boundaries, intended implementation and verification, source/mirror/local sync policy, and explicit “no VPS/live data/secrets/release” limits unless those actions are specifically intended for approval. The user should be able to paste this command as their next message **without asking again for the plan or prompt**.
+
+**Do not request the user to repeat known requirements.** Use verified repository context to prepare the handoff; identify any indispensable unknowns instead of inventing them. If an approval is required after a failed CI, provide the *smallest blocker-only* exception and one focused recheck, not a broad new phase. If approval has already been explicitly granted for the exact step, proceed within that approval rather than asking again.
+
+**Authorization boundary:** the handoff is a proposal, **not** permission to execute it. Never make out-of-scope edits, invoke a live deployment/restore, expose credentials, release/tag or force-push while awaiting the requested approval. If the user specifically requested audit-only work, finish the audit and provide the plan and approval prompt, but perform no implementation.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
