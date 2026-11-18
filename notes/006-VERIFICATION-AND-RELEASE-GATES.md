@@ -277,3 +277,8 @@ source change; no live secrets or external production writes.
 - Focused disposable Linux test gate: exact changed paths + patch, `npm run typecheck`, Node DNS/DKIM/domain contracts including forced JSON interleaving, full Vitest UI suite including session/legacy domain, Python escrow bridge and `npm audit --omit=dev` at moderate severity.
 - Status at implementation: CI PENDING; no test success asserted until logs and SHA verified.
 - Even on CI success, R06 whole-project production gate and the existing seven open staging/live findings remain NO-GO. No live key/DNS, offsite data, production deployment or source/mirror/main sync.
+
+
+- **MERGE-GATE-02 source acceptance:** [CI #44369378566](https://github.com/JILLU-Games/ReadBox/actions/runs/44369378566) SUCCESS at tested SHA `0193421123eabf0f7acc8c1aba31696a1a2a0074`. Exact `ff72192` baseline diff contains 10/10 approved files, 288 additions and 68 deletions before final notes closure, no outside changes. Node 25/25, full UI 82/82, Python 3/3, TypeScript and npm production audit 0 vulnerabilities.
+- The initial [CI #44369016949](https://github.com/JILLU-Games/ReadBox/actions/runs/44369016949) failed on a mistaken UUID/ID test mock; one necessary in-scope fixture recheck succeeded. CI fixture logs include intentional negative-path application errors.
+- **MERGE-GATE-02 phase status:** TEST-BRANCH CLOSED after notes-only commit; no tested runtime-code delta after successful CI. **Main promotion not authorized; entire R06 live staging and seven open production acceptance findings remain NO-GO.**

@@ -218,3 +218,8 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Now, routing verification updates only when the current JSON equals the snapshot; on mismatch it re-reads and merges the current JSON before retry. After a maximum of three attempts it returns `unavailable`, logs an internal event and does not record a false success audit.
 - The existing root escrow, zone-binding immutability, DNS safety preflight, manual-mode opt-out and authorization rules are unchanged.
 - MG-02 was a stale manual-path UI test assumption. MG-03 was a React pending-transition test timing race; no runtime security change is authorized without proof of a real defect.
+
+
+- **MG-01 confirmed acceptance:** deterministic test interleaves first-time zone binding with routing verification. The stale metadata write loses its CAS; a bounded retry rereads the bound zone and preserves the new binding and unrelated JSON fields. The repeated-conflict test proves three attempts then sanitized `unavailable`, with no false audit event. These test outcomes are from mocked DB state, not an external PostgreSQL concurrency workload.
+- **MG-02:** full UI suite now covers explicit manual DNS opt-out alongside automatic Cloudflare mode. **MG-03:** user session-revoke test awaits the transition before the second click; no auth/session runtime change.
+- [Focused Linux recheck #44369378566](https://github.com/JILLU-Games/ReadBox/actions/runs/44369378566) SUCCESS. Existing live VPS, DNS, R2, provider outage/rollback and staging concurrency are NOT RUN.
