@@ -138,3 +138,19 @@ Do not count mocked R2 or synthetic host-loss as actual offsite production recov
 | RG-01–17, stable release/tag and production GO | Independent acceptance and human approval outstanding | **NO-GO** |
 
 A successful disposable bridge test is not a live production updater acceptance. No VPS operation, production restore, tag or release occurred during AU-01.
+
+## AU-01/UI-01 verification and release boundary (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Exact frozen baseline | `90e87acc8fe8ca0b0c89ee620e0aed8eeceab064` | PASS |
+| Candidate source/mirror Git tree parity | `6aa90839a2853a5129a32cb6eec20f5fee940848` | PASS |
+| Four approved code/docs paths | Exact Git comparison: two UI files, one focused UI test, one document | PASS |
+| CI TypeScript and UI-01 regression | [R06 #44258286499](https://github.com/JILLU-Games/ReadBox/actions/runs/44258286499), consolidated source/UI step | PASS |
+| No update-start request and stable mode preserved | New UI regression test with mocked read-only API | PASS |
+| No backend, host, Docker, auth, database, Backup/R2 changes | Exact code path diff | PASS |
+| Final notes-only closure and source/mirror/local fast-forward parity | Verify after closure commit and publish | POST-PUBLICATION |
+| VPS UI-01 deployment, live auto-update, restore, tag or release | No authorization | NOT RUN |
+| Full production readiness and release | Separate R06/RG gates | NO-GO |
+
+Do not treat this UI-only source fix or mocked API responses as a live production rollout. Broader R06 CI outcome must be checked independently of the focused UI step.

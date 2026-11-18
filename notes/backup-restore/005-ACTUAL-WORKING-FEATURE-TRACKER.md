@@ -66,3 +66,9 @@
 - **Legacy host-only ZIP updater:** preserved unchanged; not eligible for Docker web execution. New Docker mode uses a verified source-main SHA, NOT a signed archive release; stable GitHub releases are detected informationally.
 - **Operational NOT RUN:** production VPS host bridge install, actual browser-initiated upgrade, full live build/restart, real rollback from a failed production migration, real R2 transfer, public SMTP/TLS changes, tag/release. Source changes alone do not authorize production release.
 - **Unchanged:** existing authentication/authorization policy, unrelated UI, Prisma schema/migrations, Postfix/Dovecot/mail handling, Backup/R2 Agent code, age key, secrets, production data and Docker volumes. Production release NO-GO.
+
+## AU-01/UI-01 — Current displayed features
+
+- **CI UI regression verified:** the Docker System Update header renders `vibtoolshq/ReadBox` and the Up-to-Date dialog displays the same 12-hex host SHA as the installation card. Existing stable/systemd channel continues to display its configured repository and semantic package version. A missing source SHA is labelled `Unknown`.
+- The test is `tests/ui/vcon-system-update-ui01.test.tsx`, covered by the successful R06 consolidated app/UI step [#44258286499](https://github.com/JILLU-Games/ReadBox/actions/runs/44258286499) on candidate `3e8be000174de39d290bfcaec3778e1fc56d085a`. Code/test/docs diff confined to four approved paths.
+- **NOT LIVE VERIFIED by UI-01:** rebuilt VPS image, new Admin Panel rendering after future deployment, browser-triggered update, production migration and rollback, any R2 or restore work. AU-01 pre-existing live host preflight was user-observed before this UI-only source correction.
