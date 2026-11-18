@@ -24,3 +24,8 @@
 `Phase / approval date / baseline source+mirror SHA+tree / exact files touched / source proof line refs / defect IDs fixed vs open / focused CI run and result / patch audit diff paths / any other UI-feature changes / deployed? / tag/release? / commit and mirror exact parity / next phase / approval command`.
 
 **Current DOC-01 proof:** only `notes/**` paths may be added/updated/deleted. History remains available in prior `c08b9cd77ec30afc50fe36952eecb982ba90a982`. No new implementation, VPS operation, external API, production restore, tag or release occurs in this documentation reset.
+
+## DOC-01 post-publication CI anomaly (source main notes-only commit)
+
+- [BR-02 workflow 44207319955](https://github.com/JILLU-Games/ReadBox/actions/runs/44207319955): **FAIL at fixed BR-02 diff/SCOPE step**, before any BR-02 application test. Its `.github/workflows/readbox-backup-ci.yml:42–71` still expects original 18 implementation paths in cumulative diff from old baseline; this notes-only cleanup cannot satisfy that fixed predicate. **Do not call this proof of a new backup-agent failure**, and do not call all current-main CI green.
+- **P-01 fix queued only:** `.github/workflows/readbox-backup-ci.yml` is in existing BR-03 Scope Lock. Adjust workflow for per-phase/notes-only scope without weakening original BR-02 source audit, then run focused CI under separate phase approval. No workflow edit authorized in DOC-01.

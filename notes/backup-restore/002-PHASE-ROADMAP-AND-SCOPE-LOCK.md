@@ -4,7 +4,7 @@
 
 **DOC-01 — this task: clean/rebuild `notes/` before more coding.** Only `notes/**` is permitted. Old dev reports may be removed from the active tree only with links preserved, full Git history maintained and exact preclean SHA documented. No BR-03 candidate source changes in DOC-01.
 
-**Next P-01 / BR-03 hardening:** The candidate already exists on `maintenance/readbox-br03-20261118` at `b8f3fc662d384211d4506e40f13859f9cfcb012a` and [CI passed](https://github.com/JILLU-Games/ReadBox/actions/runs/44203727204); it is **not on main**. Before merging, fix BR03-REL-02, BR03-REL-03, BR03-OBS-04 and BR03-SEC-05, add direct failure/restart tests, check exactly scoped patch + one focused CI. No real R2 keys or live network. BR03-DEP-01 cannot be fixed inside this allowlist.
+**Next P-01 / BR-03 hardening:** The candidate already exists on `maintenance/readbox-br03-20261118` at `b8f3fc662d384211d4506e40f13859f9cfcb012a` and [CI passed](https://github.com/JILLU-Games/ReadBox/actions/runs/44203727204); it is **not on main**. Before merging, fix BR03-REL-02, BR03-REL-03, BR03-OBS-04, BR03-SEC-05 and DOC-01-CI-08 (legacy BR-02 exact-diff workflow mismatch), add direct failure/restart tests, check exactly scoped patch + one focused CI. No real R2 keys or live network. BR03-DEP-01 cannot be fixed inside this allowlist.
 
 ### P-01 exact ORIGINAL BR-03 allowlist — NO additions
 
@@ -30,7 +30,7 @@ New files (already present in candidate):
 
 **P-01 patch anchors:** `agent.py:64–97` auto-upload handoff, `r2.py:133–162,193–273` connection/upload/history, `scheduler.py:60–115` UTC/retention, `storage.py` durable journal, `tests/backup/{r2-integration,scheduler}.test.mjs` fault injection, `src/components/vcon/backup-console.tsx:267–364` R2 controls.
 
-**Exit:** bounded retries + idempotency tested; durable auto-upload survives interrupt; R2 owned probe and pagination hardened; existing BR-01/BR-02 UI/security regression and unchanged R-05 restoration PASS; exact allowlist audited and documented. **No code edits or merging under DOC-01.**
+**Exit:** bounded retries + idempotency tested; durable auto-upload survives interrupt; R2 owned probe and pagination hardened; existing BR-01/BR-02 UI/security regression and unchanged R-05 restoration PASS; updated BR-03 workflow must not report a stale BR-02 diff failure on documentation-only commits; exact allowlist audited and documented. **No code edits or merging under DOC-01.**
 
 ### P-02 / BR-03 host packaging exception — separate explicit approval REQUIRED
 

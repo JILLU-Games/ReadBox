@@ -30,3 +30,8 @@ The existing original seven blockers and [RG-01–RG-17 runbook](https://github.
 - Pagination + deterministic owned-object history; honest `remote_object_present` vs `remote_verified`.
 - Exact 16-path BR-03 allowlist, no other source/UI/Prisma/mailserver edits; one focused disposable CI with existing BR-01/BR-02/R-05 regression.
 - Record final commit/run SHA and actual PASS/FAIL in `003–007`. **P-02 installer/unit exception cannot be inferred from P-01 approval.**
+
+## DOC-01 observed main-branch CI after notes cleanup
+
+- [BR-02 CI run 44207319955](https://github.com/JILLU-Games/ReadBox/actions/runs/44207319955) **FAILED**, at old hard-coded BR-02 exact changed-file assertion `.github/workflows/readbox-backup-ci.yml:36–74`. Because HEAD is notes-only, expected cumulative BR-02 18-path diff condition fails. All later BR-02 test jobs were **SKIPPED**, not failed. This is a **workflow contract mismatch**, not a tested app regression. P-01 may change workflow, but DOC-01 scope remains strictly `notes/**`.
+- [R-06 run 44207320065](https://github.com/JILLU-Games/ReadBox/actions/runs/44207320065) was triggered at documentation source SHA `7c848c45af654d95c3cd80a8bfa70f5dbc6c4f71`; the workflow completed **SUCCESS** at that exact documentation SHA, including disposable PostgreSQL, SMTP→LMTP and R-05 encrypted restore/rollback checks; this is **not** production signoff. The subsequent final notes-only ledger update has not yet received a separate exact-SHA CI run.
