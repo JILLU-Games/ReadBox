@@ -67,12 +67,28 @@ conn.close()
 print("PA01_AUTHENTICATED_IPC_DEFAULT_DENY_PASS")
 PY
 }
+# A systemd restart can return before the agent has re-bound its Unix socket.
+# Bound the wait to 10 seconds and require a fresh authenticated HMAC RPC
+# on each attempt; a socket file's existence alone is not a health check.
+wait_for_authenticated_ipc() {
+  local attempt
+  for attempt in {1..40}; do
+    if status_check >/dev/null 2>&1; then
+      echo PA01_AUTHENTICATED_IPC_READY_AFTER_RESTART_PASS
+      return 0
+    fi
+    sleep 0.25
+  done
+  echo PA01_AUTHENTICATED_IPC_READINESS_TIMEOUT >&2
+  status_check
+  return 1
+}
 status_check
 bash "$ROOT/scripts/install/readbox-backup-agent-install.sh" >/dev/null
 test "$(readlink "$RUNTIME/current")" = "$POINTER_BEFORE"
 test "$(sha256sum /var/lib/readbox-backup/identity.txt | cut -d' ' -f1)" = "$IDENTITY_BEFORE"
 systemctl restart "$SERVICE"
-status_check
+wait_for_authenticated_ipc
 echo PA01_FRESH_IDEMPOTENT_SYSTEMD_RESTART_PASS
 
 CONFLICT_LOG="$(mktemp)"
@@ -104,5 +120,5 @@ test "$(sha256sum /var/lib/readbox-backup/identity.txt | cut -d' ' -f1)" = "$IDE
 systemctl is-active --quiet "$SERVICE"
 cp "$GITHUB_WORKSPACE/deployment/backup-agent/requirements.lock" "$ROOT/deployment/backup-agent/requirements.lock"
 rm -rf "$SHIM" "$FAIL_LOG" /tmp/pa01-fail-next-restart
-status_check
+wait_for_authenticated_ipc
 echo PA01_SYSTEMD_INSTALL_ROLLBACK_AND_LOCK_PASS
