@@ -1,6 +1,6 @@
 # ReadBox active development notes — fresh planning index
 
-**Current source + mirror `main` frozen:** `c08b9cd77ec30afc50fe36952eecb982ba90a982` (tree `e7cb8fb8db14046cabaae9b3768267cec0efd095`). **Separate BR-03 CI candidate:** `b8f3fc662d384211d4506e40f13859f9cfcb012a` (tree `413155ee2672f4347c676b23c847997038688ed2`). These are different code states.
+**Pre-cleanup code baseline (both repos' `main` at audit start):** `c08b9cd77ec30afc50fe36952eecb982ba90a982` (tree `e7cb8fb8db14046cabaae9b3768267cec0efd095`). **Separate BR-03 CI candidate:** `b8f3fc662d384211d4506e40f13859f9cfcb012a` (tree `413155ee2672f4347c676b23c847997038688ed2`). These are different code states.
 
 ## Use these ACTIVE notes for the next update
 
@@ -21,4 +21,4 @@ The previous 8 backup-restore development notes were **replaced** with this sour
 
 Documentation cleanup changes only `notes/**`: no app code, installer, workflows, auth, PostgreSQL, Docker, mailserver, deployment, existing backups, credentials, Git tag or release. Git cleanup is a normal forward commit (no force/reset/history rewrite).
 
-**Current phase:** documentation reset / audit. **Next authorized implementation:** NONE until a separately submitted next-phase approval prompt. BR-03 code exists **only on candidate branch**, is CI-tested against mocks/disposable resources, and has unclosed integration blockers; BR-04 is not implemented. Production readiness remains **NO-GO**.
+**DOC-01 status:** documentation reset prepared and verified in a notes-only commit; no app source files touched. **Next implementation approval:** a separately submitted P-01 / BR-03 hardening prompt is still required. BR-03 code exists **only on candidate branch**, is CI-tested against mocks/disposable resources, and has unclosed integration blockers; BR-04 is not implemented. Production readiness remains **NO-GO**.

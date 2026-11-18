@@ -12,12 +12,12 @@
 
 | New phase | Status | Main change | Exact approval | Next |
 |---|---|---|---|---|
-| DOC-01 | DOCUMENTATION CLEANUP IN THIS COMMIT | Source freeze, old development-notes cleanup with Git recovery, new forensic audit, Scope Lock and tracker | This user instruction (notes-only) | P-01 |
+| DOC-01 | CLOSED — DOCS-ONLY SCOPE AUDIT | Source freeze, old development-notes cleanup with Git recovery, new forensic audit, Scope Lock and tracker | This user instruction (notes-only) | P-01 |
 | P-01 / BR-03 hardening | PENDING APPROVAL | Retry/backoff, durable auto-upload, paging, probe-cleanup fault handling, scoped tests | Existing 16 BR-03 source paths only | P-02 |
 | P-02 / BR-03 packaging | BLOCKED — SCOPE EXCEPTION | Hash-locked host runtime dependencies; clarify scheduler/timer install; no secret overwrite | New explicit installer/unit permission needed | P-03 |
 | P-03 / BR-04 restore | NOT APPROVED | Disposable restore, maintenance lock, rollback and guarded capability, no live restore | Original 19 BR-04 paths, new approval | Production acceptance separately |
 
-**Count after DOC-01 close:** 1 documentation/preparation phase complete; 3 further source phases/packages pending (P-02 requires exception). Main source and mirror continue on known BR-02 base unless a new code approval/commit is independently evidenced.
+**Count after DOC-01 close:** 1 documentation/preparation phase complete; 3 further source phases/packages pending (P-02 requires exception). Production application code remains on the reviewed BR-02 source tree; a notes-only Git commit advances `main` commit SHA without modifying any code blob. Exact mirror parity of that documentation commit must be checked independently.
 
 ## Required per-phase log template
 
