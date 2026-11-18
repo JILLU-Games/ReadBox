@@ -1,5 +1,5 @@
 export type BackupJobState = "queued" | "running" | "completed" | "failed" | "interrupted";
-export type BackupJobKind = "backup" | "verify";
+export type BackupJobKind = "backup" | "verify" | "r2_upload";
 export interface BackupEvent {
   readonly at: string;
   readonly level: "info" | "success" | "warning" | "error";
@@ -15,6 +15,9 @@ export interface BackupRecord {
   readonly level: "V1" | "V2";
   readonly includesQueue: boolean;
   readonly includesHostSecrets: false;
+  readonly remoteState?: "remote_verified";
+  readonly remoteVerifiedAt?: string;
+  readonly localState?: "deleted";
 }
 export interface BackupJob {
   readonly id: string;
@@ -24,18 +27,52 @@ export interface BackupJob {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly events: readonly BackupEvent[];
-  readonly result?: BackupRecord | { readonly backupId: string; readonly verified: true; readonly level: "V2" } | { readonly errorCode: string };
+  readonly result?: BackupRecord | { readonly backupId: string; readonly verified: true; readonly level: "V2" } | { readonly backupId: string; readonly remoteVerified: true; readonly bytes: number } | { readonly errorCode: string };
+}
+export interface R2Public {
+  readonly configured: boolean;
+  readonly bucket: string | null;
+  readonly accountIdLast4: string | null;
+  readonly accessKeyLast4: string | null;
+  readonly prefix: string;
+}
+export interface SchedulePublic {
+  readonly enabled: boolean;
+  readonly intervalHours: 6 | 12 | 24;
+  readonly autoUpload: boolean;
+  readonly retentionDays: number;
+  readonly keepLocal: number;
+  readonly nextRunAt: number | null;
+  readonly lastRunAt: string | null;
+  readonly timeZone: "UTC";
+}
+export interface RemoteBackupRecord {
+  readonly backupId: string;
+  readonly bytes: number;
+  readonly key: string;
+  readonly state: "remote_object_present";
+}
+export interface R2Credentials {
+  readonly accountId: string;
+  readonly bucket: string;
+  readonly accessKeyId: string;
+  readonly secretAccessKey: string;
 }
 export interface BackupDashboard {
   readonly connected: boolean;
   readonly jobs: readonly BackupJob[];
   readonly backups: readonly BackupRecord[];
+  readonly r2?: R2Public;
+  readonly schedule?: SchedulePublic;
 }
 export interface BackupActionResult {
   readonly ok: boolean;
   readonly code: string;
   readonly message: string;
   readonly job?: BackupJob;
+  readonly r2?: R2Public;
+  readonly schedule?: SchedulePublic;
+  readonly remote?: readonly RemoteBackupRecord[];
 }
 export const UNAVAILABLE_BACKUP_DASHBOARD: BackupDashboard = {
   connected: false,

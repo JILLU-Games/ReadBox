@@ -1,9 +1,7 @@
-name: ReadBox BR02 isolated encrypted backup agent CI — NO deployment
+name: ReadBox BR03 hardened backup + notes-only safe scope CI — NO deployment
 on:
   push:
-    branches:
-      - maintenance/readbox-br02-20261118
-      - main
+    branches: [maintenance/readbox-br03-20261118, main]
   pull_request:
     branches: [main]
 
@@ -11,73 +9,105 @@ permissions:
   contents: read
 
 concurrency:
-  group: readbox-br02-${{ github.repository }}-${{ github.ref }}
+  group: readbox-br03-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  br02-disposable:
+  br03-disposable:
     if: github.repository == 'JILLU-Games/ReadBox'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       READBOX_BR02_DISPOSABLE: "1"
     steps:
-      - name: Check out exact source (no credentials retained)
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Node 22 locked project toolchain
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
-      - name: Verify exact BR02 path Scope Lock
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify BR03 exact source allowlist OR notes-only main commit
+        id: scope
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import subprocess
-          base="83959fff1c60dde432729cd5bec95ca4b27e8bca"
-          files=set("""
-          docker-compose.yml
-          src/app/(workspace)/vcon/backup/page.tsx
+          base="c08b9cd77ec30afc50fe36952eecb982ba90a982"
+          approved=set("""
           src/components/vcon/backup-console.tsx
           src/app/(workspace)/vcon/backup/actions.ts
-          src/app/api/vcon/backup/jobs/[id]/route.ts
           src/core/backup/contracts.ts
           src/core/backup/validation.ts
-          src/core/backup/permissions.ts
           src/core/backup/agent-client.ts
           deployment/backup-agent/agent.py
           deployment/backup-agent/executor.py
           deployment/backup-agent/storage.py
           deployment/backup-agent/verification.py
-          deployment/backup-agent/systemd/readbox-backup-agent.service
-          scripts/install/readbox-backup-agent-install.sh
-          tests/backup/agent-protocol.test.mjs
-          tests/backup/compose-integration.test.mjs
           .github/workflows/readbox-backup-ci.yml
+          deployment/backup-agent/r2.py
+          deployment/backup-agent/scheduler.py
+          deployment/backup-agent/requirements.lock
+          deployment/backup-agent/systemd/readbox-backup-agent.timer
+          tests/backup/r2-integration.test.mjs
+          tests/backup/scheduler.test.mjs
           """.split())
-          actual=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
-          closure_docs=set("""
+          notes=set("""
           notes/backup-restore/003-PHASE-PROGRESS-AND-CHANGE-LOG.md
           notes/backup-restore/004-ERROR-HANDLING-INVENTORY.md
           notes/backup-restore/005-ACTUAL-WORKING-FEATURE-TRACKER.md
           notes/backup-restore/006-RESTORE-R2-SECURITY-AND-DATA-CONTRACT.md
           notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md
           """.split())
-          assert actual==files or actual==files|closure_docs,("BR02_SCOPE_MISMATCH",sorted(actual^files))
+          changed=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          code={p for p in changed if not p.startswith("notes/")}
+          assert code<=approved,("BR03_SCOPE_VIOLATION",sorted(code-approved))
+          assert not code & {"docker-compose.yml","Dockerfile","prisma/schema.prisma","package.json",
+                               "src/app/(workspace)/vcon/backup/page.tsx"}
           subprocess.run(["git","diff","--check",base,"HEAD"],check=True)
-          assert subprocess.check_output(["git","diff","--name-only",base,"HEAD","--","prisma/schema.prisma","Dockerfile","deployment/mailserver"],text=True).strip()==""
-          print("BR02_EXACT_APPROVED_SCOPE_PASS",len(actual))
+          if not code:
+              assert changed and all(p.startswith("notes/") for p in changed)
+              # The retired BR02 workflow previously demanded 18 code changes
+              # even for notes-only HEADs. The scope check now explicitly
+              # recognizes docs-only commits and skips BR03 runtime tests.
+              mode="notes_only"
+              print("BR03_NOTES_ONLY_SCOPE_PASS",len(changed))
+          else:
+              required={p for p in approved if p.startswith("deployment/backup-agent/r2.") or
+                        p.endswith("requirements.lock") or p.endswith("scheduler.py") or
+                        p.endswith("readbox-backup-agent.timer") or
+                        p.endswith("r2-integration.test.mjs") or p.endswith("scheduler.test.mjs")}
+              assert required<=code,("BR03_REQUIRED_PATH_MISSING",sorted(required-code))
+              # Phase notes are allowed; unrelated source, CI and auth/mailer
+              # files remain prohibited regardless of branch or trigger.
+              assert all(p.startswith("notes/") for p in changed-code)
+              mode="br03"
+              print("BR03_EXACT_APPROVED_SCOPE_PASS",len(code))
+          import os
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8") as out:
+              out.write("mode="+mode+"\n")
           PY
-      - name: Frontend auth/UI, backend and build regression
+      - name: Install exact hashed Python S3 SDK and cryptography from audited lock
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
-          npm ci --no-fund --no-audit
+          python3 -m venv /tmp/readbox-br03-venv
+          /tmp/readbox-br03-venv/bin/python -m pip install --require-hashes --no-input --disable-pip-version-check -r deployment/backup-agent/requirements.lock
+          /tmp/readbox-br03-venv/bin/python -c 'import boto3,cryptography;print("BR03_PINNED_HASHED_SDK_PASS")'
+          /tmp/readbox-br03-venv/bin/python -m pip check
+      - name: Existing auth, frontend, mail and backup source regression
+        if: steps.scope.outputs.mode == 'br03'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
           npm run db:validate
           npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts
           node scripts/testing/r06-verify-lint-baseline.mjs
@@ -86,25 +116,33 @@ jobs:
           env -u DATABASE_URL npm run test:ui
           node --test tests/operations/r05-contract.test.mjs
           npm run build
-          echo "BR02_APP_UI_AUTH_EXISTING_FEATURES_PASS"
-      - name: Validate installer syntax and Python agent modules
+          echo BR03_FRONTEND_AUTH_BUILD_REGRESSION_PASS
+      - name: Python syntax and immutable restore boundary
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
           bash -n scripts/install/readbox-backup-agent-install.sh
-          python3 -B -m py_compile deployment/backup-agent/{agent,executor,storage,verification}.py
-          echo "BR02_HOST_INSTALL_SYNTAX_AND_PYTHON_PASS"
-      - name: Disposable IPC auth, PostgreSQL/Maildir encrypted backup and V2 verification
+          /tmp/readbox-br03-venv/bin/python -m py_compile deployment/backup-agent/{agent,executor,storage,verification,r2,scheduler}.py
+          ! grep -REn 'restore\.production|delete_objects\(' deployment/backup-agent/{agent,executor,storage,verification,r2,scheduler}.py
+          echo BR03_AGENT_SOURCE_SAFETY_PASS
+      - name: Disposable R2 mock SDK + UTC scheduler + existing BR02 encrypted snapshot
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age acl
-          sudo env READBOX_BR02_DISPOSABLE=1 "$(command -v node)" --test tests/backup/agent-protocol.test.mjs tests/backup/compose-integration.test.mjs
-          echo "BR02_DISPOSABLE_AGENT_SNAPSHOT_VERIFY_JOURNAL_PASS"
-      - name: Existing R05 disposable recovery regression unchanged
+          sudo env PATH="/tmp/readbox-br03-venv/bin:$PATH" READBOX_BR02_DISPOSABLE=1 "$(command -v node)" --test \
+            tests/backup/r2-integration.test.mjs \
+            tests/backup/scheduler.test.mjs \
+            tests/backup/agent-protocol.test.mjs \
+            tests/backup/compose-integration.test.mjs
+          echo BR03_R2_SCHEDULER_AND_BR02_DISPOSABLE_PASS
+      - name: Existing R05 disposable encrypted restore/rollback regression unchanged
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
           bash deployment/operations/tests/r05-rehearsal.sh
-          echo "BR02_EXISTING_ENCRYPTED_RECOVERY_REGRESSION_PASS"
+          echo BR03_EXISTING_R05_RESTORE_ROLLBACK_PASS

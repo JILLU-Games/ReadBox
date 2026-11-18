@@ -21,6 +21,8 @@ import time
 
 from executor import BackupExecutor, BackupExecutionError
 from storage import PrivateStore, private_dir, valid_id
+from r2 import R2Adapter, R2Error
+from scheduler import ScheduleManager, ScheduleError
 
 
 class ThreadingUnixServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
@@ -35,6 +37,8 @@ class BackupBroker:
         self.token = token
         self.nonces: dict[str, int] = {}
         self.lock = threading.RLock()
+        self.r2 = R2Adapter(state, executor)
+        self.schedule = ScheduleManager(state)
 
     def authenticate(self, timestamp: str, nonce: str, signature: str, body: bytes) -> bool:
         if not re.fullmatch(r"[0-9]{10,12}", timestamp) or not re.fullmatch(r"[a-f0-9]{32}", nonce):
@@ -61,15 +65,36 @@ class BackupBroker:
         identifier = job["id"]
         try:
             self.state.update(identifier, "running", "Job running")
-            result = self.executor.run(job["kind"], identifier, job.get("backupId"))
+            if job["kind"] == "r2_upload":
+                fd = self.executor._lock()
+                try:
+                    result = self.r2.upload(job["backupId"])
+                finally:
+                    import fcntl
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+                    os.close(fd)
+            else:
+                result = self.executor.run(job["kind"], identifier, job.get("backupId"))
             if job["kind"] == "verify" and job.get("backupId"):
                 self.state.set_backup_verification(job["backupId"], True)
             message = ("Encrypted backup saved and verified"
-                       if job["kind"] == "backup"
-                       else "Encrypted backup verification passed")
+                       if job["kind"] == "backup" else
+                       "Encrypted backup verification passed"
+                       if job["kind"] == "verify" else
+                       "Encrypted backup uploaded to R2 and remotely checksum verified")
             self.state.update(identifier, "completed", message, "success", result)
+            if job["kind"] == "backup" and job.get("autoUpload"):
+                # Saved intent + verified archive survive a crash before this call.
+                # The scheduler also reconciles on startup and every bounded tick.
+                self.queue_auto_upload()
+            elif job["kind"] == "r2_upload":
+                try:
+                    self.schedule.cleanup_local(self.r2, self.executor.archives,
+                                                self.schedule.read())
+                except Exception:
+                    pass
         except Exception as error:
-            error_code = (error.code if isinstance(error, BackupExecutionError)
+            error_code = (error.code if isinstance(error, (BackupExecutionError, R2Error, ScheduleError))
                           else "BACKUP_AGENT_EXECUTION_FAILED")
             if job["kind"] == "verify" and job.get("backupId"):
                 try:
@@ -77,8 +102,10 @@ class BackupBroker:
                 except Exception:
                     pass
             message = ("Backup operation failed; no completed backup was published"
-                       if job["kind"] == "backup"
-                       else "Backup verification failed; existing archive was preserved")
+                       if job["kind"] == "backup" else
+                       "Backup verification failed; existing archive was preserved"
+                       if job["kind"] == "verify" else
+                       "Cloudflare R2 upload failed; local backup was preserved")
             try:
                 self.state.update(identifier, "failed", message, "error",
                                   {"errorCode": error_code})
@@ -89,11 +116,22 @@ class BackupBroker:
         action = payload.get("action")
         if not isinstance(action, str):
             return 400, {"error": "INVALID_ACTION"}
-        if action == "status":
+        if action == "status" and set(payload) == {"action"}:
             return 200, {
                 "connected": True, "jobs": self.state.list_jobs(),
-                "backups": self.state.list_backups(),
+                "backups": self.state.list_backups(), "r2": self.r2.public(),
+                "schedule": self.schedule.read(),
             }
+        if action == "r2.configure" and set(payload) == {"action", "config"}:
+            return 200, {"r2": self.r2.configure(payload["config"])}
+        if action == "r2.test" and set(payload) == {"action"}:
+            return 200, {"test": self.r2.test()}
+        if action == "r2.list" and set(payload) == {"action"}:
+            return 200, {"remote": self.r2.list_remote()}
+        if action == "schedule.configure" and set(payload) == {"action", "schedule"}:
+            return 200, {"schedule": self.schedule.configure(
+                payload["schedule"], self.r2.public()["configured"])}
+
         if action == "job.get":
             identifier = payload.get("jobId")
             if not valid_id(identifier):
@@ -103,11 +141,15 @@ class BackupBroker:
         if action == "backup.create" and set(payload) == {"action"}:
             kind = "backup"
             backup_id = None
-        elif action == "backup.verify" and set(payload) == {"action", "backupId"}:
-            kind = "verify"
+        elif action in {"backup.verify", "r2.upload"} and set(payload) == {"action", "backupId"}:
+            kind = "verify" if action == "backup.verify" else "r2_upload"
             backup_id = payload["backupId"]
-            if not valid_id(backup_id) or self.state.get_backup(backup_id) is None:
+            record = self.state.get_backup(backup_id) if valid_id(backup_id) else None
+            if record is None:
                 return 404, {"error": "BACKUP_NOT_FOUND"}
+            if kind == "r2_upload" and (record["state"] != "verified" or
+                                         record["level"] != "V2"):
+                return 409, {"error": "R2_BACKUP_NOT_V2_VERIFIED"}
         else:
             return 400, {"error": "ACTION_NOT_ALLOWED"}
         try:
@@ -117,6 +159,31 @@ class BackupBroker:
         worker = threading.Thread(target=self._worker, args=(job,), daemon=False)
         worker.start()
         return 202, {"job": job}
+
+    def queue_auto_upload(self, when: float | None = None) -> bool:
+        # One atomic journal claim prevents concurrent scheduler/worker enqueues.
+        job = self.state.claim_due_auto_upload(when)
+        if job is None:
+            return False
+        threading.Thread(target=self._worker, args=(job,), daemon=False).start()
+        return True
+
+    def scheduler_tick(self, when: float | None = None) -> bool:
+        # First reconcile persisted pending uploads, including after agent restart.
+        if self.queue_auto_upload(when):
+            return True
+        # Explicitly default OFF. No auto-restore or remote deletion.
+        if any(job["state"] in {"queued", "running"} for job in self.state.list_jobs()):
+            return False
+        config = self.schedule.due(when)
+        if config is None:
+            return False
+        try:
+            job = self.state.create("backup", auto_upload=bool(config["autoUpload"]))
+        except RuntimeError:
+            return False
+        threading.Thread(target=self._worker, args=(job,), daemon=False).start()
+        return True
 
 
 def build_handler(broker: BackupBroker):
@@ -144,7 +211,7 @@ def build_handler(broker: BackupBroker):
             if uid not in {0, 1001}:
                 return self._answer(403, {"error": "FORBIDDEN"})
             length = self.headers.get("Content-Length", "")
-            if not length.isdecimal() or not 2 <= int(length) <= 2048:
+            if not length.isdecimal() or not 2 <= int(length) <= 4096:
                 return self._answer(413, {"error": "REQUEST_TOO_LARGE"})
             body = self.rfile.read(int(length))
             if not broker.authenticate(
@@ -161,6 +228,8 @@ def build_handler(broker: BackupBroker):
                 return self._answer(400, {"error": "INVALID_INPUT"})
             try:
                 status, result = broker.perform(payload)
+            except (R2Error, ScheduleError) as error:
+                status, result = 409, {"error": error.code}
             except Exception:
                 status, result = 503, {"error": "BACKUP_AGENT_OPERATION_FAILED"}
             return self._answer(status, result)
@@ -227,6 +296,16 @@ def main() -> None:
     os.chown(socket_file, 0, 1001)
     os.chmod(socket_file, 0o660)
     print("BR02_BACKUP_AGENT_READY", flush=True)
+    scheduler_stop = threading.Event()
+    def scheduler_loop() -> None:
+        while not scheduler_stop.wait(15):
+            try:
+                broker.scheduler_tick()
+            except Exception:
+                # Unknown failure never launches a backup or reveals secrets.
+                pass
+    scheduler_worker = threading.Thread(target=scheduler_loop, daemon=True)
+    scheduler_worker.start()
     def request_shutdown(_signal: int, _frame: object) -> None:
         # server.shutdown must run in a separate thread from serve_forever.
         threading.Thread(target=server.shutdown, daemon=True).start()
@@ -235,6 +314,7 @@ def main() -> None:
     try:
         server.serve_forever(poll_interval=0.5)
     finally:
+        scheduler_stop.set()
         server.server_close()
         socket_file.unlink(missing_ok=True)
 

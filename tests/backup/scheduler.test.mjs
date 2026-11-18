@@ -1,0 +1,114 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import test from "node:test";
+
+test("BR03 UTC schedule: opt-in, persisted slots, no replay, retention minimum and no deletion without verified remote", () => {
+  const program = String.raw`
+from pathlib import Path
+import sys,tempfile,os,time
+sys.path.insert(0,"deployment/backup-agent")
+from storage import PrivateStore
+from scheduler import ScheduleManager,ScheduleError
+
+with tempfile.TemporaryDirectory() as tmp:
+    root=Path(tmp)
+    store=PrivateStore(root/"state")
+    schedule=ScheduleManager(store)
+    assert schedule.read()["enabled"] is False
+    assert schedule.due(time.time()+99999) is None
+    payload={"enabled":True,"intervalHours":6,"autoUpload":False,
+             "retentionDays":7,"keepLocal":3}
+    schedule.configure(payload,False)
+    initial=schedule.read()
+    assert initial["timeZone"]=="UTC" and initial["nextRunAt"]>time.time()
+    assert ScheduleManager(store).read()["nextRunAt"]==initial["nextRunAt"]
+    at=initial["nextRunAt"]+1
+    assert schedule.due(at)["lastRunAt"]
+    assert schedule.due(at) is None
+    after=ScheduleManager(store).read()
+    assert after["nextRunAt"]>at and after["nextRunAt"]<at+21601
+    for altered in ({**payload,"intervalHours":1},{**payload,"keepLocal":1},
+                    {**payload,"retentionDays":-1}):
+        try:schedule.configure(altered,False)
+        except ScheduleError as error:assert error.code=="SCHEDULE_INVALID"
+        else:raise AssertionError("invalid schedule accepted")
+    assert ScheduleManager(store).read()==after
+    try:schedule.configure({**payload,"autoUpload":True},False)
+    except ScheduleError as error:assert error.code=="R2_NOT_CONFIGURED"
+    else:raise AssertionError("auto-upload enabled without R2")
+    archives=root/"archives"
+    archives.mkdir()
+    for index in range(5):
+        identifier=("%032x"%(index+1))
+        path=archives/(identifier+".age")
+        path.write_bytes(b"encrypted"+bytes([index]))
+        os.chmod(path,0o600)
+        store.save_backup({"id":identifier,
+          "state":"verified","level":"V2","createdAt":"2024-01-01T00:00:00+00:00",
+          "remoteVerifiedAt":"2024-02-01T00:00:00+00:00" if index>0 else None})
+    class R2:
+        def __init__(self):self.checked=[]
+        def upload(self,identifier):self.checked.append(identifier);return {"remoteVerified":True}
+    remote=R2()
+    removed=schedule.cleanup_local(remote,archives,after,when=time.time())
+    # oldest has NO verified remote and must never be deleted
+    assert "00000000000000000000000000000001" not in removed
+    assert len(removed)==2 and len(remote.checked)==2
+    assert len(list(archives.glob("*.age")))==3
+    assert schedule.cleanup_local(remote,archives,after,when=time.time())==[]
+    schedule.configure({**payload,"enabled":False},False)
+    assert schedule.due(time.time()+999999) is None
+    # Persist auto-upload intent before backup execution, then simulate SIGKILL
+    # after a verified archive's record has been committed, before success ACK.
+    auto=store.create("backup",auto_upload=True)
+    assert store.get_job(auto["id"])["autoUpload"] is True
+    store.update(auto["id"],"running","Job running")
+    store.save_backup({"id":auto["id"],"state":"verified","level":"V2",
+                       "createdAt":"2026-01-01T00:00:00+00:00"})
+    restarted=PrivateStore(store.root)
+    assert restarted.get_job(auto["id"])["state"]=="interrupted"
+    first=restarted.claim_due_auto_upload(when=time.time()+1)
+    assert first["kind"]=="r2_upload" and first["backupId"]==auto["id"]
+    assert first["autoSourceJob"]==auto["id"]
+    assert restarted.claim_due_auto_upload(when=time.time()+1000) is None
+    restarted.update(first["id"],"running","Job running")
+    restarted.update(first["id"],"failed",
+                     "Cloudflare R2 upload failed; local backup was preserved")
+    # A failure must never queue immediately: persist 30s/120s retry edges.
+    assert restarted.claim_due_auto_upload(when=time.time()+2) is None
+    second=restarted.claim_due_auto_upload(when=time.time()+35)
+    assert second and second["backupId"]==auto["id"]
+    restarted.update(second["id"],"running","Job running")
+    restarted.update(second["id"],"failed",
+                     "Cloudflare R2 upload failed; local backup was preserved")
+    assert restarted.claim_due_auto_upload(when=time.time()+60) is None
+    third=restarted.claim_due_auto_upload(when=time.time()+180)
+    assert third and third["autoSourceJob"]==auto["id"]
+    restarted.update(third["id"],"running","Job running")
+    restarted.update(third["id"],"failed",
+                     "Cloudflare R2 upload failed; local backup was preserved")
+    assert PrivateStore(store.root).claim_due_auto_upload(when=time.time()+10000) is None
+    # Another auto backup with a verified remote copy can never be re-uploaded.
+    done=restarted.create("backup",auto_upload=True)
+    restarted.save_backup({"id":done["id"],"state":"verified","level":"V2",
+                           "createdAt":"2026-01-01T00:00:00+00:00"})
+    restarted.update(done["id"],"running","Job running")
+    restarted.update(done["id"],"completed","Encrypted backup saved and verified")
+    restarted.set_remote_verified(done["id"],"readbox/managed/"+done["id"]+".age")
+    assert restarted.claim_due_auto_upload(when=time.time()+20000) is None
+    # A manual backup never implicitly becomes an offsite upload.
+    manual=restarted.create("backup")
+    assert manual["autoUpload"] is False
+    restarted.update(manual["id"],"running","Job running")
+    restarted.update(manual["id"],"completed","Encrypted backup saved and verified")
+    restarted.save_backup({"id":manual["id"],"state":"verified","level":"V2",
+                           "createdAt":"2026-01-01T00:00:00+00:00"})
+    assert restarted.claim_due_auto_upload(when=time.time()+30000) is None
+    print("BR03_DURABLE_AUTO_UPLOAD_RESTART_DEDUP_BACKOFF_BUDGET_PASS")
+
+    print("BR03_UTC_DEFAULT_OFF_RESTART_NO_REPLAY_GUARDED_RETENTION_PASS")
+`;
+  const p=spawnSync("python3",["-c",program],{encoding:"utf8",timeout:15_000});
+  assert.equal(p.status,0,(p.stderr??"").slice(-1800));
+  assert.match(p.stdout,/BR03_UTC_DEFAULT_OFF_RESTART_NO_REPLAY_GUARDED_RETENTION_PASS/);
+});

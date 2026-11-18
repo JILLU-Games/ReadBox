@@ -1,4 +1,4 @@
-import type { BackupDashboard, BackupJob } from "@/core/backup/contracts";
+import type { BackupDashboard, BackupJob, R2Public, SchedulePublic, RemoteBackupRecord } from "@/core/backup/contracts";
 import { UNAVAILABLE_BACKUP_DASHBOARD } from "@/core/backup/contracts";
 import { type AgentAction, validateAgentPayload } from "@/core/backup/validation";
 import { createHash, createHmac, randomBytes } from "node:crypto";
@@ -23,6 +23,10 @@ interface AgentReply {
   readonly backups?: BackupDashboard["backups"];
   readonly job?: BackupJob;
   readonly error?: string;
+  readonly r2?: R2Public;
+  readonly schedule?: SchedulePublic;
+  readonly remote?: readonly RemoteBackupRecord[];
+  readonly test?: { readonly verified: boolean; readonly at: string };
 }
 
 export async function callBackupAgent(
@@ -62,7 +66,7 @@ export async function callBackupAgent(
         socketPath: SOCKET,
         method: "POST",
         path: "/rpc",
-        timeout: 5_000,
+        timeout: 15_000,
         headers: {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(body),
@@ -91,6 +95,11 @@ export async function callBackupAgent(
               const safeCodes = new Set([
                 "JOB_CONFLICT", "BACKUP_NOT_FOUND", "JOB_NOT_FOUND",
                 "INVALID_JOB_ID", "ACTION_NOT_ALLOWED", "FORBIDDEN",
+                "R2_NOT_CONFIGURED", "R2_CONFIG_INVALID", "R2_CONNECTION_FAILED",
+                "R2_PROBE_UNVERIFIED", "R2_PROBE_CLEANUP_FAILED",
+                "R2_BACKUP_NOT_V2_VERIFIED", "R2_REMOTE_OBJECT_CONFLICT",
+                "R2_REMOTE_OBJECT_UNVERIFIED", "R2_UPLOAD_FAILED",
+                "SCHEDULE_INVALID", "R2_LOCAL_ARCHIVE_UNAVAILABLE",
               ]);
               return fail(safeCodes.has(reply.error ?? "") ? reply.error! : "BACKUP_AGENT_UNAVAILABLE");
             }
@@ -115,7 +124,8 @@ export async function readBackupDashboard(): Promise<BackupDashboard> {
     if (result.connected !== true || !Array.isArray(result.jobs) || !Array.isArray(result.backups)) {
       return UNAVAILABLE_BACKUP_DASHBOARD;
     }
-    return { connected: true, jobs: result.jobs, backups: result.backups };
+    return { connected: true, jobs: result.jobs, backups: result.backups,
+      r2: result.r2, schedule: result.schedule };
   } catch {
     return UNAVAILABLE_BACKUP_DASHBOARD;
   }
