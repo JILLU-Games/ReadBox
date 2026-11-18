@@ -807,7 +807,10 @@ test("MG-01 DNS verification retries stale metadata without losing the zone bind
         ...row, verificationDetails: structuredClone(row.verificationDetails),
       }),
       updateMany: async (args: {
-        where: { id: bigint; verificationDetails: { equals: Record<string, unknown> } };
+        where: {
+          id?: bigint; uuid?: string;
+          verificationDetails: { equals: Record<string, unknown> };
+        };
         data: { verificationDetails: Record<string, unknown>;
           verificationStatus?: string; status?: string };
       }) => {
@@ -816,7 +819,8 @@ test("MG-01 DNS verification retries stale metadata without losing the zone bind
           // The repair's own CAS commits a new binding before this DNS CAS.
           await bindCloudflareZone(db as unknown as DomainPrismaClient, uuid, zone);
         }
-        if (args.where.id !== row.id ||
+        if ((args.where.id !== undefined && args.where.id !== row.id) ||
+            (args.where.uuid !== undefined && args.where.uuid !== row.uuid) ||
             JSON.stringify(args.where.verificationDetails.equals) !==
               JSON.stringify(row.verificationDetails)) {
           rejectedCas++;

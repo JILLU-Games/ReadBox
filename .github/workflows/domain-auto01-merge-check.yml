@@ -82,3 +82,5 @@ jobs:
           echo MERGE_GATE02_FOCUSED_DISPOSABLE_PASS
       - name: Confirm source-only safety boundary
         run: echo MERGE_GATE02_NO_VPS_MAIN_PUSH_RELEASE_DNS_R2_OR_SECRETS
+
+# One necessary MG-01 focused recheck: fixture must model both UUID and numeric-ID CAS writers.
