@@ -96,7 +96,8 @@ export async function requestDkimProvision(domainInput: string): Promise<"create
   }
   const data = parsed as { ok?: boolean; state?: string; code?: string };
   if (!data.ok) {
-    const allowed = ["INVALID_DOMAIN", "PUBLIC_WITHOUT_PRIVATE",
+    const allowed = ["ESCROW_REQUIRED", "ESCROW_RECEIPT_INVALID",
+      "INVALID_DOMAIN", "PUBLIC_WITHOUT_PRIVATE",
       "PUBLIC_KEY_CONFLICT", "INVALID_PUBLIC_RECORD", "INVALID_PRIVATE_KEY",
       "UNSAFE_PATH", "UNSAFE_DIRECTORY", "KEY_OPERATION_FAILED"];
     throw new DkimProvisionError(allowed.includes(data.code ?? "") ?
@@ -203,7 +204,7 @@ export async function getDkimStatus(domainInput: string, keysRoot: string): Prom
   }
   return {
     key,
-    dns, publishing: config({}) ? "configured" : "manual",
+    dns, publishing: process.env.READBOX_CF_DNS_TOKEN ? "configured" : "manual",
     signing: "inactive",
     record: record.available ? record.value : null,
     host,

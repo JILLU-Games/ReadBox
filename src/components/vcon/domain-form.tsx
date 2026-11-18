@@ -133,7 +133,7 @@ export function DomainForm({
     initialDomain?.status === "active" ? "active" : "disabled",
   );
   const [dnsConfirmed, setDnsConfirmed] = useState(false);
-  const [autoDkim, setAutoDkim] = useState(false);
+  const [autoDkim, setAutoDkim] = useState(true);
   const [dkimPublish, setDkimPublish] = useState(true);
   const [dkimStatus, setDkimStatus] = useState<DkimStatus | null>(null);
   const [dkimError, setDkimError] = useState<string | null>(null);
@@ -179,15 +179,18 @@ export function DomainForm({
       });
       const result = await response.json() as {
         ok?: boolean; code?: string; provision?: string; dns?: string;
+        routing?: "verified" | "pending" | "manual";
       };
       if (!response.ok || !result.ok) {
-        setDkimError(result.code ?? "DKIM provisioning failed.");
-        notify.error("DKIM provisioning requires operator review.");
+        setDkimError(result.code ?? "DOMAIN_AUTOMATION_UNAVAILABLE");
+        notify.error("Automatic DKIM setup paused. Review the error and retry safely.");
         return;
       }
       notify.success(result.dns === "manual"
-        ? "DKIM public key ready. Copy/publish the TXT record manually."
-        : "DKIM TXT record provisioned. DNS propagation may take time.");
+        ? "DKIM escrow verified and public key ready for manual DNS."
+        : result.routing === "verified"
+          ? "Domain DKIM + Cloudflare DNS verified; mail routing activated."
+          : "DKIM and Cloudflare records saved; routing propagation pending.");
       const [statusResult, previewResult] = await Promise.all([
         fetch("/api/vcon/domains/" + initialDomain.uuid + "/dkim", { cache: "no-store" }),
         onPreviewDns(initialDomain.name),
@@ -234,7 +237,7 @@ export function DomainForm({
     setFieldErrors({});
 
     if (isCreate) {
-      if (!dnsConfirmed) {
+      if (!dnsConfirmed && !autoDkim) {
         const msg =
           "Confirm that all DNS records have been reviewed before saving the domain.";
         setFieldErrors({ dnsConfirmed: msg });
@@ -245,7 +248,7 @@ export function DomainForm({
       setPending(true);
       try {
         const result = await onCreate(autoDkim
-          ? { name, dnsConfirmed, autoDkim: true }
+          ? { name, dnsConfirmed: true, autoDkim: true }
           : { name, dnsConfirmed });
         if (!result.ok) {
           setFormError(result.error);
@@ -624,7 +627,7 @@ export function DomainForm({
 
             {isCreate ? (
               <div className="space-y-1.5 border-t border-border pt-3">
-                <div className="flex items-start gap-2">
+                {!autoDkim && <div className="flex items-start gap-2">
                   <Checkbox
                     id="domain-dns-confirmed"
                     checked={dnsConfirmed}
@@ -644,15 +647,15 @@ export function DomainForm({
                     I have reviewed the DNS records above and understand routing
                     verification is required before enabling mail delivery.
                   </Label>
-                </div>
+                </div>}
                 <div className="flex items-start gap-2">
                   <Checkbox id="domain-dkim-auto" checked={autoDkim}
                     onChange={(event) => setAutoDkim(event.target.checked)} />
                   <Label htmlFor="domain-dkim-auto" className="font-normal">
-                    Provision DKIM key after domain creation (publish automatically only if Cloudflare configured)
+                    Automatic setup: DKIM key, encrypted R2 escrow, Cloudflare DNS and routing verification (requires scoped Cloudflare token)
                   </Label>
                 </div>
-                {fieldErrors.dnsConfirmed ? (
+                {fieldErrors.dnsConfirmed && !autoDkim ? (
                   <p
                     id="domain-dns-confirmed-error"
                     className="text-xs text-destructive"

@@ -188,3 +188,15 @@ Frozen baseline `ebb2e2bddd0ef26671b283a4f71bc4d35bb32dbd`; code tree `d34e6b539
 
 Exact verified tested code tree: `4cccc52ea7d92bdaf4a06b27fc15a8039aae8036`.
 Final notes-only closure commits change documentation, not the tested code or frozen release gate.
+
+
+## DOMAIN-AUTO-01 — implemented source, not deployed
+
+- Automatic Add Domain default, manual opt-out with DNS-review checkbox, admin-domain repair POST; no unrelated screen/feature edits.
+- `src/core/dns/cloudflare-auto.ts` verifies exact active managed Cloudflare zone, preflights and idempotently creates scoped records. Shared mail host outside zone is never modified.
+- `src/core/dns/domain-automation.ts` orchestrates existing isolated DKIM agent, narrow host-root HMAC escrow and Cloudflare publishing. Actual private/R2 credentials stay host-only.
+- `deployment/backup-agent/agent.py` action `dkim.escrow` strictly limits host subprocess to existing `deployment/dkim/escrow.py escrow <domain>`. Agent client/validation allow only domain payload.
+- Immediate DNS routing recheck activates only verified domains; pending propagation remains disabled. Full unattended long-term background reconciliation is **not implemented** in this source phase.
+- One focused test workflow and no-secret documentation added. Source-only: live token setup, VPS rollout and live provider acceptance remain pending.
+
+- **Verification/source status:** source commit `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`; dedicated [source CI #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274) SUCCESS (exact 17-path scope, TS, 14 Node + 3 Python tests). Local checkout staged tree matches published source tree. Independent mirror remains at original baseline pending exact non-force Git object transfer; **not phase-closed/synced**.

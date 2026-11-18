@@ -8,7 +8,7 @@ export type AgentAction =
   | "status" | "job.get" | "backup.create" | "backup.verify"
   | "r2.configure" | "r2.test" | "r2.list" | "r2.upload"
   | "schedule.configure"
-  | "restore.test" | "restore.prepare" | "restore.commit";
+  | "restore.test" | "restore.prepare" | "restore.commit" | "dkim.escrow";
 export function validateAgentPayload(
   action: AgentAction,
   payload: Readonly<Record<string, unknown>>,
@@ -16,6 +16,11 @@ export function validateAgentPayload(
   if (action === "status" || action === "backup.create" ||
       action === "r2.test" || action === "r2.list") {
     return Object.keys(payload).length === 0;
+  }
+  if (action === "dkim.escrow") {
+    return Object.keys(payload).length === 1 &&
+      typeof payload.domain === "string" && payload.domain.length <= 253 &&
+      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(payload.domain);
   }
   if (action === "job.get") {
     return Object.keys(payload).length === 1 && isBackupOpaqueId(payload.jobId);
