@@ -170,3 +170,22 @@ Rollback contracts: no modifications to applied migrations; backup before changi
 | Release tag/v1.0.0 production GO | **NO-GO** (historical 17 live acceptance gates remain separate) |
 
 CI candidate was amended only after focused failures: default create-domain payload, TypeScript test extensions, and default Compose service count. Only the final corrected candidate is counted as PASS. Final notes-only closure does not itself exercise live agent behavior. Verify source, mirror and local final main SHA/tree non-force before phase close.
+
+## DKIM-02/FIX-01 — Source acceptance and rollout boundary (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Frozen source/mirror/local main | `69b7f4c91100dd30c83ab56b24c29a4a0a9384b1` | PASS at entry |
+| Code Scope Lock | only `deployment/dkim/agent.py`, `deployment/dkim/test_agent.py` | PASS |
+| Candidate source/mirror exact tree | `c973d0db780939a5049d2366540b81e5f589738d` | PASS |
+| Focused R06 read-only app/UI/security/SMTP/recovery CI | [Run #44280725129](https://github.com/JILLU-Games/ReadBox/actions/runs/44280725129) mirror `5820255216293a7ad54b2ffe6e43c7dda8d62e37` | **SUCCESS** |
+| True disposable opt-in DKIM Docker image build | operator's exact candidate SHA/tree checkout, Alpine OpenSSL 3.5.9-r0 | **PASS** |
+| Embedded Python regression | `Ran 6 tests`, `OK`, `DKIM02_FIX01_DISPOSABLE_BUILD_PASS` | **PASS** |
+| Key protection / 1024-bit rejection / public conflicts | disposable tests | PASS |
+| Notes closure exact approved scope | `notes/003–007` only | PREPARED |
+| Final source/mirror/local main SHA/tree equality | verify after non-force publication | PENDING FINAL REF CHECK |
+| Live source deployment + new host image build | separate Admin Panel approval/action | **NOT RUN** |
+| Private-key escrow / key provision / real Cloudflare DNS | outside FIX-01 | **NOT RUN** |
+| Stable production release `v1.0.0` | formal R06 governance | **NO-GO** |
+
+The isolated image build was carried out in a temporary checkout on the VPS host; it did not update `/opt/readbox`, start the DKIM service or create a real domain key. Build-only verification must not be represented as live DNS/signing evidence.

@@ -129,3 +129,11 @@ Frozen source contract above remains historically correct at baseline. New CI-te
 - Operator preflight: source/mirror SHA parity, clean Git main, no active maintenance lock/backup restore, current encrypted pre-update snapshot/identity custody, all five production Compose containers healthy, **existing DKIM public/secret inventory**, then isolated image/test verification.
 - **Private escrow gate:** R05/BR04 encrypted backups do not include newly proposed `readbox_dkim_private` by default. Approve a separate isolated encrypted custody/recovery scope before creating real per-domain DKIM keys; do not assume R2 backups contain them.
 - No VPS deployment, live key generation, real DNS, mailserver modification or user data operation occurred in DKIM-01 source phase. Approved rollout must use one human-controlled action per step, with sanitized evidence and no automatic destructive rollback.
+
+## DKIM-02/FIX-01 — Host build evidence, unchanged interfaces (2026-11-18)
+
+- Existing host's baseline `/opt/readbox` remained `69b7f4c91100dd30c83ab56b24c29a4a0a9384b1` during build-only verification. Operator used temporary branch checkout and disposable Docker build without running a service; image-level Python 6/6 tests passed with OpenSSL `3.5.9-r0`.
+- Only OpenSSL key-size text parser and embedded test coverage changed; **no changes** to Docker Compose, default/opt-in service profile, privileged mounts, SMTP/LMTP Postfix/Dovecot, volumes, auth, Prisma, Backup/R2 or update bridge.
+- Next authorized controlled rollout: independently check source/mirror target parity, clean VPS baseline and `Ready (17/17)`; queue **one** Admin Panel update, confirm encrypted pre-update backup and verified deployed SHA/healthy services, then run an isolated opt-in DKIM image build check. Never directly patch `/opt/readbox`, manually bypass updater or deploy on a failed gate.
+- **Still blocked for real DKIM keys/DNS:** existing named-volume UID/GID ownership preflight and separately approved encrypted private-key escrow/recovery. Until then, do not activate production DKIM domain key creation, modify Cloudflare TXT records, rotate keys, enable signing/outbound mail or treat a record as DNS-verified.
+- No production restore, R2 mutation, DNS change, tag or release in this FIX-01 source closure.

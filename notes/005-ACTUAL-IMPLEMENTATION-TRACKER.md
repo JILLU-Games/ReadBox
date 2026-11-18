@@ -137,3 +137,19 @@ Source and mirrored SHA:
 | Live VPS deployment, Cloudflare write, real signing or outbound SMTP | **NOT RUN / NOT ENABLED** |
 
 Implementation is DKIM DNS *preparation*, not outbound DKIM signing. Exact CI candidate tree `3f6dc44bc96a0fa595fba0362012e5214a7b53fe`; R06 [#44273197408](https://github.com/JILLU-Games/ReadBox/actions/runs/44273197408) SUCCESS; local DKIM Node six focused cases PASS. The opt-in agent image build and its embedded Python unit tests are **not** part of the default CI run and must be verified in isolated deployment readiness.
+
+## DKIM-02/FIX-01 — Feature delta (2026-11-18)
+
+| Item | State |
+|---|---|
+| OpenSSL 3.x comma/prime-count RSA-size text compatibility | **IMPLEMENTED** in `deployment/dkim/agent.py` |
+| Legacy OpenSSL RSA-size header compatibility | **PRESERVED** |
+| RSA-2048 lower bound / malformed key rejection | **PRESERVED; TESTED** |
+| Idempotent key creation / never overwrite existing private or public conflict | **UNCHANGED; disposable test PASS** |
+| Embedded Python key-agent test suite | **6/6 PASS** in disposable Docker image build |
+| Existing application, UI, auth, Prisma, Compose and mailserver | **UNCHANGED** |
+| R06 read-only regression at mirror candidate | **SUCCESS**, [#44280725129](https://github.com/JILLU-Games/ReadBox/actions/runs/44280725129) |
+| Live key escrow, production DKIM key generation, provider DNS write | **NOT RUN / NOT APPROVED BY FIX-01** |
+| New feature source deploy to existing VPS via Admin Panel | **SEPARATE CONTROLLED ROLLOUT PENDING** |
+
+Frozen baseline `69b7f4c91100dd30c83ab56b24c29a4a0a9384b1`; tested implementation tree `c973d0db780939a5049d2366540b81e5f589738d`. Only the two approved Python files changed before documentation closure. DKIM signing/outbound SMTP remain disabled.

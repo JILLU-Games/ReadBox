@@ -158,3 +158,11 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Missing optional Cloudflare token/zone configuration => manual copy/export. Malformed zone, unrelated domain, wrong zone name, multiple/conflicting records, failed provider API => refuse DNS mutation. Only explicit DKIM TXT create is permitted, never PATCH/PUT/DELETE MX/SPF/DMARC.
 - Existing domain is never deleted/recreated if opt-in DKIM provisioning fails after domain creation; operator gets an actionable follow-up. Status distinguishes public key, DNS publication and **inactive** signing.
 - **Not yet proven:** live shared-volume ownership under an existing named-volume installation, the opt-in agent image Python tests, real network DNS propagation, pre-existing DNS record races and private-key escrow recovery. Preserve all failures for operator review, do not retry or force repair keys.
+
+## DKIM-02/FIX-01 — RSA key-header bug and safe failure contract (2026-11-18)
+
+- **Observed failure:** disposable image build with OpenSSL 3.x failed `test_key_generation_is_idempotent_and_private_not_public` and `test_conflicting_public_never_replaced` with `INVALID_PRIVATE_KEY`; the underlying RSA-2048 key could be valid but the key-size text parser rejected the comma/prime-count suffix.
+- **Fix:** anchored regex accepts exactly legacy `Private-Key: (2048 bit)` and OpenSSL 3 `Private-Key: (2048 bit, 2 primes)`-style headers. Invalid or malformed headers continue fail closed. The existing `int(bits.group(1)) < 2048` rejection remains in place.
+- **Regression:** embedded tests check both 2048-bit formats, explicitly reject 1024-bit legacy/v3, refuse malformed suffix and preserve original public-only conflict, conflicting public key, symlink/path and idempotency tests.
+- **Disposable validation:** Python test suite **6/6 OK** during isolated Docker image build; no retry of production image build or production container activation was used to establish PASS. Real public-DNS record, key escrow, Cloudflare writes, volume ownership and SMTP signing are outside FIX-01.
+- **Residual operator gates:** source candidate must be promoted via existing human-approved Admin Panel updater before a *separate* DKIM image build on the deployed SHA; any error must halt, without direct code patch in VPS, forcing Git, restoring production data or rotating/generating production keys.
