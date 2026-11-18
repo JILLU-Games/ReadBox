@@ -166,3 +166,11 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - **Regression:** embedded tests check both 2048-bit formats, explicitly reject 1024-bit legacy/v3, refuse malformed suffix and preserve original public-only conflict, conflicting public key, symlink/path and idempotency tests.
 - **Disposable validation:** Python test suite **6/6 OK** during isolated Docker image build; no retry of production image build or production container activation was used to establish PASS. Real public-DNS record, key escrow, Cloudflare writes, volume ownership and SMTP signing are outside FIX-01.
 - **Residual operator gates:** source candidate must be promoted via existing human-approved Admin Panel updater before a *separate* DKIM image build on the deployed SHA; any error must halt, without direct code patch in VPS, forcing Git, restoring production data or rotating/generating production keys.
+
+## DKIM-02/FIX-02 — Agent startup permission denial (2026-11-18)
+
+- **Runtime symptom:** `restarting/unhealthy`, exit code `2`, repeated `[Errno 13] Permission denied` opening `/usr/local/bin/dkim-agent.py` from the UID 1001 provisioner.
+- **Cause:** Docker image `COPY` did not explicitly guarantee non-root readable mode; root-owned build-time tests succeeded but normal runtime process could not read the entrypoint script.
+- **Fail-closed fix:** set only the image copy's agent script mode to `0644` (non-writable by UID 1001) and build-fail if UID 1001 cannot read and Python-compile that script. No blanket `chmod 777`, no privilege escalation, no agent network access, no runtime Docker socket or volume-permission workaround.
+- **Reproduction/acceptance:** prior container log captured exact permission denial. Isolated uncached Docker build passed six existing agent regression tests and non-root smoke check with `DKIM02_FIX02_NONROOT_BUILD_PASS`.
+- **Unverified until separate controlled rollout:** new production host image, container `healthy` state, IPC token/socket runtime startup. Do not infer live health from build success and do not generate a production DKIM key or publish DNS while encrypted private-key escrow remains missing.

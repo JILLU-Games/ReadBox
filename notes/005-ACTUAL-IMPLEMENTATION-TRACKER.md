@@ -153,3 +153,18 @@ Implementation is DKIM DNS *preparation*, not outbound DKIM signing. Exact CI ca
 | New feature source deploy to existing VPS via Admin Panel | **SEPARATE CONTROLLED ROLLOUT PENDING** |
 
 Frozen baseline `69b7f4c91100dd30c83ab56b24c29a4a0a9384b1`; tested implementation tree `c973d0db780939a5049d2366540b81e5f589738d`. Only the two approved Python files changed before documentation closure. DKIM signing/outbound SMTP remain disabled.
+
+## DKIM-02/FIX-02 — Implementation status (2026-11-18)
+
+| Item | State |
+|---|---|
+| Non-root-readable `/usr/local/bin/dkim-agent.py` at mode `0644` | **IMPLEMENTED** in `deployment/dkim/Dockerfile` |
+| Build-time user `1001:1001` Python read/compile smoke test | **IMPLEMENTED; PASS** |
+| Existing agent Python regression suite | **6/6 PASS** in single disposable uncached Docker build |
+| Existing `agent.py`, tests, Docker Compose and mailserver | **UNCHANGED** |
+| Existing UI/auth/Prisma, backup/R2, secrets and volumes | **UNCHANGED** |
+| Test output marker | `DKIM02_FIX02_NONROOT_BUILD_PASS` |
+| Live VPS deployment of FIX-02 and healthy-agent assertion | **NOT RUN — separate controlled update** |
+| Encrypted private-key escrow/recovery and domain DKIM generation/DNS | **NOT RUN — safety gate remains** |
+
+Frozen baseline `ebb2e2bddd0ef26671b283a4f71bc4d35bb32dbd`; code tree `d34e6b539e7ba3aae3a2f03f8046a5f2821dcfcf`. This is a runtime image permission compatibility fix, not outbound signing or DNS publishing.

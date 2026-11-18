@@ -189,3 +189,22 @@ CI candidate was amended only after focused failures: default create-domain payl
 | Stable production release `v1.0.0` | formal R06 governance | **NO-GO** |
 
 The isolated image build was carried out in a temporary checkout on the VPS host; it did not update `/opt/readbox`, start the DKIM service or create a real domain key. Build-only verification must not be represented as live DNS/signing evidence.
+
+## DKIM-02/FIX-02 — Focused verification and phase gates (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Frozen main baseline | `ebb2e2bddd0ef26671b283a4f71bc4d35bb32dbd` source/mirror/local | PASS |
+| Exact code Scope Lock | only `deployment/dkim/Dockerfile` changed | PASS |
+| Source/mirror code tree | `d34e6b539e7ba3aae3a2f03f8046a5f2821dcfcf` | PASS |
+| Single disposable no-cache Docker build | temporary exact SHA checkout, `docker build --no-cache --progress=plain` | **PASS** |
+| Embedded Python tests | `Ran 6 tests`, `OK` | **6/6 PASS** |
+| Non-root UID1001 readable/compile smoke | final image `RUN python3 -B -c ... compile(p.read_bytes(), ...)` stage `[6/6]` | **PASS** |
+| Explicit disposable completion marker | `DKIM02_FIX02_NONROOT_BUILD_PASS` | **PASS** |
+| Documentation Scope Lock | only `notes/003–007` after code patch | PREPARED |
+| Git main source/mirror/local sync | verify exact SHA/tree after non-force promotion | PENDING FINAL REF CHECK |
+| Live VPS updated image and container healthy | separate approved Admin Panel rollout | **NOT RUN** |
+| Production DKIM keys, encrypted escrow/recovery and DNS publication | excluded | **NOT RUN** |
+| Tags, releases, stable production readiness | excluded; existing production release NO-GO | **NO ACTION** |
+
+Build-only PASS does not establish a running healthy provisioner or recovered private keys. Stopped unhealthy provisioner was not restarted in this FIX-02 source phase.
