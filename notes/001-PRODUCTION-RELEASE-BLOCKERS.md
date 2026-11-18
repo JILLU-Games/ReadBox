@@ -1,5 +1,9 @@
 # 001 — Production Blocker Ledger & Exact Baseline Code Proof
 
+
+> **CURRENT FORENSIC RECONCILIATION (2026-11-19):** Authoritative Primary `vibtoolshq/ReadBox/main` = `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`. All **32 original finding records below stay intact**; 25 CI-contract verified and **7 OPEN**. New present-day checks, root cause, exact source proof and phase ownership are appended below as supplemental RN-xx observations. The old baseline excerpts remain immutable historical code proof, not a claim that today's files have the same line content. **Formal production GO: NO.**
+
+
 **Baseline SHA:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`, **tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`.
 **Audit reconciliation:** **32 / 32** original findings = **6 P0 + 16 P1 + 10 P2**. **7 OPEN; 25 CI-CONTRACT VERIFIED (7 R-01 + 4 R-02 + 4 R-03 + 6 R-04 + 4 R-05). Public TLS/DNS/VPS, real offsite retention and host-mode recovery remain NO-GO.**
 **Primary source:** [VPS production forensic audit](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md).
@@ -618,3 +622,66 @@ Every record below has **one owner phase**, exact source filename and GitHub lin
 - **Other OPEN original findings unchanged:** `RB-P1-09` and `RB-P1-10` (real TLS/DNS/public TCP/25/port policy), `RB-P2-01` (historical Nginx naming path outside R-06 Scope Lock) and `RB-P2-07` (real offsite key custody/retention/restore). **Overall still 25/32 CI verified, 7 OPEN**.
 - **Pre-existing lint debt, separate from 32 forensic findings:** `src/core/setup/trusted-operations.ts:366,386` contains exactly two R-04 `@typescript-eslint/no-unused-vars` errors. R-06 source linted all *other* tracked files; its tightly specified lint-baseline check asserts those two exist and fails on any additional violations. The unmodified R-04 source was NOT edited because it is outside R-06 allowlist; therefore **full-tree lint is not clean** and RG-03 cannot be pronounced fully release PASS.
 - The final CI produced only sanitized, nonproduction evidence. No staging/VPS access, DNS modification, public port binding, user real mailbox sending, production restore, release/tag or artifact distribution happened. R-06 implementation complete at CI level; **production acceptance and release remain NO-GO** until a new separate approval and independently observed evidence.
+
+---
+
+## 2026-11-19 CURRENT Primary forensic findings — source SHA 3dfac11f
+
+**Audit approach:** Read-only recursive Primary tree (1108 entries, not truncated), 000–006 + 016 + backup-restore records, DNS orchestration/zone API/escrow, Postfix/Dovecot Compose, Nginx template, GitHub Actions and completed run outcomes. This is a **source/config and recorded-evidence audit**, **not** a fresh VPS login, Cloudflare call or R2 account audit. Only the issues below have current supporting evidence; do not invent a reproduced live outage.
+
+### Original 7 OPEN findings — one-to-one remaining work
+
+| Original ID | Current exact status and evidence | Required outcome | Next owner |
+|---|---|---|---|
+| RB-P0-06 | **OPEN — partial operator observation.** [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) records one Gmail-to-authenticated-inbox delivery and SMTP negatives on a VPS; no independently observed multipart attachment digest, broad MIME/disabled recipient/load/reboot acceptance | Independently observed external SMTP -> LMTP -> Maildir -> ingestion -> authenticated inbox, attachment integrity, rejects and recoveries | NEXT-04 |
+| RB-P1-09 | **OPEN — CI DNS/DKIM source only.** Primary [DNS CI #44384108878](https://github.com/vibtoolshq/ReadBox/actions/runs/44384108878) passed mocks. Trusted mail/web TLS/renewal, public DNS and any applicable DKIM signer not proven. Inbound-only product does **not** imply outbound DKIM signing | Approved test-zone MX/A/SPF/DKIM/DMARC, escrow receipt/public DNS and applicable trusted TLS evidence; explicitly document non-goals | NEXT-03 |
+| RB-P1-10 | **OPEN — external preflight incomplete.** [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) has an operator VPS-side port-25/STARTTLS check; no independently corroborated provider/registrar/MX/A/AAAA/PTR/firewall and public reachability | Independent external public DNS/port/hostname/IPv6-as-applicable proof, without broad production DNS overwrites | NEXT-03 |
+| RB-P1-16 | **OPEN — production recovery incomplete.** Historical [JILLU R06 CI #44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) passed disposable Docker/PG/SMTP/restore at **a different SHA**; Primary R06 [#44384109011](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) is **SKIPPED**. One VPS service-health snapshot is recorded but not a complete independently observed restart/failure-recovery campaign | Correct Primary CI gating and observe controlled staging boot, migrations, restart, worker/DB outage and recovery | NEXT-02, NEXT-04 |
+| RB-P2-01 | **OPEN — confirmed current static mismatch.** `deployment/templates/nginx/app.conf.tpl` retains `vibmail_web` upstream (L15), `VIBMAILTLS` cache (L44), `/var/log/vibmail` (L54–55). Current systemd template *internals* use `/opt/readbox/app`; do not claim all systemd paths remain broken | Narrowly correct approved host-mode Nginx legacy names/log paths, test generated config and preserve historical service compatibility | NEXT-02 |
+| RB-P2-07 | **OPEN — offsite/restore evidence gap.** [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) confirms a local checksum and an AES256-GPG encrypted local archive, **not** offsite age/R2 custody, rotation or independent restoration | Secure offsite encrypted object, verified retention/key custody and disposable restore/rollback with hash/UID/ACL | NEXT-03, NEXT-04 |
+| RB-P2-08 | **OPEN — legal/provenance review.** Root `LICENSE` declares MIT; `reference/MailStack/LICENSE` declares AGPL and NOTICE limits branding. `.dockerignore` excludes reference from Docker context, not all source archives | Qualified provenance/derivative/license/distribution review at exact release SHA + artifact inventory; no relabeling of AGPL assets | NEXT-01, final NEXT-04 |
+
+**Disposition arithmetic:** 32 original IDs = 25 CI-contract verified + 7 OPEN. The partial 2026-11-18 operator observation does **not** automatically close RB-P0-06, RB-P1-10 or another original finding. The 17 independent RG gates in `006` still require individual acceptance.
+
+### Additional current-source issues (RN IDs are NOT extra original RB findings)
+
+| RN ID / classification | Exact source proof at the new freeze | Root cause / scope-limited mitigation | Owner |
+|---|---|---|---|
+| **RN-01 CONFIRMED CI CONFIG MISMATCH** | [Primary `.github/workflows/r06-production-readiness.yml:L19-L22`](https://github.com/vibtoolshq/ReadBox/blob/3dfac11f46165c262c3dc5ddb7e82563a56f9a7f/.github/workflows/r06-production-readiness.yml#L19-L22) has job `if: github.repository == 'JILLU-Games/ReadBox'`; actual [Primary #44384109011](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) outcome is **SKIPPED** | History originated on backup JILLU; repository condition never matches Primary. Later patch ONLY the inspected read-only workflow condition and focused negative tests; don't enable any release action | NEXT-02 |
+| **RN-02 CONFIRMED BACKUP SYNC BLOCKER** | Current JILLU `main` `952516a2cac27649824bf14329f511eae6ae9294`; MdNurnobi-Dev `main` `511a77380ef8d41061164abb966cbe960b6d02a8`. Neither has exact-SHA backup branch. Previous non-interactive Git push reported 403/no credentials | Credential/permission obstacle, **not** a DNS source defect. Transfer exact Primary Git objects into dedicated backup branches once authorized; no force, no unrelated history merge/main updates | NEXT-01 |
+| **RN-03 CONFIRMED DOCUMENTATION AUTHORITY DRIFT** | Historic [000](000-BASELINE-FREEZE.md) calls JILLU upstream; [notes README](README.md) defaults to backup-restore index; current Primary is vibtoolshq | Preserve historical content and add dated authoritative current overlay/index; no source changes | DOCUMENTATION-ONLY (this phase) |
+| **RN-04 RELEASE GUARD BOUNDARY (NOT a reproduced release bug)** | [Primary release workflow L13–19](https://github.com/vibtoolshq/ReadBox/blob/3dfac11f46165c262c3dc5ddb7e82563a56f9a7f/.github/workflows/readbox-first-release.yml#L13-L19) is JILLU-specific. On Primary, release job skips; on old JILLU `main` the historical publishing condition is present | Do not accidentally push JILLU `main`; prefer backup branches. Keep all tags/releases unchanged. Never turn on publishing by fixing CI conditions | NEXT-01, NEXT-02 |
+| **RN-05 UNVERIFIED EXTERNAL AUTOMATION ACCEPTANCE** | [Domain automation code](https://github.com/vibtoolshq/ReadBox/blob/3dfac11f46165c262c3dc5ddb7e82563a56f9a7f/src/core/dns/domain-automation.ts) and [zone selector](https://github.com/vibtoolshq/ReadBox/blob/3dfac11f46165c262c3dc5ddb7e82563a56f9a7f/src/app/api/vcon/domains/cloudflare-zones/route.ts) have disposable CI, no known real Cloudflare/R2/registrar proof | One preapproved test domain/zone, redacted token and offsite custody preflight, idempotent publish, public propagation, failure/repair evidence. **Not** a confirmed source bug | NEXT-03 |
+
+### Small exact current source proof (no modifications authorized now)
+
+**RN-01 — wrong repository gate (primary code, L19–22):**
+
+~~~yaml
+jobs:
+  consolidated-acceptance:
+    if: github.repository == 'JILLU-Games/ReadBox'
+~~~
+
+**RB-P2-01 — legacy host-template identifiers (current Nginx L15 and L54–55):**
+
+~~~nginx
+upstream vibmail_web {
+    server 127.0.0.1:3000 fail_timeout=0;
+}
+access_log /var/log/vibmail/nginx-access.log;
+error_log /var/log/vibmail/nginx-error.log warn;
+~~~
+
+**RB-P1-10 — default SMTP is loopback-only, not proof of public availability (Compose L264–265):**
+
+~~~yaml
+ports:
+  - "${SMTP_BIND_ADDRESS:-127.0.0.1}:${SMTP_PUBLISHED_PORT:-25}:25"
+~~~
+
+### Forensic boundaries and what NOT to do
+
+- No observed application-source defect justifies auth/session bypass, Prisma migration rewrite, mailserver architecture change, default Docker port exposure or adding outbound SMTP/IMAP; those are separately scoped features, not release blockers for the inbound-only contract.
+- Formal original 32 finding records retain **exact original headings** to avoid breaking `parseLedger` and corresponding release-gate tests. RN-xx are a current-source supplement, not a new counted phase.
+- Detailed approved future per-phase allowlists and hard prohibitions are in [002](002-PRODUCTION-PHASE-ROADMAP.md). Do not implement until the operator separately approves the named work package.

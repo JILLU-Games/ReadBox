@@ -1,5 +1,9 @@
 # 003 — Phase Progress & Immutable Change Log
 
+
+> **CURRENT PRIORITY / 2026-11-19:** Primary `vibtoolshq/ReadBox` inspected SHA `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`. Historic R-01–R-06 **6/6 source implementation CI-verified**. Remaining **NEXT-01–NEXT-04 = 0/4 accepted**, 7 original release findings OPEN, formal production NO-GO. **NEXT-01 backup parity** is blocked by write authorization; not yet closed. Historical log/scoreboard below refers to its historical phase contract. See current progress ledger at the end.
+
+
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` · **Log initialized:** 2026-11-17 · **R-01 through R-06 IMPLEMENTATION VERIFIED (CI); 6/6 implementation scopes done, final live acceptance BLOCKED.**
 
 ## Scoreboard
@@ -203,3 +207,40 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **DNS-FINAL Primary focused CI VERIFIED:** [GitHub Actions #44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082), `push` on `ci/dns-final-primary`, tested commit `2eccd8f21cf71261fdc0e0b7ab6199a2a19de4ce`, SUCCESS. `DNS_FINAL_PRIMARY_EXACT_SCOPE_PASS 17`, TypeScript PASS, Node 25/25, zone/domain UI 2 test files PASS, Python bridge PASS, production-only npm audit 0 vulnerabilities. Exact code and focused tests were copied by identical blob SHA from approved JILLU DNS candidate.
 - **Final patch scope:** exactly 12 DNS source/test/doc paths, existing dedicated CI workflow and notes/003–006; no 118 other JILLU-changed paths, no historical reference material, release workflow or new auth/Prisma/mailserver code. This closure adds notes only, leaving verified application code unchanged.
 - **Publish/sync:** Primary `main` and backup ref updates must be separately observed after this notes closure; never claim parity from this CI alone. Production Cloudflare/R2/DNS/VPS acceptance remains NOT RUN and NO-GO.
+
+---
+
+## 2026-11-19 — PRIMARY re-baseline and finite remaining work (current scoreboard)
+
+| Dimension | Current verified disposition |
+|---|---|
+| Primary authoritative repository | `vibtoolshq/ReadBox` |
+| Primary frozen source SHA / tree | `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f` / `7a07c6d03588096f88d4aad1b1317f0aa3302bcf` |
+| Historical R implementation progress | **6/6 source/CI implemented**, 0 old implementation phases remaining |
+| New bounded pre-production work packages | **0/4 accepted** — NEXT-01, NEXT-02, NEXT-03, NEXT-04 |
+| Original finding ledger | **32 total, 25 CI-contract verified, 7 OPEN** |
+| DNS-FINAL source | Primary main contains zone-selection/immutable bind/CAS retry, [main CI #44384108878](https://github.com/vibtoolshq/ReadBox/actions/runs/44384108878) SUCCESS at exact frozen SHA |
+| Original DNS-FINAL executable test | `2eccd8f21cf71261fdc0e0b7ab6199a2a19de4ce`; [CI #44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082) SUCCESS; closure changed notes only |
+| Primary full R06 | [#44384109011](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) **SKIPPED** due JILLU-only job condition, NOT a pass |
+| Historical complete R06 | [JILLU #44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) SUCCESS on different test-branch SHA; no substitution for Primary |
+| Operator historical live evidence | [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md): one Gmail message and STARTTLS/local backup partially observed Nov 18; independent full acceptance still OPEN |
+| Backup parity | **0/2** exact-SHA branches verified; JILLU main `952516a`, MdNurnobi-Dev main `511a773`, both unchanged; permission blocker |
+| Production approval | **NO-GO**; no full independent RG-01–17 PASS |
+
+### Required exact ordered next-step ledger
+
+| Work package | Current state | What it will add or verify (NOT current live proof) | Prerequisite / exit evidence |
+|---|---|---|---|
+| **NEXT-01** Git backup + provenance inventory | **BLOCKED — incomplete 0/2** | Exact Primary SHA stored in both dedicated backup branches; historical AGPL inventory | Write-authorized Git identity, non-force transfer, 2/2 SHA readback; no legal GO |
+| **NEXT-02** Primary R06 + Nginx legacy | **PLANNED 0/1** | Read-only R06 eligible on authoritative Primary and scoped Nginx host-template correction | Separately approved minimal source patch, one focused CI, sanitized evidence |
+| **NEXT-03** Single-domain Cloudflare/R2 acceptance | **NOT RUN 0/1** | Controlled test-zone MX/A/SPF/DKIM/DMARC, encrypted escrow, public propagation, port/TLS observations | Explicit domain/zone/VPS/operator and additive-write approval; no other zone changes |
+| **NEXT-04** End-to-end staging, offsite restore, manual gates | **NOT RUN 0/1** | Independently observed inbound attachment integrity, outages, disaster recovery, legal sign-off, RG-01..17 | Separate staging/live approval and source-SHA-matched evidence; NO-GO until all pass |
+
+**Next approval target:** **NEXT-01 only**; don't conflate a blocked Git backup with lack of DNS source implementation. NEXT-02 or beyond requires new explicit approval, not automatic continuation.
+
+### Documentation-first phase audit record (DOC-READY-20261119)
+
+- **User-requested scope:** re-freeze current Primary source; reconcile 32 original findings, the 2026-11-18 operator observation and latest DNS/CI; produce complete 000–006/README Markdown truth tables, future exact path locks and progress/evidence schema. **No application/config/workflow/test edits**.
+- **Current code unchanged:** `src/**`, `deployment/**`, `prisma/**`, `.github/workflows/**`, `scripts/**`, `reference/**`, LICENSE, Docker/Compose, auth and live mailbox volumes are out of scope.
+- **Documentation validation required:** all 32 historic `### RB-Pxx-xx —` headings preserved, exactly 17 unique RG table definitions, 6 historical R phase records, 4 prospective NEXT work packages, every referenced current SHA and GitHub run verified; exact changed path list must be docs-only.
+- **Evidence closure rule:** record generated documentation-only commit HEAD **separately** from the inspected immutable source SHA. If a branch/ref push fails, mark document phase BLOCKED, not synced/published. No CI job is labeled success unless it actually executed.

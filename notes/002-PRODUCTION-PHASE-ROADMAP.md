@@ -1,5 +1,9 @@
 # 002 — ReadBox Production Bugfix Roadmap (Exactly 6 Scope-Locked Phases)
 
+
+> **CURRENT PLAN (2026-11-19):** The **original six R-01–R-06 source implementation phases are 6/6 CI-verified**; they are retained below unchanged as historical plan. New **exactly FOUR remaining finite readiness work packages NEXT-01–NEXT-04** are defined at the end of this file using Primary `vibtoolshq/ReadBox` baseline `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`. **0/4** NEXT work packages are completed/approved. These are NOT retroactively a seventh historical implementation phase. Each requires its own explicit approval, one focused verification and no scope expansion. Production release stays NO-GO.
+
+
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`.
 **Finding source:** [001-PRODUCTION-RELEASE-BLOCKERS.md](001-PRODUCTION-RELEASE-BLOCKERS.md) and the earlier forensic report.
 **Status:** R-01 through R-06 IMPLEMENTATION VERIFIED (CI); `6/6` implementation scopes complete, 0 implementation phases remaining. Final R-06 staging acceptance is BLOCKED (no live authorization/evidence), 7 original findings OPEN, production NO-GO.
@@ -300,3 +304,60 @@ One consolidated CI regression/release-gate run plus authorized staging VPS acce
 - Existing app regression, production npm dependency audit, guarded tmpfs PostgreSQL migration/auth integration, Docker image boot and loopback SMTP→LMTP→Maildir, recipient/relay rejection, encrypted backup/restore and forced post-DB rollback, provenance marker tests and 11-path patch audit all PASS.
 - Two **pre-existing R-04 lint errors** inside `src/core/setup/trusted-operations.ts` were *not fixed* (outside R-06 Scope Lock). Rest of the tree linted; an exact negative baseline check refuses any extra error. The full lint gate and live RG-01–RG-17 remain NO-GO.
 - Implementation phase count **6/6**; this is **not** final staging/release acceptance. No actual VPS or independent DNS/TLS/public SMTP/user inbox/offsite/host recovery/legal approval, and original 7 findings still OPEN. R-06 exit conditions requiring authorized live staging are **NOT MET**. Only a separately approved staging acceptance and explicit exceptions for legacy template paths and old lint source can change that fact; no automatic new phase or production release.
+
+---
+
+## CURRENT remaining production readiness roadmap — four bounded NEXT work packages (2026-11-19)
+
+**Authority and freeze:** Primary `vibtoolshq/ReadBox/main` `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`; tree `7a07c6d03588096f88d4aad1b1317f0aa3302bcf`. Old R-01–R-06 = 6/6 source-CI completed; remaining four NEXT work packages = **0/4 accepted** as of this audit. Seven original external/code release findings remain OPEN. See current [001](001-PRODUCTION-RELEASE-BLOCKERS.md) supplement and [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) for limited operator-observed live evidence.
+
+| Order | Work package | Why now | Owner IDs | Current state |
+|---|---|---|---|---|
+| 1 | **NEXT-01 / BACKUP-AND-PROVENANCE-PREFLIGHT** | Fix Git SHA parity evidence, avoid backup-main release trigger; collect AGPL provenance inventory | RN-02, RN-04, RB-P2-08 (inventory only) | **BLOCKED by write access / no legal sign-off** |
+| 2 | **NEXT-02 / PRIMARY-CI-AND-LEGACY-TEMPLATE-SAFETY** | Make read-only R06 test eligible on authoritative Primary; narrowly correct proven legacy Nginx path/name | RN-01, RB-P2-01, RB-P1-16 (CI only) | **PLANNED — separate source-edit approval needed** |
+| 3 | **NEXT-03 / GUARDED-DNS-R2-TLS-PREFLIGHT** | Verify one test domain's actual Cloudflare DNS/DKIM escrow, public port and TLS without touching other domains | RB-P1-09, RB-P1-10, RB-P2-07 (R2 custody preflight), RN-05 | **NOT RUN — separate named-domain/host approval needed** |
+| 4 | **NEXT-04 / STAGING-DELIVERY-RECOVERY-AND-HUMAN-GO-REVIEW** | Independently check full inbox/attachment, failure recovery, offsite restore and all 17 formal release gates | RB-P0-06, RB-P1-16, RB-P2-07, RB-P2-08, RG-01..17 | **NOT RUN — separate staging approval and qualified review needed** |
+
+**Completion counting rule:** R-01–R-06 source phases stay **6/6**. NEXT gates are a separate **0/4** ledger; a blocked gate remains blocked and is not replaced by an additional invented phase. After NEXT-04, release/tag/image/deploy still needs an independent explicit user command, not an assumed automatic NEXT-05.
+
+### NEXT-01 — Exact Git identity, backup branch parity and legal inventory
+
+- **Baseline/input:** Primary commit and tree above, JILLU backup `main=952516a2cac27649824bf14329f511eae6ae9294`, MdNurnobi-Dev `main=511a77380ef8d41061164abb966cbe960b6d02a8`; candidate backup branch `backup/dns-final-primary-20261119` is absent on both at freeze.
+- **ALLOW:** Read-only Git SHA/ancestry, repository permission checks; secure **operator-owned browser login** (no secret pasted in chat/logs); temporary isolated bare Git object transfer; non-force creation of **only** `JILLU-Games/ReadBox:backup/dns-final-primary-20261119` and `MdNurnobi-Dev/ReadBox:backup/dns-final-primary-20261119` at the same exact **Primary** SHA; artifact/package/AGPL NOTICE/license dependency inventory; subsequent notes/003–006 status-only entries if separately approved.
+- **DENY:** Any repository `main` update, force push, rebase/merge, new commit, source/workflow/license/reference rewrite, secret/file download outside temporary work directory, tag/release, VPS, DNS/R2.
+- **Static/provenance context:** `reference/MailStack/LICENSE` and `NOTICE.md` are AGPL-governed; root `LICENSE` MIT. Never claim legal clearance from file presence or Docker ignore. A qualified human needs to separately sign off before distributing source/artifacts.
+- **ONE focused verification:** Primary SHA readback; both dedicated backup branch SHA readbacks **exactly equal Primary**; original mains unchanged; temporary transfer directory removed. Credential 403 = **BLOCKED** not PASSED. A backup branch is valid when history diverges; do not force equality of main branches without explicit later approval.
+- **Exit:** 2/2 exact-SHA **backup branch** parity or precise per-repo BLOCKED report; no source files modified. If an independent provenance reviewer has not signed off, keep RB-P2-08 OPEN.
+
+### NEXT-02 — Primary R06 readonly CI ownership + legacy Nginx config
+
+- **Prerequisite:** NEXT-01 branch parity preferred; if permission-blocked, continue only on **separate explicit user authorization** that accepts the parity gate remaining OPEN. Freeze the then-current Primary SHA again; do not assume the 2026-11-19 SHA will remain HEAD.
+- **CONFIRMED ROOT 1:** `.github/workflows/r06-production-readiness.yml:L21` has a JILLU-only `github.repository` check and the Primary main [R06 #44384109011](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) was SKIPPED. This is a **Primary CI eligibility defect**, not proof app regression fails.
+- **CONFIRMED ROOT 2:** `deployment/templates/nginx/app.conf.tpl:L15,L44,L54-L55` uses legacy `vibmail_web`, `VIBMAILTLS` and `/var/log/vibmail`; `deployment/templates/systemd/vibmail-web.service.tpl:L12-L13` already uses **current ReadBox directories**. Fix only the actual template issue, not all historic names or upstream reverse-proxy layout.
+- **ALLOW exact source/config:** `.github/workflows/r06-production-readiness.yml` (**only Primary-repository job condition and safe CI compatibility**); `deployment/templates/nginx/app.conf.tpl` (**only legacy upstream/cache/log names and matching references; no proxy routing/TLS policy redesign**); `tests/integration/r06-release-gate.test.mjs` (**new negative repo-guard/NO-GO regression only**); new `tests/deployment/readbox-nginx-template-contract.test.mjs` (**lint/static template tests only**); `docs/RELEASE-GOVERNANCE.md` (**current Primary source guidance**); `notes/003–006` (**phase evidence only**).
+- **DENY:** `.github/workflows/readbox-first-release.yml` and all tag/release-related code, auth, Prisma, compose ports, Postfix/Dovecot config, DKIM/R2, existing unrelated UI or source, reference/MailStack/legal files, live host/reload/restart.
+- **ONE focused disposable CI:** Assert Primary read-only R06 actually executes (not SKIPPED), default-deny production `R06_PRODUCTION_NO_GO` remains, static/parsed Nginx consistency PASS and no implicit publish job. A failure requires one minimal in-scope correction/recheck, never a release bypass.
+- **Exit:** Tested exact SHA, successful or honestly failed primary repo R06 job result, patch/Scope Lock audit and notes/003–006 closure. **No release/tag or live deployment.**
+
+### NEXT-03 — Controlled test-domain Cloudflare DNS/DKIM/R2 and public readiness
+
+- **Prerequisite:** NEXT-02 CI source readiness, independently agreed **test domain**, Cloudflare managed zone ID/active status, allowed DNS names/records, authorized host/staging environment and trusted operator. Do not require any domain during documentation planning; ask only at NEXT-03 explicit authorization.
+- **ALLOW (operations only, not code):** Read-only preflight of one named test domain, Cloudflare zone delegation/token permissions, relevant current MX/A/AAAA/SPF/DKIM/DMARC, `MAIL_HOSTNAME`, server IP and provider TCP/25 conditions; separately approved **additive** DNS publish only for explicitly listed test-zone names; host-root DKIM stage + encrypted R2 escrow receipt/public TXT, public resolver recheck; one guarded idempotent repair; sanitized success/failure evidence in notes/003–006 and docs/DOMAIN-AUTOMATION.md if later authorized.
+- **DENY:** Unlisted zones/domains, registrar nameserver change by the app, overwrite/delete of existing records, key rotation or plaintext private-key export, production mailbox/DB edits, TLS private keys in logs, use of secrets in chat, public SMTP submission/outbound sending.
+- **ONE bounded live acceptance:** Record before/after DNS values (redacted sensitive details), source SHA, hosted zone and owner, escrow receipt verified by host-only broker, negative conflict refusal, public DNS propagation and TLS/port evidence as applicable. On provider outage or conflicting DNS return **BLOCKED**, preserve existing records.
+- **Exit:** Domain-specific **live verified** or **NOT RUN/BLOCKED**. Source-only CI PASS cannot close RB-P1-09/10 or RB-P2-07 by itself. No general production GO.
+
+### NEXT-04 — Independent staging mailflow, restore, provenance, manual GO/NO-GO
+
+- **Prerequisites:** Explicit staging/VPS/domain/mailbox identities, approval for all external SMTP and recovery actions, reversible encrypted backup/rollback plan; qualified AGPL/distribution review; source/repo SHA checks; NEXT-03 evidence for relevant DNS/TLS conditions. Operator-observed Nov 18 evidence can be cited as **partial history only**.
+- **ALLOW operations only (no source edits by default):** Independently probe external port 25/MX/PTR and trusted TLS; authorized test message with attachment from an approved sender to disposable test mailbox; follow Postfix accepted -> Dovecot LMTP -> Maildir -> ingester -> authenticated inbox, assert digest; invalid recipient/nonlocal-relay/MIME negatives; unique staging PostgreSQL/worker/host restart and outage; **offsite encrypted** backup/retention and **isolated** restore/rollback/UID/ACL/custody without touching live production user data; observe privacy-safe logs; qualified license and release artifact inventory at exact candidate SHA.
+- **DENY:** Unapproved VPS/DB/production restore, real-user mail or credentials in logs, broad domain sending, forced DNS overwrite, destructive changes, new feature development, automatic tag/release/image/deploy.
+- **ONE bounded consolidated acceptance:** Evaluate **all RG-01..RG-17 individually**, attach operator/independent evidence ID, SHA, timestamps, negative cases and hash/digest checks. Record PASS / FAIL / NOT RUN per gate; initial default is NO-GO. A gate is not PASS merely because a different SHA's CI, a screenshot or a local backup exists.
+- **Exit:** 17 independently corroborated PASS and 0 unresolved original release blockers -> **MANUAL_RELEASE_REVIEW_REQUIRED**, not automatic GO; otherwise NO-GO with exact blockers. Actual tag/release/deploy requires a second distinct user approval.
+
+### Global immutable controls for ALL future NEXT work
+
+1. Re-freeze **Primary** current SHA/tree and one approved work package before any edits; exact path allowlist is a MAXIMUM, not permission to change all files.
+2. Existing application routes, UI/UX, auth, one PostgreSQL/Prisma schema and migrations, inbound-only Postfix/Dovecot topology, Maildir/attachments, encrypted backup and domain-specific safe DNS contract remain unchanged outside approved narrow defect.
+3. One focused verification, one exact diff/security audit, one closure log in [003–006](003-PHASE-PROGRESS-AND-CHANGE-LOG.md). If a test fails, only the minimal authorized repair and one necessary recheck; stop when blocked.
+4. **No live actions by implication.** Separate explicit approval for named domain, VPS, credentials, DNS/R2, backup/restore, SMTP and all releases. Never invent checked results or silently migrate to a backup repository as Primary.

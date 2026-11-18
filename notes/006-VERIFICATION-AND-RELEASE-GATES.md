@@ -1,5 +1,9 @@
 # 006 — Verification, Regression, Production Release & Rollback Gates
 
+
+> **CURRENT RELEASE GATE — 2026-11-19:** Primary `vibtoolshq/ReadBox/main` source SHA `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`. Source DNS-FINAL CI at Primary SHA **SUCCESS**, but Primary full R06 **SKIPPED** because repository-specific job condition is wrong. [notes/016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) has limited operator-observed live evidence; no independent complete 17-gate sign-off. **Seven original findings OPEN, formal release NO-GO**. Historical gate definitions below are preserved unmodified; see dated per-gate current evidence at end.
+
+
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Release status: NO-GO.** All future mail/VPS/restore gates are **NOT RUN** at freeze.
 
 ## Historic test evidence — do not confuse with production proof
@@ -262,3 +266,56 @@ declared ready until its own MX/mail-host routing verification succeeds.
 - **DNS-FINAL primary source CI PASS:** exact tested branch commit `2eccd8f21cf71261fdc0e0b7ab6199a2a19de4ce`, [GitHub Actions run #44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082) success. Marker `DNS_FINAL_PRIMARY_EXACT_SCOPE_PASS 17`, `DNS_FINAL_PRIMARY_DISPOSABLE_PASS`; Node 25/25, zone/domain UI 2/2 test files, Python DKIM host bridge PASS, TS PASS, npm production audit 0 vulnerabilities. Source and broker values remain mocked/isolated.
 - Final notes-only closure changes no verified application files. Exact primary `main` and backup ref parity requires authoritative post-update SHA readback; report blockers accurately, never rewrite divergent main history.
 - Live Cloudflare DNS, external R2, registrar nameserver delegation, public MX/TLS/VPS mail routing, legal/stable production GO: **NOT TESTED / NOT AUTHORIZED**. Original R06 formal production NO-GO and seven external findings remain independently open.
+
+---
+
+## Current Primary release gate reconciliation (2026-11-19; no new live test executed)
+
+**Separate evidence levels:** `DISPOSABLE-CI` tests isolated substitutes, `OPERATOR-PARTIAL` is the explicitly recorded Nov 18 VPS snapshot, `INDEPENDENT-ACCEPTED` needs human source/host/recipient checks and signed evidence at target SHA. **None of the 17 gates has been newly certified INDEPENDENT-ACCEPTED in this documentation phase.**
+
+| Historical gate | Observed evidence from current audit | Formal acceptance now / required next |
+|---|---|---|
+| **RG-01** | 32 original records retained, 25 CI-verified and 7 OPEN | **NO-GO** until original open blockers reconciled |
+| **RG-02** | Primary code SHA frozen, two backup main SHA differ, both exact-SHA backup branches absent | **BLOCKED**: exact release source/backup refs and eventual image digest |
+| **RG-03** | Primary DNS-only CI [#44384108878](https://github.com/vibtoolshq/ReadBox/actions/runs/44384108878) PASS; primary consolidated R06 [#44384109011](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) SKIPPED; historical JILLU CI [#44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) PASS at different SHA | **NOT VERIFIED at Primary full-release SHA** |
+| **RG-04** | QIS-01 source and disposable secret-negative tests; operator app presence in [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) | **PARTIAL**; authorized VPS secure configuration/volumes evidence needed |
+| **RG-05** | Disposable Docker boot/migration CI; operator five containers healthy snapshot | **PARTIAL**; current staging SHA, actual restart/volumes/migrations required |
+| **RG-06** | Disposable PostgreSQL role/virtual lookup tests | **NOT independently accepted**: current host lookup/permission evidence |
+| **RG-07** | CI SMTP->LMTP->Maildir; one operator STARTTLS/public-25 snapshot | **PARTIAL**; external mail path/UID/ACL independent check |
+| **RG-08** | Operator VPS-side TCP/25, no independent registrar/provider/MX/PTR/IPv6 review | **PARTIAL**; separate external public DNS/port checks |
+| **RG-09** | DNS-FINAL sources/mock CI and operator STARTTLS, no trusted certificate lifecycle evidence | **NOT accepted**: hostname/cert chain/renewal, applicable DKIM |
+| **RG-10** | [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) records one Gmail subject/body/date in authenticated inbox | **PARTIAL**; independent mail trace and attachment hash |
+| **RG-11** | Operator nonlocal RCPT 554/unknown local 550, CI negatives | **PARTIAL**; disabled recipient, MIME/size limits, no mail loss |
+| **RG-12** | R-04/QIS-01 admin/auth/reset disposable CI | **NOT independently accepted** for chosen VPS/current SHA |
+| **RG-13** | Worker/DB/storage fail-closed CI contracts | **NOT RUN live outage+recovery** |
+| **RG-14** | Operator checksum-confirmed local GPG archive, disposable age encrypted restore/rollback CI | **NOT accepted**: independent offsite age/R2/restore/ACL rollback drill |
+| **RG-15** | Existing logging/health source code | **NOT verified**: capacity, private log/redaction, alert/runbook on staging |
+| **RG-16** | Root MIT, historical MailStack AGPL/NOTICE; production npm audit 0 vulnerabilities at DNS-only tested SHA | **NO-GO**: qualified provenance/signing/artifact and current broader dependency review |
+| **RG-17** | Prior R06 formal `NO_GO` contract test; user has not approved release | **NO-GO** pending all gates, independent operator and explicit approver |
+
+**Counts:** historical gate definitions **17/17 present**, fully independent release accepted **0/17**, 7 original findings still OPEN. Some sub-steps were operator-observed but are **not automatically zero evidence** and **not full gate PASS**. This distinction corrects the broad old snapshot language without retroactively changing historical results.
+
+### Technical current source / CI evidence chain
+
+- Inspected Primary SHA `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`, tree `7a07c6d03588096f88d4aad1b1317f0aa3302bcf`; exactly 4 notes files differ from DNS executable source test `2eccd8f21cf71261fdc0e0b7ab6199a2a19de4ce`.
+- Primary DNS isolated [#44384108878](https://github.com/vibtoolshq/ReadBox/actions/runs/44384108878) SUCCESS at inspected SHA: Node 25/25 DNS/domain contracts, 2 UI test files, Python host bridge, TS and production npm audit 0 vulnerabilities. No Cloudflare/R2 credentials or live DNS publisher used.
+- Full R06 software rehearsal [JILLU #44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) SUCCESS at JILLU candidate `ff614db384f77a218d7916a726b298f27a068ae5`, **not** Primary head; Primary R06 [#44384109011](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) SKIPPED because `github.repository` is checked against JILLU.
+- Operator [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) evidence refers to historical deployed `0849bc8d4f4b703800ba73f157f16d5a742ee6e7` and does not show the current DNS-FINAL source deployed/operational at `3dfac11...`.
+- Primary/backups remain divergent: JILLU main `952516a2...`, MdNurnobi-Dev `511a773...`; no exact-SHA backup branches; do not claim source-mirror parity.
+- Historic JILLU `v0.1.0-rc.1` tag `0e8a19e583719e56c054406581bedcf5599f1ace` is **not** a new stable release, and must remain untouched without separate approval.
+
+### NEXT-01–NEXT-04 focused acceptance matrix
+
+| Next package | Single verification boundary | GO/NO-GO exit |
+|---|---|---|
+| **NEXT-01** exact-SHA backup/provenance inventory | Exact Git ref readback (both backup branches) and no main/release mutation; independent license review inventory | 2/2 same SHA or BLOCKED, legal sign-off separate |
+| **NEXT-02** Primary R06/Nginx source-only correction | One bounded Primary read-only R06 CI, fixture/host Nginx parser check, permissions + formal NO-GO check | PASS only if job actually executes and scoped patch passes |
+| **NEXT-03** one named test zone DNS/R2/TLS | Real Cloudflare active-zone conflict/readback, immutable DKIM encrypted R2 receipt, public resolver/port/TLS evidence, idempotent negative retry | PASS by domain or blocked; never blanket GO |
+| **NEXT-04** full staging mail/recovery | One approved external sender->Postfix->LMTP->Maildir->inbox/attachment test, rejects, outage, independent offsite restore/key custody, 17 human gates | Only 17 accepted and resolved findings -> MANUAL_RELEASE_REVIEW_REQUIRED |
+
+### Hard release safety, rollback and status rule
+
+- **Do not perform** VPS SSH/config, public DNS/R2 write, SMTP send, production database restore, Git tag/release/image publish without a named operator and a **new explicit approval** for exact environment and scope.
+- Preserve original DB migrations, Maildir, backups, DKIM private keys and R2 objects. On failed deploy/test, retain encrypted rollback and original config; no silent public mail exposure, secret logging or destructive DNS overwrite.
+- A documentation-only commit does not reproduce CI at its new SHA. Record the immutable **inspected source** SHA and later documentation HEAD separately; read-only manual status check may be made but must not be called CI if not executed.
+- If any phase is FAIL/BLOCKED, stop, log evidence and give the next narrow approval command. No repeated verification loops, extra speculative phases, force-push, or automatic release.

@@ -1,5 +1,9 @@
 # 004 — Error Handling Inventory (Present, Missing, Future Test)
 
+
+> **CURRENT ERROR AUDIT (2026-11-19):** Historical EH-E01–E13/EH-M01–M15 below are preserved. Primary code now includes DNS-final zone selection, guarded escrow and three-attempt CAS-safe domain verification at SHA `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`; focused CI PASSED but actual Cloudflare/R2/VPS failure cases remain untested. New current-source error/negative test contract **EH-N01–N12** is appended below, with exact NEXT ownership. Do not mistake desirable future handling for implemented behavior.
+
+
 **Code evidence baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Historical starting status was OPEN; R-01–R-06 CI implementation is now verified, but R-06 live acceptance is NOT RUN and production recovery gates remain OPEN.** Static source presence does not prove error handling survives a live VPS outage. Every future test belongs to the six phase Scope Locks in `002`; UI/layout changes are forbidden outside explicit approval.
 
 ## A. Existing error handling actually implemented in source
@@ -207,3 +211,36 @@ PASS / FAIL / SKIPPED / NOT RUN:
 
 - **DNS-FINAL CI negative contract PASS:** [#44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082) tests missing/mismatched/inactive Cloudflare zone IDs, immutable zone binding, optimistic JSON CAS interleaving/retry exhaustion, DNS record conflict preservation, safe DKIM escrow host boundaries and manual UI fallback. Focused tests 25/25 Node, 2/2 UI files and Python host bridge PASS.
 - Provider-specific outages, public propagation, real R2 custody, full VPS delivery and independent live acceptance remain **NOT RUN**. Successful mocked/disposable tests do not authorize live DNS changes or prove external Cloudflare availability.
+
+---
+
+## Current PRIMARY error handling truth table — 2026-11-19
+
+**Evidence classes:** `CODE` = source present; `CI` = disposable test PASS at exact SHA; `PARTIAL-OPERATOR` = historical operator test in [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md); `NOT-RUN` = no approved live proof; `PLANNED` = do not claim it already works. Existing EH-E and EH-M identifiers above remain historical and unchanged.
+
+| Case | Existing handling and grounded code proof | Missing/needed negative case or proposed improvement | Current evidence | NEXT owner |
+|---|---|---|---|---|
+| **EH-N01 Cloudflare token/permission/network** | `src/core/dns/cloudflare-auto.ts:L40–74,L77–105` rejects absent token, forbidden API, unavailable/malformed replies | Real 401/403, timeout, token rotated and zone insufficient permissions must leave domain disabled, redact token, allow guarded recheck | CODE + mocked CI; provider **NOT-RUN** | NEXT-03 |
+| **EH-N02 cross-zone/inactive/foreign selection** | `cloudflare-auto.ts` resolves exact managed zone; `src/core/domains/service.ts:L196–231` binds zone ID with guarded DB CAS | Real wrong-zone, inactive, revoked permission, re-binding conflict; no DNS write or DKIM staging before validation | CODE + mocked CI; live **NOT-RUN** | NEXT-03 |
+| **EH-N03 DNS preflight conflicting record** | `cloudflare-auto.ts:L157–211` compares all required record sets; conflicting MX/SPF/DKIM/DMARC/A refuses create/replace | Test production-like DNS conflict and reused identical record, never delete/overwrite root website DNS or proxied mail host A | CODE + mocked CI; live **NOT-RUN** | NEXT-03 |
+| **EH-N04 interrupted partial publish / propagation** | Published records read back; domain stays disabled on public DNS mismatch; saved-domain repair idempotent | Real provider partial success, public TTL delay, safe replay with same domain/key; no duplicate or false success | CODE + mocked CI; public propagation **NOT-RUN** | NEXT-03 |
+| **EH-N05 concurrent zone metadata write** | `src/core/domains/service.ts:L470–541` optimistic Prisma JSON equality + fresh reread, maximum three CAS attempts | Concurrent verification vs bind; exhaustion returns unavailable without success audit; staging race remains untested | CODE + 25/25 Node [Primary DNS CI #44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082); external DB race **NOT-RUN** | NEXT-03 only if live issue |
+| **EH-N06 DKIM root agent / key leak** | `src/core/dns/domain-automation.ts:L40–67` rejects unverified encrypted escrow, `deployment/backup-agent/agent.py` limits HMAC action; key confined to host | Missing agent socket, invalid HMAC, remote R2 conflict, crash before receipt, key exposure must fail closed; no sensitive stdout/log leakage | CODE + mock Python/Node; real R2 **NOT-RUN** | NEXT-03 |
+| **EH-N07 offsite backup/retention/restore** | `deployment/backup-agent/{r2.py,storage.py,restore.py,scheduler.py}` and tests implement guarded host contracts; [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) only verifies **local** GPG archive | Unreachable R2, interrupted upload, expired credentials, independent age key custody, retention, foreign object refusal, restore tampering and rollback with real offsite staging bytes | CODE/disposable CI + local operator GPG observation; **offsite/live restore NOT-RUN** | NEXT-03 and NEXT-04 |
+| **EH-N08 external SMTP and recipient rejection** | `deployment/mailserver/postfix/**`, `deployment/mailserver/dovecot/**`, `src/workers/ingestion.ts` implement inbound path; CI SMTP/LMTP negatives PASS | Independent outside-in port 25, unknown/disabled/nonlocal RCPT, accepted-but-not-indexed, MIME size/attachment integrity and queue recovery | CI and one `016` operator message; **independent suite NOT-RUN** | NEXT-04 |
+| **EH-N09 trusted TLS, cert renewal, firewall** | `deployment/templates/nginx/app.conf.tpl:L40–42` references external Let's Encrypt; Compose port 25 is loopback default | Expired/wrong SAN or missing cert, renewal, port-25 provider filtering, IPv6 inconsistency; fail closed without public insecure fallback | CODE; operator STARTTLS partial; public independent TLS **NOT-RUN** | NEXT-03/04 |
+| **EH-N10 primary R06 skipped job** | `.github/workflows/r06-production-readiness.yml:L19–22` restricts job to JILLU while **primary** is vibtoolshq | Correct Primary-only eligibility; assert job is not SKIPPED, no write token, and formal NO-GO even when all code gates pass | **CONFIRMED STATIC** + [Primary R06 SKIPPED](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) | NEXT-02 |
+| **EH-N11 legacy host Nginx path** | `deployment/templates/nginx/app.conf.tpl:L15,L44,L54–55` still uses vibmail upstream/TLS cache/log paths | Explicit parser/config validation of corrected host template, log directory permission and no change to reverse-proxy routing | **CONFIRMED STATIC**, no host config reload test | NEXT-02 |
+| **EH-N12 backup SHA/auth mismatch** | Primary `main` is `3dfac11...`; backup heads differ; Windows credential attempts returned write-403; alternate source commit object not present in backup | Exact-ref CAS/non-force transfer, no overwrite of backup main; ensure dry-run/auth and two backup branch SHA readbacks; credential failure must not mutate refs | **CONFIRMED REMOTE BLOCKER**, not app bug | NEXT-01 |
+
+### Proposed user-visible error contract (NOT yet implemented automatically)
+
+- API/UI: stable redacted error code, actionable single retry instruction, distinguish **retryable** provider outage from **non-retryable** conflict and immutable escrow refusal. Never disclose Cloudflare token, root-only R2 credentials, private RSA/age material, raw SMTP message or private backup contents.
+- Domain provisioning: do not convert `DNS pending` into `verified` until actual public MX/mail-host routing passes. Allow a safeguarded saved-domain retry with original key and escrow receipt. No automatic cross-zone migration, key rotation, DNS delete, or website root takeover.
+- Mailserver acceptance: a `250 accepted` response alone does not prove LMTP, Maildir, worker indexing, inbox display or attachment integrity; a failure must retain/trace accepted message safely and report its queue/ingest state.
+- Backup: upload error must not delete the only local encrypted copy; restore failures must preserve encrypted rollback material and never silently mutate production. Record restoration of PostgreSQL schemas, Maildir and attachment checksum/ACL separately.
+- Repository/CI: `SKIPPED` != `PASS`; wrong Primary repository guard is a release-blocking verification gap, not a reason to enable publishing or force-sync backup main.
+
+### One focused negative verification per approved NEXT work package
+
+NEXT-01 exact Git object/ref SHA and denied permission path; NEXT-02 R06 Primary eligibility/NO-GO and Nginx generated-config negative; NEXT-03 wrong zone/conflict/token outage/DKIM escrow/partial-publication on one authorized test domain; NEXT-04 independent SMTP reject/MIME/worker outage/offsite restore hash/ACL and 17 formal gates. Tests must report real results with SHA/run links; **none is executed by this documentation phase**.

@@ -1,5 +1,9 @@
 # 005 — Actual Feature Implementation and Verified Working Tracker
 
+
+> **CURRENT ACTUAL WORKING STATE — 2026-11-19:** Authoritative Primary `vibtoolshq/ReadBox`, SHA `3dfac11f46165c262c3dc5ddb7e82563a56f9a7f`. Historic 6/6 R-phase implementation source scopes are verified by CI. **One 2026-11-18 VPS inbound-message observation exists** in [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md), but full independent live acceptance has not been signed off. The new feature-by-feature **CODE / CI / OPERATOR-OBSERVED / LIVE ACCEPTED** matrix at this file's end supersedes overly broad historical “no live tests ever” wording without changing old records.
+
+
 **Frozen baseline:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`. **Implementation phases:** 6/6 CI IMPLEMENTATION VERIFIED; no remaining implementation phase. R-06 live staging/production acceptance NOT RUN, 7 original findings OPEN. **Release:** NO-GO.
 
 ## Terminology — critical distinction
@@ -218,3 +222,41 @@ Final notes-only closure commits change documentation, not the tested code or fr
 - **DNS-FINAL primary integration CI COMPLETE:** `2eccd8f21cf71261fdc0e0b7ab6199a2a19de4ce`, [primary #44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082) success, exact 17-file allowlist, 25/25 Node, 2/2 UI files, Python bridge PASS, TypeScript PASS, production dependency audit 0 vulnerabilities.
 - Implemented in isolated Primary branch: domain-specific Cloudflare zone UI/API, active zone validation, persisted binding in existing JSON, guarded add/repair, CAS-safe routing verification. Existing DOMAIN-AUTO-01 encrypted DKIM escrow/DNS preflight unchanged; no new schema or unrelated user feature.
 - Main publish and same-SHA backup transfer: pending explicit ref/readback in this phase. External live DNS, R2 escrow and VPS test NOT RUN.
+
+---
+
+## Current Primary actual-working truth matrix — 2026-11-19
+
+**Evidence columns MUST be interpreted separately:** `PRESENT` = compiled/current source; `CI PASS` = disposable verified at specified SHA; `OPERATOR PARTIAL` = specifically recorded screenshots/PuTTY observations; `LIVE ACCEPTED` requires separately corroborated domain/host/recovery proof and human approval. **No entry below is independently signed-off production READY.**
+
+| Capability / current feature | Source implementation (exact paths) | Verified test or limited observation | What is still NOT proven |
+|---|---|---|---|
+| Web landing, administrator and user inbox | `src/app/page.tsx`, `src/app/(workspace)/vcon/**`, `src/app/(workspace)/users/**` | Historical full UI/build CI; operator [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) saw an authenticated inbox with one message | Repeated multi-user live journeys, failure/reboot, full browser acceptance |
+| Auth, roles, initial setup and password reset | `src/auth.ts`, `src/core/auth/**`, `src/core/setup/**`, `src/app/initial-setup/**`, `scripts/auth/operator.ts` | R-04/QIS-01 source/CI contracts and negative access checks | Fresh approved VPS activation, public HTTPS session behavior and recovery |
+| Single PostgreSQL / Prisma mailserver role | `prisma/schema.prisma`, `prisma/migrations/**`, `src/core/mailserver/pg-adapter.ts` | Isolated PostgreSQL CI with migrations, SQL/auth negatives | Full current Primary staging migrate/restart and disaster recovery |
+| Domains, mailbox provisioning and Maildir isolation | `src/core/domains/service.ts`, `src/core/mailboxes/{service,provisioning,paths}.ts` | Tests and historical R-03 SQL/LMTP + UID/GID CI | Real multi-domain end-to-end with ACL and failure recovery |
+| Maildir message ingestion/attachment display | `src/workers/ingestion.ts`, `src/core/ingestion/**`, message/attachment paths | Historic tests and operator one incoming Gmail subject/body/date in inbox in [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) | Independent attachment hash, MIME limits, accepted-but-lost queue and repeated inbound load |
+| Opt-in inbound Postfix + Dovecot LMTP | `docker-compose.yml:L194–265`, `deployment/mailserver/**` | Disposable R-03/R06 SMTP -> LMTP -> Maildir; operator VPS-side port 25 STARTTLS and one Gmail delivery | Independent public ingress/MX/PTR/IPv6/TLS trust and reboot/failover |
+| DNS suggestion and public routing verification | `src/core/dns/{records,resolver,opendkim}.ts` | DNS resolver mock/contract CI | Actual public authoritative domain routing across all zones |
+| **Automatic domain setup (DOMAIN-AUTO-01)** | `src/core/dns/{cloudflare-auto,domain-automation}.ts`, `deployment/backup-agent/agent.py` | Primary DNS [#44384108878](https://github.com/vibtoolshq/ReadBox/actions/runs/44384108878) PASS; idempotent create/repair mock cases | Real Cloudflare API write, registrar delegation, propagation, per-zone production permission |
+| **Explicit per-domain Cloudflare Zone selection (DOMAIN-AUTO-02)** | `src/app/api/vcon/domains/cloudflare-zones/route.ts`, `src/components/vcon/domain-form.tsx`, `src/app/(workspace)/vcon/domains/actions.ts` | Exact Primary integration Node 25/25 + zone/domain UI 2 test files [#44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082) PASS | Real active token/zone selection under operator Cloudflare account |
+| **CAS-safe domain verification metadata** | `src/core/domains/service.ts:L470–541`, `tests/admin/phase3-domains-mailboxes.test.ts` | Deterministic mocked conflict+retry and primary CI PASS | External PostgreSQL race/infrastructure pressure on deployed current source |
+| Host-only DKIM generation, receipt-bound age/R2 escrow | `deployment/dkim/{agent.py,escrow.py}`, `src/core/dns/dkim-provision.ts`, `src/core/backup/agent-client.ts` | DKIM-03 mocked R2 recovery/source tests and DNS pipeline CI; public key held until receipt | Real private-key custodial recovery and remote Cloudflare R2 conditional upload/readback |
+| Backup admin, R2 and scheduled backup controls | `src/app/(workspace)/vcon/backup/**`, `src/components/vcon/backup-console.tsx`, `deployment/backup-agent/{r2,scheduler,restore}.py` | BR-03/04 source and disposable mock/restore CI; operator [016](016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md) saw checksum-verified local encrypted **GPG** archive | Independent live offsite R2 age identity, rotation/deletion safety, staging restore and rollback |
+| Application health and worker heartbeat | `src/core/health/snapshot.ts`, `src/app/health/{live,ready}/route.ts` | R-04 negative tests, operator /health/live 200 and five-container snapshot | /health/ready and ingress/LMTP readiness on current staging SHA; production alerts |
+| Safe host update and Admin Docker updater | `src/core/updates/service.ts`, `scripts/install/readbox-update.sh`, `scripts/updater/**`, admin system-update UI | AU-01/UI-01 CI and an earlier operator UI `Ready (17/17)` snapshot in backup notes | Actual operator-approved live browser update with encrypted backup, new SHA and successful recovery |
+| Host nginx legacy template | `deployment/templates/nginx/app.conf.tpl` | Source present; current legacy vibmail names/log paths **confirmed** | Corrected config lint/host nginx reload under a narrow approved patch |
+| Repository R06 consolidated gate | `.github/workflows/r06-production-readiness.yml` | [JILLU complete R06 #44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) PASS at *different* SHA | On Primary main [R06 #44384109011](https://github.com/vibtoolshq/ReadBox/actions/runs/44384109011) is **SKIPPED**; must repair repo check before counting as Primary full CI |
+| Backups / Git parity | Primary `main` at frozen source SHA | Primary DNS CI passes at exact main SHA | Both backup dedicated exact-SHA branches missing; write credentials blocked; no backup-main force push allowed |
+| Release artifacts / provenance | `LICENSE`, `reference/MailStack/{LICENSE,NOTICE.md}`, `docs/THIRD-PARTY-PROVENANCE.md` | Source inventory, root MIT and separate AGPL historical reference observed | Independent legal/derivative distribution clearance; source and immutable image digest match; manual GO |
+
+### Explicitly **not currently included / not accepted as working**
+
+- ReadBox remains **inbound-only**: no public SMTP submission, outbound relay/send, IMAP or POP3 service guaranteed. Current DKIM DNS preparation is **not** proof that an outbound signing daemon runs.
+- **Registrar nameserver delegation**, blanket Cloudflare DNS take-over, destructive DNS repair, automatic certificate issuance/renewal, and arbitrary zone editing are outside approved DOMAIN-AUTO-01/02 features. There is no promised perpetual background DNS reconciliation loop; provisioning/repair performs the guarded recheck.
+- Local operator test of **one** Gmail message does not prove all domains, attachment hashes, R2 recovery, production restore or independent RG-01..17 acceptance. Public mail hostname/PTR/IPv6 and TLS trust remain separately gated.
+- The original 6/6 source CI implementation result does **not** imply stable production release or 0 open findings. Seven forensic findings remain OPEN.
+
+### Per-update actual-working reporting contract
+
+After NEXT-01..NEXT-04 only, append a dated subsection with: exact Primary code SHA/tree; changed path list; feature behavior observed before and after; one focused CI run URL or approved operator test evidence; sanitized negative cases; persisted data/rollback outcome; **CODE, CI, OPERATOR PARTIAL, INDEPENDENT LIVE** states; changed backup SHA/ref parity; remaining 7 findings and next fixed work package. Do **not** change an original feature state until evidence supports it.
