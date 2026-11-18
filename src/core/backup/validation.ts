@@ -7,7 +7,8 @@ export function isBackupOpaqueId(value: unknown): value is string {
 export type AgentAction =
   | "status" | "job.get" | "backup.create" | "backup.verify"
   | "r2.configure" | "r2.test" | "r2.list" | "r2.upload"
-  | "schedule.configure";
+  | "schedule.configure"
+  | "restore.test" | "restore.prepare" | "restore.commit";
 export function validateAgentPayload(
   action: AgentAction,
   payload: Readonly<Record<string, unknown>>,
@@ -21,6 +22,24 @@ export function validateAgentPayload(
   }
   if (action === "backup.verify" || action === "r2.upload") {
     return Object.keys(payload).length === 1 && isBackupOpaqueId(payload.backupId);
+  }
+  if (action === "restore.test") {
+    return Object.keys(payload).length === 1 && isBackupOpaqueId(payload.backupId);
+  }
+  if (action === "restore.prepare") {
+    return Object.keys(payload).sort().join(",") === "actor,backupId" &&
+      isBackupOpaqueId(payload.backupId) &&
+      typeof payload.actor === "string" && /^[1-9][0-9]{0,18}$/.test(payload.actor);
+  }
+  if (action === "restore.commit") {
+    return Object.keys(payload).sort().join(",") ===
+      "actor,backupId,confirmation,permitId,token" &&
+      isBackupOpaqueId(payload.backupId) &&
+      isBackupOpaqueId(payload.permitId) &&
+      typeof payload.token === "string" && /^[a-f0-9]{64}$/.test(payload.token) &&
+      typeof payload.actor === "string" && /^[1-9][0-9]{0,18}$/.test(payload.actor) &&
+      typeof payload.confirmation === "string" &&
+      payload.confirmation === "RESTORE " + payload.backupId;
   }
   if (action === "r2.configure") {
     const value = payload.config;

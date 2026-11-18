@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import hmac
+import secrets
 import os
 from pathlib import Path
 import re
@@ -58,6 +61,7 @@ class PrivateStore:
         self.root = private_dir(root)
         self.jobs = private_dir(root / "jobs")
         self.backups = private_dir(root / "backups")
+        self.restore_permits = private_dir(root / "restore-permits")
         self.mutex = threading.RLock()
         self.reconcile_interrupted()
 
@@ -85,9 +89,10 @@ class PrivateStore:
         with self.mutex:
             for job in self._items(self.jobs):
                 if job["state"] in ACTIVE:
-                    self.update(job["id"], "interrupted",
-                                "Interrupted by agent restart; check service health before retrying.",
-                                level="warning")
+                    message = ("Restore interrupted; operator must inspect rollback and service health."
+                               if job.get("kind") == "restore"
+                               else "Interrupted by agent restart; check service health before retrying.")
+                    self.update(job["id"], "interrupted", message, level="warning")
 
     def get_job(self, identifier: str) -> dict | None:
         with self.mutex:
@@ -106,8 +111,9 @@ class PrivateStore:
             return self._read(self.backups, identifier)
 
     def create(self, kind: str, backup_id: str | None = None, *,
-               auto_upload: bool = False, auto_source_job: str | None = None) -> dict:
-        if kind not in {"backup", "verify", "r2_upload"}:
+               auto_upload: bool = False, auto_source_job: str | None = None,
+               expected_digest: str | None = None) -> dict:
+        if kind not in {"backup", "verify", "r2_upload", "restore"}:
             raise ValueError("Unknown job action")
         if type(auto_upload) is not bool or (auto_upload and kind != "backup"):
             raise ValueError("Invalid automatic upload intent")
@@ -115,7 +121,15 @@ class PrivateStore:
                                             not valid_id(auto_source_job) or
                                             auto_source_job != backup_id):
             raise ValueError("Invalid automatic source job")
+        if kind == "restore" and (not valid_id(backup_id) or
+                                  not isinstance(expected_digest, str) or
+                                  re.fullmatch(r"[0-9a-f]{64}", expected_digest) is None):
+            raise ValueError("Restore source digest required")
+        if kind != "restore" and expected_digest is not None:
+            raise ValueError("Unexpected restore digest")
         with self.mutex:
+            if self.restore_requires_review():
+                raise RuntimeError("RESTORE_OPERATOR_REVIEW_REQUIRED")
             if any(job["state"] in ACTIVE for job in self._items(self.jobs)):
                 raise RuntimeError("JOB_CONFLICT")
             identifier = uuid4().hex
@@ -124,6 +138,8 @@ class PrivateStore:
                 "backupId": backup_id, "createdAt": now(), "updatedAt": now(),
                 "events": [{"at": now(), "level": "info", "message": "Job queued"}],
             }
+            if kind == "restore":
+                job["expectedDigest"] = expected_digest
             if kind == "backup":
                 # Persist BEFORE execution so a crash after the archive is written
                 # cannot lose the subsequent offsite-upload intent.
@@ -132,6 +148,66 @@ class PrivateStore:
                 job["autoSourceJob"] = auto_source_job
             atomic_json(self.jobs / (identifier + ".json"), job)
             return job
+
+    def restore_requires_review(self) -> bool:
+        with self.mutex:
+            return any(
+                job.get("kind") == "restore" and
+                (job.get("state") == "interrupted" or
+                 (job.get("state") == "failed" and
+                  job.get("result", {}).get("errorCode") in {
+                     "RESTORE_ROLLBACK_CRITICAL", "RESTORE_FAILED_REVIEW_ROLLBACK",
+                     "RESTORE_TIMEOUT_OPERATOR_REVIEW", "RESTORE_RESULT_UNVERIFIED",
+                  }))
+                for job in self._items(self.jobs)
+            )
+
+    def issue_restore_permit(self, backup_id: str, digest: str, actor: str) -> dict:
+        if not valid_id(backup_id) or not re.fullmatch(r"[0-9a-f]{64}", digest) or            not re.fullmatch(r"[1-9][0-9]{0,18}", actor):
+            raise ValueError("Invalid restore permit request")
+        with self.mutex:
+            if self.restore_requires_review() or any(
+                job["state"] in ACTIVE for job in self._items(self.jobs)
+            ):
+                raise RuntimeError("JOB_CONFLICT")
+            # One short-lived, single-use capability. Only its hash is saved.
+            current = int(time.time())
+            for entry in self.restore_permits.glob("*.json"):
+                if entry.is_symlink() or not valid_id(entry.stem):
+                    raise ValueError("Unsafe restore permit entry")
+                old = self._read(self.restore_permits, entry.stem)
+                if old is None:
+                    raise ValueError("Corrupt restore permit entry")
+                if int(old.get("expiresAt", 0)) < current:
+                    entry.unlink()
+            if len(list(self.restore_permits.glob("*.json"))) >= 25:
+                raise RuntimeError("RESTORE_PERMIT_LIMIT")
+            identifier = uuid4().hex
+            token = secrets.token_hex(32)
+            atomic_json(self.restore_permits / (identifier + ".json"), {
+                "id": identifier, "backupId": backup_id, "digest": digest,
+                "actor": actor, "tokenHash": hashlib.sha256(token.encode()).hexdigest(),
+                "expiresAt": current + 90, "consumed": False,
+            })
+            return {"permitId": identifier, "token": token,
+                    "expiresAt": current + 90}
+
+    def consume_restore_permit(self, permit_id: str, token: str,
+                               backup_id: str, digest: str, actor: str) -> bool:
+        if not valid_id(permit_id) or not isinstance(token, str) or            not re.fullmatch(r"[0-9a-f]{64}", token):
+            return False
+        with self.mutex:
+            record = self._read(self.restore_permits, permit_id)
+            if not record or record.get("consumed") is not False:
+                return False
+            # Consume BEFORE checking the token to prevent replay/brute force.
+            record["consumed"] = True
+            atomic_json(self.restore_permits / (permit_id + ".json"), record)
+            return (int(record.get("expiresAt", 0)) >= int(time.time()) and
+                    record.get("backupId") == backup_id and record.get("digest") == digest and
+                    record.get("actor") == actor and
+                    hmac.compare_digest(str(record.get("tokenHash", "")),
+                                        hashlib.sha256(token.encode()).hexdigest()))
 
     def claim_due_auto_upload(self, when: float | None = None) -> dict | None:
         """Atomically claim one persisted auto-upload. Max three jobs per source.
@@ -142,7 +218,7 @@ class PrivateStore:
         moment = time.time() if when is None else when
         with self.mutex:
             all_jobs = self._items(self.jobs)
-            if any(job["state"] in ACTIVE for job in all_jobs):
+            if self.restore_requires_review() or any(job["state"] in ACTIVE for job in all_jobs):
                 return None
             for source in sorted(all_jobs, key=lambda item: (item["createdAt"], item["id"])):
                 if source.get("kind") != "backup" or source.get("autoUpload") is not True:
@@ -188,6 +264,10 @@ class PrivateStore:
             "Interrupted by agent restart; check service health before retrying.",
             "Encrypted backup uploaded to R2 and remotely checksum verified",
             "Cloudflare R2 upload failed; local backup was preserved",
+            "Restore interrupted; operator must inspect rollback and service health.",
+            "Restore job queued after one-time admin confirmation",
+            "Encrypted restore completed and rollback archive retained",
+            "Restore failed; rollback outcome requires operator review",
         }:
             raise ValueError("Refusing unapproved log content")
         with self.mutex:

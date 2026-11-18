@@ -40,3 +40,11 @@
 
 
 **P-02 CI:** [Verified SUCCESS #44215136163](https://github.com/JILLU-Games/ReadBox/actions/runs/44215136163). Versioned Python runtime is implemented in installer source; actual VPS activation, rollback and R2 API are NOT RUN.
+
+## BR-04 implemented source vs actual working (2026-11-18)
+
+- **On source:** Admin UI can choose a managed local V2 backup and run decrypt/metadata Test restore without modifying services; `Restore backup` is disabled by default, and only becomes available when host operator root-only gate is externally set. One-time 90-second actor-bound hashed permit and exact backup-specific typed phrase are required before queueing.
+- **On host agent source:** replay-resistant confirmation, fixed-path encrypted input and root-only rollback `/var/backups/readbox-managed/restore-rollback/<job>.age` preserved on failure, R05 automatic rollback, persistent job history, sanitized activity and manual review after interrupted/critical outcomes. No new PostgreSQL migration or custom restore engine.
+- **Legacy:** GPG `.tar.gz.gpg` files remain **unsupported** by this age-only source restoration. No import/conversion was attempted.
+- **Evidence pending:** focused disposable CI and final source/mirror parity; do not claim production operations or field readiness from source. Actual VPS gate is **NOT created**, production data NOT restored, R2 not used.
+- **Unchanged:** main app feature/UI layout, auth policy, mailserver, database schema, worker, existing BR03 backup/schedule/R2 engine, original R05 file and original installer.

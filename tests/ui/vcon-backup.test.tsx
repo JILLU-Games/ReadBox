@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -53,6 +54,73 @@ describe("BR-01 /vcon/backup read-only interface", () => {
       expect(screen.getByRole("button", { name: label })).toBeDisabled();
     }
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("allows only read-only preflight when the host restore gate is closed", async () => {
+    const user = userEvent.setup();
+    const backupId = "a".repeat(32);
+    const testRestore = vi.fn(async () => ({
+      ok: true, code: "RESTORE_PREFLIGHT_PASS",
+      message: "Read-only verified; no data changed.",
+      preflight: { backupId, verified: true as const, includesQueue: true,
+        format: "age-r05-v1" as const, rollbackRequired: true as const,
+        rollbackAvailable: false as const, productionAuthorized: false },
+    }));
+    const commit = vi.fn();
+    render(<BackupConsole
+      initialDashboard={{
+        connected: true, jobs: [], r2: undefined,
+        restore: { enabled: false, operatorReviewRequired: false },
+        backups: [{ id: backupId, createdAt: "2026-11-18T00:00:00Z",
+          state: "verified", level: "V2", bytes: 1000, sha256: "f".repeat(64),
+          format: "age-r05-v1", includesQueue: true, includesHostSecrets: false }],
+      }}
+      onTestRestore={testRestore}
+      onCommitRestore={commit}
+    />);
+    await user.click(screen.getByRole("button", { name: "Test restore" }));
+    expect(testRestore).toHaveBeenCalledWith(backupId);
+    expect(screen.getByText("Read-only verified; no data changed.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore backup" })).toBeDisabled();
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it("requires exact typed phrase and a fresh permit before guarded restore dispatch", async () => {
+    const user = userEvent.setup();
+    const backupId = "b".repeat(32);
+    const prepare = vi.fn(async () => ({
+      ok: true, code: "RESTORE_CONFIRMATION_READY", message: "Confirm",
+      permit: { permitId: "c".repeat(32), token: "d".repeat(64),
+        expiresAt: Date.now() / 1000 + 90 },
+      preflight: { backupId, verified: true as const, includesQueue: false,
+        format: "age-r05-v1" as const, rollbackRequired: true as const,
+        rollbackAvailable: false as const, productionAuthorized: true },
+    }));
+    const commit = vi.fn(async () => ({
+      ok: false, code: "RESTORE_OPERATOR_GATE_CLOSED", message: "Blocked",
+    }));
+    render(<BackupConsole
+      initialDashboard={{
+        connected: true, jobs: [],
+        restore: { enabled: true, operatorReviewRequired: false },
+        backups: [{ id: backupId, createdAt: "2026-11-18T00:00:00Z",
+          state: "verified", level: "V2", bytes: 1000, sha256: "e".repeat(64),
+          format: "age-r05-v1", includesQueue: false, includesHostSecrets: false }],
+      }}
+      onPrepareRestore={prepare} onCommitRestore={commit}
+    />);
+    await user.click(screen.getByRole("button", { name: "Restore backup" }));
+    expect(prepare).toHaveBeenCalledWith(backupId);
+    const confirmed = screen.getByRole("button", { name: "Confirm guarded restore" });
+    expect(confirmed).toBeDisabled();
+    await user.type(screen.getByRole("textbox", { name: "Exact restore confirmation" }),
+      "RESTORE " + backupId);
+    expect(confirmed).toBeEnabled();
+    await user.click(confirmed);
+    expect(commit).toHaveBeenCalledOnce();
+    expect(commit).toHaveBeenCalledWith(backupId, "c".repeat(32),
+      "d".repeat(64), "RESTORE " + backupId);
+    expect(screen.queryByRole("button", { name: "Confirm guarded restore" })).not.toBeInTheDocument();
   });
 
   it("requires the existing server-side administrator gate before rendering the page", async () => {

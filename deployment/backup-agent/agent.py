@@ -23,6 +23,7 @@ from executor import BackupExecutor, BackupExecutionError
 from storage import PrivateStore, private_dir, valid_id
 from r2 import R2Adapter, R2Error
 from scheduler import ScheduleManager, ScheduleError
+from restore import preflight as restore_preflight, production_gate, RestoreError
 
 
 class ThreadingUnixServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
@@ -74,13 +75,17 @@ class BackupBroker:
                     fcntl.flock(fd, fcntl.LOCK_UN)
                     os.close(fd)
             else:
-                result = self.executor.run(job["kind"], identifier, job.get("backupId"))
+                result = self.executor.run(
+                    job["kind"], identifier, job.get("backupId"),
+                    job.get("expectedDigest"))
             if job["kind"] == "verify" and job.get("backupId"):
                 self.state.set_backup_verification(job["backupId"], True)
             message = ("Encrypted backup saved and verified"
                        if job["kind"] == "backup" else
                        "Encrypted backup verification passed"
                        if job["kind"] == "verify" else
+                       "Encrypted restore completed and rollback archive retained"
+                       if job["kind"] == "restore" else
                        "Encrypted backup uploaded to R2 and remotely checksum verified")
             self.state.update(identifier, "completed", message, "success", result)
             if job["kind"] == "backup" and job.get("autoUpload"):
@@ -94,7 +99,7 @@ class BackupBroker:
                 except Exception:
                     pass
         except Exception as error:
-            error_code = (error.code if isinstance(error, (BackupExecutionError, R2Error, ScheduleError))
+            error_code = (error.code if isinstance(error, (BackupExecutionError, R2Error, ScheduleError, RestoreError))
                           else "BACKUP_AGENT_EXECUTION_FAILED")
             if job["kind"] == "verify" and job.get("backupId"):
                 try:
@@ -105,6 +110,8 @@ class BackupBroker:
                        if job["kind"] == "backup" else
                        "Backup verification failed; existing archive was preserved"
                        if job["kind"] == "verify" else
+                       "Restore failed; rollback outcome requires operator review"
+                       if job["kind"] == "restore" else
                        "Cloudflare R2 upload failed; local backup was preserved")
             try:
                 self.state.update(identifier, "failed", message, "error",
@@ -121,6 +128,8 @@ class BackupBroker:
                 "connected": True, "jobs": self.state.list_jobs(),
                 "backups": self.state.list_backups(), "r2": self.r2.public(),
                 "schedule": self.schedule.read(),
+                "restore": {"enabled": production_gate(self.executor.project),
+                            "operatorReviewRequired": self.state.restore_requires_review()},
             }
         if action == "r2.configure" and set(payload) == {"action", "config"}:
             return 200, {"r2": self.r2.configure(payload["config"])}
@@ -132,6 +141,50 @@ class BackupBroker:
             return 200, {"schedule": self.schedule.configure(
                 payload["schedule"], self.r2.public()["configured"])}
 
+        if action in {"restore.test", "restore.prepare"}:
+            required = {"action", "backupId"} if action == "restore.test" else {
+                "action", "backupId", "actor"}
+            if set(payload) != required or not valid_id(payload.get("backupId")):
+                return 400, {"error": "RESTORE_INPUT_INVALID"}
+            if action == "restore.prepare":
+                if not re.fullmatch(r"[1-9][0-9]{0,18}", str(payload.get("actor", ""))):
+                    return 400, {"error": "RESTORE_INPUT_INVALID"}
+                if not production_gate(self.executor.project):
+                    return 409, {"error": "RESTORE_OPERATOR_GATE_CLOSED"}
+            checked = restore_preflight(self.executor, payload["backupId"])
+            if action == "restore.test":
+                return 200, {"preflight": checked}
+            record = self.state.get_backup(payload["backupId"])
+            permit = self.state.issue_restore_permit(payload["backupId"],
+                                                      record["sha256"], payload["actor"])
+            return 200, {"preflight": checked, "permit": permit}
+        if action == "restore.commit":
+            required = {"action", "backupId", "actor", "permitId", "token", "confirmation"}
+            if set(payload) != required or not valid_id(payload.get("backupId")) or not (
+                isinstance(payload.get("actor"), str) and
+                re.fullmatch(r"[1-9][0-9]{0,18}", payload["actor"])
+            ):
+                return 400, {"error": "RESTORE_INPUT_INVALID"}
+            backup_id = payload["backupId"]
+            if not production_gate(self.executor.project):
+                return 409, {"error": "RESTORE_OPERATOR_GATE_CLOSED"}
+            if payload.get("confirmation") != "RESTORE " + backup_id:
+                return 409, {"error": "RESTORE_CONFIRMATION_REQUIRED"}
+            checked = restore_preflight(self.executor, backup_id)
+            record = self.state.get_backup(backup_id)
+            if self.state.restore_requires_review():
+                return 409, {"error": "RESTORE_OPERATOR_REVIEW_REQUIRED"}
+            if not self.state.consume_restore_permit(payload.get("permitId"),
+                                                     payload.get("token"), backup_id,
+                                                     record["sha256"], payload["actor"]):
+                return 409, {"error": "RESTORE_PERMIT_EXPIRED"}
+            try:
+                job = self.state.create("restore", backup_id,
+                                        expected_digest=record["sha256"])
+            except RuntimeError:
+                return 409, {"error": "JOB_CONFLICT"}
+            threading.Thread(target=self._worker, args=(job,), daemon=False).start()
+            return 202, {"job": job}
         if action == "job.get":
             identifier = payload.get("jobId")
             if not valid_id(identifier):
@@ -228,7 +281,7 @@ def build_handler(broker: BackupBroker):
                 return self._answer(400, {"error": "INVALID_INPUT"})
             try:
                 status, result = broker.perform(payload)
-            except (R2Error, ScheduleError) as error:
+            except (R2Error, ScheduleError, RestoreError) as error:
                 status, result = 409, {"error": error.code}
             except Exception:
                 status, result = 503, {"error": "BACKUP_AGENT_OPERATION_FAILED"}

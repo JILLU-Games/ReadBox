@@ -47,3 +47,15 @@ No edits to `src/core/auth/**`, mailserver Postfix/Dovecot, Prisma schema/migrat
 
 
 **P-02 audited baseline checksum:** original BR-02 service exact source SHA256 `d667df88d72dba84a8c99cb693b1db3b63ad0162ea459f3a0950cbf666028dd4` (1265 bytes), verified from frozen source. [R-06 disposable CI #44215136163](https://github.com/JILLU-Games/ReadBox/actions/runs/44215136163) PASS, not a host migration proof.
+
+## BR-04 restore authorization, rollback and stop-the-world contract (2026-11-18)
+
+1. **Authentication:** existing `requireAdminUser()` on server page and `requireBackupAdmin()` on each sensitive server action. The server supplies the current authenticated user ID (`actor`) to a signed HMAC Unix-socket RPC; browser input cannot choose the admin ID. This is **fresh typed confirmation, not a second password/MFA authentication event**.
+2. **Operator gate default-deny:** host-only file `/etc/readbox-backup-restore.allow`, regular root:root 0600, exact contents `READBOX_BR04_PRODUCTION_RESTORE_APPROVED=readbox\n`; this phase does not create it. Production gate must be independently authorized later. Disposable-only bypass requires fixed `readboxbr02-ci` fixture and BOTH `READBOX_BR02_DISPOSABLE=1` / `READBOX_BR04_DISPOSABLE=1`.
+3. **Source:** only a previously V2-verified `age-r05-v1` archive in the fixed managed archive directory; no symlinks, custom paths, remote R2/GPG input, shell, user-selected DB/project/volumes. Preflight decrypts/validates R05 manifest, includesQueue, project/db/UID and source sha256 before issuing permit.
+4. **One-time permit:** private-root 0700 directory with 0600 atomic JSON hash + actor + backup ID + digest + expiry; plaintext token only returned over authenticated socket to the admin browser. 90-second TTL, single consumption, wrong actor/phrase/expired/replay rejected; source reverified again before running restore.
+5. **Rollback:** executor locks existing `/run/lock/readbox-backup-global.lock`; R05 first produces a distinct encrypted rollback archive, then applies DB/Maildir/attachments/media/queue inside its audited maintenance wrapper. R05 rollback automatic on failure; BR04 preserves rollback artifact even when job fails. Any uncertain/critical/interrupt state blocks subsequent maintenance until operator review.
+6. **Disaster recovery boundary:** no host env/SSH/TLS keys in data-only age backup. Legacy GPG unsupported; private age identity and R2 custody must be backed up separately. No live deployment/production restore/real R2 in this phase.
+7. **Tests:** actor/nonce replay/TTL, invalid phrase, gate closed, tampered or symlinked source, fixed R05 argv, rollback failure, legacy GPG, original R05 disposable full recovery with UID/ACL and DB/queue content. CI and final SHA references are recorded in `007` after observation.
+
+**Operator gate is a deployment-time prerequisite, not a UI toggle.** The automatic schedule remains OFF by default. No browser action can create the production gate.

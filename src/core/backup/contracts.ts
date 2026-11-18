@@ -1,5 +1,5 @@
 export type BackupJobState = "queued" | "running" | "completed" | "failed" | "interrupted";
-export type BackupJobKind = "backup" | "verify" | "r2_upload";
+export type BackupJobKind = "backup" | "verify" | "r2_upload" | "restore";
 export interface BackupEvent {
   readonly at: string;
   readonly level: "info" | "success" | "warning" | "error";
@@ -27,7 +27,7 @@ export interface BackupJob {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly events: readonly BackupEvent[];
-  readonly result?: BackupRecord | { readonly backupId: string; readonly verified: true; readonly level: "V2" } | { readonly backupId: string; readonly remoteVerified: true; readonly bytes: number } | { readonly errorCode: string };
+  readonly result?: BackupRecord | { readonly backupId: string; readonly verified: true; readonly level: "V2" } | { readonly backupId: string; readonly remoteVerified: true; readonly bytes: number } | { readonly backupId: string; readonly restored: true; readonly rollbackAvailable: true; readonly rollbackId: string } | { readonly errorCode: string };
 }
 export interface R2Public {
   readonly configured: boolean;
@@ -58,12 +58,31 @@ export interface R2Credentials {
   readonly accessKeyId: string;
   readonly secretAccessKey: string;
 }
+export interface RestoreReadiness {
+  readonly enabled: boolean;
+  readonly operatorReviewRequired: boolean;
+}
+export interface RestorePreflight {
+  readonly backupId: string;
+  readonly verified: true;
+  readonly includesQueue: boolean;
+  readonly format: "age-r05-v1";
+  readonly rollbackRequired: true;
+  readonly rollbackAvailable: false;
+  readonly productionAuthorized: boolean;
+}
+export interface RestorePermit {
+  readonly permitId: string;
+  readonly token: string;
+  readonly expiresAt: number;
+}
 export interface BackupDashboard {
   readonly connected: boolean;
   readonly jobs: readonly BackupJob[];
   readonly backups: readonly BackupRecord[];
   readonly r2?: R2Public;
   readonly schedule?: SchedulePublic;
+  readonly restore?: RestoreReadiness;
 }
 export interface BackupActionResult {
   readonly ok: boolean;
@@ -73,6 +92,9 @@ export interface BackupActionResult {
   readonly r2?: R2Public;
   readonly schedule?: SchedulePublic;
   readonly remote?: readonly RemoteBackupRecord[];
+  readonly restore?: RestoreReadiness;
+  readonly preflight?: RestorePreflight;
+  readonly permit?: RestorePermit;
 }
 export const UNAVAILABLE_BACKUP_DASHBOARD: BackupDashboard = {
   connected: false,

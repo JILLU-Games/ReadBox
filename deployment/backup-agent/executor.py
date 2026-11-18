@@ -1,4 +1,4 @@
-"""Allowlisted, durable host jobs. No restore / R2 / arbitrary command interface."""
+"""Allowlisted host backup/verify/guarded restore jobs. No arbitrary commands."""
 from __future__ import annotations
 
 import fcntl
@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from storage import PrivateStore, now, valid_id
 from verification import verify_age_snapshot
+from restore import execute as execute_restore, RestoreError
 
 
 class BackupExecutionError(RuntimeError):
@@ -66,7 +67,8 @@ class BackupExecutor:
             raise ValueError("Invalid age recipient")
         return recipient
 
-    def run(self, kind: str, job_id: str, backup_id: str | None = None) -> dict:
+    def run(self, kind: str, job_id: str, backup_id: str | None = None,
+            expected_digest: str | None = None) -> dict:
         if not valid_id(job_id) or (backup_id is not None and not valid_id(backup_id)):
             raise ValueError("Invalid opaque identifier")
         fd = self._lock()
@@ -75,6 +77,8 @@ class BackupExecutor:
                 return self._backup(job_id)
             if kind == "verify" and backup_id is not None:
                 return self._verify(backup_id)
+            if kind == "restore" and backup_id is not None and expected_digest is not None:
+                return execute_restore(self, backup_id, job_id, expected_digest)
             raise ValueError("Unsupported operation")
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)

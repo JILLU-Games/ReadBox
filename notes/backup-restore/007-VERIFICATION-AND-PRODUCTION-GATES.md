@@ -66,3 +66,19 @@ The existing original seven blockers and [RG-01–RG-17 runbook](https://github.
 
 
 **Exact patch scope:** compared with main baseline `f813ad15ad5895c5cfea9ed3ce6b402b1cae7142`: only host installer, systemd unit, user-authorized `AGENTS.md` rules, and notes 003–007 (8 paths), no deletion. Original `requirements.lock` hash-pinned source unchanged; existing app/UI/auth/Prisma/mailserver/volumes unaffected. Source/mirror SHA + tree parity requires post-publication verification.
+
+## P-03 / BR-04 focused source + CI evidence ledger (2026-11-18)
+
+| Check | Evidence and current status |
+|---|---|
+| Entry source/mirror parity | Both `main` at `62347e35b5b992f8f7c4ef802cd64addd74a5d08` before patch — PASS |
+| Exact BR04 allowlist | Planned: up to 19 paths listed in `002`, plus `notes/003–007`; final diff pending |
+| New guarded source | `deployment/backup-agent/{restore,legacy_gpg,agent,executor,storage}.py`, Next.js backed RPC/actions, Admin restore panel; source staged |
+| Read-only and operator-only gate | Expected: host default-deny, disposable CI flag only, actor-bound hashed TTL permit, no arbitrary input paths; runtime CI pending |
+| Failed/critical restore, file tamper/symlink and replay | New `tests/backup/{restore-contract,restore-failure,legacy-format}.test.mjs` and UI tests; CI pending |
+| Existing R05 complete PostgreSQL/Maildir/queue/UID/ACL rollback | Existing `deployment/operations/tests/r05-rehearsal.sh`; CI pending |
+| Auth/UI/build regression | Existing unit/UI lint/typecheck/build; CI pending |
+| Actual production restore/R2/VPS install | **NOT RUN**, forbidden under P-03 |
+| Production release | **NO-GO**, no tag or release |
+
+**One focused disposable CI run only.** If its specific failures require a minimal scoped correction, run a necessary focused recheck only; do not run unrelated verification loops. A failed job is not a PASS.

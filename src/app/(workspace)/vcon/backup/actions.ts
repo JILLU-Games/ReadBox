@@ -11,10 +11,19 @@ function failure(error: unknown): BackupActionResult {
     ok: false,
     code,
     message: code === "JOB_CONFLICT"
-      ? "A backup or verification job is already in progress."
-      : code === "BACKUP_NOT_FOUND"
-        ? "This backup is not available for verification."
-        : "Backup service unavailable. Existing ReadBox data is unchanged.",
+      ? "A backup, upload or restore job is already in progress."
+      : code === "RESTORE_OPERATOR_GATE_CLOSED"
+        ? "Host operator authorization is required before any restore."
+        : code === "RESTORE_PERMIT_EXPIRED" || code === "RESTORE_CONFIRMATION_REQUIRED"
+          ? "Restore confirmation expired or was refused. Repeat preflight."
+          : code === "RESTORE_OPERATOR_REVIEW_REQUIRED" || code === "RESTORE_ROLLBACK_CRITICAL" ||
+            code === "RESTORE_FAILED_REVIEW_ROLLBACK"
+            ? "Restore safety review is required. Do not restart maintenance until the operator checks the encrypted rollback."
+            : code === "RESTORE_BACKUP_NOT_VERIFIED" || code === "RESTORE_PREFLIGHT_FAILED"
+              ? "Backup preflight failed. Existing data was not modified."
+              : code === "BACKUP_NOT_FOUND"
+                ? "This backup is not available for verification."
+                : "Backup service unavailable or operation refused. No success was recorded.",
   };
 }
 
@@ -96,6 +105,62 @@ export async function configureScheduleAction(
     return { ok: true, code: "SCHEDULE_SAVED", message: schedule.enabled
       ? "UTC backup schedule enabled; no missed runs replayed."
       : "Automatic backup schedule disabled.", schedule: reply.schedule };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function testRestoreAction(backupId: string): Promise<BackupActionResult> {
+  await requireBackupAdmin();
+  if (!isBackupOpaqueId(backupId)) {
+    return { ok: false, code: "RESTORE_INPUT_INVALID", message: "Invalid backup selection." };
+  }
+  try {
+    const reply = await callBackupAgent("restore.test", { backupId });
+    if (!reply.preflight?.verified) return failure(null);
+    return { ok: true, code: "RESTORE_PREFLIGHT_PASS",
+      message: "Encrypted age archive and metadata preflight passed. No data was changed.",
+      preflight: reply.preflight };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function prepareRestoreAction(backupId: string): Promise<BackupActionResult> {
+  const admin = await requireBackupAdmin();
+  if (!isBackupOpaqueId(backupId)) {
+    return { ok: false, code: "RESTORE_INPUT_INVALID", message: "Invalid backup selection." };
+  }
+  try {
+    const reply = await callBackupAgent("restore.prepare", {
+      backupId, actor: String(admin.id),
+    });
+    if (!reply.permit || !reply.preflight?.verified) return failure(null);
+    return { ok: true, code: "RESTORE_CONFIRMATION_READY",
+      message: "Preflight verified. Confirm the exact backup ID before the 90-second permit expires.",
+      preflight: reply.preflight, permit: reply.permit };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function commitRestoreAction(
+  backupId: string, permitId: string, token: string, confirmation: string,
+): Promise<BackupActionResult> {
+  const admin = await requireBackupAdmin();
+  if (!isBackupOpaqueId(backupId) || !isBackupOpaqueId(permitId) ||
+      !/^[a-f0-9]{64}$/.test(token) || confirmation !== "RESTORE " + backupId) {
+    return { ok: false, code: "RESTORE_CONFIRMATION_REQUIRED",
+      message: "Type the exact RESTORE confirmation and restart preflight." };
+  }
+  try {
+    const reply = await callBackupAgent("restore.commit", {
+      backupId, actor: String(admin.id), permitId, token, confirmation,
+    });
+    if (!reply.job) return failure(null);
+    return { ok: true, code: "QUEUED",
+      message: "Guarded restore queued. A new encrypted rollback archive is required before mutation.",
+      job: reply.job };
   } catch (error) {
     return failure(error);
   }

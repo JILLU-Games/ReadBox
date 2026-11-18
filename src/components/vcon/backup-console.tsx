@@ -1,6 +1,6 @@
 "use client";
 
-import type { BackupActionResult, BackupDashboard, BackupJob, BackupRecord, R2Credentials, RemoteBackupRecord, SchedulePublic } from "@/core/backup/contracts";
+import type { BackupActionResult, BackupDashboard, BackupJob, BackupRecord, R2Credentials, RemoteBackupRecord, SchedulePublic, RestorePermit } from "@/core/backup/contracts";
 import { configureR2Action, testR2Action, listR2Action, uploadR2Action, configureScheduleAction } from "@/app/(workspace)/vcon/backup/actions";
 import { UNAVAILABLE_BACKUP_DASHBOARD } from "@/core/backup/contracts";
 import {
@@ -16,6 +16,9 @@ interface BackupConsoleProps {
   readonly initialDashboard?: BackupDashboard;
   readonly onCreateBackup?: () => Promise<BackupActionResult>;
   readonly onVerifyBackup?: (backupId: string) => Promise<BackupActionResult>;
+  readonly onTestRestore?: (backupId: string) => Promise<BackupActionResult>;
+  readonly onPrepareRestore?: (backupId: string) => Promise<BackupActionResult>;
+  readonly onCommitRestore?: (backupId: string, permitId: string, token: string, phrase: string) => Promise<BackupActionResult>;
 }
 
 function byteLabel(bytes: number): string {
@@ -31,6 +34,9 @@ export function BackupConsole({
   initialDashboard = UNAVAILABLE_BACKUP_DASHBOARD,
   onCreateBackup,
   onVerifyBackup,
+  onTestRestore,
+  onPrepareRestore,
+  onCommitRestore,
 }: BackupConsoleProps) {
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [busy, setBusy] = useState(false);
@@ -46,6 +52,10 @@ export function BackupConsole({
     keepLocal: initialDashboard.schedule?.keepLocal ?? 3,
   });
   const [feedback, setFeedback] = useState("");
+  const [restoreBackupId, setRestoreBackupId] = useState(initialDashboard.backups[0]?.id ?? "");
+  const [restorePermit, setRestorePermit] = useState<RestorePermit | null>(null);
+  const [restorePhrase, setRestorePhrase] = useState("");
+  const [restorePreflight, setRestorePreflight] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(
     initialDashboard.jobs[0]?.id ?? null,
   );
@@ -88,7 +98,8 @@ export function BackupConsole({
         if (!isActive(job)) {
           setActiveJobId(null);
           setFeedback(job.state === "completed"
-            ? "Job completed. The encrypted snapshot was verified."
+            ? job.kind === "restore" ? "Restore completed; encrypted rollback retained on the host."
+              : "Job completed. The encrypted snapshot was verified."
             : "Job ended without success. Inspect the sanitized activity log.");
         }
       } catch {
@@ -157,6 +168,41 @@ export function BackupConsole({
     }
   }
 
+  async function testRestore() {
+    if (active || !onTestRestore || !restoreBackupId) return;
+    setRestorePermit(null); setRestorePhrase(""); setRestorePreflight(false);
+    setBusy(true);
+    try {
+      const reply = await onTestRestore(restoreBackupId);
+      setRestorePreflight(reply.ok && Boolean(reply.preflight?.verified));
+      setFeedback(reply.message);
+    } catch { setFeedback("Restore preflight unavailable; no data changed."); }
+    finally { setBusy(false); }
+  }
+
+  async function prepareRestore() {
+    if (active || !dashboard.restore?.enabled || !onPrepareRestore || !restoreBackupId) return;
+    setRestorePermit(null); setRestorePhrase(""); setBusy(true);
+    try {
+      const reply = await onPrepareRestore(restoreBackupId);
+      setRestorePermit(reply.ok ? reply.permit ?? null : null);
+      setRestorePreflight(reply.ok && Boolean(reply.preflight?.verified));
+      setFeedback(reply.message);
+    } catch { setFeedback("Restore authorization unavailable; nothing was changed."); }
+    finally { setBusy(false); }
+  }
+
+  async function confirmRestore() {
+    const permit = restorePermit;
+    if (!permit || !onCommitRestore || active || !restoreBackupId ||
+        restorePhrase !== "RESTORE " + restoreBackupId ||
+        Date.now() / 1000 >= permit.expiresAt) return;
+    setRestorePermit(null); setRestorePhrase("");
+    await begin(() => onCommitRestore(
+      restoreBackupId, permit.permitId, permit.token, "RESTORE " + restoreBackupId,
+    ));
+  }
+
   async function copyLogs() {
     if (!selectedJob) return;
     const sanitized = selectedJob.events
@@ -186,7 +232,7 @@ export function BackupConsole({
       >
         <p className="text-xs text-muted-foreground">
           Encrypted local snapshots, Cloudflare R2 storage and UTC schedules.
-          Restore remains disabled until BR-04.
+          Restore is operator-gated and requires a fresh verified preflight.
         </p>
       </PageHeader>
 
@@ -208,7 +254,7 @@ export function BackupConsole({
           tone={dashboard.connected ? "success" : "warning"} />
         <StatCard compact label="Automatic backups" value={dashboard.schedule?.enabled ? "Enabled (UTC)" : dashboard.schedule ? "Disabled" : "Not configured"} />
         <StatCard compact label="Cloudflare R2" value={dashboard.r2?.configured ? "Configured" : "Not configured"} />
-        <StatCard compact label="Restore" value="Unavailable" />
+        <StatCard compact label="Restore" value={dashboard.restore?.enabled ? "Operator enabled" : "Unavailable"} />
       </StatGrid>
 
       {feedback ? <AlertBanner variant="info" role="status">{feedback}</AlertBanner> : null}
@@ -386,7 +432,7 @@ export function BackupConsole({
                   <Button key={job.id} size="xs" type="button" variant="ghost"
                     className="h-auto w-full justify-between gap-2 text-left"
                     onClick={() => setSelectedJobId(job.id)}>
-                    <span>{job.kind === "backup" ? "Create backup" : job.kind === "verify" ? "Verify backup" : "R2 upload"}</span>
+                    <span>{job.kind === "backup" ? "Create backup" : job.kind === "verify" ? "Verify backup" : job.kind === "restore" ? "Guarded restore" : "R2 upload"}</span>
                     <Badge variant={job.state === "completed" ? "success" :
                       job.state === "failed" || job.state === "interrupted" ? "warning" : "outline"}>
                       {job.state}
@@ -413,20 +459,68 @@ export function BackupConsole({
             <RotateCcw aria-hidden="true" className="size-4 text-muted-foreground" />
             <SectionTitle>Restore & recovery</SectionTitle>
           </div>
-          <Badge variant="outline">Planned BR-04</Badge>
+          <Badge variant="outline">BR-04 · Guarded</Badge>
         </PanelHeader>
-        <PanelBody className="flex flex-wrap items-center justify-between gap-3">
+        <PanelBody className="space-y-3">
           <div className="flex min-w-0 items-start gap-2 text-xs text-muted-foreground">
             <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             <p>
-              Restore requires a protected maintenance window, explicit authorization
-              and verified rollback. Existing production data is untouched by BR-02.
+              Test restore verifies encrypted age data, checksums, identity and metadata
+              without modifying services. Full isolated recovery is tested in disposable CI.
+              Actual restore is disabled until independent host operator authorization.
+              Before any mutation, an encrypted rollback must be created.
             </p>
           </div>
+          {dashboard.restore?.operatorReviewRequired ? (
+            <AlertBanner variant="warning" title="Operator review required">
+              An interrupted or uncertain prior restore blocks new maintenance jobs.
+            </AlertBanner>
+          ) : null}
+          <label className="block text-xs">Managed local V2 backup
+            <select aria-label="Restore backup selection"
+              className="mt-1 w-full rounded border border-border bg-background p-2"
+              value={restoreBackupId} disabled={!dashboard.connected || active}
+              onChange={(event) => {
+                setRestoreBackupId(event.target.value);
+                setRestorePermit(null); setRestorePhrase(""); setRestorePreflight(false);
+              }}>
+              <option value="">Select a verified local backup</option>
+              {dashboard.backups.filter((item) => item.state === "verified" &&
+                item.level === "V2" && item.localState !== "deleted").map((item) =>
+                  <option value={item.id} key={item.id}>{item.id}</option>)}
+            </select>
+          </label>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" disabled>Test restore</Button>
-            <Button type="button" variant="outline" disabled>Restore backup</Button>
+            <Button type="button" variant="outline"
+              disabled={!dashboard.connected || !restoreBackupId || !onTestRestore || active}
+              onClick={() => void testRestore()}>Test restore</Button>
+            <Button type="button" variant="outline"
+              disabled={!dashboard.restore?.enabled || !restoreBackupId || !onPrepareRestore ||
+                dashboard.restore?.operatorReviewRequired || active}
+              onClick={() => void prepareRestore()}>Restore backup</Button>
           </div>
+          {restorePreflight ? <p className="text-xs text-muted-foreground">
+            Preflight verified this archive. No data or services were changed.
+          </p> : null}
+          {restorePermit && !active ? (
+            <div className="space-y-2 border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground">
+                One-time confirmation expires in 90 seconds. Type this exact phrase.
+              </p>
+              <code className="block break-all text-xs">{"RESTORE " + restoreBackupId}</code>
+              <input aria-label="Exact restore confirmation" value={restorePhrase}
+                onChange={(event) => setRestorePhrase(event.target.value)}
+                autoComplete="off" spellCheck={false}
+                className="w-full rounded border border-border bg-background p-2 text-xs" />
+              <Button type="button" variant="outline"
+                disabled={restorePhrase !== "RESTORE " + restoreBackupId ||
+                  Date.now() / 1000 >= restorePermit.expiresAt || busy || !onCommitRestore}
+                onClick={() => void confirmRestore()}>Confirm guarded restore</Button>
+              <Button type="button" variant="ghost" onClick={() => {
+                setRestorePermit(null); setRestorePhrase("");
+              }}>Cancel restore</Button>
+            </div>
+          ) : null}
         </PanelBody>
       </Panel>
     </div>

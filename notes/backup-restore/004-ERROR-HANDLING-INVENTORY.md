@@ -61,3 +61,20 @@ Never include decrypted credentials, pip index tokens, private age identity, raw
 
 
 **P-02 CI:** [Single disposable regression #44215136163](https://github.com/JILLU-Games/ReadBox/actions/runs/44215136163) PASS; the installer refusal/error paths are source-audited and have not been runtime fault-injected on a host. Do not mark rollback operationally proven.
+
+## BR-04 guarded restore error/refusal inventory (2026-11-18)
+
+| Sanitized code/state | Exact implementation trigger |
+|---|---|
+| `RESTORE_OPERATOR_GATE_CLOSED` | No fixed root-owned 0600 `/etc/readbox-backup-restore.allow` with exact operator authorization; disposable project requires two explicit CI flags |
+| `RESTORE_INPUT_INVALID`, `RESTORE_BACKUP_NOT_FOUND`, `RESTORE_BACKUP_NOT_VERIFIED` | Wrong type, unknown or non-V2 local age snapshot |
+| `RESTORE_ARCHIVE_UNSAFE`, `RESTORE_ARCHIVE_UNAVAILABLE`, `RESTORE_PREFLIGHT_FAILED` | Symlink, wrong mode, missing file, wrong age identity, digest/manifest/project/mailserver metadata mismatch; no services stopped |
+| `RESTORE_CONFIRMATION_REQUIRED`, `RESTORE_PERMIT_EXPIRED`, `RESTORE_PERMIT_LIMIT` | No exact `RESTORE <32hex>` phrase, wrong admin actor/token, expired or replayed single-use SHA256-stored permit, or too many outstanding permits |
+| `RESTORE_SOURCE_CHANGED`, `RESTORE_ROLLBACK_EXISTS` | Archive changed after permit or rollback output exists; refuse overwrite/mutation |
+| `RESTORE_FAILED_ROLLED_BACK` | R05 reported automatic rollback success after restore failure; original rollback age file retained |
+| `RESTORE_ROLLBACK_CRITICAL`, `RESTORE_FAILED_REVIEW_ROLLBACK`, `RESTORE_TIMEOUT_OPERATOR_REVIEW` | Failed/unknown rollback or timeout: no false success; operator must review |
+| `RESTORE_OPERATOR_REVIEW_REQUIRED` | Interrupted or critical restore journal record prevents future automatic/manual backups and restore jobs |
+| `RESTORE_RESULT_UNVERIFIED`, `RESTORE_ENGINE_UNAVAILABLE` | Missing expected R05 success marker/rollback artifact or invocation failure |
+| Sanitized job activity | No raw R05 stdout/stderr, private age key, filesystem path or mail content emitted to UI/log |
+
+**Known limitation:** source-only test restore is a destructive-action-free preflight; it is not a stand-alone full isolated recovery. Full disposable R05 recovery is a CI test. Production remains default-deny and must never be assumed enabled.

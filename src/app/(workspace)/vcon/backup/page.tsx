@@ -1,4 +1,4 @@
-import { createBackupAction, verifyBackupAction } from "@/app/(workspace)/vcon/backup/actions";
+import { createBackupAction, verifyBackupAction, testRestoreAction, prepareRestoreAction, commitRestoreAction } from "@/app/(workspace)/vcon/backup/actions";
 import { BackupConsole } from "@/components/vcon/backup-console";
 import { readBackupDashboard } from "@/core/backup/agent-client";
 import { requireAdminUser } from "@/core/auth/route-guards";
@@ -13,6 +13,9 @@ export default async function AdminBackupPage() {
       initialDashboard={dashboard}
       onCreateBackup={createBackupAction}
       onVerifyBackup={verifyBackupAction}
+      onTestRestore={testRestoreAction}
+      onPrepareRestore={prepareRestoreAction}
+      onCommitRestore={commitRestoreAction}
     />
   );
 }
