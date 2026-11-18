@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import threading
 from datetime import datetime, timezone
+import time
 from uuid import uuid4
 
 IDENTIFIER = re.compile(r"^[0-9a-f]{32}$")
@@ -104,9 +105,16 @@ class PrivateStore:
         with self.mutex:
             return self._read(self.backups, identifier)
 
-    def create(self, kind: str, backup_id: str | None = None) -> dict:
+    def create(self, kind: str, backup_id: str | None = None, *,
+               auto_upload: bool = False, auto_source_job: str | None = None) -> dict:
         if kind not in {"backup", "verify", "r2_upload"}:
             raise ValueError("Unknown job action")
+        if type(auto_upload) is not bool or (auto_upload and kind != "backup"):
+            raise ValueError("Invalid automatic upload intent")
+        if auto_source_job is not None and (kind != "r2_upload" or
+                                            not valid_id(auto_source_job) or
+                                            auto_source_job != backup_id):
+            raise ValueError("Invalid automatic source job")
         with self.mutex:
             if any(job["state"] in ACTIVE for job in self._items(self.jobs)):
                 raise RuntimeError("JOB_CONFLICT")
@@ -116,8 +124,57 @@ class PrivateStore:
                 "backupId": backup_id, "createdAt": now(), "updatedAt": now(),
                 "events": [{"at": now(), "level": "info", "message": "Job queued"}],
             }
+            if kind == "backup":
+                # Persist BEFORE execution so a crash after the archive is written
+                # cannot lose the subsequent offsite-upload intent.
+                job["autoUpload"] = auto_upload
+            if auto_source_job is not None:
+                job["autoSourceJob"] = auto_source_job
             atomic_json(self.jobs / (identifier + ".json"), job)
             return job
+
+    def claim_due_auto_upload(self, when: float | None = None) -> dict | None:
+        """Atomically claim one persisted auto-upload. Max three jobs per source.
+
+        Safe after a killed agent: completed/interrupted backup jobs use the
+        journal's fixed id as the archive id; never trust a caller path.
+        """
+        moment = time.time() if when is None else when
+        with self.mutex:
+            all_jobs = self._items(self.jobs)
+            if any(job["state"] in ACTIVE for job in all_jobs):
+                return None
+            for source in sorted(all_jobs, key=lambda item: (item["createdAt"], item["id"])):
+                if source.get("kind") != "backup" or source.get("autoUpload") is not True:
+                    continue
+                if source.get("state") not in {"completed", "interrupted", "failed"}:
+                    continue
+                identifier = source["id"]
+                record = self._read(self.backups, identifier)
+                if (record is None or record.get("state") != "verified" or
+                    record.get("level") != "V2" or record.get("localState") == "deleted" or
+                    record.get("remoteVerifiedAt")):
+                    continue
+                uploads = [job for job in all_jobs
+                           if job.get("kind") == "r2_upload" and
+                           job.get("autoSourceJob") == identifier and
+                           job.get("backupId") == identifier]
+                if len(uploads) >= 3:
+                    # A finite budget across crashes/restarts; manual retry
+                    # remains an explicit separate admin action.
+                    continue
+                if uploads:
+                    last = max(uploads, key=lambda job: (job["updatedAt"], job["id"]))
+                    try:
+                        last_at = datetime.fromisoformat(last["updatedAt"]).timestamp()
+                    except (ValueError, TypeError):
+                        continue
+                    # 30s then 120s; no polling storm or instant crash-loop retries.
+                    delay = 30 * (4 ** (len(uploads) - 1))
+                    if moment < last_at + delay:
+                        continue
+                return self.create("r2_upload", identifier, auto_source_job=identifier)
+            return None
 
     def update(self, identifier: str, state: str, message: str,
                level: str = "info", result: dict | None = None) -> dict:

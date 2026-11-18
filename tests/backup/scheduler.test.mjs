@@ -58,6 +58,54 @@ with tempfile.TemporaryDirectory() as tmp:
     assert schedule.cleanup_local(remote,archives,after,when=time.time())==[]
     schedule.configure({**payload,"enabled":False},False)
     assert schedule.due(time.time()+999999) is None
+    # Persist auto-upload intent before backup execution, then simulate SIGKILL
+    # after a verified archive's record has been committed, before success ACK.
+    auto=store.create("backup",auto_upload=True)
+    assert store.get_job(auto["id"])["autoUpload"] is True
+    store.update(auto["id"],"running","Job running")
+    store.save_backup({"id":auto["id"],"state":"verified","level":"V2",
+                       "createdAt":"2026-01-01T00:00:00+00:00"})
+    restarted=PrivateStore(store.root)
+    assert restarted.get_job(auto["id"])["state"]=="interrupted"
+    first=restarted.claim_due_auto_upload(when=time.time()+1)
+    assert first["kind"]=="r2_upload" and first["backupId"]==auto["id"]
+    assert first["autoSourceJob"]==auto["id"]
+    assert restarted.claim_due_auto_upload(when=time.time()+1000) is None
+    restarted.update(first["id"],"running","Job running")
+    restarted.update(first["id"],"failed",
+                     "Cloudflare R2 upload failed; local backup was preserved")
+    # A failure must never queue immediately: persist 30s/120s retry edges.
+    assert restarted.claim_due_auto_upload(when=time.time()+2) is None
+    second=restarted.claim_due_auto_upload(when=time.time()+35)
+    assert second and second["backupId"]==auto["id"]
+    restarted.update(second["id"],"running","Job running")
+    restarted.update(second["id"],"failed",
+                     "Cloudflare R2 upload failed; local backup was preserved")
+    assert restarted.claim_due_auto_upload(when=time.time()+60) is None
+    third=restarted.claim_due_auto_upload(when=time.time()+180)
+    assert third and third["autoSourceJob"]==auto["id"]
+    restarted.update(third["id"],"running","Job running")
+    restarted.update(third["id"],"failed",
+                     "Cloudflare R2 upload failed; local backup was preserved")
+    assert PrivateStore(store.root).claim_due_auto_upload(when=time.time()+10000) is None
+    # Another auto backup with a verified remote copy can never be re-uploaded.
+    done=restarted.create("backup",auto_upload=True)
+    restarted.save_backup({"id":done["id"],"state":"verified","level":"V2",
+                           "createdAt":"2026-01-01T00:00:00+00:00"})
+    restarted.update(done["id"],"running","Job running")
+    restarted.update(done["id"],"completed","Encrypted backup saved and verified")
+    restarted.set_remote_verified(done["id"],"readbox/managed/"+done["id"]+".age")
+    assert restarted.claim_due_auto_upload(when=time.time()+20000) is None
+    # A manual backup never implicitly becomes an offsite upload.
+    manual=restarted.create("backup")
+    assert manual["autoUpload"] is False
+    restarted.update(manual["id"],"running","Job running")
+    restarted.update(manual["id"],"completed","Encrypted backup saved and verified")
+    restarted.save_backup({"id":manual["id"],"state":"verified","level":"V2",
+                           "createdAt":"2026-01-01T00:00:00+00:00"})
+    assert restarted.claim_due_auto_upload(when=time.time()+30000) is None
+    print("BR03_DURABLE_AUTO_UPLOAD_RESTART_DEDUP_BACKOFF_BUDGET_PASS")
+
     print("BR03_UTC_DEFAULT_OFF_RESTART_NO_REPLAY_GUARDED_RETENTION_PASS")
 `;
   const p=spawnSync("python3",["-c",program],{encoding:"utf8",timeout:15_000});

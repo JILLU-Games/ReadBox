@@ -84,12 +84,9 @@ class BackupBroker:
                        "Encrypted backup uploaded to R2 and remotely checksum verified")
             self.state.update(identifier, "completed", message, "success", result)
             if job["kind"] == "backup" and job.get("autoUpload"):
-                # Queue only after local backup has been persisted and marked complete.
-                try:
-                    upload = self.state.create("r2_upload", identifier)
-                    threading.Thread(target=self._worker, args=(upload,), daemon=False).start()
-                except RuntimeError:
-                    pass
+                # Saved intent + verified archive survive a crash before this call.
+                # The scheduler also reconciles on startup and every bounded tick.
+                self.queue_auto_upload()
             elif job["kind"] == "r2_upload":
                 try:
                     self.schedule.cleanup_local(self.r2, self.executor.archives,
@@ -163,7 +160,18 @@ class BackupBroker:
         worker.start()
         return 202, {"job": job}
 
+    def queue_auto_upload(self, when: float | None = None) -> bool:
+        # One atomic journal claim prevents concurrent scheduler/worker enqueues.
+        job = self.state.claim_due_auto_upload(when)
+        if job is None:
+            return False
+        threading.Thread(target=self._worker, args=(job,), daemon=False).start()
+        return True
+
     def scheduler_tick(self, when: float | None = None) -> bool:
+        # First reconcile persisted pending uploads, including after agent restart.
+        if self.queue_auto_upload(when):
+            return True
         # Explicitly default OFF. No auto-restore or remote deletion.
         if any(job["state"] in {"queued", "running"} for job in self.state.list_jobs()):
             return False
@@ -171,10 +179,9 @@ class BackupBroker:
         if config is None:
             return False
         try:
-            job = self.state.create("backup")
+            job = self.state.create("backup", auto_upload=bool(config["autoUpload"]))
         except RuntimeError:
             return False
-        job["autoUpload"] = bool(config["autoUpload"])
         threading.Thread(target=self._worker, args=(job,), daemon=False).start()
         return True
 

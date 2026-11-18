@@ -1,4 +1,4 @@
-name: ReadBox BR03 R2 encrypted offsite and UTC schedule disposable CI — NO deployment
+name: ReadBox BR03 hardened backup + notes-only safe scope CI — NO deployment
 on:
   push:
     branches: [maintenance/readbox-br03-20261118, main]
@@ -32,7 +32,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verify exact BR03 phase Scope Lock and immutable unrelated source
+      - name: Verify BR03 exact source allowlist OR notes-only main commit
+        id: scope
         shell: bash
         run: |
           set -euo pipefail
@@ -65,17 +66,35 @@ jobs:
           notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md
           """.split())
           changed=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
-          assert changed<=approved|notes,("BR03_SCOPE_VIOLATION",sorted(changed-(approved|notes)))
-          assert {p for p in approved if p.startswith("deployment/backup-agent/r2.") or
-                  p.endswith("requirements.lock") or p.endswith("scheduler.py") or
-                  p.endswith("readbox-backup-agent.timer") or
-                  p.endswith("r2-integration.test.mjs") or p.endswith("scheduler.test.mjs")}<=changed
-          assert not changed & {"docker-compose.yml","Dockerfile","prisma/schema.prisma","package.json",
-                                "src/app/(workspace)/vcon/backup/page.tsx"}
+          code={p for p in changed if not p.startswith("notes/")}
+          assert code<=approved,("BR03_SCOPE_VIOLATION",sorted(code-approved))
+          assert not code & {"docker-compose.yml","Dockerfile","prisma/schema.prisma","package.json",
+                               "src/app/(workspace)/vcon/backup/page.tsx"}
           subprocess.run(["git","diff","--check",base,"HEAD"],check=True)
-          print("BR03_EXACT_APPROVED_SCOPE_PASS",len(changed))
+          if not code:
+              assert changed and all(p.startswith("notes/") for p in changed)
+              # The retired BR02 workflow previously demanded 18 code changes
+              # even for notes-only HEADs. The scope check now explicitly
+              # recognizes docs-only commits and skips BR03 runtime tests.
+              mode="notes_only"
+              print("BR03_NOTES_ONLY_SCOPE_PASS",len(changed))
+          else:
+              required={p for p in approved if p.startswith("deployment/backup-agent/r2.") or
+                        p.endswith("requirements.lock") or p.endswith("scheduler.py") or
+                        p.endswith("readbox-backup-agent.timer") or
+                        p.endswith("r2-integration.test.mjs") or p.endswith("scheduler.test.mjs")}
+              assert required<=code,("BR03_REQUIRED_PATH_MISSING",sorted(required-code))
+              # Phase notes are allowed; unrelated source, CI and auth/mailer
+              # files remain prohibited regardless of branch or trigger.
+              assert all(p.startswith("notes/") for p in changed-code)
+              mode="br03"
+              print("BR03_EXACT_APPROVED_SCOPE_PASS",len(code))
+          import os
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8") as out:
+              out.write("mode="+mode+"\n")
           PY
       - name: Install exact hashed Python S3 SDK and cryptography from audited lock
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
@@ -84,6 +103,7 @@ jobs:
           /tmp/readbox-br03-venv/bin/python -c 'import boto3,cryptography;print("BR03_PINNED_HASHED_SDK_PASS")'
           /tmp/readbox-br03-venv/bin/python -m pip check
       - name: Existing auth, frontend, mail and backup source regression
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
@@ -98,6 +118,7 @@ jobs:
           npm run build
           echo BR03_FRONTEND_AUTH_BUILD_REGRESSION_PASS
       - name: Python syntax and immutable restore boundary
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
@@ -106,6 +127,7 @@ jobs:
           ! grep -REn 'restore\.production|delete_objects\(' deployment/backup-agent/{agent,executor,storage,verification,r2,scheduler}.py
           echo BR03_AGENT_SOURCE_SAFETY_PASS
       - name: Disposable R2 mock SDK + UTC scheduler + existing BR02 encrypted snapshot
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail
@@ -118,6 +140,7 @@ jobs:
             tests/backup/compose-integration.test.mjs
           echo BR03_R2_SCHEDULER_AND_BR02_DISPOSABLE_PASS
       - name: Existing R05 disposable encrypted restore/rollback regression unchanged
+        if: steps.scope.outputs.mode == 'br03'
         shell: bash
         run: |
           set -euo pipefail

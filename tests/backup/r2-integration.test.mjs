@@ -19,14 +19,29 @@ class FakeS3:
         self.objects={}
         self.fail=None
         self.cleanup_failed=False
+        self.upload_calls=0
+        self.fail_upload_once=False
+        self.put_ack_lost=False
+        self.pages=0
+        self.bad_page_token=False
     def list_objects_v2(self,**args):
         if self.fail=="list": raise S3Failure(403)
         assert args["Prefix"]=="readbox/managed/"
-        return {"Contents":[{"Key":k,"Size":len(v[0])} for k,v in self.objects.items()
-                  if k.startswith(args["Prefix"])][:args["MaxKeys"]]}
+        self.pages+=1
+        keys=sorted(k for k in self.objects if k.startswith(args["Prefix"]))
+        start=int(args.get("ContinuationToken","0"))
+        page=keys[start:start+args["MaxKeys"]]
+        result={"Contents":[{"Key":k,"Size":len(self.objects[k][0])} for k in page],
+                "IsTruncated":start+len(page)<len(keys)}
+        if result["IsTruncated"]:
+            result["NextContinuationToken"]=("0" if self.bad_page_token else str(start+len(page)))
+        return result
     def put_object(self,**args):
         if self.fail=="put":raise S3Failure(403)
         self.objects[args["Key"]]=(bytes(args["Body"]),args.get("Metadata",{}))
+        if self.put_ack_lost:
+            self.put_ack_lost=False
+            raise TimeoutError("simulated lost PUT ACK")
     def head_object(self,**args):
         if self.fail=="timeout":raise OSError("connection timeout simulated")
         if args["Key"] not in self.objects:raise S3Failure(404)
@@ -40,9 +55,13 @@ class FakeS3:
         assert "/health/" in args["Key"]
         self.objects.pop(args["Key"],None)
     def upload_file(self,filename,bucket,key,ExtraArgs):
+        self.upload_calls+=1
         if self.fail=="partial":raise OSError("partial object")
         assert key.startswith("readbox/managed/") and key.endswith(".age")
         with open(filename,"rb") as f:self.objects[key]=(f.read(),ExtraArgs["Metadata"])
+        if self.fail_upload_once:
+            self.fail_upload_once=False
+            raise TimeoutError("simulated lost upload ACK")
 
 with tempfile.TemporaryDirectory() as temporary:
     root=Path(temporary)
@@ -109,19 +128,67 @@ with tempfile.TemporaryDirectory() as temporary:
         assert fake.objects["readbox/managed/"+backup_id+".age"][0]==b"wrong"
         fake.objects.pop("readbox/managed/"+backup_id+".age")
         fake.fail="partial"
+        before=fake.upload_calls
+        try:adapter.upload(backup_id)
+        except r2.R2Error as e:assert e.code=="R2_RETRY_EXHAUSTED"
+        else:raise AssertionError("partial failure reported success")
+        assert fake.upload_calls-before==3
+        fake.fail=None
+        # A completed immutable object with a LOST ACK must not be rewritten.
+        fake.fail_upload_once=True
+        before=fake.upload_calls
+        assert adapter.upload(backup_id)["remoteVerified"]
+        assert fake.upload_calls-before==1
+        assert fake.objects["readbox/managed/"+backup_id+".age"][0]==content
+        fake.fail="timeout"
+        try:adapter.upload(backup_id)
+        except r2.R2Error as e:assert e.code=="R2_RETRY_EXHAUSTED"
+        else:raise AssertionError("timed out HEAD accepted")
+        fake.fail=None
+        fake.objects.pop("readbox/managed/"+backup_id+".age")
+        fake.fail="forbidden"
+        original_head=fake.head_object
+        def forbidden_head(**kwargs):raise S3Failure(403)
+        fake.head_object=forbidden_head
+        before=fake.upload_calls
         try:adapter.upload(backup_id)
         except r2.R2Error as e:assert e.code=="R2_UPLOAD_FAILED"
-        else:raise AssertionError("partial failure reported success")
+        else:raise AssertionError("403 incorrectly retried")
+        assert fake.upload_calls==before
+        fake.head_object=original_head
         fake.fail=None
+        # Pagination must reach objects AFTER the first 100, then bound UI to 30.
+        for number in range(122):
+            ident=("%032x"%(number+4096))
+            fake.objects["readbox/managed/"+ident+".age"]=(b"x",{"sha256":"x"*64})
+        fake.pages=0
+        history=adapter.list_remote()
+        assert fake.pages>=2 and len(history)==30
+        assert history[0]["backupId"]==("%032x"%(121+4096))
+        assert all(x["state"]=="remote_object_present" for x in history)
+        # Never lie about a partial list after broken S3 pagination.
+        fake.bad_page_token=True
+        try:adapter.list_remote()
+        except r2.R2Error as e:assert e.code=="R2_PAGE_INVALID"
+        else:raise AssertionError("invalid continuation accepted")
+        fake.bad_page_token=False
+        fake.objects.clear()
         bad={"accountId":"https://127.0.0.1","bucket":"readbox-private",
              "accessKeyId":key,"secretAccessKey":secret}
         try:adapter.configure(bad)
         except r2.R2Error as e:assert e.code=="R2_CONFIG_INVALID"
         else:raise AssertionError("SSRF endpoint accepted")
+        # Ambiguous PUT success must clean only its exact randomized health key.
+        fake.put_ack_lost=True
+        try:adapter.test()
+        except r2.R2Error as e:assert e.code=="R2_CONNECTION_FAILED"
+        else:raise AssertionError("lost PUT acknowledgement treated as success")
+        assert fake.objects=={}, "health probe orphan after lost PUT ACK"
         fake.cleanup_failed=True
         try:adapter.test()
         except r2.R2Error as e:assert e.code=="R2_PROBE_CLEANUP_FAILED"
         else:raise AssertionError("temporary object cleanup failure ignored")
+        fake.cleanup_failed=False
         assert calls and all(v.startswith("https://") for v in calls)
         print("BR03_R2_ENCRYPTED_CREDENTIALS_ROTATION_TLS_UPLOAD_DIGEST_CONFLICT_PARTIAL_PASS")
     finally:
