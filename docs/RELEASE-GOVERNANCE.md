@@ -35,3 +35,35 @@ The [17-gate runbook](PRODUCTION-ACCEPTANCE-RUNBOOK.md) maps RG-01–RG-17 to in
 Separate user authorization is required first for live VPS/staging and DNS/SMTP operations. Independently observe the staging tests and offsite restore, resolve original findings, approve immutable image digest, map exact source/mirror SHA/tree, obtain license/security review and a formal human production GO decision. A **second, separate explicit command** is required to create a tag, GitHub Release, public image or actual deploy. Until then: **NO-GO**.
 
 ReadBox is inbound-only (no public SMTP submission, IMAP or POP3); R-06 cannot add those features, alter UI/UX, authentication, existing mailserver transport or migrations.
+
+
+## MERGE-GATE-04 — automatic prerelease safety lock (source-only)
+
+The separate `readbox-first-release.yml` workflow can still be notified when
+R06 completes, but its **only** `prerelease` job is explicitly ineligible via
+the literal job-level `if: ${{ false }}` guard. This blocks any new tag,
+release or asset publication after a successful R06 `push` event on `main`
+without changing the existing release script, credentials, tag, manifest,
+or published historical prerelease. The global workflow remains
+`contents: read`; the historical `contents: write` job grant is unreachable
+while this guard remains false. An explicit separate approval and patch review
+would be required to restore automated publication.
+
+The focused disposable MG-04 CI tests the literal job guard, the single
+release job, intact historical script, absence of known alternate release
+publication commands in the other tracked workflow YAMLs, and the R06 formal
+`NO_GO` contract. This is a static fail-closed regression, **not** an
+actual main-push or live release test.
+
+Historical `reference/MailStack` remains separately AGPL-governed. The
+candidate includes 109 tracked changed/added reference paths relative to
+`JILLU-Games/main`; root MIT, original AGPL/NOTICE and Docker ignore are
+unaltered. License obligations, distribution rights and derivative provenance
+are **not cleared** by inventory or CI. Existing published
+`v0.1.0-rc.1` points to `0e8a19e583719e56c054406581bedcf5599f1ace`;
+it must not be retargeted in this source-only phase.
+
+Candidate and source/mirror/user fork mains differ. Candidate versus
+`JILLU-Games/main` is fast-forward ancestrally compatible; parity and
+cross-repository fast-forward safety are **not established** and require
+another separately authorized audit and promotion.

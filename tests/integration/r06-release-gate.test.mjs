@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 import {
   GATE_IDS, parseLedger, parseStagingEvidence, checkProvenance,
@@ -121,4 +122,44 @@ test("R06 root MIT and historical MailStack AGPL files must both remain intact",
     referenceNotice: "MailStack",
     dockerignore: "reference\n",
   }), false);
+});
+
+
+test("MG-04 prerelease publish job is unconditionally disabled even after a successful main R06 push", () => {
+  const workflow = readFileSync(".github/workflows/readbox-first-release.yml", "utf8");
+  assert.match(workflow, /^on:\n  workflow_run:\n/m, "the historical workflow event is preserved");
+  assert.match(workflow, /gh release create "\$TAG"/, "historical release script is retained, but unreachable");
+  assert.match(workflow, /^permissions:\n  contents: read$/m, "global permissions remain read-only");
+  const jobs = workflow.slice(workflow.indexOf("\njobs:\n") + 1);
+  assert.ok(jobs.startsWith("jobs:\n"), "jobs block must exist");
+  assert.deepEqual(
+    [...jobs.matchAll(/^  ([a-zA-Z][\w-]*):\s*$/gm)].map((match) => match[1]),
+    ["prerelease"],
+    "no second, unguarded release job may be introduced",
+  );
+  const guard = jobs.match(/^  prerelease:\n(?:    #[^\n]*\n)*    if: ([^\n]+)$/m);
+  assert.ok(guard, "prerelease needs an explicit, job-level guard");
+  assert.equal(guard[1].trim(), "${{ false }}",
+    "job condition must always evaluate false, irrespective of event payload");
+  assert.equal((workflow.match(/gh release create/g) ?? []).length, 1,
+    "no duplicate publication command in this workflow");
+  assert.match(jobs, /^    permissions:\n      contents: write$/m,
+    "historical job permission is retained but unreachable while disabled");
+
+  // Static inventory: no other tracked Actions workflow may silently add a
+  // second GitHub Release publisher. This does not prove all possible actions
+  // harmless; it protects the known publish mechanisms in the frozen tree.
+  const actionsDir = ".github/workflows";
+  for (const name of readdirSync(actionsDir).filter((f) => /\.ya?ml$/.test(f))) {
+    if (name === "readbox-first-release.yml") continue;
+    const source = readFileSync(join(actionsDir, name), "utf8");
+    assert.doesNotMatch(source,
+      /(?:gh\s+release\s+(?:create|upload)|softprops\/action-gh-release|actions\/create-release|peter-evans\/create-release)/i,
+      "unexpected alternate release path in " + name);
+  }
+
+  const formal = currentReport({ expectedSha: sha });
+  assert.equal(formal.status, "NO_GO");
+  assert.equal(formal.findings.open, 7);
+  assert.equal(formal.automated_publish_enabled, false);
 });

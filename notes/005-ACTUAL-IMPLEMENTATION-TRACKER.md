@@ -264,3 +264,16 @@ No application bug fix was authorized or performed. A future manual workflow dis
 | Formal stable production release | NO-GO, seven original findings OPEN, live acceptance 0/17 |
 
 Full run: https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430. No code patch, branch promotion, live deployment, source/mirror synchronization, tag or release.
+
+
+## MERGE-GATE-04 — scoped release safety implementation
+
+| Scope / expected contract | Evidence status |
+|---|---|
+| Single prerelease job disabled for all events | IMPLEMENTED, CI pending |
+| Existing publish script, tag, asset, permissions | PRESERVED; no release action attempted |
+| R06 formal NO-GO and 7 open findings | UNCHANGED, focused CI pending |
+| Read-only 109-file AGPL reference inventory | RECORDED, legal clearance NOT GIVEN |
+| Candidate 20 ahead / 0 behind JILLU main | VERIFIED at freeze |
+| Source/main/fork parity and branch protection | NOT VERIFIED / NO-GO |
+| VPS, DNS, R2, SMTP, production secrets, releases | NOT RUN |

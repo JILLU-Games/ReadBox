@@ -1,86 +1,69 @@
-name: ReadBox MERGE-GATE-02 blocker-only disposable Linux CI
+name: ReadBox MERGE-GATE-04 release safety guard - disposable CI
 on:
   push:
-    branches:
-      - ci/domain-auto01-merge
+    branches: [ci/domain-auto01-merge]
     paths:
       - .github/workflows/domain-auto01-merge-check.yml
 permissions:
   contents: read
 concurrency:
-  group: merge-gate02-blocker-${{ github.ref }}
+  group: merge-gate04-release-guard-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  focused-check:
+  release-safety:
     if: github.repository == 'JILLU-Games/ReadBox'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
-      PYTHONDONTWRITEBYTECODE: "1"
+    timeout-minutes: 15
     steps:
-      - name: Checkout candidate without write credentials
+      - name: Checkout immutable scoped candidate
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Immutable frozen baseline and exact MG-02 changed-path audit
+      - name: Exact MG-04 paths, immutable baseline and no production files
         shell: bash
         run: |
           set -euo pipefail
           test ! -e .env
           python3 - <<'PY'
           import subprocess
-          base = "ff72192c4d73d324134d311bbfd31ec7c785b250"
+          base = "fa32be8f3fe2993b11df5e872fe8552ac8af40f7"
           allowed = {
-            "src/core/domains/service.ts",
-            "src/components/users/user-settings-view.tsx",
-            "tests/dns/domain-zone-selection.test.ts",
-            "tests/admin/phase3-domains-mailboxes.test.ts",
-            "tests/ui/vcon-phase3.test.tsx",
-            "tests/ui/users-settings.test.tsx",
+            ".github/workflows/readbox-first-release.yml",
             ".github/workflows/domain-auto01-merge-check.yml",
-            "docs/DOMAIN-AUTOMATION.md",
+            "tests/integration/r06-release-gate.test.mjs",
+            "docs/RELEASE-GOVERNANCE.md",
             "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
             "notes/004-ERROR-HANDLING-INVENTORY.md",
             "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
             "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
           }
           required = {
-            "src/core/domains/service.ts",
-            "tests/admin/phase3-domains-mailboxes.test.ts",
-            "tests/ui/vcon-phase3.test.tsx",
-            "tests/ui/users-settings.test.tsx",
+            ".github/workflows/readbox-first-release.yml",
             ".github/workflows/domain-auto01-merge-check.yml",
+            "tests/integration/r06-release-gate.test.mjs",
           }
           subprocess.run(["git", "merge-base", "--is-ancestor", base, "HEAD"], check=True)
-          paths = set(subprocess.check_output(
+          changed = set(subprocess.check_output(
             ["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines())
-          assert paths <= allowed and required <= paths, ("MERGE_GATE02_SCOPE_FAIL", sorted(paths - allowed), sorted(required-paths))
+          assert required <= changed and changed <= allowed, (
+              "MG04_SCOPE_VIOLATION", sorted(changed - allowed), sorted(required - changed))
           subprocess.run(["git", "diff", "--check", base, "HEAD"], check=True)
-          print("MERGE_GATE02_EXACT_SCOPE_PASS", len(paths))
+          print("MG04_EXACT_SCOPE_PASS", len(changed))
           PY
-      - name: Setup locked Node 22
+      - name: Use Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-      - name: One focused verification including FULL UI regressions
+      - name: Negative release trigger and R06 formal NO-GO contract
         shell: bash
         run: |
           set -euo pipefail
-          npm ci --no-audit --no-fund
-          npm run typecheck
-          node --conditions=react-server --import tsx --test \
-            tests/dns/domain-automation.test.ts \
-            tests/dns/domain-zone-selection.test.ts \
-            tests/dns/dkim-provision.test.ts \
-            tests/admin/phase3-domains-mailboxes.test.ts
-          npx vitest run --config vitest.config.mts
-          python3 tests/dns/test_domain_host_bridge.py
-          npm audit --omit=dev --audit-level=moderate
-          echo MERGE_GATE02_FOCUSED_DISPOSABLE_PASS
-      - name: Confirm source-only safety boundary
-        run: echo MERGE_GATE02_NO_VPS_MAIN_PUSH_RELEASE_DNS_R2_OR_SECRETS
-
-# One necessary MG-01 focused recheck: fixture must model both UUID and numeric-ID CAS writers.
+          node --check tests/integration/r06-release-gate.test.mjs
+          node --test tests/integration/r06-release-gate.test.mjs
+          node scripts/testing/r06-release-gate.mjs --ci --output "$RUNNER_TEMP/mg04-gate-status.json"
+          grep -Fq '"status": "NO_GO"' "$RUNNER_TEMP/mg04-gate-status.json"
+          grep -Fq '"open": 7' "$RUNNER_TEMP/mg04-gate-status.json"
+          echo MG04_PRERELEASE_DISABLED_AND_NO_GO_PASS
+      - name: Verify no production actions
+        run: echo MG04_NO_TAG_RELEASE_VPS_DNS_R2_MAIN_PUSH_OR_SECRETS

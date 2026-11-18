@@ -237,3 +237,10 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Previous blocker was inability of connected GitHub tools to create a workflow dispatch; **resolved operationally** by the user's manual GitHub Actions dispatch, without editing the workflow. It was never an application bug.
 - [R06 #44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) at tested SHA `ff614db384f77a218d7916a726b298f27a068ae5`: no failing CI steps, job `success`. Isolated SMTP rejected unsafe relay/missing TLS; R05 rehearsal passed tamper/no-mutation and after-DB-apply automatic rollback guards. The logs include non-fatal build/deprecation warnings, but no failed gate.
 - **Residuals remain:** live external SMTP/DNS/DKIM/TLS/PTR/VPS, real offsite R2 custody/retention and operator recovery evidence, historical-source provenance review. R06 software-CI success does not close seven original OPEN findings or any of 17 live staging gates.
+
+
+## MERGE-GATE-04 — pre-promotion release side-effect blocker
+
+- **Confirmed static risk MG-04A:** `.github/workflows/readbox-first-release.yml` previously had a job condition matching a successful `R06` push to `main`, with `contents: write` and `gh release create`. It also checked SHA equality and existing tag before publication, so publication was conditional, not guaranteed.
+- **Fail-closed patch:** job-level literal `if: ${{ false }}` makes the sole publisher job ineligible for every workflow-run event, without touching release commands, tag objects or artifacts. Static negative tests assert no extra publisher job and no known alternate release command in other workflow YAMLs.
+- **Residuals:** safe automated re-enable requires new explicit authorization, legal clearance remains unavailable for historical reference AGPL material, and source/mirror main SHA parity is unresolved. CI static assertions are not an actual live event/release experiment.

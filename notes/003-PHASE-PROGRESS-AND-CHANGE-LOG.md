@@ -231,3 +231,12 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - Consolidated app regression/lint/unit/full UI (20 files)/build PASS; production-only dependency audit `found 0 vulnerabilities`; ephemeral PostgreSQL 16/migration/auth PASS; isolated Docker SMTP→LMTP→Maildir/TLS-negative PASS; encrypted backup, restore, ACL and injected rollback/tamper-negative PASS; historical R06/QIS01 exact Scope Locks PASS; sanitized NO-GO artifact uploaded. Run completed at 2026-11-18 18:56 UTC.
 - Exact log markers: `R06_APP_UI_AUTH_PROVENANCE_AND_NEGATIVE_GATES_PASS`, `R06_DEPENDENCY_AUDIT_PASS`, `R06_EPHEMERAL_POSTGRES_TARGET_GUARDED_INTEGRATION_PASS`, `R06_ISOLATED_PRODUCTION_IMAGES_SMTP_LMTP_PASS`, `R06_ENCRYPTED_BACKUP_RESTORE_ROLLBACK_PASS`, `R06_QIS01_IMMUTABLE_SCOPE_AUDITS_PASS`, `R06_ALL_CI_CONTRACTS_PASS_PRODUCTION_NO_GO`.
 - Final notes-only closure changes no runtime/source/workflow/test files; `JILLU-Games/main` still `952516a2cac27649824bf14329f511eae6ae9294`. No live production provider/VPS action, branch merge, main/source sync, tag or release.
+
+
+## MERGE-GATE-04 / RELEASE-SAFETY-GUARD — implementation candidate (2026-11-19)
+
+- Frozen baseline `fa32be8f3fe2993b11df5e872fe8552ac8af40f7` on isolated branch `ci/domain-auto01-merge`. Only release job eligibility, isolated negative release tests, scoped CI, release governance and notes/003–006 are changed.
+- MG-04A: the sole prerelease job is disabled using literal job-level `if: ${{ false }}` despite successful R06 main-push event; original scripts, fixed tag, permission declarations and published release remain unchanged. No actual main push or release triggered.
+- MG-04B: read-only inventory: 109 changed/added paths under `reference/MailStack`; AGPL license and NOTICE remain separate from root MIT. Qualified derivative/distribution/legal review remains OPEN.
+- MG-04C: JILLU-Games/main `952516a2cac27649824bf14329f511eae6ae9294`, vibtoolshq/main `46936f7fa9c2fac2d254501ce955fab7c6b476a5`, MdNurnobi-Dev/main `511a77380ef8d41061164abb966cbe960b6d02a8`, candidate `fa32be8f3fe2993b11df5e872fe8552ac8af40f7` at freeze. Candidate is 20 commits ahead of JILLU main, 0 behind. No cross-repo sync, promotion or release.
+- One focused disposable Linux CI and one exact scope/security audit are the only authorized verification. Test result to be recorded after the actual CI run; no production GO implied.

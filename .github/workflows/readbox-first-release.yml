@@ -11,12 +11,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   prerelease:
-    if: >-
-      github.repository == 'JILLU-Games/ReadBox' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == 'JILLU-Games/ReadBox'
+    # MERGE-GATE-04: explicitly disabled. Only a separate approved release phase
+    # may re-enable publication; R06 success is never release authorization.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

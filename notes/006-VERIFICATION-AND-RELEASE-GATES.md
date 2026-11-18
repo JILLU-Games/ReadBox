@@ -298,3 +298,11 @@ source change; no live secrets or external production writes.
 - **CI gate = SUCCESS**: operator-triggered GitHub Actions [#44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430), job `135048964258`, `workflow_dispatch` event, exact tested SHA `ff614db384f77a218d7916a726b298f27a068ae5`, branch `ci/domain-auto01-merge`, completion `success`. All consolidated app/build/security/PostgreSQL/isolated Docker SMTP→LMTP/backup restore rollback/historical immutable scope jobs PASS. Sanitized status artifact `r06-ci-no-go-ff614db384f77a218d7916a726b298f27a068ae5` (artifact ID `14459189773`) uploaded.
 - **Formal production gate = NO-GO**, verified exact log markers `R06_PRODUCTION_NO_GO`, `R06_FINDINGS_OPEN=7`, `R06_LIVE_GATE_PASS_CLAIMS=0/17`. R06 CI is non-production evidence only. Never claim all live acceptance gates closed.
 - Closure is documentation-only notes/003–006. The verified application tree is unchanged after R06; final closure commit itself is not a separately run R06 test SHA. JILLU-Games `main` remains at `952516a2cac27649824bf14329f511eae6ae9294`. No main merge/push, source/mirror sync, VPS operations, live DNS/R2/SMTP, credentials, deployment, tag, prerelease or release. Separate MERGE-GATE-04 approval required for any promotion decision.
+
+
+## MERGE-GATE-04 — release safety candidate gate
+
+- Frozen candidate before patch: `fa32be8f3fe2993b11df5e872fe8552ac8af40f7`, original tested R06 [#44374235430](https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430) SUCCESS at prior source `ff614db384f77a218d7916a726b298f27a068ae5`.
+- Release safety patch: `readbox-first-release.yml` sole job set to unconditional `if: ${{ false }}`. Release shell script, existing `v0.1.0-rc.1` tag and prerelease artifacts unchanged. Static negative CI required; no main-push publication experiment authorized.
+- MG-04 allowed eight file paths only; no application, MailStack reference, Prisma, mailserver or other workflows touched. Exact changed-path audit and one disposable regression CI pending.
+- Original R06 stable production decision remains **NO-GO** with seven open findings and 0/17 independent live evidence gates. Source/mirror parity, legal clearance and any main promotion remain separate approval boundaries.
