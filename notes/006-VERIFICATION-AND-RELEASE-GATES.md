@@ -235,15 +235,18 @@ No second optional CI loop: after the syntax defect, only the necessary single f
 | Gate | State |
 |---|---|
 | Frozen baseline `952516a2cac27649824bf14329f511eae6ae9294` | verified before changes |
-| Scope/path security audit | PENDING focused verification |
-| TypeScript/Next compile | PENDING focused verification |
-| Mocked multi-zone Cloudflare DNS, conflict, idempotency negative tests | PENDING focused verification |
-| Narrow host-agent escrow Python tests | PENDING focused verification |
-| Source/mirror/local exact SHA parity | PENDING |
+| Scope/path security audit | PASS — source CI, exact 17 changed paths |
+| TypeScript/Next compile | PASS — source CI |
+| Mocked multi-zone Cloudflare DNS, conflict, idempotency negative tests | PASS — Node 14/14 including existing DKIM suite |
+| Narrow host-agent escrow Python tests | PASS — Python 3/3 |
+| Source/mirror/local exact SHA parity | BLOCKED — mirror missing commit object; Windows Git HTTPS unavailable |
 | Real Cloudflare token, R2 escrow from new domain, DNS propagation | NOT RUN — production forbidden |
 | VPS deploy, production secrets, tag/release | NOT RUN — explicitly excluded |
 
 CI workflow: `.github/workflows/domain-auto01-ci.yml` (disposable, source-only; mirror is read-only pending exact Git object transfer).
 Production DKIM signer/outbound SMTP remains inactive. No new domain shall be
 declared ready until its own MX/mail-host routing verification succeeds.
-- **Local evidence:** `prisma generate` completed for temporary checkout only; `npm run typecheck` PASS; mocked Node suite 14 PASS / 0 FAIL. The initial local typecheck failed because `@prisma/client` was not generated. Source-independent Python host-broker tests and source CI are **PENDING**, not PASS.
+- **Local evidence:** `prisma generate` completed for temporary checkout only; `npm run typecheck` PASS; mocked Node suite 14 PASS / 0 FAIL. The initial local typecheck failed because `@prisma/client` was not generated. Python host-broker tests and source CI were pending at local recheck; see the verified CI SUCCESS evidence below.
+
+- **Focused disposable CI:** [source run #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274) SUCCESS on `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`. Exact Scope Lock 17/17 PASS; TypeScript typecheck PASS; mocked Node tests 14/14 PASS; host broker Python tests 3/3 PASS; no environment secrets, DNS writes, VPS deployment or release. **One CI run.**
+- **Synchronization blocker:** mirror JILLU-Games/ReadBox refuses source commit SHA as missing object (GitHub API 422/UNPROCESSABLE); Windows git HTTPS unreachable. Mirror main remains `952516a2cac27649824bf14329f511eae6ae9294` — no divergent commit or force-push. Source/mirror/local exact SHA parity is **BLOCKED**, not PASS. Live deployment remains NO-GO.

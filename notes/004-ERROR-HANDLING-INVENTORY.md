@@ -194,3 +194,5 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - DNS records are preflighted at all required names before writes. Existing different SPF/MX/DMARC/DKIM, proxied mail A, CNAME conflict or invalid zone -> no initial write. Interrupted partial create is safely rechecked/reused on retry, never overwritten or deleted.
 - Reverse-proxy POST Origin matching is constrained to trusted HTTPS Host or configured origins; cross-site and non-JSON requests remain refused.
 - DNS propagation pending -> saved domain disabled; retries operate on original domain identity, never create a duplicate or rotate keys.
+
+- **Verified negative cases:** cross-zone refusal, inactive zone, missing token, conflicting SPF/DKIM, proxied mail A, malformed/domain-traversal broker commands; idempotent repeat and unrelated TXT preserved. Focused source CI `44345525274` PASS (Node 14/14, broker Python 3/3). Live reverse-proxy Origin/Cloudflare DNS token acceptance, R2 and DNS propagation remain NOT RUN.

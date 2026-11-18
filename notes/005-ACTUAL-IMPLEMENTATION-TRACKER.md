@@ -198,3 +198,5 @@ Final notes-only closure commits change documentation, not the tested code or fr
 - `deployment/backup-agent/agent.py` action `dkim.escrow` strictly limits host subprocess to existing `deployment/dkim/escrow.py escrow <domain>`. Agent client/validation allow only domain payload.
 - Immediate DNS routing recheck activates only verified domains; pending propagation remains disabled. Full unattended long-term background reconciliation is **not implemented** in this source phase.
 - One focused test workflow and no-secret documentation added. Source-only: live token setup, VPS rollout and live provider acceptance remain pending.
+
+- **Verification/source status:** source commit `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`; dedicated [source CI #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274) SUCCESS (exact 17-path scope, TS, 14 Node + 3 Python tests). Local checkout staged tree matches published source tree. Independent mirror remains at original baseline pending exact non-force Git object transfer; **not phase-closed/synced**.
