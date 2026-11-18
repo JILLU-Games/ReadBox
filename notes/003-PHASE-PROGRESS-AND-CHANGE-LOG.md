@@ -190,3 +190,11 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Focused local recheck:** after the Windows checkout's missing generated Prisma Client was regenerated, `npm run typecheck` PASS and mocked Node DNS/DKIM tests **14/14 PASS**. Initial typecheck was blocked solely by absent local generated Prisma client; no Prisma schema/source edits. Host Python and GitHub CI acceptance remain unverified until CI.
 
 - **GitHub source focused CI SUCCESS:** [DOMAIN-AUTO-01 #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274), tested source commit `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`. Scope check 17 paths PASS, Next/TypeScript PASS, Node DNS/DKIM 14/14 PASS, Python host-broker 3/3 PASS. No live calls. Source main published; **mirror exact SHA sync BLOCKED** because repositories have separate Git objects and the connected Windows host's GitHub HTTPS access failed. No force update or divergent mirror commit made.
+
+
+## DOMAIN-AUTO-02 — Zone Select Gate (2026-11-18)
+
+- Frozen isolated test-branch baseline: `dffbcf89444a380b501ef07e15080ff611e8cb9e` (application merge `511a77380ef8d41061164abb966cbe960b6d02a8`).
+- Scoped implementation: active Cloudflare zone listing, explicit per-domain zone ID selection, server-side exact ID/active/suffix validation before writes and key staging, safe binding in existing verificationDetails JSON, guarded repeat/repair, and routing-check metadata preservation.
+- No Prisma migration, credential disclosure, R2/private key mutation, live DNS, source/main merge, deployment or release. GitHub source/mirror main remain unchanged.
+- One disposable focused Linux CI and changed-path/security audit pending at implementation commit. No production acceptance implied.

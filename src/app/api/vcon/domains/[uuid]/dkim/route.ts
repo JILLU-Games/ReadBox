@@ -1,7 +1,9 @@
 import { env } from "@/config/env";
 import { getAuthorizedAdminUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
-import { getDomainByUuid, checkDomainDns, updateDomainStatus } from "@/core/domains/service";
+import { getDomainByUuid, checkDomainDns, updateDomainStatus,
+  bindCloudflareZone, getBoundCloudflareZone } from "@/core/domains/service";
+import { DomainAutomationError, resolveSelectedCloudflareZone } from "@/core/dns/cloudflare-auto";
 import { getDkimStatus } from "@/core/dns/dkim-provision";
 import { automateDomainSetup, domainSetupErrorCode } from "@/core/dns/domain-automation";
 import { isValidUuid } from "@/core/mailboxes/validators";
@@ -71,14 +73,33 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   if (!data || typeof data !== "object" || Array.isArray(data) ||
-      Object.keys(data).some((key) => key !== "publish") ||
-      typeof (data as { publish?: unknown }).publish !== "boolean") {
+      Object.keys(data).some((key) => key !== "publish" && key !== "zoneId") ||
+      typeof (data as { publish?: unknown }).publish !== "boolean" ||
+      ("zoneId" in data && typeof (data as { zoneId?: unknown }).zoneId !== "string")) {
     return NextResponse.json({ error: "Invalid DKIM operation." },
       { status: 400, headers: noStore });
   }
   try {
+    const publish = (data as { publish: boolean }).publish;
+    const selectedId = (data as { zoneId?: string }).zoneId ?? "";
+    if (publish) {
+      const bound = getBoundCloudflareZone(authorized.domain.verificationDetails);
+      if (bound && bound.id !== selectedId) {
+        throw new DomainAutomationError("CLOUDFLARE_ZONE_BINDING_CONFLICT");
+      }
+      const zone = await resolveSelectedCloudflareZone(authorized.domain.name, selectedId);
+      if (bound && bound.name !== zone.name) {
+        throw new DomainAutomationError("CLOUDFLARE_ZONE_BINDING_CONFLICT");
+      }
+      try {
+        await bindCloudflareZone(getPrismaClient(), uuid, { id: zone.id, name: zone.name });
+      } catch {
+        throw new DomainAutomationError("CLOUDFLARE_ZONE_BINDING_CONFLICT");
+      }
+    }
     const result = await automateDomainSetup(authorized.domain.name, {
-      publish: (data as { publish: boolean }).publish,
+      publish,
+      ...(publish ? { zoneId: selectedId } : {}),
       opendkimKeysRoot: env.opendkimKeysRoot,
       mailHostname: env.mailHostname,
       serverIp: env.serverIp,

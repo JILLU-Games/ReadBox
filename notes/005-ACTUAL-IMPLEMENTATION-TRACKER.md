@@ -200,3 +200,15 @@ Final notes-only closure commits change documentation, not the tested code or fr
 - One focused test workflow and no-secret documentation added. Source-only: live token setup, VPS rollout and live provider acceptance remain pending.
 
 - **Verification/source status:** source commit `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`; dedicated [source CI #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274) SUCCESS (exact 17-path scope, TS, 14 Node + 3 Python tests). Local checkout staged tree matches published source tree. Independent mirror remains at original baseline pending exact non-force Git object transfer; **not phase-closed/synced**.
+
+
+## DOMAIN-AUTO-02 — source-only scope
+
+| Capability | Status |
+|---|---|
+| Admin-only active Cloudflare zone listing, no token exposed | IMPLEMENTED, focused CI pending |
+| Explicit per-domain ID selector for create and repair | IMPLEMENTED, focused UI CI pending |
+| Exact ID/active/suffix verification before DKIM staging/DNS publish | IMPLEMENTED, mocked CI pending |
+| Immutable binding in existing JSON and DNS recheck preservation | IMPLEMENTED, regression CI pending |
+| Existing DKIM/R2 escrow, no DNS overwrite/delete, manual opt-out | PRESERVED, focused CI pending |
+| Live Cloudflare zone management, registrar delegation, VPS DNS/R2 | NOT RUN / excluded |

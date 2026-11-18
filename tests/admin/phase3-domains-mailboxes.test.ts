@@ -290,6 +290,7 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
     status: "disabled",
     verificationStatus: "pending",
     isDefault: false,
+    verificationDetails: {} as Record<string, unknown>,
   };
   let mailboxCount = 0;
   let forceCreateFail = false;
@@ -308,8 +309,9 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
     domain: {
       findFirst: async () => null,
       findUnique: async () => domainRow,
-      create: async () => {
+      create: async (args: { data: { verificationDetails: Record<string, unknown> } }) => {
         if (forceCreateFail) throw new Error("DB error");
+        domainRow.verificationDetails = args.data.verificationDetails;
         return { uuid: domainRow.uuid, name: domainRow.name };
       },
       update: async (args: { data: Partial<typeof domainRow> }) => {
@@ -346,11 +348,14 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
   forceCreateFail = false;
   const created = await createDomain(
     mockPrisma,
-    { name: "Example.Test", dnsConfirmed: true },
+    { name: "Example.Test", dnsConfirmed: true,
+      cloudflareZone: { id: "a".repeat(32), name: "example.test" } },
     ctx,
     mailserverExecutor,
   );
   assert.equal(created.ok, true);
+  assert.deepEqual(domainRow.verificationDetails.cloudflareZone,
+    { id: "a".repeat(32), name: "example.test" });
   assert.equal(mailserverDomains.get("example.test"), false);
 
   // Rename blocked
@@ -391,6 +396,8 @@ test("Domain service enforces dnsConfirmed, immutable name, auto-disable on fail
   );
   assert.equal(passedCheck.ok, true);
   assert.equal(domainRow.verificationStatus, "verified");
+  assert.deepEqual(domainRow.verificationDetails.cloudflareZone,
+    { id: "a".repeat(32), name: "example.test" });
   assert.equal(domainRow.status, "disabled");
 
   // Enable now succeeds

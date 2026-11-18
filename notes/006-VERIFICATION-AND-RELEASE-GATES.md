@@ -250,3 +250,17 @@ declared ready until its own MX/mail-host routing verification succeeds.
 
 - **Focused disposable CI:** [source run #44345525274](https://github.com/vibtoolshq/ReadBox/actions/runs/44345525274) SUCCESS on `f7b5d7a97aa24274c70f74891e2adf39f2b17bad`. Exact Scope Lock 17/17 PASS; TypeScript typecheck PASS; mocked Node tests 14/14 PASS; host broker Python tests 3/3 PASS; no environment secrets, DNS writes, VPS deployment or release. **One CI run.**
 - **Synchronization blocker:** mirror JILLU-Games/ReadBox refuses source commit SHA as missing object (GitHub API 422/UNPROCESSABLE); Windows git HTTPS unreachable. Mirror main remains `952516a2cac27649824bf14329f511eae6ae9294` — no divergent commit or force-push. Source/mirror/local exact SHA parity is **BLOCKED**, not PASS. Live deployment remains NO-GO.
+
+
+## DOMAIN-AUTO-02 — scoped candidate gates
+
+| Gate | State |
+|---|---|
+| Frozen baseline dffbcf89444a380b501ef07e15080ff611e8cb9e | VERIFIED before changes |
+| DNS zone selector / admin authorization / binding negative tests | CI PENDING |
+| Focused typecheck, DNS/DKIM, Python broker, admin and UI | CI PENDING |
+| Exact changed-path and patch/security audit | PENDING |
+| Main/source/mirror sync, production VPS/R2/DNS acceptance, stable release | NOT AUTHORIZED; NO-GO |
+
+Only a dedicated disposable CI on `ci/domain-auto01-merge` may verify this
+source change; no live secrets or external production writes.

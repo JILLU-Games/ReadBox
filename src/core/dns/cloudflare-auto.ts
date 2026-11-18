@@ -215,3 +215,82 @@ export async function publishManagedDomainDns(
   }
   return { zone: zone.name, created, existing };
 }
+
+
+// DOMAIN-AUTO-02: only validated zone identifiers cross the admin/API boundary.
+export interface CloudflareZoneChoice {
+  readonly id: string;
+  readonly name: string;
+}
+
+function scopedZoneToken(options: { readonly token?: string }): string {
+  const token = options.token ?? process.env.READBOX_CF_DNS_TOKEN ?? "";
+  if (!token) throw new DomainAutomationError("CLOUDFLARE_DNS_NOT_CONFIGURED");
+  return token;
+}
+
+/** Bounded read-only listing; never expose the Cloudflare bearer token. */
+export async function listCloudflareZones(
+  options: { readonly token?: string; readonly fetchImpl?: typeof fetch } = {},
+): Promise<readonly CloudflareZoneChoice[]> {
+  const token = scopedZoneToken(options);
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const zones: CloudflareZoneChoice[] = [];
+  const seen = new Set<string>();
+  for (let page = 1; page <= 10; page++) {
+    const reply = await request({ token, fetchImpl },
+      "/zones?per_page=50&page=" + page);
+    if (!Array.isArray(reply.result) || reply.result.length > 50) {
+      throw new DomainAutomationError("CLOUDFLARE_ZONE_AMBIGUOUS");
+    }
+    for (const item of reply.result as Array<{ id?: string; name?: string; status?: string }>) {
+      if (!item || !ZONE_ID.test(item.id ?? "") || typeof item.name !== "string") {
+        throw new DomainAutomationError("CLOUDFLARE_INVALID_REPLY");
+      }
+      let name: string;
+      try { name = validateDomain(item.name); } catch {
+        throw new DomainAutomationError("CLOUDFLARE_INVALID_REPLY");
+      }
+      if (seen.has(item.id!)) throw new DomainAutomationError("CLOUDFLARE_ZONE_AMBIGUOUS");
+      seen.add(item.id!);
+      if (item.status === "active") zones.push({ id: item.id!, name });
+    }
+    if (reply.result.length < 50) return zones.sort((x, y) =>
+      x.name.localeCompare(y.name) || x.id.localeCompare(y.id));
+  }
+  throw new DomainAutomationError("CLOUDFLARE_ZONE_LIST_LIMIT");
+}
+
+/** Exact selected zone must belong to the domain and still be active. */
+export async function resolveSelectedCloudflareZone(
+  rawDomain: string,
+  zoneId: string,
+  options: { readonly token?: string; readonly fetchImpl?: typeof fetch } = {},
+): Promise<ZoneContext> {
+  const domain = validateDomain(rawDomain);
+  if (!ZONE_ID.test(zoneId)) {
+    throw new DomainAutomationError("CLOUDFLARE_ZONE_SELECTION_REQUIRED");
+  }
+  const token = scopedZoneToken(options);
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const response = await request({ token, fetchImpl }, "/zones/" + zoneId);
+  if (!response.result || typeof response.result !== "object" ||
+      Array.isArray(response.result)) {
+    throw new DomainAutomationError("CLOUDFLARE_INVALID_REPLY");
+  }
+  const zone = response.result as { id?: string; name?: string; status?: string };
+  if (zone.id !== zoneId || typeof zone.name !== "string") {
+    throw new DomainAutomationError("CLOUDFLARE_ZONE_MISMATCH");
+  }
+  let name: string;
+  try { name = validateDomain(zone.name); } catch {
+    throw new DomainAutomationError("CLOUDFLARE_INVALID_REPLY");
+  }
+  if (zone.status !== "active") {
+    throw new DomainAutomationError("CLOUDFLARE_ZONE_NOT_ACTIVE");
+  }
+  if (!insideZone(domain, name)) {
+    throw new DomainAutomationError("CLOUDFLARE_ZONE_MISMATCH");
+  }
+  return { name, id: zoneId, token, fetchImpl };
+}

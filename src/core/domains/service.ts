@@ -21,7 +21,8 @@ import {
   type SqlQueryExecutor,
 } from "@/core/mailserver/pg-adapter";
 import { logger } from "@/core/server/logger";
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import type { CloudflareZoneChoice } from "@/core/dns/cloudflare-auto";
 import "server-only";
 
 export type DomainPrismaClient = PrismaClient & PrismaRawQueryable;
@@ -179,9 +180,51 @@ export async function getDomainByUuid(
   };
 }
 
+/** Bound zone IDs are stored in the existing Domain.verificationDetails JSON.
+ * A different selected zone never silently replaces the original binding.
+ */
+export function getBoundCloudflareZone(details: Record<string, unknown>): CloudflareZoneChoice | null {
+  const raw = details.cloudflareZone;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const value = raw as Record<string, unknown>;
+  if (typeof value.id !== "string" || !/^[a-f0-9]{32}$/i.test(value.id) ||
+      typeof value.name !== "string") return null;
+  return { id: value.id, name: value.name };
+}
+
+/** Optimistic compare-and-swap prevents a concurrent DNS check erasing zone binding. */
+export async function bindCloudflareZone(
+  db: Pick<PrismaClient, "domain">,
+  uuid: string,
+  zone: CloudflareZoneChoice,
+): Promise<void> {
+  if (!isValidUuid(uuid) || !/^[a-f0-9]{32}$/i.test(zone.id) ||
+      validateDomain(zone.name) !== zone.name) {
+    throw new Error("CLOUDFLARE_ZONE_MISMATCH");
+  }
+  const domain = await db.domain.findUnique({
+    where: { uuid },
+    select: { verificationDetails: true },
+  });
+  if (!domain) throw new Error("CLOUDFLARE_DOMAIN_NOT_FOUND");
+  const details = toJsonDetails(domain.verificationDetails);
+  const current = getBoundCloudflareZone(details);
+  if (current) {
+    if (current.id === zone.id && current.name === zone.name) return;
+    throw new Error("CLOUDFLARE_ZONE_BINDING_CONFLICT");
+  }
+  if ("cloudflareZone" in details) throw new Error("CLOUDFLARE_ZONE_BINDING_CONFLICT");
+  const result = await db.domain.updateMany({
+    where: { uuid, verificationDetails: { equals: details as Prisma.InputJsonValue } },
+    data: { verificationDetails: { ...details, cloudflareZone: zone } },
+  });
+  if (result.count !== 1) throw new Error("CLOUDFLARE_ZONE_BINDING_CONFLICT");
+}
+
 export async function createDomain(
   prisma: DomainPrismaClient,
-  input: { readonly name: string; readonly dnsConfirmed: boolean },
+  input: { readonly name: string; readonly dnsConfirmed: boolean;
+    readonly cloudflareZone?: CloudflareZoneChoice },
   ctx: DomainAuditContext,
   sqlExecutor: SqlQueryExecutor = createPrismaSqlExecutor(prisma),
 ): Promise<DomainActionResult<{ uuid: string; name: string }>> {
@@ -241,7 +284,8 @@ export async function createDomain(
         status: "disabled",
         verificationStatus: "pending",
         isDefault: false,
-        verificationDetails: {},
+        verificationDetails: input.cloudflareZone ?
+          { cloudflareZone: input.cloudflareZone } : {},
       },
       select: { uuid: true, name: true },
     });
@@ -442,7 +486,8 @@ export async function checkDomainDns(
   try {
     const domain = await prisma.domain.findUnique({
       where: { uuid: uuid.trim() },
-      select: { id: true, uuid: true, name: true, status: true },
+      select: { id: true, uuid: true, name: true, status: true,
+        verificationDetails: true },
     });
     if (!domain) {
       return { ok: false, code: "not_found", error: "Domain not found." };
@@ -474,6 +519,7 @@ export async function checkDomainDns(
         verificationStatus: result.verified ? "verified" : "failed",
         lastCheckedAt: new Date(),
         verificationDetails: {
+          ...toJsonDetails(domain.verificationDetails),
           mx: [...result.mx],
           target: result.target,
           targetAddresses: [...result.targetAddresses],

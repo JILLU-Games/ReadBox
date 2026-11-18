@@ -1,4 +1,4 @@
-name: ReadBox DOMAIN-AUTO-01 merged candidate - disposable Linux check
+name: ReadBox DOMAIN-AUTO-02 explicit zone - disposable Linux CI
 on:
   push:
     branches:
@@ -8,45 +8,82 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: domain-auto01-merge-check
+  group: domain-auto02-zone-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   focused-check:
     if: github.repository == 'JILLU-Games/ReadBox'
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - name: Checkout ephemeral candidate without write credentials
+      - name: Checkout without persisted credentials
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify immutable merge and CI-only delta
+      - name: Exact DOMAIN-AUTO-02 source Scope Lock
         shell: bash
         run: |
           set -euo pipefail
           test ! -e .env
-          git merge-base --is-ancestor 511a77380ef8d41061164abb966cbe960b6d02a8 HEAD
-          test "$(git diff --name-only 511a77380ef8d41061164abb966cbe960b6d02a8 HEAD)" = ".github/workflows/domain-auto01-merge-check.yml"
-          git diff --check 6666cb21b61eb7fa13dfbaf38e92b524b1dee891 511a77380ef8d41061164abb966cbe960b6d02a8
-          echo READBOX_MERGE_SOURCE_UNCHANGED_PATCH_PASS
-      - name: Node 22 and locked dependencies
+          python3 - <<'PY'
+          import subprocess
+          base = "dffbcf89444a380b501ef07e15080ff611e8cb9e"
+          paths = set(subprocess.check_output(
+              ["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines())
+          allowed = {
+              "src/core/dns/cloudflare-auto.ts",
+              "src/core/dns/domain-automation.ts",
+              "src/core/domains/service.ts",
+              "src/app/(workspace)/vcon/domains/actions.ts",
+              "src/app/api/vcon/domains/[uuid]/dkim/route.ts",
+              "src/app/api/vcon/domains/cloudflare-zones/route.ts",
+              "src/components/vcon/domain-form.tsx",
+              "tests/dns/domain-automation.test.ts",
+              "tests/dns/domain-zone-selection.test.ts",
+              "tests/admin/phase3-domains-mailboxes.test.ts",
+              "tests/ui/domain-zone-selection.test.tsx",
+              ".github/workflows/domain-auto01-merge-check.yml",
+              "docs/DOMAIN-AUTOMATION.md",
+              "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+              "notes/004-ERROR-HANDLING-INVENTORY.md",
+              "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
+              "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
+          }
+          subprocess.run(["git", "merge-base", "--is-ancestor", base, "HEAD"], check=True)
+          assert paths <= allowed and {
+              "src/core/dns/cloudflare-auto.ts",
+              "src/core/dns/domain-automation.ts",
+              "src/core/domains/service.ts",
+              "src/app/api/vcon/domains/cloudflare-zones/route.ts",
+              "tests/dns/domain-zone-selection.test.ts",
+              "tests/ui/domain-zone-selection.test.tsx",
+          } <= paths, ("DOMAIN_AUTO02_SCOPE_FAIL", sorted(paths ^ allowed))
+          subprocess.run(["git", "diff", "--check", base, "HEAD"], check=True)
+          print("DOMAIN_AUTO02_EXACT_SCOPE_PASS", len(paths))
+          PY
+      - name: Install pinned Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-      - name: One focused app, domain, host broker and dependency check
+      - name: One focused type, DNS, database contract, UI and security verification
         shell: bash
         run: |
           set -euo pipefail
           npm ci --no-audit --no-fund
           npm run typecheck
-          node --conditions=react-server --import tsx --test tests/dns/domain-automation.test.ts tests/dns/dkim-provision.test.ts
+          node --conditions=react-server --import tsx --test \
+            tests/dns/domain-automation.test.ts \
+            tests/dns/domain-zone-selection.test.ts \
+            tests/dns/dkim-provision.test.ts \
+            tests/admin/phase3-domains-mailboxes.test.ts
+          npx vitest run --config vitest.config.mts tests/ui/domain-zone-selection.test.tsx
           python3 tests/dns/test_domain_host_bridge.py
           npm audit --omit=dev --audit-level=moderate
-          echo READBOX_DOMAIN_AUTO01_MERGED_CANDIDATE_PASS
-      - name: No deployment, keys, DNS, R2 or release
-        run: echo READBOX_DISPOSABLE_ONLY_NO_PRODUCTION_MUTATION
+          echo DOMAIN_AUTO02_FOCUSED_DISPOSABLE_PASS
+      - name: Confirm no live operations
+        run: echo DOMAIN_AUTO02_SOURCE_ONLY_NO_VPS_R2_DNS_KEYS_RELEASE

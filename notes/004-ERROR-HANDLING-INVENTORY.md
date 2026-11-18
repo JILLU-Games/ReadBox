@@ -196,3 +196,13 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - DNS propagation pending -> saved domain disabled; retries operate on original domain identity, never create a duplicate or rotate keys.
 
 - **Verified negative cases:** cross-zone refusal, inactive zone, missing token, conflicting SPF/DKIM, proxied mail A, malformed/domain-traversal broker commands; idempotent repeat and unrelated TXT preserved. Focused source CI `44345525274` PASS (Node 14/14, broker Python 3/3). Live reverse-proxy Origin/Cloudflare DNS token acceptance, R2 and DNS propagation remain NOT RUN.
+
+
+## DOMAIN-AUTO-02 — Zone selection negative cases
+
+- Missing/malformed selected zone ID: `CLOUDFLARE_ZONE_SELECTION_REQUIRED`, no zone API call and no key/DNS mutation.
+- Wrong ID, wrong domain suffix, inaccessible/inactive zone, missing token or malformed response: fail closed before provision/publish; no silent auto-discovery fallback.
+- Existing per-domain Cloudflare zone binding conflicts with another selection: `CLOUDFLARE_ZONE_BINDING_CONFLICT`; no rebind or cross-zone writes.
+- Metadata update uses compare-and-swap when first binding an existing unbound domain; a stale concurrent metadata update fails closed.
+- Read-only zone list is bounded and sanitized; missing auth returns generic not-found. Recheck preserves binding in existing JSON.
+- Mock/CI negative acceptance pending; live Cloudflare/API provider failures remain unverified.

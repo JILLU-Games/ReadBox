@@ -86,3 +86,34 @@ Automatic registrar nameserver delegation, certificate issuance, provider IP
 reputation/PTR, outbound SMTP delivery or DKIM signing, SMTP/TLS changes,
 arbitrary DNS editing, destructive DNS repair, Prisma migrations or broad UI
 redesign. Existing conflicts always require an operator decision.
+
+
+## DOMAIN-AUTO-02 — explicit zone selection (source-only)
+
+For **Automatic setup**, the admin must choose an active Cloudflare zone in the
+Add Domain form. The zone selector displays only zones accessible with the
+server-owned READBOX_CF_DNS_TOKEN; the token never reaches the browser.
+The selected zone is verified again by its **exact Cloudflare zone ID**, active
+status and DNS suffix before a new domain row is created, before DKIM key
+staging/escrow, and before any DNS publish. Omitted, foreign or inactive zones
+fail closed. Use manual DNS setup if no zone is available.
+
+A validated `{id,name}` binding is stored in the existing
+`Domain.verificationDetails.cloudflareZone` JSON metadata, **without a Prisma
+migration**. Routing DNS rechecks preserve this binding. A saved domain that
+has not been bound can be bound through the admin-only Provision / Repair DKIM
+action (with Publish enabled). An existing binding is immutable in this phase:
+an attempted different zone is rejected, not silently reassigned. Cloudflare
+zone access is revalidated on every publish/retry, even for bound domains.
+Unchecking Publish retains the existing manual/escrow-only behavior.
+
+The read-only `/api/vcon/domains/cloudflare-zones` endpoint requires
+administrator authorization and returns only `{id,name}` for active zones
+(maximum 500 inspected, bounded API pagination, no cache). No API token,
+account secret, private key or R2 content is serialized to the browser.
+The five-record safe preflight, no overwrite/delete, DKIM root escrow receipt,
+readback, and routing verified/pending gates remain in force.
+
+**Acceptance:** disposable Linux checks only; not live Cloudflare access,
+real R2 key custody, authoritative DNS propagation or VPS acceptance.
+Test branch only, no `main` or production changes in this phase.
