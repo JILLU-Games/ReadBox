@@ -203,3 +203,7 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Explicit Cloudflare zone ID is required before automatic DKIM staging/DNS publishing; invalid/foreign/inactive ID, conflicting record, missing token, stale zone or inconsistent metadata must fail closed. Admin-only read-only zone-list returns sanitized ID/name, never bearer token.
 - CAS-controlled `checkDomainDns` re-reads JSON after a conflicting concurrent zone binding and retries at most three times, preserving unrelated metadata; exhausted CAS refuses false verification/audit. Guarded DKIM root escrow receipts, DNS record preflight and no overwrite/delete remain unchanged.
 - Evidence basis until new primary CI: mocked JILLU tests only. **No real Cloudflare API write, real R2 escrow or production delivery accepted.** Primary focused verification pending.
+
+
+- **DNS-FINAL CI negative contract PASS:** [#44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082) tests missing/mismatched/inactive Cloudflare zone IDs, immutable zone binding, optimistic JSON CAS interleaving/retry exhaustion, DNS record conflict preservation, safe DKIM escrow host boundaries and manual UI fallback. Focused tests 25/25 Node, 2/2 UI files and Python host bridge PASS.
+- Provider-specific outages, public propagation, real R2 custody, full VPS delivery and independent live acceptance remain **NOT RUN**. Successful mocked/disposable tests do not authorize live DNS changes or prove external Cloudflare availability.

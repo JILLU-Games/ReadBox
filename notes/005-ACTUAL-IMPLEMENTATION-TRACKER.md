@@ -213,3 +213,8 @@ Final notes-only closure commits change documentation, not the tested code or fr
 | Production provider/DNS/R2/host deployment | NOT RUN |
 | Primary main publication / backup exact SHA parity | PENDING scoped CI PASS and safe non-force refs |
 | Additional features or MailStack reference changes | OUT OF SCOPE / NO EDIT |
+
+
+- **DNS-FINAL primary integration CI COMPLETE:** `2eccd8f21cf71261fdc0e0b7ab6199a2a19de4ce`, [primary #44383278082](https://github.com/vibtoolshq/ReadBox/actions/runs/44383278082) success, exact 17-file allowlist, 25/25 Node, 2/2 UI files, Python bridge PASS, TypeScript PASS, production dependency audit 0 vulnerabilities.
+- Implemented in isolated Primary branch: domain-specific Cloudflare zone UI/API, active zone validation, persisted binding in existing JSON, guarded add/repair, CAS-safe routing verification. Existing DOMAIN-AUTO-01 encrypted DKIM escrow/DNS preflight unchanged; no new schema or unrelated user feature.
+- Main publish and same-SHA backup transfer: pending explicit ref/readback in this phase. External live DNS, R2 escrow and VPS test NOT RUN.
