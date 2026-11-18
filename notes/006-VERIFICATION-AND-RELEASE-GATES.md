@@ -151,3 +151,22 @@ Rollback contracts: no modifications to applied migrations; backup before changi
 - **Separated immutable Git range proofs:** `c3f9dd4..807ca9f` exact 11 R-06 implementation files; `807ca9f..fa774bd` exact 8 R-06 closure files; `fa774bd..2833f1f` exact 16 QIS-01 files; `2833f1f..4467636` exact 3 QIS-01 closure files. CI enforces full SHAs, ancestry, exact sets and whitespace audit, not a cross-phase moving HEAD allowlist.
 - **Observed CI markers:** `R06_HISTORICAL_IMPLEMENTATION_SCOPE_PASS 11`; `R06_HISTORICAL_NOTES_SCOPE_PASS 8`; `QIS01_APPROVED_IMPLEMENTATION_SCOPE_PASS 16`; `QIS01_APPROVED_NOTES_SCOPE_PASS 3`; `R06_QIS01_IMMUTABLE_SCOPE_AUDITS_PASS`; `R06_PRODUCTION_NO_GO`; `R06_FINDINGS_OPEN=7`; `R06_LIVE_GATE_PASS_CLAIMS=0/17`; `R06_ALL_CI_CONTRACTS_PASS_PRODUCTION_NO_GO`.
 - **Audit and boundaries:** Code change only `.github/workflows/r06-production-readiness.yml`; closure notes limited to 003 and 006. Existing source/UI/auth/migrations/mailserver/install/update code and old R-04 exact two-lint-error baseline unchanged. No real staging/production VPS, trusted public TLS/DNS, Internet TCP/25, inbox attachment delivery, offsite restoration, license signoff, Git tag or release. Original **7 findings OPEN**, formal **0/17 live gates PASS**, **PRODUCTION NO-GO**. Source/mirror exact closeout SHA must be compared after fast-forward.
+
+## DKIM-01 — Source, CI and live deployment gates (2026-11-18)
+
+| Gate | Result / evidence |
+|---|---|
+| Frozen main source/mirror/local SHA | `ea14efa5b5571b0ed1e00e211e07a7862f2b6a0f` at entry |
+| Candidate source/mirror tree equality | `3f6dc44bc96a0fa595fba0362012e5214a7b53fe` PASS |
+| Exact approved implementation patch | **13/13 approved paths**, no Prisma/SMTP/auth/backup/updater source changes |
+| DKIM unit/mocked Cloudflare/zone-export tests | **6/6 PASS** (no real provider calls) |
+| One final corrected disposable R06 run | [#44273197408](https://github.com/JILLU-Games/ReadBox/actions/runs/44273197408) **SUCCESS** |
+| Default app/UI/build, dependency audit, database and SMTP/LMTP | PASS in R06 |
+| Encrypted recovery/rollback and historic immutable release NO-GO | PASS in R06 |
+| Opt-in isolated DKIM image build/embedded Python tests | **NOT RUN by default R06**; mandatory isolated check before VPS activation |
+| Production secret/volume ownership and encrypted private key escrow | **NOT RUN / NOT COVERED** |
+| Real Cloudflare DNS create/verification | **NOT RUN**; requires distinct operator approval |
+| Production outbound signing | NOT IMPLEMENTED; inbound-only preserved |
+| Release tag/v1.0.0 production GO | **NO-GO** (historical 17 live acceptance gates remain separate) |
+
+CI candidate was amended only after focused failures: default create-domain payload, TypeScript test extensions, and default Compose service count. Only the final corrected candidate is counted as PASS. Final notes-only closure does not itself exercise live agent behavior. Verify source, mirror and local final main SHA/tree non-force before phase close.

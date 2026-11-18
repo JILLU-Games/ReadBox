@@ -120,3 +120,20 @@ Source and mirrored SHA:
 - **Limits explicitly OPEN:** no real Internet MX/A/PTR/certificate or public port 25, no live SMTP→LMTP→actual authenticated inbox+attachment success, no real VPS/storage/reboot, no actual offsite retained encrypted restore, no final license distribution review, no user approval to publish. All 7 original findings remain OPEN; `RG-01..RG-17` external staging evidence not provided.
 - **Lint debt:** full-tree ESLint has exactly two earlier R-04 unused catch bindings; source excluded narrowly from R-06 lint and checked by separate strict two-error inventory. The full lint gate remains unmet, not presented as clean.
 - **Phase implementation:** 6/6 CI complete, **production GO/NO-GO = NO-GO**. No user/app/auth/mailserver data/UX changes. Next step is separate live staging authorization and, if needed, a narrow scope exception—not another default implementation phase.
+
+## DKIM-01 — Feature state and precise test boundary (2026-11-18)
+
+| Capability | Status |
+|---|---|
+| Isolated no-network RSA-2048 keypair implementation | SOURCE PRESENT; optional Docker profile not live-tested |
+| Private key storage separate from Web, public-only record mount | SOURCE PRESENT; Docker Compose/patch audit PASS |
+| Existing/new domain admin control, explicit opt-in | UI/source integrated; R06 UI regression PASS |
+| Zone-scoped Cloudflare DKIM TXT create/reconcile | SOURCE PRESENT; mocked tests PASS, **real API NOT RUN** |
+| Missing token manual TXT / zone export | SOURCE PRESENT; focused Node test PASS |
+| Duplicate requests/invalid public/foreign zone/conflict fail closed | Focused mock/negative tests PASS; live gates pending |
+| Independent key/public DNS/signing-status UI | SOURCE PRESENT; signer explicitly inactive |
+| Default Postfix/Dovecot service topology | Unchanged by `profiles: ["dkim"]`; R06 SMTP/LMTP PASS |
+| Private DKIM key encrypted backup/escrow/restore | **NOT IMPLEMENTED**; requires separate approved scope |
+| Live VPS deployment, Cloudflare write, real signing or outbound SMTP | **NOT RUN / NOT ENABLED** |
+
+Implementation is DKIM DNS *preparation*, not outbound DKIM signing. Exact CI candidate tree `3f6dc44bc96a0fa595fba0362012e5214a7b53fe`; R06 [#44273197408](https://github.com/JILLU-Games/ReadBox/actions/runs/44273197408) SUCCESS; local DKIM Node six focused cases PASS. The opt-in agent image build and its embedded Python unit tests are **not** part of the default CI run and must be verified in isolated deployment readiness.
