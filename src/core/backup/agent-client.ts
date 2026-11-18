@@ -19,6 +19,7 @@ export class BackupAgentError extends Error {
 
 interface AgentReply {
   readonly connected?: boolean;
+  readonly escrow?: "verified" | "verified_existing";
   readonly jobs?: readonly BackupJob[];
   readonly backups?: BackupDashboard["backups"];
   readonly job?: BackupJob;
@@ -66,7 +67,7 @@ export async function callBackupAgent(
         socketPath: SOCKET,
         method: "POST",
         path: "/rpc",
-        timeout: 15_000,
+        timeout: action === "dkim.escrow" ? 110_000 : 15_000,
         headers: {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(body),
@@ -100,6 +101,9 @@ export async function callBackupAgent(
                 "R2_BACKUP_NOT_V2_VERIFIED", "R2_REMOTE_OBJECT_CONFLICT",
                 "R2_REMOTE_OBJECT_UNVERIFIED", "R2_UPLOAD_FAILED",
                 "SCHEDULE_INVALID", "R2_LOCAL_ARCHIVE_UNAVAILABLE",
+                "DKIM_DOMAIN_INVALID", "DKIM_ESCROW_REFUSED",
+                "DKIM_ESCROW_HELPER_MISSING", "DKIM_ESCROW_UNAVAILABLE",
+                "DKIM_ESCROW_UNVERIFIED",
               ]);
               return fail(safeCodes.has(reply.error ?? "") ? reply.error! : "BACKUP_AGENT_UNAVAILABLE");
             }

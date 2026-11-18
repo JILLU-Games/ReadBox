@@ -4,7 +4,7 @@ import { env } from "@/config/env";
 import { requireAdminUser } from "@/core/auth/route-guards";
 import { getPrismaClient } from "@/core/database/client";
 import type { RoutingVerificationResult } from "@/core/dns/resolver";
-import { provisionDkimForDomain } from "@/core/dns/dkim-provision";
+import { automateDomainSetup, domainSetupErrorCode } from "@/core/dns/domain-automation";
 import {
   checkDomainDns,
   createDomain,
@@ -50,7 +50,7 @@ export async function createDomainAction(input: {
   const requestHeaders = await headers();
   const result = await createDomain(
     getPrismaClient() as unknown as DomainPrismaClient,
-    { name: input.name, dnsConfirmed: input.dnsConfirmed },
+    { name: input.name, dnsConfirmed: input.dnsConfirmed || input.autoDkim === true },
     {
       actorId: actor.id,
       authSource: actor.authSource,
@@ -64,16 +64,41 @@ export async function createDomainAction(input: {
     revalidateDomainPaths(result.data.uuid);
     if (input.autoDkim === true) {
       try {
-        const dkim = await provisionDkimForDomain(
-          result.data.name, env.opendkimKeysRoot, true,
+        const setup = await automateDomainSetup(result.data.name, {
+          publish: true,
+          opendkimKeysRoot: env.opendkimKeysRoot,
+          mailHostname: env.mailHostname,
+          serverIp: env.serverIp,
+        });
+        const context = {
+          actorId: actor.id,
+          authSource: actor.authSource,
+          actorUsername: actor.username,
+          headers: requestHeaders,
+          trustProxyHeaders: env.trustProxyHeaders,
+        };
+        const checked = await checkDomainDns(
+          getPrismaClient() as unknown as DomainPrismaClient,
+          result.data.uuid,
+          { mailHostname: env.mailHostname, serverIp: env.serverIp,
+            timeoutSeconds: env.dnsLookupTimeoutSeconds }, context,
         );
-        return { ...result, message: dkim.dns === "manual"
-          ? "Domain added; DKIM key created. Publish the TXT record manually."
-          : "Domain added; DKIM key and Cloudflare DNS provisioned." };
-      } catch {
-        // Domain creation is not reverted or repeated after an external DKIM failure.
+        if (checked.ok && checked.data.verified) {
+          const enabled = await updateDomainStatus(
+            getPrismaClient() as unknown as DomainPrismaClient,
+            result.data.uuid, { status: "active" }, context,
+          );
+          if (enabled.ok) return { ...result, message:
+            "Domain added, DKIM escrow verified, Cloudflare DNS configured and mail routing activated." };
+        }
         return { ...result, message:
-          "Domain added. DKIM provisioning needs operator review; use Provision/Repair on the domain page." };
+          "Domain added and DNS configured (zone: " + setup.zone +
+          "). Routing propagation is pending. Recheck DNS on this page." };
+      } catch (error) {
+        // Domain creation must not be repeated after an external partial success.
+        return { ...result, message:
+          "Domain saved disabled. Automatic setup paused: " +
+          domainSetupErrorCode(error) + ". Use Provision / Repair to safely resume." };
       }
     }
   }

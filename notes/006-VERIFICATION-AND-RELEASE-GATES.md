@@ -228,3 +228,22 @@ Build-only PASS does not establish a running healthy provisioner or recovered pr
 | Tag, stable release, production GO | excluded | **NO-GO** |
 
 No second optional CI loop: after the syntax defect, only the necessary single focused recheck was performed. Notes-only closure does not create runtime proof. Fail closed on an unsupported R2 conditional PUT or missing independent identity custody.
+
+
+## DOMAIN-AUTO-01 — focused source gates
+
+| Gate | State |
+|---|---|
+| Frozen baseline `952516a2cac27649824bf14329f511eae6ae9294` | verified before changes |
+| Scope/path security audit | PENDING focused verification |
+| TypeScript/Next compile | PENDING focused verification |
+| Mocked multi-zone Cloudflare DNS, conflict, idempotency negative tests | PENDING focused verification |
+| Narrow host-agent escrow Python tests | PENDING focused verification |
+| Source/mirror/local exact SHA parity | PENDING |
+| Real Cloudflare token, R2 escrow from new domain, DNS propagation | NOT RUN — production forbidden |
+| VPS deploy, production secrets, tag/release | NOT RUN — explicitly excluded |
+
+CI workflow: `.github/workflows/domain-auto01-ci.yml` (disposable, source-only; mirror is read-only pending exact Git object transfer).
+Production DKIM signer/outbound SMTP remains inactive. No new domain shall be
+declared ready until its own MX/mail-host routing verification succeeds.
+- **Local evidence:** `prisma generate` completed for temporary checkout only; `npm run typecheck` PASS; mocked Node suite 14 PASS / 0 FAIL. The initial local typecheck failed because `@prisma/client` was not generated. Source-independent Python host-broker tests and source CI are **PENDING**, not PASS.

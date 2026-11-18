@@ -185,3 +185,12 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - **Recovery:** only CI-disposable fresh directory; after deleting original fixture volume/receipt, recover from encrypted object + independent age identity, validate private digest and RSA public fingerprint, write mode 0600 without overwrite. Live recovery API/CLI is intentionally absent.
 - **Observed CI failure:** initial #44293943849 hit `SyntaxError` in an orphaned inner `try` at receipt writer. Single minimal in-scope repair committed, along with deterministic `chmod 0644` so UID1001 can read even if host umask is 077. Required recheck #44294483799 SUCCESS.
 - **Residual security boundary:** offline receipt reflects host-root verified R2 state when written; the non-networked DKIM agent does not independently query R2. A compromised trusted host or malicious writable DKIM private volume is outside the receipt-only threat model. Age identity and protected R2 credential recovery were **not** proven on a lost real VPS.
+
+
+## DOMAIN-AUTO-01 — Automatic DNS/DKIM failure handling
+
+- Missing Cloudflare token, zone not found/inactive, zone permission/network/JSON error -> sanitized DOMAIN_AUTOMATION refusal before new key staging; persisted mail domain stays disabled and repairable.
+- DKIM first-call `ESCROW_REQUIRED` is expected stage transition; host `dkim.escrow` command is fixed, HMAC-authorized, validates domain, redacts subprocess output. Remote checksum/receipt conflict returns failure; public key remains gated.
+- DNS records are preflighted at all required names before writes. Existing different SPF/MX/DMARC/DKIM, proxied mail A, CNAME conflict or invalid zone -> no initial write. Interrupted partial create is safely rechecked/reused on retry, never overwritten or deleted.
+- Reverse-proxy POST Origin matching is constrained to trusted HTTPS Host or configured origins; cross-site and non-JSON requests remain refused.
+- DNS propagation pending -> saved domain disabled; retries operate on original domain identity, never create a duplicate or rotate keys.

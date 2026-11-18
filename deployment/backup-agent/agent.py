@@ -12,6 +12,8 @@ from pathlib import Path
 import re
 import secrets
 import signal
+import subprocess
+import sys
 import socket
 import socketserver
 import stat
@@ -137,6 +139,31 @@ class BackupBroker:
             return 200, {"test": self.r2.test()}
         if action == "r2.list" and set(payload) == {"action"}:
             return 200, {"remote": self.r2.list_remote()}
+        if action == "dkim.escrow":
+            # Explicit, narrow authenticated host-only action. No arbitrary
+            # subcommands, paths, DNS writes or recovery are exposed.
+            domain = payload.get("domain")
+            if (set(payload) != {"action", "domain"} or
+                    not isinstance(domain, str) or len(domain) > 253 or
+                    not re.fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", domain)):
+                return 400, {"error": "DKIM_DOMAIN_INVALID"}
+            helper = Path("/opt/readbox/deployment/dkim/escrow.py")
+            if not helper.is_file() or helper.is_symlink():
+                return 503, {"error": "DKIM_ESCROW_HELPER_MISSING"}
+            try:
+                result = subprocess.run(
+                    [sys.executable, str(helper), "escrow", domain],
+                    capture_output=True, text=True, timeout=100, check=False,
+                )
+                if result.returncode != 0:
+                    return 409, {"error": "DKIM_ESCROW_REFUSED"}
+                parsed = json.loads(result.stdout)
+                if (not isinstance(parsed, dict) or parsed.get("domain") != domain or
+                        parsed.get("escrow") not in {"verified", "verified_existing"}):
+                    return 503, {"error": "DKIM_ESCROW_UNVERIFIED"}
+                return 200, {"escrow": parsed["escrow"]}
+            except (OSError, ValueError, subprocess.TimeoutExpired):
+                return 503, {"error": "DKIM_ESCROW_UNAVAILABLE"}
         if action == "schedule.configure" and set(payload) == {"action", "schedule"}:
             return 200, {"schedule": self.schedule.configure(
                 payload["schedule"], self.r2.public()["configured"])}
