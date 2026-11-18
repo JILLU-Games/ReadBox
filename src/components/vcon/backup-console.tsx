@@ -195,8 +195,13 @@ export function BackupConsole({
   async function confirmRestore() {
     const permit = restorePermit;
     if (!permit || !onCommitRestore || active || !restoreBackupId ||
-        restorePhrase !== "RESTORE " + restoreBackupId ||
-        Date.now() / 1000 >= permit.expiresAt) return;
+        restorePhrase !== "RESTORE " + restoreBackupId) return;
+    if (Date.now() / 1000 >= permit.expiresAt) {
+      setRestorePermit(null);
+      setRestorePhrase("");
+      setFeedback("Restore confirmation expired. Repeat preflight.");
+      return;
+    }
     setRestorePermit(null); setRestorePhrase("");
     await begin(() => onCommitRestore(
       restoreBackupId, permit.permitId, permit.token, "RESTORE " + restoreBackupId,
@@ -513,8 +518,7 @@ export function BackupConsole({
                 autoComplete="off" spellCheck={false}
                 className="w-full rounded border border-border bg-background p-2 text-xs" />
               <Button type="button" variant="outline"
-                disabled={restorePhrase !== "RESTORE " + restoreBackupId ||
-                  Date.now() / 1000 >= restorePermit.expiresAt || busy || !onCommitRestore}
+                disabled={restorePhrase !== "RESTORE " + restoreBackupId || busy || !onCommitRestore}
                 onClick={() => void confirmRestore()}>Confirm guarded restore</Button>
               <Button type="button" variant="ghost" onClick={() => {
                 setRestorePermit(null); setRestorePhrase("");
