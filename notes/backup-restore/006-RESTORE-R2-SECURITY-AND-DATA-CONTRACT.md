@@ -34,3 +34,14 @@ No edits to `src/core/auth/**`, mailserver Postfix/Dovecot, Prisma schema/migrat
 5. **Read-only legacy CI mode:** `.github/workflows/readbox-backup-ci.yml:35–94` checks cumulative changed non-notes paths against the exact 16-file BR03 allowlist; if there are **only `notes/**` changes**, outputs `notes_only` and skips BR03 runtime tests instead of requiring obsolete BR02 18-file patches. Actual BR03 source changes must include mandatory new files; full regression still runs in `br03` mode. No auth/Compose/schema/mailserver exceptions.
 
 **Still OPEN (P-02 scope exception):** `scripts/install/readbox-backup-agent-install.sh` does not install the hashed SDK; service unit executes system Python. Added `requirements.lock` passes CI but is not automatically installed on VPS. In-process schedule polling is source-only; `.timer` is not installed by existing installer. Real R2 service/key escrow and live restore remain unauthorized/not tested. P-01 did **not** modify installer/unit or claim host readiness.
+
+## P-02 installer/systemd security boundary
+
+- Approved package inputs remain exactly `deployment/backup-agent/requirements.lock`, SHA256-derived release path and CPython 3.12. No dynamic user-controlled URL, runtime path, arbitrary shell command, unpinned wheel or Docker change. Pip isolated from user environment/config, pinned hashes and wheels only; HTTPS PyPI index fixed.
+- Host release root `/opt/readbox-backup-agent` (mode 0700, owner root:root); versioned isolated venv, `current` atomic root-controlled symlink, no in-place pip upgrades; failed staging uninstalled without replacing old runtime. Existing releases retained for rollback.
+- Existing service migration only from known immutable BR-02 unit sha256 `d667df88d72dba84a8c99cb693b1db3b63ad0162ea459f3a0950cbf666028dd4` or exact P-02 content. Unknown modifications stop installation. Backup maintenance lock and persisted job state checked immediately before switch; no running backup is intentionally stopped.
+- Rollback preserves previous unit and runtime symlink and attempts to restore original systemd enabled/active state. If rollback cannot recover the service, operator intervention remains necessary; no silent success assertion.
+- Runtime service continues existing Docker privileges, root user and Unix-only peer validation; `PYTHONNOUSERSITE`, `PYTHONDONTWRITEBYTECODE`, `ReadOnlyPaths=/opt/readbox-backup-agent` reduce unrelated mutations; no changed auth/mailer/Prisma logic.
+- Source-only scheduler in agent.py remains the single queue runner; optional timer file exists but stays **uninstalled**. No production schedule set by P-02.
+- The local original root-only age identity, encrypted archives, environment and volumes are not backed up offsite by this packaging change. Real host failure/rollback and Cloudflare R2 need operator-granted acceptance.
+

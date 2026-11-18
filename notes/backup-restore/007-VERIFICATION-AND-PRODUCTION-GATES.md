@@ -55,3 +55,12 @@ The existing original seven blockers and [RG-01–RG-17 runbook](https://github.
 | BR-04 guarded restore UI/API and independent RG-01–RG-17 acceptance | User has not authorized BR04 or production recovery | **NOT IMPLEMENTED / NO-GO** |
 
 **CI scope:** exactly the P-01-approved 16 source paths and `notes/backup-restore/003–007`. The R-05 recovery engine, current production Docker Compose, private volume and mailserver are unchanged. No VPS, real R2 key, real restore, GitHub tag, image publication or release. Source/mirror parity must be explicitly verified after final commit; an identical code tree in a different Git commit is not enough.
+
+## P-02 focused regression and patch audit (2026-11-18)
+
+- Frozen source/mirror entry: `f813ad15ad5895c5cfea9ed3ce6b402b1cae7142`, exact tree `8bb0bda58402b4f81e24c3386263216a65cc11dd`.
+- Approved actual code changes: `scripts/install/readbox-backup-agent-install.sh` (packaging and transactional update), `deployment/backup-agent/systemd/readbox-backup-agent.service` (pinned venv/one scheduler), plus **explicitly user-approved** `AGENTS.md` (compact phase rules). Existing `deployment/backup-agent/requirements.lock` is used verbatim; `notes/backup-restore/003–007` updated. No scope beyond these paths.
+- **Focused CI/regression:** pending GitHub Actions job conclusion; never report PASS without observed result. The available unchanged R-06 workflow checks app/auth/PostgreSQL/SMTP/BR02/R05 on disposable resources, but **does not execute the root-only host installer against a real systemd installation**. Thus packaging startup/rollback behavior remains source-audited, not production verified.
+- Source safety proof: locked release-digest venv, non-root mode, hashed binary-only pip, recheck marker, exact checksum guard for existing unit, atomic current/unit replacement and rollback, global backup lock + queued/running job refusal, no timer auto-start. Failure paths preserve live data but any nonfunctional rollback requires operator escalation.
+- Production host/Cloudflare, real R2 offsite, private age identity disaster recovery, active service migration and guarded BR-04 restore: **NOT RUN**. Formal production release GO remains **NO-GO**. No VPS deployment, tag, release, root secret manipulation or restore.
+

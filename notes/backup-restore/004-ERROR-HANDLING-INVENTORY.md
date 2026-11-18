@@ -41,3 +41,21 @@
 | `R2_CONNECTION_FAILED` after lost probe ACK | `r2.py:152–183` | Ambiguous health PUT tries exact owned key DELETE; failed deletion becomes `R2_PROBE_CLEANUP_FAILED`, credential rotation fails closed |
 
 **Not implemented:** named `R2_PENDING_UPLOAD_RECONCILE` is unnecessary as a public error because reconciliation is a private persisted workflow. Real host SDK provisioning/age key offsite custody, Cloudflare credentials permission testing, restore/rollback operator automation and all `RESTORE_*` remain OPEN / NOT RUN. No raw botocore errors, secret values or file paths exposed in returned error codes.
+
+## P-02 host packaging error contract (source, not VPS-tested)
+
+| Refusal / result code | Trigger in `scripts/install/readbox-backup-agent-install.sh` | Safety |
+|---|---|---|
+| `BR03_PYTHON_312_REQUIRED` | System Python not CPython 3.12 | Does not silently use unknown Python ABI |
+| `BR03_HASH_LOCK_MISSING_OR_UNSAFE` / `BR03_LOCK_DIGEST_INVALID` | Missing/symlinked/unusable locked dependency inventory | No unpinned SDK installation |
+| `BR03_RUNTIME_ROOT_UNSAFE`, `BR03_RUNTIME_POINTER_UNSAFE`, `BR03_EXISTING_RELEASE_UNTRUSTED` | Root-only ownership/mode, symlink or release identity mismatch | Refuse unknown runtime or symlink traversal |
+| `BR03_CONCURRENT_INSTALL_REFUSED`, `BR03_LIVE_MAINTENANCE_REFUSED` | Root installer lock busy or global backup maintenance active | No live-backup restart race |
+| `BR03_ACTIVE_JOB_OR_UNREADABLE_JOURNAL_REFUSED` | Journal queued/running or corrupt/untrusted JSON | Refuse service disruption while job exists |
+| `EXISTING_SERVICE_DIFFERS_REVIEW_MANUALLY` | Installed service is neither exact BR-02 baseline unit nor approved P-02 unit | Never overwrite custom unit |
+| `BR03_PYTHON_VENV_REQUIRED`, `BR03_HASH_LOCK_INSTALL_FAILED` | Missing Ubuntu venv support or resolved wheel mismatch/network failure | Stage never activated; previous runtime preserved |
+| `BR03_RUNTIME_DEPENDENCY_CHECK_FAILED`, `BR03_RUNTIME_IMPORT_CHECK_FAILED` | Runtime dependency/import/ABI invalid | Reject before service activation |
+| `BR03_AGENT_NOT_HEALTHY_ROLLING_BACK` | systemd service or Unix agent socket not healthy after restart | Attempt exact previous runtime/unit restore; record inability if rollback itself fails |
+| `BR03_HOST_RUNTIME_HASH_VERIFIED_SERVICE_ACTIVE` | Installer completed runtime/unit activation and checks | Operational output only; not a claim from CI |
+
+Never include decrypted credentials, pip index tokens, private age identity, raw mail content or subprocess stderr in operator-facing error codes. Root-only isolated interpreter does **not** make real Cloudflare API access or host-loss key recovery tested.
+
