@@ -87,3 +87,5 @@ jobs:
           echo DOMAIN_AUTO02_FOCUSED_DISPOSABLE_PASS
       - name: Confirm no live operations
         run: echo DOMAIN_AUTO02_SOURCE_ONLY_NO_VPS_R2_DNS_KEYS_RELEASE
+
+# DOMAIN-AUTO-02 focused repair recheck: explicit Prisma JSON serialization.

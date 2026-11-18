@@ -216,7 +216,7 @@ export async function bindCloudflareZone(
   if ("cloudflareZone" in details) throw new Error("CLOUDFLARE_ZONE_BINDING_CONFLICT");
   const result = await db.domain.updateMany({
     where: { uuid, verificationDetails: { equals: details as Prisma.InputJsonValue } },
-    data: { verificationDetails: { ...details, cloudflareZone: zone } },
+    data: { verificationDetails: { ...details, cloudflareZone: { id: zone.id, name: zone.name } } },
   });
   if (result.count !== 1) throw new Error("CLOUDFLARE_ZONE_BINDING_CONFLICT");
 }
@@ -285,7 +285,7 @@ export async function createDomain(
         verificationStatus: "pending",
         isDefault: false,
         verificationDetails: input.cloudflareZone ?
-          { cloudflareZone: input.cloudflareZone } : {},
+          { cloudflareZone: { id: input.cloudflareZone.id, name: input.cloudflareZone.name } } : {},
       },
       select: { uuid: true, name: true },
     });

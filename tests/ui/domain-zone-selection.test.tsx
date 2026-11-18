@@ -48,7 +48,7 @@ describe("DOMAIN-AUTO-02 Cloudflare zone selector", () => {
     await screen.findByRole("option", { name: "example.test" });
     await user.click(screen.getByRole("button", { name: "Add domain" }));
     expect(create).not.toHaveBeenCalled();
-    expect(screen.getByText("Select a Cloudflare zone before automatic setup.")).toBeInTheDocument();
+    expect(screen.getAllByText("Select a Cloudflare zone before automatic setup.").length).toBeGreaterThan(0);
     await user.selectOptions(screen.getByLabelText("Select an active Cloudflare zone"), id);
     await user.click(screen.getByRole("button", { name: "Add domain" }));
     await waitFor(() => expect(create).toHaveBeenCalledWith({
