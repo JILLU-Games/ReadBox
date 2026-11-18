@@ -96,3 +96,24 @@ Admin Panel's Recheck Preflight.
   package version unchanged.
 - This is a UI-only source correction: no update execution, Docker build,
   host updater changes, production VPS deployment, mailserver or R2 actions.
+
+## AU-02 — Controlled live Admin Panel auto-update E2E test marker (2026-11-18)
+
+- Marker ID: `AU02-E2E-DOCS-ONLY-20261118`. This approved documentation-only
+  source change creates one new immutable Git main SHA after focused CI.
+- The live ReadBox Docker updater compares independently verified source/mirror
+  `main` SHA values with the current host SHA; this marker **is not** a stable
+  `v1.0.0` release, a feature change, a database migration, or a signed bundle.
+- The next update is **not automatically started** by this marker or Git sync.
+  A human must first verify the 17/17 host preflight, the matching new SHA in
+  both official repositories, and an existing encrypted-backup prerequisite.
+- An authorized administrator may then explicitly confirm a **single** browser
+  update. Its guarded host updater must obtain the global maintenance lock,
+  create the encrypted pre-update snapshot, fast-forward main without rewriting
+  history, rebuild Compose services, and report a final host SHA/health status.
+- If failure occurs, **stop**; do not retry, reset Git, restore production,
+  remove volumes, tag/release, modify R2 or override the operator-review gate.
+  Record sanitized evidence only; never publish keys, database or mail data.
+- The resulting Git/CI verification and the eventual live browser execution
+  are **separate gates**. The latter must remain NOT RUN until actual evidence
+  confirms it. The formal `v1.0.0` production release remains NO-GO.
