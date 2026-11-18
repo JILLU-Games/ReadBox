@@ -1,58 +1,24 @@
-# BR-006 — Backup Agent, Snapshot, R2 and Restore Safety Contract
+# 006 — Backup/R2 security contract, source-backed implementation limits
 
-**Architecture contract — BR-02 local encrypted backup/verify SOURCE + CI VERIFIED, BR-03 R2 and BR-04 restore NOT IMPLEMENTED.** Grounding: `docker-compose.yml:34–35,107–112,266–273`, `Dockerfile:105`, `deployment/operations/compose_recovery.py:24–28,99–128,151–163,166–210,213–279,282–336`, `src/core/auth/current-user.ts:114–118`, `scripts/install/readbox-update.sh:42–65`.
+## Trust boundaries (unchanged)
 
-## Architecture and trust boundaries
+`Admin browser → authenticated Next.js server action → HMAC Unix IPC on Web-only named volume → root-only host backup agent → existing fixed R-05 backup/verify → optional Cloudflare R2`.
 
-`Browser → admin authenticated new Next.js Backup page/actions (UID 1001) → private limited Unix socket → host broker/agent with strict action allowlist → durable host job store → locked privileged worker → existing Docker Compose recovery/age + R2 adapter`.
+- User has no arbitrary shell, file path, Compose override, endpoint URL or production restore action.
+- Existing `src/core/backup/permissions.ts`, `src/app/(workspace)/vcon/backup/page.tsx` admin guard and `deployment/backup-agent/agent.py` peer+signature checks are maintained.
+- No `.env` secrets, private age identity or source mail bodies should reach R2 or frontend. R-05 `.age` bundle excludes host/TLS/DB-global credentials; data-only encrypted backup is **not full host disaster recovery**.
+- R2 endpoint is derived from exact 32-lowercase-hex account ID as `https://ACCOUNT.r2.cloudflarestorage.com` (`r2.py:53–66`). No arbitrary endpoint, public R2 restore or presigned URL.
+- Host private R2 config is AESGCM-encrypted, key stored as separate mode 0600 root-only file under same state path (`r2.py:73–104,164–181`). **This is encryption-at-rest, not independent master-key custody.** The private age identity and R2 config/master-key must be independently preserved for host-loss recovery; no plaintext keys in Git or logs.
+- `r2.configure` probes list + unique `readbox/managed/health/...` object PUT/head/GET/delete before replacing ciphertext. Failed probe/rotation preserves existing working encrypted config. Probe PUT-ack orphan risk is documented as BR03-SEC-05.
+- Only an existing `verified`/`V2` local `.age` snapshot may be uploaded; `r2.py:210–273` re-decrypts/validates, rejects immutable key conflict, verifies remote length and streamed SHA256 before `storage.py.set_remote_verified()`. R2 multipart ETag is never misrepresented as MD5.
+- Owned immutable object names: `readbox/managed/<32hex>.age`. Current listing is **partial** (first 100, max30 returned) and does not mark objects remote_verified without explicit upload verification. Remote DELETE is limited to owned health probes; **no arbitrary object/bulk prefix deletion, no remote backup purge**.
+- Schedule defaults OFF; UTC only; 6/12/24h; no missed-run catch-up burst. Automatic upload after backup is candidate best-effort only until durable handoff/backoff gap closes.
+- Local retention defaults OFF and keeps >=3 local, requires remote_verified first and fresh network/upload re-verification before deleting any local `.age`; does **not** delete remote R2 data. Still requires further crash/power-loss test before operational acceptance.
+- The .timer file on candidate is **not installed/enabled by BR-02 installer**, and only agent in-process polling is wired. Host installation, dependency provisioning, environment compatibility, rollback/key backup and real R2 permission probes need separate approval.
+- BR-04 restore remains strictly disabled. It must require a preflight+fresh superuser confirmation, immutable format/identity check, encrypted pre-restore rollback and disposable isolated recovery/rollback tests. Never let CI touch production data or use legacy GPG as age without separate parser.
 
-- Unix socket exposed **only** to authorized Web UID/GID via a dedicated narrow mount; never mount Docker daemon socket or host root FS to Web. Agent request **types only**: `backup.create`, `backup.verify`, `backup.list`, `job.status`, `job.logs`, `r2.configure`, `r2.test`, `r2.upload`, `r2.list`, `schedule.update`, `restore.test`, `restore.production`. No command strings or user-selected filesystem paths.
-- Agent must not trust requests from compromised Web; enforce fixed project root and Compose name, known volume names and static command argument arrays, scoped HMAC/request expiry/replay protection, peer permissions, input validation, bounded payloads, user/operator approval binding and audit. Root worker isolated behind a least-privilege broker.
-- Durable atomic job journal and sanitized event logs outside application PostgreSQL and outside git tree; supports process restart, stateless UI refresh, unique job ID, monotonic state, locking and age-key custody. Host-side private state (proposed `/var/lib/readbox-backup`) mode 0700, logs and keys mode 0600. Distinct private backup destination (proposed `/var/backups/readbox-managed`), never overwritten.
-- Restore that stops Web cannot depend on the original HTTP request to finish. UI may reconnect to poll persisted status after restart.
+## Strict source/change boundary
 
-## Backup formats and data scope
+No edits to `src/core/auth/**`, mailserver Postfix/Dovecot, Prisma schema/migrations, unrelated app pages, `Dockerfile`, production `docker-compose.yml`, DNS/Caddy/VPS volumes, R-05 `deployment/operations/compose_recovery.py` in the planning task. Candidate BR-03 already changes only 14 approved backup paths. Future host installer changes are **a separately approved exception**, not implicitly allowed by BR-03.
 
-**Canonical new snapshot:** R-05-compatible `age` encrypted bundle, with `postgres.dump`, `web.tar.gz` for Maildir/attachments/media, optional `queue.tar.gz`, `metadata.json` and `SHA256SUMS` (see source). Require source SHA/format version, project identity, DB identity, UID/GID, snapshot time, scope manifest, crypto identity reference and precise exclusions in **host-side metadata**. Do not silently change R-05 v1 accepted format; any extended version must have a separate validator and migration contract, preserving old support.
-
-**Excluded from R-05 v1:** .env/credentials, external Caddy/TLS, PostgreSQL globals, Op enDKIM key recovery and whole-system bootstrap. A separate operator-controlled encrypted config/identity recovery track would be required before claiming full server DR. Inbound data backup ≠ complete bare-metal disaster recovery.
-
-**Existing old VPS file:** GPG `.tar.gz.gpg` with different layout and plaintext secrets inside its encrypted payload; it is **legacy**, not age v1. Never pass it to `compose_recovery.py restore`. Read-only inventory/verify may be offered later. Legacy conversion/restoration requires separate isolated tests and independent authorization.
-
-**Verification levels:** (V1) encrypted file exists + mode; (V2) authenticated decrypt and manifest/checksum/tar validation; (V3) isolated actual DB+volume restore and content/ownership comparisons; (V4) approved recovery drill + app/SMTP readiness. UI badges must show the attained level, not merely "verified" for V1.
-
-## Privileged production restore state machine (BR-04)
-
-`DRAFT → PREFLIGHT → AWAITING_FRESH_SUPERUSER_CONFIRMATION → QUEUED → LOCKED → PRE_RESTORE_ENCRYPTED_ROLLBACK_VERIFIED → WRITERS_QUIESCED → APPLY_DB → APPLY_VOLUMES → VALIDATE_AND_RESTART → SUCCEEDED`.
-
-Failure branches: `BLOCKED` before mutation, `ROLLING_BACK` after mutation, `ROLLED_BACK` when proven, `CRITICAL_RECOVERY_REQUIRED` when rollback unverified. Record each step atomically before/after mutation. No retry on production restore; only one in flight across backup/restore/update. Stop previously-running services only; do not bring up services that were deliberately stopped.
-
-Preflight: exact `project` / `db` / `UID 1001`, expected volume names, backup age/format, decrypt identity, checksums and archive allowlist, sufficient disk space for current+rollback, health, maintenance confirmation and concurrent update/backup lock. Reject symlink/absolute/`..`/hardlink/device content. Show data-loss window relative to snapshot UTC date. Before destructive apply, create an encrypted rollback; fail closed if rollback output cannot be verified. After restore: DB query and source schema validation, Maildir/attachments metadata+ACL check, Dovecot/Postfix health, Web/worker `/health/ready`, known inbox sample smoke, operator sign-off. On fatal partial state keep rollback and explicit recovery instructions. Never run CI restore against actual deployed volumes.
-
-## Cloudflare R2 contract (BR-03)
-
-- Config fields: *account ID*, *bucket*, *region/endpoint derived only from verified account ID*, *access key ID*, *secret access key*, optional fixed owned prefix. No freeform arbitrary endpoint to root worker; HTTPS only, TLS verification on.
-- Credentials are submitted encrypted in transit, stored host-side encrypted with independently protected local master key, redacted after save (view **only** last4), rotatable/revocable. Key version and creation date allowed in history; never expose value or signed management URLs. Keep old working credentials until new connection test and atomic swap.
-- Connection check tests authentication and explicitly needed list/read/write/delete capability on a unique owned temporary key; always attempt cleanup and show partial cleanup errors. Do not silently require broader bucket permissions.
-- Upload **only** complete V2-verified encrypted blobs, immutable names scoped to a configured prefix; use content SHA-256 from local file and verify remote via stored metadata and optional streamed download digest. Do not treat multipart ETag as universal MD5. Mark R2 `uploaded` versus `remote_verified` separately.
-- Auto-upload only after successful local snapshot and verify, with bounded retry, exponential backoff, idempotency key; no duplicate schedule jobs and no simultaneous restore.
-- History includes object key (sanitized), source SHA, size, creation time, encryption format, status and verification result. Remote object listing is restricted to owned prefix; no arbitrary key download to live restore.
-- Retention: default OFF; keep minimum proven recovery points locally and remotely. Never delete last verified backup, pre-restore rollback, in-flight upload or an unverified remote object. Remote deletion disabled in initial release unless separate approved destructive scope.
-- User wants no manual WinSCP: R2 setup is optional; "local only" state is allowed with clear single-VPS-loss risk shown. R2 upload may be manual or scheduled after verified setup.
-
-## Backup logs, UI and operational controls
-
-Reuse existing `PageHeader`, `Panel`, `Badge`, `Table`, `Dialog`, `StatGrid`, `notify` from `src/components/vcon/operations-console.tsx:1–42`. Four sections: Overview/Backups, Schedule, R2 Storage and Activity. Visible action statuses `not configured`, `queued`, `running`, `verified`, `failed`, `blocked`, `interrupted`; do not label a UI-only mock "working". Log paging/copy must be sanitized, size-limited and tied to a specific authenticated job ID.
-
-## Strong no-change boundary
-
-ReadBox session/auth source, existing Prisma schema, all mailserver services and port25 configuration, Caddy, DNS, user inbox, message parsing, existing update UI and old CLI scripts unchanged. Minimal `docker-compose.yml` Web-only IPC mount in BR-02 and minimal maintenance lock in `scripts/install/readbox-update.sh` in BR-04 are the ONLY planned existing production infrastructure edits. Both require CI guards and a documented rollback plan. No new public port.
-
-## BR-02 actual implemented boundary and verified deviations from roadmap design
-
-- **Actual RPC actions:** `status`, `job.get`, `backup.create`, `backup.verify` only; no user-supplied path/command; other roadmap actions remain future-only. Signed timestamp/nonce HMAC protects Unix IPC; kernel peer UID restricted to 0/1001; fixed socket + group-only access; agent root execution is separate from Web UID1001. No Docker socket in Web; only `readbox_backup_ipc:/run/readbox-backup-agent:ro` mount.
-- **Host side:** opt-in idempotent installer `scripts/install/readbox-backup-agent-install.sh` and restricted systemd unit are **source only**, not run on VPS. Production Compose project/root remain pinned; exact `readboxbr02-ci` + `READBOX_BR02_DISPOSABLE=1` is the sole fixture mode. Root journal `/var/lib/readbox-backup`, encrypted output `/var/backups/readbox-managed` and age identity in root-only mode are created only after separately approved installation.
-- **Crypto / snapshot:** unchanged R-05 v1 package `postgres.dump`, `web.tar.gz`, optional `queue.tar.gz`, `metadata.json`, `SHA256SUMS`. Encrypted with `age`; verification decrypts to isolated temporary path, strictly checks format, project/DB/UID, content/checksum and archive types; no write to production during V2 verify. R-05 test restore/rollback is **CI-only** and not exposed from new agent.
-- **Persistence:** atomically written per-job journal and backup metadata survive agent/Web restart; active jobs become interrupted on unclean restart; sanitized known event strings only; 30 latest jobs/backups returned, bounded by client response. Ciphertext corruption on reverify marks the backup `needs_review` rather than continuing to display V2.
-- **Operational warning:** local snapshot is **not** full system/credential/SSL DR; age private identity must be safeguarded independently. No R2 offsite storage or schedules yet. Old VPS GPG bundle remains legacy, not age-compatible. Offline disposable CI success does not prove on-VPS installer behavior.
-- **Security/acceptance evidence:** exact 18 approved code files changed (including only +3 Compose lines, no other service/port change); [BR-02 isolated CI PASS](https://github.com/JILLU-Games/ReadBox/actions/runs/44198139364) verified HMAC/replay, preserved journal, age V2, tamper downgrade and R-05 disposable recovery. No production mutation or new public ports.
+**Evidence:** [source main](https://github.com/JILLU-Games/ReadBox/blob/c08b9cd77ec30afc50fe36952eecb982ba90a982/deployment/backup-agent/agent.py), [BR-03 candidate R2 adapter](https://github.com/JILLU-Games/ReadBox/blob/b8f3fc662d384211d4506e40f13859f9cfcb012a/deployment/backup-agent/r2.py), [candidate scheduler](https://github.com/JILLU-Games/ReadBox/blob/b8f3fc662d384211d4506e40f13859f9cfcb012a/deployment/backup-agent/scheduler.py), [current original installer](https://github.com/JILLU-Games/ReadBox/blob/c08b9cd77ec30afc50fe36952eecb982ba90a982/scripts/install/readbox-backup-agent-install.sh), [successful mock/disposable CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44203727204).

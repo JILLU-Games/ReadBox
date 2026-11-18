@@ -1,39 +1,34 @@
-# ReadBox Backup & Restore — BR-00 Planning Baseline Freeze
+# 000 — Frozen baseline and documentation-first rules (2026-11-18)
 
-**Freeze date:** 2026-11-18 (Asia/Dhaka). **Work type:** forensic review and documentation **only**. **Implementation:** NOT STARTED.
-**Immutable audited source commit:** `0e8a19e583719e56c054406581bedcf5599f1ace`; tree `d772ba0d2b111be6bb23104f6804a3ef8818fdf3`.
-**At audit start:** `JILLU-Games/ReadBox` and `vibtoolshq/ReadBox` both had this SHA and tree on `main`. `v0.1.0-rc.1` remains an immutable prerelease tag at this SHA. Later documentation commits do **not** imply a new deployed version, tag or production GO.
-**Audit basis:** actual GitHub Git tree (779 blobs, 1,029 tree entries); opened source files and compared code at the SHA, rather than relying on legacy Markdown alone. Previously supplied VPS command output and screenshots are *operator observations*, not a new live VPS probe.
+## Immutable source truth
 
-## Goal and exact boundary
+| Field | Observed Git state |
+|---|---|
+| Source repo | `JILLU-Games/ReadBox` |
+| Mirror repo | `vibtoolshq/ReadBox` |
+| Both `main` at forensic freeze | `c08b9cd77ec30afc50fe36952eecb982ba90a982` |
+| Both `main` tree | `e7cb8fb8db14046cabaae9b3768267cec0efd095` |
+| BR-03 maintenance-only candidate | `b8f3fc662d384211d4506e40f13859f9cfcb012a` |
+| Candidate tree | `413155ee2672f4347c676b23c847997038688ed2` |
+| BR-03 CI evidence (candidate only) | [GitHub Actions #44203727204](https://github.com/JILLU-Games/ReadBox/actions/runs/44203727204) — `success` |
+| Pre-cleanup `notes/` | 26 original tracked note blobs at source/main `c08b9cd77ec30afc50fe36952eecb982ba90a982`; original copy recoverable by Git SHA |
+| Released / deployed state | **NOT established for this candidate**; no new VPS deployment, real R2 probe, production restore, release or tag |
 
-Add a compact professional `System & Settings → Backup` page and host-managed local encrypted snapshots, verification, manual/automatic schedules, Cloudflare R2 connection/configuration, upload/history, job logs/copy, isolated test restore and protected production restore. **No unrelated feature, visual design, authentication behavior, mail transport, mail database contents, current app deployment, TLS, DNS, repo release or existing backup is to be changed during this documentation phase.**
+All report claims below distinguish **on-main**, **candidate only**, **CI-simulated**, **operator-observed earlier** and **not implemented**.
 
-## Strict documentation-only change allowlist
+## Scope of this cleanup
 
-Only **new Markdown paths** in `notes/backup-restore/000–007`. Do not edit or replace `notes/000–016`, old audits, application source, Compose, migrations, workflow, GitHub release, tag or VPS state. Existing historical documentation is immutable audit evidence; this new series is the prospective feature source of truth.
+Only `notes/**`. Retain referenced R-phase governance `notes/000–007` and live-evidence `notes/016`. Remove unreferenced patch reports `008`, `009`, `011`, `013`, `014` from current tree; replace referenced `010`, `012`, `015` and older VPS forensic with short immutable Git-history pointers, leaving existing incoming documentation links functional. Replace the Backup `000–007` series in place; add `notes/README.md` as new active index. No unrelated source or config changes.
 
-## Non-negotiable future implementation rules
+## Rules for every following phase
 
-1. Four scope-locked phases `BR-01` through `BR-04` in `002`; explicitly named paths only. No silent edits outside each phase's allowlist. New needs require documented scope exception **before** coding.
-2. After each phase: one focused verification suite, regression and patch audit, then update `003`, `004` when errors change, `005` and `007`; commit and source/mirror parity check. No repeated test loops; test failures are recorded, never relabeled PASS.
-3. Existing Web container runs non-root UID:GID `1001:1001`; never give Web the Docker socket or root capability. Privileged operations run in a separate constrained host agent with allowlisted actions and durable status.
-4. Existing `deployment/operations/compose_recovery.py` is a **read-only reusable source reference** in this plan; no rewriting it by default. Production restores require explicit superuser approval, rollback artifact, correct format, preflight, host-side execution, maintenance and postconditions. No restore of production during CI.
-5. Default `Automatic backup = OFF` and `R2 = NOT CONFIGURED` until actual install, credential setup and successful verification. Uninstalled agent must not break existing ReadBox pages or user inbox.
-6. Preserve original database schema/migration files, auth/session behavior, SMTP/LMTP, Maildir UID/GID ownership, subscriptions, UI colors/layout and existing runtime values unless an explicitly scoped safe additive integration is listed.
-7. Backup **data** and backup **host config / secret recovery** are different contracts. Never claim full disaster recovery without both and an isolated restore. Never put credentials, plaintext secrets, PII-rich logs, keys or archive contents in GitHub.
-8. No stable release or deployment from planning. Existing seven historical R-06 blockers and 17 acceptance gates are not silently closed by new backup docs.
-9. All release/test and copy evidence must reference exact SHAs; never assume a documentation-only HEAD has already reached a VPS.
-10. Source and mirror `main` should be kept exact-SHA synchronized for this docs commit if permission mechanisms allow; no force push.
+1. Establish source + mirror exact SHA/tree and compare against this audited freeze; record any drift before edits.
+2. Reopen source paths and exact code anchors; a Markdown claim is **not** proof of working behavior.
+3. One approved phase = only its allowlisted source paths; any extra installer/service/CI path needs **new explicit exception** before editing.
+4. At phase start update scope; implement targeted patch; run one focused disposable CI and necessary minimal failure recheck; perform security regression and exact changed-path/scope diff.
+5. Document **pass/fail/skip** with commit/run URL in `003–007`, close only when exit criteria actually pass. Source/mirror exact commit SHA parity using fast-forward only after validated phase approval.
+6. Preserve auth, session, existing Inbox/UI, Prisma schema/migrations, Maildir, Postfix/Dovecot and live volumes. No real SMTP, VPS modification, real credentials, live restore, tag or release under documentation/planning approval.
+7. New encryption-key custody, Cloudflare R2 real API tests and actual restore require separate operator permissions. CI mocks never constitute remote production acceptance.
+8. Explicit next-phase approval required before additional code modification. Active update plan `002`; historical R-01..R-06 phase reports remain at immutable [pre-cleanup Git commit](https://github.com/JILLU-Games/ReadBox/blob/c08b9cd77ec30afc50fe36952eecb982ba90a982/notes/002-PRODUCTION-PHASE-ROADMAP.md).
 
-## Planning-document index
-
-- `001-FORENSIC-AUDIT-AND-PRODUCTION-GAPS.md` — source proof, real mismatches and classifications.
-- `002-PHASE-ROADMAP-AND-SCOPE-LOCK.md` — every phase's exact paths and code anchors.
-- `003-PHASE-PROGRESS-AND-CHANGE-LOG.md` — progress, implementation claims and phase closure ledger.
-- `004-ERROR-HANDLING-INVENTORY.md` — observed handlers and proposed fail-closed errors.
-- `005-ACTUAL-WORKING-FEATURE-TRACKER.md` — confirmed existing, operator-observed and unimplemented.
-- `006-RESTORE-R2-SECURITY-AND-DATA-CONTRACT.md` — privileged agent, snapshot and R2/restore contracts.
-- `007-VERIFICATION-AND-PRODUCTION-GATES.md` — test cases, pass criteria and release gates.
-
-**Source link:** https://github.com/JILLU-Games/ReadBox/tree/0e8a19e583719e56c054406581bedcf5599f1ace
+**Previous BR-03 approved implementation scope**: [exact archived 002](https://github.com/JILLU-Games/ReadBox/blob/c08b9cd77ec30afc50fe36952eecb982ba90a982/notes/backup-restore/002-PHASE-ROADMAP-AND-SCOPE-LOCK.md). Its 16 BR-03 paths and 19 BR-04 paths have been copied into the new `002`; do not silently broaden them.

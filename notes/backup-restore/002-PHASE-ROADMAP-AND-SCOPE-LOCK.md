@@ -1,71 +1,14 @@
-# BR-002 — Exact Four-Phase Implementation Roadmap / Scope Lock
+# 002 — New documentation-first roadmap and immutable file Scope Locks
 
-**Target source freeze:** `0e8a19e583719e56c054406581bedcf5599f1ace`. **Status:** PLAN ONLY; no implementation. Every path below is relative to repository root and is an **explicit allowlist for its phase**, not a claim it currently exists. Phase notes (`003–007`) may be updated at phase close; no other Markdown file may be rewritten silently.
+## Strict status
 
-## Global rules and interface
+**DOC-01 — this task: clean/rebuild `notes/` before more coding.** Only `notes/**` is permitted. Old dev reports may be removed from the active tree only with links preserved, full Git history maintained and exact preclean SHA documented. No BR-03 candidate source changes in DOC-01.
 
-- Add `System & Settings → Backup` at `/vcon/backup`. Keep current colors, layout, navigation semantics and existing pages unchanged.
-- Host privileged execution separate from UID 1001 Web; never expose raw Docker socket, arbitrary shell args, host paths or a root-access HTTP port to Web. Mutations are strict enumerated jobs and durable/safe.
-- Preserve `prisma/schema.prisma` and all existing migrations. Use private host-local state with transaction/atomic persistence for job/credentials/schedules; this survives DB restore.
-- Data snapshots use source-approved `age` format with manifest/scope. Preexisting `.tar.gz.gpg` is a distinct legacy format; do not route to age restore or claim cross-format support without evidence.
-- No production VPS data mutation, live SMTP sends, restore, root-agent installation or tag/release during normal implementation phases. Production restore remains disabled until BR-04 test and separate authorization.
-- One focused suite per phase plus a scoped patch review; no local full-product build loop. CI actions use disposable resources, never real VPS. Scope exception requires explicit recorded approval.
+**Next P-01 / BR-03 hardening:** The candidate already exists on `maintenance/readbox-br03-20261118` at `b8f3fc662d384211d4506e40f13859f9cfcb012a` and [CI passed](https://github.com/JILLU-Games/ReadBox/actions/runs/44203727204); it is **not on main**. Before merging, fix BR03-REL-02, BR03-REL-03, BR03-OBS-04 and BR03-SEC-05, add direct failure/restart tests, check exactly scoped patch + one focused CI. No real R2 keys or live network. BR03-DEP-01 cannot be fixed inside this allowlist.
 
-## BR-01 — Sidebar + read-only compact UI skeleton
+### P-01 exact ORIGINAL BR-03 allowlist — NO additions
 
-**Existing files allowed (minimal additive):**
-1. `src/components/layout/app-shell.tsx` — at `:14–33` add only icon import; at `:109–118` append one `{ href: "/vcon/backup", label: "Backup", icon: HardDrive }` entry inside existing `system-settings` items.
-2. `tests/ui/app-shell.test.tsx` — append exact administrator-visible and regular-user-hidden navigation assertions only.
-
-**New files allowed:**
-3. `src/app/(workspace)/vcon/backup/page.tsx` — server page with `requireAdminUser()` and unavailable/not-configured summary; no privileged work.
-4. `src/components/vcon/backup-console.tsx` — compact existing UI primitives, sections for Overview/Backups/Schedule/R2/Activity; buttons *disabled with explanation* until corresponding phase. Never fake success/connection.
-5. `tests/ui/vcon-backup.test.tsx` — UI role, layout, disabled placeholder, responsive and state labels.
-
-**Exact source patch anchors (before → after, proposed only):**
-
-```diff
---- a/src/components/layout/app-shell.tsx
-+++ b/src/components/layout/app-shell.tsx
-@@ imports (existing "lucide-react" list, lines 14-33)
-+  HardDrive,
-@@ system-settings items (existing lines 113-116)
-     { href: "/vcon/settings", label: "Settings", icon: Settings },
-     { href: "/vcon/system-update", label: "System update", icon: ArrowUpCircle },
-+    { href: "/vcon/backup", label: "Backup", icon: HardDrive },
-```
-
-**Exit:** route renders with existing admin gate; no user route visible to non-admin; no new network activity; old UI/navigation tests PASS. **Do not** introduce agent/API, restore handler or secret form yet.
-
-## BR-02 — Privilege-separated local encrypted backup, verify, durable logs
-
-**Existing files allowed:**
-1. `docker-compose.yml` — strictly under `web.volumes` at `:107–112`, add one narrowly-scoped agent IPC mount. No changes to `postgres`, `worker`, `postfix`, `dovecot`, named data volumes, ports, environments/secrets or restart policy.
-2. `src/app/(workspace)/vcon/backup/page.tsx` — actual agent-status + job summary.
-3. `src/components/vcon/backup-console.tsx` — operational Manual Backup, Verify, progress, sanitized Copy Logs.
-
-**New files allowed:**
-4. `src/app/(workspace)/vcon/backup/actions.ts` — admin-scoped Server Actions to queue only allowlisted backup/verify jobs, no long blocking execution.
-5. `src/app/api/vcon/backup/jobs/[id]/route.ts` — authenticated no-store job status/log pagination (bounded).
-6. `src/core/backup/contracts.ts` — typed job IDs, states, status and snapshots.
-7. `src/core/backup/validation.ts` — strict schema validation, safe opaque IDs and no arbitrary paths.
-8. `src/core/backup/permissions.ts` — admin/superuser predicates; server enforcement.
-9. `src/core/backup/agent-client.ts` — private authenticated Unix IPC, bounded timeouts and no root shell.
-10. `deployment/backup-agent/agent.py` — constrained local broker and durable journal.
-11. `deployment/backup-agent/executor.py` — allowlisted job runner invoking existing **unchanged** `deployment/operations/compose_recovery.py`; one global lock; interrupted jobs recoverable.
-12. `deployment/backup-agent/storage.py` — private host-side atomic state, encryption-key reference, job history and retention metadata.
-13. `deployment/backup-agent/verification.py` — format/checksum/decrypt/manifest/size/quota checks, no production mutation.
-14. `deployment/backup-agent/systemd/readbox-backup-agent.service` — host-side restricted daemon service, exact install-time project/UID.
-15. `scripts/install/readbox-backup-agent-install.sh` — idempotent opt-in guarded install, no existing secrets/volumes overwrite.
-16. `tests/backup/agent-protocol.test.mjs` — auth, unsafe input, interruption/lock and job journal.
-17. `tests/backup/compose-integration.test.mjs` — disposable Compose encrypted backup/verify, UID/GID/ACL, restart and no-production-target guards.
-18. `.github/workflows/readbox-backup-ci.yml` — focused CI, readonly repo token, isolated services.
-
-**Exit:** one locally encrypted, age-backed data snapshot created and verified on disposable Compose; persistent job history/logs across web restart; no raw secret leakage; existing mail ingestion regression PASS. If host agent unavailable, old app works and new UI shows `Agent unavailable`. No production restore yet.
-
-## BR-03 — R2 storage, credentials, scheduling, automatic/manual upload
-
-**Existing BR files allowed to extend:**
+Existing BR files:
 1. `src/components/vcon/backup-console.tsx`
 2. `src/app/(workspace)/vcon/backup/actions.ts`
 3. `src/core/backup/contracts.ts`
@@ -77,19 +20,25 @@
 9. `deployment/backup-agent/verification.py`
 10. `.github/workflows/readbox-backup-ci.yml`
 
-**New files allowed:**
-11. `deployment/backup-agent/r2.py` — restricted S3-compatible R2 adapter, pinned safe SDK, TLS-only endpoint and exact bucket/prefix.
-12. `deployment/backup-agent/scheduler.py` — atomic persisted schedule, deduplication, maintenance lock, no overlap, default OFF.
-13. `deployment/backup-agent/requirements.lock` — exact pinned package versions **and hashes**, frozen after dependency/license audit.
-14. `deployment/backup-agent/systemd/readbox-backup-agent.timer` — scheduled wakeup, disabled until opted in.
-15. `tests/backup/r2-integration.test.mjs` — mock/S3-compatible emulator, wrong credentials, timeout, upload verify, duplicate and partial failure.
-16. `tests/backup/scheduler.test.mjs` — restart, missed run, timezone/DST, lock, retry and retention tests.
+New files (already present in candidate):
+11. `deployment/backup-agent/r2.py`
+12. `deployment/backup-agent/scheduler.py`
+13. `deployment/backup-agent/requirements.lock`
+14. `deployment/backup-agent/systemd/readbox-backup-agent.timer`
+15. `tests/backup/r2-integration.test.mjs`
+16. `tests/backup/scheduler.test.mjs`
 
-**Exit:** authenticated/rotatable R2 credentials never echoed back; connection test with least privilege; manual and auto encrypted upload with content checksum verification; remote listing/history; failures retry with bounded backoff; retention preserves minimum verified recovery points. No delete-by-prefix operations; no plaintext R2 uploads. No restore from R2 until BR-04.
+**P-01 patch anchors:** `agent.py:64–97` auto-upload handoff, `r2.py:133–162,193–273` connection/upload/history, `scheduler.py:60–115` UTC/retention, `storage.py` durable journal, `tests/backup/{r2-integration,scheduler}.test.mjs` fault injection, `src/components/vcon/backup-console.tsx:267–364` R2 controls.
 
-## BR-04 — Guarded test restore, production restore, rollback and end-to-end closure
+**Exit:** bounded retries + idempotency tested; durable auto-upload survives interrupt; R2 owned probe and pagination hardened; existing BR-01/BR-02 UI/security regression and unchanged R-05 restoration PASS; exact allowlist audited and documented. **No code edits or merging under DOC-01.**
 
-**Existing files allowed:**
+### P-02 / BR-03 host packaging exception — separate explicit approval REQUIRED
+
+**NOT APPROVED under original BR-03 Scope Lock.** To make R2 usable on a real host, propose a separately reviewed exception only for `scripts/install/readbox-backup-agent-install.sh`, `deployment/backup-agent/systemd/readbox-backup-agent.service`, and existing `deployment/backup-agent/requirements.lock` as applicable. Fix pinned `--require-hashes` dependency installation into a controlled root-only interpreter/venv, fail closed on mismatched Python versions, safe idempotent upgrade/rollback without replacing existing identities/secrets/volumes; explicitly decide whether timer is used or in-process scheduler is authoritative. Separate CI and phase audit. **Do not edit installer or systemd files until approval.**
+
+### P-03 / BR-04 RESTORE — future separately authorized phase
+
+**Previously approved *plan*, NOT approved for implementation by this documentation request.** Original allowed files only:
 1. `src/components/vcon/backup-console.tsx`
 2. `src/app/(workspace)/vcon/backup/actions.ts`
 3. `src/app/(workspace)/vcon/backup/page.tsx`
@@ -100,26 +49,22 @@
 8. `deployment/backup-agent/executor.py`
 9. `deployment/backup-agent/storage.py`
 10. `deployment/backup-agent/verification.py`
-11. `scripts/install/readbox-update.sh` — **only** a narrow shared maintenance lock check/guard before update/snapshot at `:42–63`, preserving original update semantics.
+11. `scripts/install/readbox-update.sh` (shared maintenance lock ONLY)
 12. `.github/workflows/readbox-backup-ci.yml`
+13. `deployment/backup-agent/restore.py` (new)
+14. `deployment/backup-agent/legacy_gpg.py` (new, optional read-only detection)
+15. `tests/backup/restore-contract.test.mjs` (new)
+16. `tests/backup/restore-failure.test.mjs` (new)
+17. `tests/backup/legacy-format.test.mjs` (new)
+18. `tests/ui/vcon-backup.test.tsx`
+19. `tests/ui/app-shell.test.tsx`.
 
-**New files allowed:**
-13. `deployment/backup-agent/restore.py` — audited local rollback/isolated restore orchestration; exact project/DB/volume match.
-14. `deployment/backup-agent/legacy_gpg.py` — optional read-only detection/listing of the previously observed GPG bundle; never silently auto-restore incompatible format.
-15. `tests/backup/restore-contract.test.mjs` — temp project DB+Maildir+ACL+queue restore, successful restart, identity match.
-16. `tests/backup/restore-failure.test.mjs` — corrupt archive, missing key, DB apply failure, SIGTERM, host agent restart, rollback partial failure.
-17. `tests/backup/legacy-format.test.mjs` — GPG/age mismatch and explicit unsupported state.
-18. `tests/ui/vcon-backup.test.tsx` — restore UI role and confirmation tests.
-19. `tests/ui/app-shell.test.tsx` — regression recheck, only test assertions if needed.
+BR-04 exit: isolated disposable DB/Maildir/ACL/queue restoration, pre-restore encrypted rollback and fail-closed role/identity confirmation; **no real production restore without a second independent operator approval**. No compatibility assumption between legacy GPG and age R-05.
 
-**Exit:** verify/read-only, disposable full restore, and explicit superuser-confirmed production restore *capability* with encrypted pre-restore rollback, durable recovery journal and postchecks. **CI exercises destructive restore only against disposable volume/project**; no real production restore is authorized. R2 restore staged local and verified before any production mutation. Independent acceptance needed before production enablement.
+### Production acceptance (not a phase of this source work)
 
-## Phase closure mechanics
+Real Cloudflare R2 proof, independent age identity custody, offsite restoration test, remaining [RG-01–17](https://github.com/JILLU-Games/ReadBox/blob/c08b9cd77ec30afc50fe36952eecb982ba90a982/docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md) and separate release decision all remain outside current authorization. **No VPS, real credentials, DNS, SMTP, release, tag, image, or remote source/mirror merge until its intended phase and authorization.**
 
-Each phase: inspect exact `main` and mirror SHAs → freeze allowlist → implement only allowed source paths → one focused test suite + full existing CI gate as applicable → targeted diff audit (`git diff --name-only`, `git diff --check`) → update `003`, `004` if needed, `005`, `007` → one commit and mirror exact sync. No tag, release, automatic VPS update, secrets or database migration unless separately authorized.
+## Per-phase close
 
-### Permanent denylist in all four phases
-
-`src/core/auth/**`, `src/core/ingestion/**`, `src/core/mailboxes/**`, `src/core/messages/**`, `deployment/mailserver/**`, `prisma/schema.prisma`, `prisma/migrations/**`, `Dockerfile`, `scripts/ops/backup.sh`, `scripts/ops/restore.sh`, `deployment/operations/compose_recovery.py`, existing settings/operations/system-update consoles, existing release docs and current production volumes. File deletion or renaming is excluded. Exceptions only through a separate signed Scope Lock before any change.
-
-**Important:** the planned host agent design is not complete until IPC, key provisioning, filesystem/mount permissions and safe unattended recovery are exercised in isolated tests. These docs do not assert their success.
+Baseline SHA/tree → exact allowlist diff → source audit + minimal fix → focused disposable CI + safety regression → Markdown `003–007` actual PASS/FAIL → local source/mirror exact SHA fast-forward sync **when that phase is approved for publication** → next short approval prompt. No unverified completion claim.
