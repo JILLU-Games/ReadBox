@@ -1,0 +1,52 @@
+name: ReadBox DOMAIN-AUTO-01 merged candidate - disposable Linux check
+on:
+  push:
+    branches:
+      - ci/domain-auto01-merge
+    paths:
+      - .github/workflows/domain-auto01-merge-check.yml
+permissions:
+  contents: read
+concurrency:
+  group: domain-auto01-merge-check
+  cancel-in-progress: true
+jobs:
+  focused-check:
+    if: github.repository == 'JILLU-Games/ReadBox'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout ephemeral candidate without write credentials
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify immutable merge and CI-only delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .env
+          git merge-base --is-ancestor 511a77380ef8d41061164abb966cbe960b6d02a8 HEAD
+          test "$(git diff --name-only 511a77380ef8d41061164abb966cbe960b6d02a8 HEAD)" = ".github/workflows/domain-auto01-merge-check.yml"
+          git diff --check 6666cb21b61eb7fa13dfbaf38e92b524b1dee891 511a77380ef8d41061164abb966cbe960b6d02a8
+          echo READBOX_MERGE_SOURCE_UNCHANGED_PATCH_PASS
+      - name: Node 22 and locked dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: One focused app, domain, host broker and dependency check
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          node --conditions=react-server --import tsx --test tests/dns/domain-automation.test.ts tests/dns/dkim-provision.test.ts
+          python3 tests/dns/test_domain_host_bridge.py
+          npm audit --omit=dev --audit-level=moderate
+          echo READBOX_DOMAIN_AUTO01_MERGED_CANDIDATE_PASS
+      - name: No deployment, keys, DNS, R2 or release
+        run: echo READBOX_DISPOSABLE_ONLY_NO_PRODUCTION_MUTATION
