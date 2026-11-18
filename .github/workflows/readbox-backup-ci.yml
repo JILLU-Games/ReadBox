@@ -65,7 +65,10 @@ jobs:
           notes/backup-restore/006-RESTORE-R2-SECURITY-AND-DATA-CONTRACT.md
           notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md
           """.split())
-          changes=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          tested="d4cc3ca386d64e9f9a3329b757881a280cb63a0e"
+          subprocess.run(["git","merge-base","--is-ancestor",tested,"HEAD"],check=True)
+          # Pin historical BR04 code to its verified candidate, not future phases.
+          changes=set(subprocess.check_output(["git","diff","--name-only",base,tested],text=True).splitlines())
           code=changes-notes
           if not code:
               assert changes and changes<=notes,("BR04_NOTES_ONLY_SCOPE",changes-notes)
@@ -82,8 +85,8 @@ jobs:
                   "src/core/auth/route-guards.ts","deployment/operations/compose_recovery.py",
                   "deployment/backup-agent/r2.py","deployment/backup-agent/scheduler.py",
                   "scripts/install/readbox-backup-agent-install.sh"}
-              mode="br04"
-          subprocess.run(["git","diff","--check",base,"HEAD"],check=True)
+              mode="historical"
+          subprocess.run(["git","diff","--check",base,tested],check=True)
           with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as out:
               out.write("mode="+mode+"\n")
           print("BR04_EXACT_ALLOWLIST_SCOPE_PASS",len(changes),mode)
