@@ -206,3 +206,7 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - Metadata update uses compare-and-swap when first binding an existing unbound domain; a stale concurrent metadata update fails closed.
 - Read-only zone list is bounded and sanitized; missing auth returns generic not-found. Recheck preserves binding in existing JSON.
 - Mock/CI negative acceptance pending; live Cloudflare/API provider failures remain unverified.
+
+
+- **Focused negative evidence:** missing ID refuses API calls; selected ID/name mismatch and inactive zone are refused; bound zone cannot be silently switched; stale metadata compare-and-swap refuses overwrite; active-zone list excludes inactive entries; DNS/DKIM and host broker regressions pass. [CI #44365459171](https://github.com/JILLU-Games/ReadBox/actions/runs/44365459171) SUCCESS.
+- **Residual/unverified:** live Cloudflare account-level authorization, network outages after remote write, actual R2 escrow and end-to-end DNS propagation were NOT RUN. JSON metadata binding uses optimistic CAS for initial repair and preservation on normal DNS rechecks; concurrent DNS verification and first-time binding interleavings are not independently stress-tested on PostgreSQL, so production readiness remains NO-GO.

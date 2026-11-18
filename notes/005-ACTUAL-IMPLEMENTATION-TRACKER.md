@@ -212,3 +212,8 @@ Final notes-only closure commits change documentation, not the tested code or fr
 | Immutable binding in existing JSON and DNS recheck preservation | IMPLEMENTED, regression CI pending |
 | Existing DKIM/R2 escrow, no DNS overwrite/delete, manual opt-out | PRESERVED, focused CI pending |
 | Live Cloudflare zone management, registrar delegation, VPS DNS/R2 | NOT RUN / excluded |
+
+
+- **DOMAIN-AUTO-02 focused acceptance:** source commit `013a20b704e3910046d6b839037e536de5f1f02e`; [Linux CI #44365459171](https://github.com/JILLU-Games/ReadBox/actions/runs/44365459171) PASS: 23 Node + 2 UI + 3 Python tests; typecheck, exact path and production dependency gates PASS. This confirms source behavior using mocked Cloudflare; not a live provider pass.
+- Explicit per-domain selected active zone is sent to admin actions/repair; existing Cloudflare binding is kept in `verificationDetails` without a migration. Existing domain HTTP API/UX outside the selector, DKIM escrow/root agent and private keys are unchanged.
+- No production/VPS deployment, live provider DNS, R2 write, tag/release, source/mirror main promotion or local workstation sync.

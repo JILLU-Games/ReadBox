@@ -198,3 +198,8 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - Scoped implementation: active Cloudflare zone listing, explicit per-domain zone ID selection, server-side exact ID/active/suffix validation before writes and key staging, safe binding in existing verificationDetails JSON, guarded repeat/repair, and routing-check metadata preservation.
 - No Prisma migration, credential disclosure, R2/private key mutation, live DNS, source/main merge, deployment or release. GitHub source/mirror main remain unchanged.
 - One disposable focused Linux CI and changed-path/security audit pending at implementation commit. No production acceptance implied.
+
+
+- **Verified DOMAIN-AUTO-02 candidate:** `013a20b704e3910046d6b839037e536de5f1f02e`, immutable tested tree `c5d24b77f3a9d621fcba7d0358b9d4451b73b4d2`. First focused [CI #44365024814](https://github.com/JILLU-Games/ReadBox/actions/runs/44365024814) FAIL with two Prisma JSON TypeScript assignability errors; minimal scoped serialization fix made; **one necessary focused recheck** [CI #44365459171](https://github.com/JILLU-Games/ReadBox/actions/runs/44365459171) SUCCESS.
+- **Verified:** exact 16-file Scope Lock; Next/TypeScript; 23 Node tests (DNS, zones, DKIM and domain/mailbox contracts); 2 zone UI tests; 3 Python broker tests; production-only npm audit 0 vulnerabilities. Final documentation-only closure does not change tested application files.
+- **Repository boundary:** changed branch `JILLU-Games/ReadBox:ci/domain-auto01-merge` only. JILLU-Games main stays `952516a2cac27649824bf14329f511eae6ae9294`; source/mirror main and user's separate PC clone deliberately not synchronized in this approval. This is branch-scoped completion, **not** production release/whole-project GO.
