@@ -59,3 +59,10 @@ No edits to `src/core/auth/**`, mailserver Postfix/Dovecot, Prisma schema/migrat
 7. **Tests:** actor/nonce replay/TTL, invalid phrase, gate closed, tampered or symlinked source, fixed R05 argv, rollback failure, legacy GPG, original R05 disposable full recovery with UID/ACL and DB/queue content. CI and final SHA references are recorded in `007` after observation.
 
 **Operator gate is a deployment-time prerequisite, not a UI toggle.** The automatic schedule remains OFF by default. No browser action can create the production gate.
+
+## P-03 final security audit and scope boundary
+
+- **Tested:** `d4cc3ca386d64e9f9a3329b757881a280cb63a0e`, tree `edfa226dd47833477f1a7e597fd89154633865b2`. 16 changed approved source/test paths of the 19-path BR04 allowlist plus five phase notes; no scope escapes/deletions. `src/core/auth/**`, Prisma, Postfix/Dovecot, R05 `compose_recovery.py`, Docker Compose and unrelated UI are unchanged.
+- **CI:** [#44222091348](https://github.com/JILLU-Games/ReadBox/actions/runs/44222091348) PASS on exact SHA for admin/auth/UI regression, gate/permit/phrase/expired/replay/unsafe-source negatives, rollback-failure handling, legacy rejection, and independent disposable R05 DB/Maildir/queue/UID/ACL restoration.
+- **Trust boundary source-reviewed:** existing admin guard + authenticated peer-checked HMAC Unix RPC, separate default-deny root-owned mode-0600 gate not creatable from browser, actor-bound 90s hash-only one-use permit, fixed on-host age path and digest recheck, encrypted distinct rollback, updater/agent global lock, sanitized errors and fail-closed unknown outcome. Typed confirmation is NOT additional password or MFA verification.
+- **Evidence limit:** BR04 fixed-subprocess failure tests are mocked; R05 integration is separately disposable. No production root gate was created, no real Cloudflare or host deployment, and no independent age/private-key custody. **Production NO-GO** until separate operator acceptance.

@@ -78,3 +78,10 @@ Never include decrypted credentials, pip index tokens, private age identity, raw
 | Sanitized job activity | No raw R05 stdout/stderr, private age key, filesystem path or mail content emitted to UI/log |
 
 **Known limitation:** source-only test restore is a destructive-action-free preflight; it is not a stand-alone full isolated recovery. Full disposable R05 recovery is a CI test. Production remains default-deny and must never be assumed enabled.
+
+## P-03 final restore error and failure evidence
+
+- Exact tested `d4cc3ca386d64e9f9a3329b757881a280cb63a0e`; [focused CI #44222091348](https://github.com/JILLU-Games/ReadBox/actions/runs/44222091348) **PASS**. The BR04 source errors already inventoried above are implemented; any earlier CI-pending statements are historical.
+- Gate and confirmation refuse by default: `RESTORE_OPERATOR_GATE_CLOSED`, `RESTORE_CONFIRMATION_REQUIRED`, `RESTORE_PERMIT_EXPIRED`, actor mismatch/replay, `RESTORE_BACKUP_NOT_VERIFIED`, `RESTORE_PREFLIGHT_FAILED`, `RESTORE_SOURCE_CHANGED`, unsafe/missing/symlinked archive.
+- Failure is never shown as successful recovery: `RESTORE_FAILED_ROLLED_BACK`, `RESTORE_ROLLBACK_CRITICAL`, `RESTORE_FAILED_REVIEW_ROLLBACK`, `RESTORE_TIMEOUT_OPERATOR_REVIEW`, `RESTORE_RESULT_UNVERIFIED`. Interrupted/critical journal state requires operator review before later jobs. Encrypted rollback artifact is retained.
+- QIS updater and agent now share the global maintenance lock; the updater's shell syntax was verified, but true host/systemd update-versus-restore race was **NOT RUN**. No raw R05 stdout/stderr, identity key, path or private mail is forwarded to the browser.

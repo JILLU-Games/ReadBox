@@ -48,3 +48,9 @@
 - **Legacy:** GPG `.tar.gz.gpg` files remain **unsupported** by this age-only source restoration. No import/conversion was attempted.
 - **Evidence pending:** focused disposable CI and final source/mirror parity; do not claim production operations or field readiness from source. Actual VPS gate is **NOT created**, production data NOT restored, R2 not used.
 - **Unchanged:** main app feature/UI layout, auth policy, mailserver, database schema, worker, existing BR03 backup/schedule/R2 engine, original R05 file and original installer.
+
+## P-03 final source-versus-production truth (supersedes CI pending note)
+
+- **Source + disposable CI PASS:** tested `d4cc3ca386d64e9f9a3329b757881a280cb63a0e`; [BR04 #44222091348](https://github.com/JILLU-Games/ReadBox/actions/runs/44222091348). Implemented read-only deep test preflight, admin-gated restore confirmation, 90s actor-bound one-time permit, immutable local V2 age checks, fixed R05 rollback wrapper, encrypted rollback retention, critical failure journal, mutually exclusive updater, legacy GPG rejection.
+- **CI limit:** BR04 child-invocation/failure negative tests use mocked subprocess; the original R05 end-to-end PostgreSQL/Maildir/queue/ACL/UID recovery is independently run in disposable CI. No combined production web-to-restored-host acceptance is claimed.
+- **NOT LIVE VERIFIED:** actual VPS installer or systemd rollback, real R2 API, host-loss/private age-key custody, live restore, root operator gate activation. Existing auth/UI outside Backup panel, Prisma, R05 engine, BR03 agent/R2/scheduler, mailserver, production data untouched. Stable release **NO-GO**.

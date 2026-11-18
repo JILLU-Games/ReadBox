@@ -82,3 +82,21 @@ The existing original seven blockers and [RG-01–RG-17 runbook](https://github.
 | Production release | **NO-GO**, no tag or release |
 
 **One focused disposable CI run only.** If its specific failures require a minimal scoped correction, run a necessary focused recheck only; do not run unrelated verification loops. A failed job is not a PASS.
+
+## P-03 / BR-04 observed focused CI and final release separation (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Entry source/mirror main | Both `62347e35b5b992f8f7c4ef802cd64addd74a5d08` | PASS at entry |
+| Final tested source/tree | `d4cc3ca386d64e9f9a3329b757881a280cb63a0e` / `edfa226dd47833477f1a7e597fd89154633865b2` | PASS |
+| Exact source/notes scope | 21 changed paths: 16 within 19 allowed source/test, five `003–007` notes; zero unexpected/deletions | PASS |
+| Successful focused CI | [JILLU BR04 run #44222091348](https://github.com/JILLU-Games/ReadBox/actions/runs/44222091348) at exact tested SHA | PASS |
+| Existing app auth, UI, unit, lint-baseline, typecheck and build | BR04 job: `Existing auth, UI, database contracts and frontend regression` | PASS (disposable) |
+| Actor/gate/one-time confirmation/replay, corrupt age and legacy GPG | BR04 job: `Guarded restore challenge, rollback-failure and legacy GPG negative tests` | PASS (isolated / mocked failure) |
+| Existing R05 DB/Maildir/queue/ACL rollback | BR04 job: `Original R05 real disposable PostgreSQL/Maildir/queue/ACL restore and rollback` | PASS (disposable) |
+| Python 3.12 locked deps and updater syntax | BR04 job: `Pinned Python SDK and age host toolchain on isolated runner` | PASS (isolated/static) |
+| Live VPS installer, systemd, R2 API, host-loss private age identity and production restore | No such operation approved or performed | **NOT RUN** |
+| Exact source/mirror main SHA/tree publication | Verify post-sync branch refs; do not infer from CI | **VERIFY AFTER NON-FORCE SYNC** |
+| 17 live production acceptance gates, stable release | Separate formal authorization/evidence outstanding | **NO-GO** |
+
+Previous seven original open R06 findings and historical baseline lint debt remain independent. This notes-only closure does not require unnecessary CI rerun or authorize VPS, SMTP, release/tag or live restore.
