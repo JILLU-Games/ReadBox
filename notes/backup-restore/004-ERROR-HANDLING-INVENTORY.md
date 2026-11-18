@@ -29,3 +29,15 @@
 **Limits / missing:** No explicit persisted backoff or retry-exhausted state; no durable pending upload on agent death between local-success and auto enqueue; no page-continuation error; no proven R2 real credentials handling on VPS. New proposals are **not implemented**, including `R2_RETRY_EXHAUSTED`, `R2_PENDING_UPLOAD_RECONCILE`, `R2_PROBE_ORPHAN_POSSIBLE`, `R2_PAGE_TRUNCATED` and all future `RESTORE_*`. Do not claim them working without code+tests.
 
 **Security policy:** Never put credential values, presigned URLs, full S3 exception messages, raw SMTP/mail body, local plaintext host config, identity keys or contents of backups into app logs. Fail closed and show a generic UI message on unmapped errors; do not leak internal paths.
+
+## P-01 verified hardening / actual new error codes (source/CI 2026-11-18)
+
+| Code/state | Source proof at `e3a3128` | Behavior and negative-case proof |
+|---|---|---|
+| `R2_RETRY_EXHAUSTED` | `deployment/backup-agent/r2.py:295–333` | Three transient network attempts maximum (short bounded 0.15s/0.45s backoff); 403 never retries; immutable conflict never overwritten; simulated partial failures exhausted ([CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44210926362)) |
+| `R2_PAGE_INVALID` | `r2.py:215–253` | Rejects missing/repeated/malformed continuation tokens, not silently returning partial remote objects |
+| `R2_PAGE_LIMIT_REACHED` | `r2.py:215–255` | After up to 25 pages / MaxKeys100, refuses to claim remote list complete |
+| `autoUpload`, `autoSourceJob` persisted | `storage.py:108–179`, `agent.py:163–184` | On restart reconciles verified archive from interrupted/completed source; one claimed attempt at a time; max 3 auto upload jobs and durable 30s/120s inter-job backoff |
+| `R2_CONNECTION_FAILED` after lost probe ACK | `r2.py:152–183` | Ambiguous health PUT tries exact owned key DELETE; failed deletion becomes `R2_PROBE_CLEANUP_FAILED`, credential rotation fails closed |
+
+**Not implemented:** named `R2_PENDING_UPLOAD_RECONCILE` is unnecessary as a public error because reconciliation is a private persisted workflow. Real host SDK provisioning/age key offsite custody, Cloudflare credentials permission testing, restore/rollback operator automation and all `RESTORE_*` remain OPEN / NOT RUN. No raw botocore errors, secret values or file paths exposed in returned error codes.

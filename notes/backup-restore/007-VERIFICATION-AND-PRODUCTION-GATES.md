@@ -35,3 +35,23 @@ The existing original seven blockers and [RG-01–RG-17 runbook](https://github.
 
 - [BR-02 CI run 44207319955](https://github.com/JILLU-Games/ReadBox/actions/runs/44207319955) **FAILED**, at old hard-coded BR-02 exact changed-file assertion `.github/workflows/readbox-backup-ci.yml:36–74`. Because HEAD is notes-only, expected cumulative BR-02 18-path diff condition fails. All later BR-02 test jobs were **SKIPPED**, not failed. This is a **workflow contract mismatch**, not a tested app regression. P-01 may change workflow, but DOC-01 scope remains strictly `notes/**`.
 - [R-06 run 44207320065](https://github.com/JILLU-Games/ReadBox/actions/runs/44207320065) was triggered at documentation source SHA `7c848c45af654d95c3cd80a8bfa70f5dbc6c4f71`; the workflow completed **SUCCESS** at that exact documentation SHA, including disposable PostgreSQL, SMTP→LMTP and R-05 encrypted restore/rollback checks; this is **not** production signoff. The subsequent final notes-only ledger update has not yet received a separate exact-SHA CI run.
+
+## P-01 / BR-03 hardening — completed source and focused CI evidence
+
+| Gate | Source evidence | Result |
+|---|---|---|
+| Frozen main/mirror before phase | `92c3ced5724a7b7a48cca24856249ee88fed558c` both repos; BR02 app source from `c08b9cd...` | PASS at entry |
+| Candidate code exact 16-path allowlist | Diff `c08b9cd...` to `e3a3128fd77ec7a9afa88bcf8bad2371c0cf8b93`: 14 changed, 8 modifications + 6 additions; no unrelated paths | PASS |
+| Hashed boto3 + cryptography SDK | [CI 44210926362](https://github.com/JILLU-Games/ReadBox/actions/runs/44210926362), step 'Install exact hashed Python' | PASS — disposable Python 3.12 only |
+| Main app and auth/regression | Same CI: Prisma validate, lint, typecheck, unit/UI, build and R05 contract | PASS |
+| Agent syntax + restore-deny boundary | Same CI: py_compile, installer bash -n, no production restore code | PASS |
+| Mocked R2 encrypted credential rotation, 403, transient three retries, SHA/immutable conflict, lost ACK, multi-page listing, bad tokens, orphan probe cleanup | `tests/backup/r2-integration.test.mjs`, [CI 44210926362](https://github.com/JILLU-Games/ReadBox/actions/runs/44210926362) | PASS — simulated, no Cloudflare account |
+| Durable autoUpload journal persisted before backup; interrupted source recovery and 3-job durable retry cap | `tests/backup/scheduler.test.mjs`, [CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44210926362) | PASS — disposable local journal |
+| Existing BR02 HMAC/IPC, age V2 and tamper/restart integration | `tests/backup/agent-protocol.test.mjs`, `compose-integration.test.mjs`; [CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44210926362) | PASS — disposable |
+| Existing R05 encrypted restore/rollback | `deployment/operations/tests/r05-rehearsal.sh`; [CI](https://github.com/JILLU-Games/ReadBox/actions/runs/44210926362) | PASS — disposable only |
+| Legacy BR02 workflow docs-only mismatch | New workflow `.github/workflows/readbox-backup-ci.yml:35–94` has explicit `notes_only` mode and BR03 mode; original docs-only failure [44207319955](https://github.com/JILLU-Games/ReadBox/actions/runs/44207319955) documented | Source code fix + BR03 candidate CI PASS; **separate notes-only-main run not yet evidenced** |
+| Tested source equals published source app code | Final code commit `fbffce74040d63f5ea2a70f8e1f04dfcb725ab08`; 785 non-notes blob path+SHA equal tested branch `e3a3128...` | PASS (Git tree comparison); final documentation commit may have a different whole-tree SHA |
+| VPS host SDK install / real Cloudflare bucket / production offsite key restore | Installer+unit outside approved P-01 allowlist; no approved real operations | **NOT RUN — P-02 blocker** |
+| BR-04 guarded restore UI/API and independent RG-01–RG-17 acceptance | User has not authorized BR04 or production recovery | **NOT IMPLEMENTED / NO-GO** |
+
+**CI scope:** exactly the P-01-approved 16 source paths and `notes/backup-restore/003–007`. The R-05 recovery engine, current production Docker Compose, private volume and mailserver are unchanged. No VPS, real R2 key, real restore, GitHub tag, image publication or release. Source/mirror parity must be explicitly verified after final commit; an identical code tree in a different Git commit is not enough.
