@@ -100,3 +100,21 @@ The existing original seven blockers and [RG-01–RG-17 runbook](https://github.
 | 17 live production acceptance gates, stable release | Separate formal authorization/evidence outstanding | **NO-GO** |
 
 Previous seven original open R06 findings and historical baseline lint debt remain independent. This notes-only closure does not require unnecessary CI rerun or authorize VPS, SMTP, release/tag or live restore.
+## PA-01 CI-Ready exact SHA gate ledger (2026-11-18)
+
+| PA01 focused requirement | Evidence | Status |
+|---|---|---|
+| Source/mirror baseline at entry | Both `main` `415acc331e2a37e3cff8e1f2e98b46c33f9d8276` | PASS at freeze |
+| Approved code scope | Five paths (two workflows, two new disposable rehearsal scripts, two-line installer heredoc correction); notes `003–007` only at closure | PASS |
+| Exact verified candidate/tree | `4aab358ec40f67cd37fc581f51266eb2a79d712a` / `5bb30fecced6c064d70d5628acf66e9c7250650b` | PASS |
+| Successful one focused recheck | [GitHub Actions #44230645414](https://github.com/JILLU-Games/ReadBox/actions/runs/44230645414), exact head | PASS |
+| Disposable Ubuntu root installer + systemd / HMAC IPC / maintenance lock / rollback | Same CI steps; authenticated readiness bounded 10s | PASS (CI host only) |
+| Mock Cloudflare R2, scheduling, BR04 security / IPC / GPG negatives | Same CI job | PASS (mock/disposable) |
+| Offsite copy, escrowed age, wrong-key refusal, full synthetic restored volumes | Same CI job, independent copied key and destroyed/re-created disposable Compose volumes | PASS (simulated offsite) |
+| R05 post-DB apply failure/automatic rollback, tamper rejection | Same CI job | PASS (disposable) |
+| First failed attempts | [#44229192380](https://github.com/JILLU-Games/ReadBox/actions/runs/44229192380) syntax; [#44230130477](https://github.com/JILLU-Games/ReadBox/actions/runs/44230130477) restart race | FAIL (historical, corrected) |
+| Live VPS install, Cloudflare R2, actual host loss, private key custody, production restore | No authorization or operation | **NOT RUN** |
+| Source/mirror/local final main SHA/tree parity | Independently check AFTER notes commit / fast-forward sync | POST-PUBLICATION CHECK |
+| Formal RG-01–17 and release | Independent live staging and human review missing | **PRODUCTION NO-GO** |
+
+Do not count mocked R2 or synthetic host-loss as actual offsite production recovery. No tag, release, VPS update or live restoration is part of this phase.
