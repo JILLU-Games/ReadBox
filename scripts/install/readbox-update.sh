@@ -9,7 +9,7 @@ ENV="$ROOT/.env"
 if [[ $# -ne 0 || ! "$PROJECT" =~ ^[a-z][a-z0-9_-]{2,55}$ ]]; then
   echo "Usage: bash scripts/install/readbox-update.sh" >&2; exit 2
 fi
-for cmd in git docker python3 age; do
+for cmd in git docker python3 age flock; do
   command -v "$cmd" >/dev/null || { echo "Missing: $cmd" >&2; exit 2; }
 done
 if [[ ! -f "$ENV" || -L "$ENV" || "$(stat -c %a "$ENV")" != "600" ]]; then
@@ -36,6 +36,19 @@ if ! [[ "$recipient" =~ ^age1[023456789acdefghjklmnpqrstuvwxyz]{55,}$ ]]; then
   echo "An age backup public recipient is required before any code update." >&2
   exit 2
 fi
+# BR-04: host code updates must never race with an active backup,
+# R2 upload or destructive restore. This is the same exact global advisory
+# lock used by the root-only backup agent; hold it through this update.
+GLOBAL_BACKUP_LOCK=/run/lock/readbox-backup-global.lock
+if [[ -L "$GLOBAL_BACKUP_LOCK" || ! -d /run/lock ]]; then
+  echo "BR04_UNSAFE_MAINTENANCE_LOCK" >&2; exit 2
+fi
+exec 9<>"$GLOBAL_BACKUP_LOCK" || {
+  echo "BR04_MAINTENANCE_LOCK_UNAVAILABLE" >&2; exit 2
+}
+flock -n 9 || {
+  echo "BR04_ACTIVE_BACKUP_OR_RESTORE_UPDATE_REFUSED" >&2; exit 2
+}
 docker image inspect ubuntu:24.04 >/dev/null || {
   echo "Pre-pull and audit ubuntu:24.04 recovery sidecar before updating." >&2; exit 2
 }
