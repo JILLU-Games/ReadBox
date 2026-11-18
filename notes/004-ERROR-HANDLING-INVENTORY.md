@@ -223,3 +223,10 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - **MG-01 confirmed acceptance:** deterministic test interleaves first-time zone binding with routing verification. The stale metadata write loses its CAS; a bounded retry rereads the bound zone and preserves the new binding and unrelated JSON fields. The repeated-conflict test proves three attempts then sanitized `unavailable`, with no false audit event. These test outcomes are from mocked DB state, not an external PostgreSQL concurrency workload.
 - **MG-02:** full UI suite now covers explicit manual DNS opt-out alongside automatic Cloudflare mode. **MG-03:** user session-revoke test awaits the transition before the second click; no auth/session runtime change.
 - [Focused Linux recheck #44369378566](https://github.com/JILLU-Games/ReadBox/actions/runs/44369378566) SUCCESS. Existing live VPS, DNS, R2, provider outage/rollback and staging concurrency are NOT RUN.
+
+
+## MERGE-GATE-03 — workflow-dispatch capability blocker
+
+- Classification: **external invocation/tool limitation**, not a confirmed source defect or an R06 test failure.
+- Repo workflow `.github/workflows/r06-production-readiness.yml` defines `workflow_dispatch` and a read-only consolidated job. The available connected GitHub API tools do not expose a create-workflow-dispatch operation. No run was started and no CI output exists for the frozen `69208ffb4fa4053be0db0448c1752aa9661af1eb` candidate.
+- Safe recovery: operator may launch existing workflow manually from GitHub Actions, select exact branch `ci/domain-auto01-merge`, and provide the run URL; independently confirm run `head_sha` and event before auditing results. Do not claim success or change workflow triggers to bypass this restriction. Existing seven production acceptance findings remain OPEN.

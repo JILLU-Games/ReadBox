@@ -282,3 +282,12 @@ source change; no live secrets or external production writes.
 - **MERGE-GATE-02 source acceptance:** [CI #44369378566](https://github.com/JILLU-Games/ReadBox/actions/runs/44369378566) SUCCESS at tested SHA `0193421123eabf0f7acc8c1aba31696a1a2a0074`. Exact `ff72192` baseline diff contains 10/10 approved files, 288 additions and 68 deletions before final notes closure, no outside changes. Node 25/25, full UI 82/82, Python 3/3, TypeScript and npm production audit 0 vulnerabilities.
 - The initial [CI #44369016949](https://github.com/JILLU-Games/ReadBox/actions/runs/44369016949) failed on a mistaken UUID/ID test mock; one necessary in-scope fixture recheck succeeded. CI fixture logs include intentional negative-path application errors.
 - **MERGE-GATE-02 phase status:** TEST-BRANCH CLOSED after notes-only commit; no tested runtime-code delta after successful CI. **Main promotion not authorized; entire R06 live staging and seven open production acceptance findings remain NO-GO.**
+
+
+## MERGE-GATE-03 — attempted source-only R06 invocation, BLOCKED
+
+- Candidate checked: `69208ffb4fa4053be0db0448c1752aa9661af1eb`, main unchanged `952516a2cac27649824bf14329f511eae6ae9294`.
+- R06 file includes a valid `workflow_dispatch` trigger. Connected GitHub tools did **not** provide a workflow dispatch operation. No R06 run was created; consequently R06 result is **NOT RUN** (not PASS and not FAIL). Previous #44369378566 is a **focused MERGE-GATE-02** run only.
+- Full consolidated candidate gates (lint, unit/UI/build, ephemeral PostgreSQL/migrations/auth, Docker SMTP→LMTP→Maildir, encrypted backup/recovery and formal release governance): **NOT VERIFIED** for this candidate.
+- Scope: notes-only blocked closure. No code/workflow/test edits, source/mirror/main sync, VPS, live DNS/R2/SMTP, tag, prerelease or release. Production remains **NO-GO**, original seven release findings OPEN.
+- Recovery requires operator-triggered existing GitHub Actions R06 workflow on `ci/domain-auto01-merge` plus a separate review of actual run SHA, logs and outcome. This blocked phase must not be marked fully closed as a verified implementation.

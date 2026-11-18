@@ -216,3 +216,10 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Final focused verification:** initial [CI #44369016949](https://github.com/JILLU-Games/ReadBox/actions/runs/44369016949) failed at a new deterministic mock: the simulated database mistakenly required numeric `id` even for the existing UUID-based zone-binding CAS. A single narrow test-fixture adjustment (no runtime source changes) fixed that. One necessary recheck [CI #44369378566](https://github.com/JILLU-Games/ReadBox/actions/runs/44369378566) **SUCCESS**, tested commit `0193421123eabf0f7acc8c1aba31696a1a2a0074`.
 - Exact 10 allowed paths PASS and whitespace audit PASS; TypeScript/Next route types PASS; domain/DKIM Node 25/25 PASS; full Vitest UI 82/82 (20 files) PASS including original R06 session test; Python broker 3/3 PASS; production npm dependency audit **0 vulnerabilities**.
 - Closure is notes-only; immutable tested code remains at `0193421`. JILLU-Games main/source/mirror/user fork remain intentionally unchanged. R06 staging and release are **NO-GO** pending separately approved integration/live acceptance.
+
+
+## MERGE-GATE-03 / R06-CANDIDATE-VERIFY — BLOCKED (2026-11-19)
+
+- Frozen candidate branch `ci/domain-auto01-merge` at `69208ffb4fa4053be0db0448c1752aa9661af1eb` verified; `JILLU-Games/main` remained `952516a2cac27649824bf14329f511eae6ae9294`.
+- Exact existing `.github/workflows/r06-production-readiness.yml` has `workflow_dispatch`, but the connected GitHub toolset supports reading workflow state/logs, not dispatching a new run. Therefore **NO R06 dispatch took place, NO R06 candidate CI ran**, and there is no pass/fail CI run URL or verified R06 test SHA. No alternative push/trigger or workflow edit attempted, as forbidden by this approval.
+- Approved closure is restricted to notes/003–006. Previous MERGE-GATE-02 [run #44369378566](https://github.com/JILLU-Games/ReadBox/actions/runs/44369378566) remains the latest focused source test evidence; do not confuse it with full R06 acceptance. No production/live actions or main promotion.

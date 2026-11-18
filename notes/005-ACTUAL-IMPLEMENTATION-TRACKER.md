@@ -234,3 +234,17 @@ Final notes-only closure commits change documentation, not the tested code or fr
 - **MERGE-GATE-02 VERIFIED:** tested commit `0193421123eabf0f7acc8c1aba31696a1a2a0074`, focused [CI #44369378566](https://github.com/JILLU-Games/ReadBox/actions/runs/44369378566): 10-path scope PASS; Next/TS PASS; Node 25/25; full UI 82/82 across 20 files; Python 3/3; production dependency audit 0 vulnerabilities. Earlier failed run only exposed a test-fixture UUID-vs-ID CAS mismatch, repaired without changing runtime code.
 - **MG-01 CAS-safe verification:** IMPLEMENTED / deterministic interleaving PASS. **MG-02 manual UI contract:** FIXED / full UI PASS. **MG-03 session revocation async test:** FIXED / full UI PASS. `user-settings-view.tsx` unchanged.
 - No migration, auth changes, live DKIM/R2/DNS writes, VPS deployment, main promotion, source/mirror synchronization, tag or release.
+
+
+## MERGE-GATE-03 — capability-gated verification
+
+| Approved operation | Observed state |
+|---|---|
+| Frozen test branch and main SHA readback | VERIFIED, no unexpected branch movement before closure |
+| R06 workflow `workflow_dispatch` trigger in source | PRESENT |
+| Initiate R06 GitHub Actions workflow through connector | BLOCKED: no workflow-dispatch action exposed |
+| R06 lint, unit/UI, build, PostgreSQL, SMTP/LMTP, backup/restore | NOT RUN at frozen SHA |
+| Source, workflow, tests, VPS, secrets and release | UNCHANGED |
+| Documentation-only blocker report | notes/003–006 only |
+
+No application bug fix was authorized or performed. A future manual workflow dispatch must be verified at its exact run SHA.
