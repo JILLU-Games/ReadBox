@@ -4,6 +4,60 @@ import { dirname, join } from "node:path";
 import lockfile from "proper-lockfile";
 import "server-only";
 
+export interface MaildirDeliveryIdentity {
+  readonly uid?: number;
+  readonly gid?: number;
+}
+
+/**
+ * Verify the process UID/GID matches the delivery identity. No recursive chown
+ * or silent permissions widening is permitted for existing mailbox data.
+ */
+export function resolveMaildirDeliveryIdentity(
+  environment: { readonly MAILDIR_UID?: string; readonly MAILDIR_GID?: string } = {
+    MAILDIR_UID: process.env.MAILDIR_UID,
+    MAILDIR_GID: process.env.MAILDIR_GID,
+  },
+  processUid: number | undefined = process.getuid?.(),
+  processGid: number | undefined = process.getgid?.(),
+): MaildirDeliveryIdentity {
+  function numericIdentity(value: string | undefined, key: string) {
+    if (value === undefined || value === "") return undefined;
+    const parsed = Number(value);
+    if (!/^[1-9][0-9]{0,9}$/.test(value) || !Number.isSafeInteger(parsed)) {
+      throw new ProvisioningError("filesystem", key + " must be a positive UID/GID.");
+    }
+    return parsed;
+  }
+
+  const uid = numericIdentity(environment.MAILDIR_UID, "MAILDIR_UID") ?? processUid;
+  const gid = numericIdentity(environment.MAILDIR_GID, "MAILDIR_GID") ?? processGid;
+  if (
+    (uid !== undefined && processUid !== undefined && uid !== processUid) ||
+    (gid !== undefined && processGid !== undefined && gid !== processGid)
+  ) {
+    throw new ProvisioningError(
+      "filesystem",
+      "Maildir delivery UID/GID differs from the application process identity.",
+    );
+  }
+  return { uid, gid };
+}
+
+function assertMaildirOwnership(
+  owner: { readonly uid: number; readonly gid: number },
+  expected: MaildirDeliveryIdentity,
+) {
+  if (
+    (expected.uid !== undefined && owner.uid !== expected.uid) ||
+    (expected.gid !== undefined && owner.gid !== expected.gid)
+  ) {
+    throw new PathConfinementError(
+      "Existing Maildir ownership conflicts with the configured delivery identity.",
+    );
+  }
+}
+
 export type ProvisioningStage =
   | "validation"
   | "lock"
@@ -107,6 +161,7 @@ async function ensureSingleDirectory(
   targetPath: string,
   mode: number,
   createdPaths: string[],
+  identity: MaildirDeliveryIdentity,
 ): Promise<void> {
   try {
     await mkdir(targetPath, { mode });
@@ -120,6 +175,7 @@ async function ensureSingleDirectory(
       throw new PathConfinementError(`Unsafe mailbox path: ${targetPath}`);
     }
   }
+  assertMaildirOwnership(await lstat(targetPath), identity);
   await chmod(targetPath, mode);
 }
 
@@ -130,6 +186,7 @@ export async function createMaildirTree(input: {
 }): Promise<{ readonly maildirPath: string; readonly createdPaths: string[] }> {
   const createdPaths: string[] = [];
   try {
+    const identity = resolveMaildirDeliveryIdentity();
     await mkdir(input.mailStorageRoot, { recursive: true, mode: 0o750 });
     const rootStat = await lstat(input.mailStorageRoot);
     if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) {
@@ -137,6 +194,7 @@ export async function createMaildirTree(input: {
         "Configured mail storage root must be a real directory.",
       );
     }
+    assertMaildirOwnership(rootStat, identity);
 
     const domainRoot = confinedPath(input.mailStorageRoot, input.domainName);
     const mailboxRoot = confinedPath(
@@ -151,11 +209,11 @@ export async function createMaildirTree(input: {
       "Maildir",
     );
 
-    await ensureSingleDirectory(domainRoot, 0o750, createdPaths);
-    await ensureSingleDirectory(mailboxRoot, 0o700, createdPaths);
-    await ensureSingleDirectory(maildirPath, 0o700, createdPaths);
+    await ensureSingleDirectory(domainRoot, 0o750, createdPaths, identity);
+    await ensureSingleDirectory(mailboxRoot, 0o700, createdPaths, identity);
+    await ensureSingleDirectory(maildirPath, 0o700, createdPaths, identity);
     for (const child of ["new", "cur", "tmp"] as const) {
-      await ensureSingleDirectory(join(maildirPath, child), 0o700, createdPaths);
+      await ensureSingleDirectory(join(maildirPath, child), 0o700, createdPaths, identity);
     }
 
     return { maildirPath, createdPaths };

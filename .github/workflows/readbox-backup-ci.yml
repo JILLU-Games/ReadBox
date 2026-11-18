@@ -1,0 +1,143 @@
+name: ReadBox BR04 guarded restore — disposable CI, NO deployment or release
+on:
+  push:
+    branches: [maintenance/readbox-br04-20261118, main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: readbox-br04-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  br04-disposable:
+    if: github.repository == 'JILLU-Games/ReadBox'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      READBOX_BR02_DISPOSABLE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exact BR04 scope, immutable SQL/mailserver and nonrelease boundaries
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,subprocess
+          base="62347e35b5b992f8f7c4ef802cd64addd74a5d08"
+          allowed=set("""
+          src/components/vcon/backup-console.tsx
+          src/app/(workspace)/vcon/backup/actions.ts
+          src/app/(workspace)/vcon/backup/page.tsx
+          src/core/backup/permissions.ts
+          src/core/backup/contracts.ts
+          src/core/backup/validation.ts
+          deployment/backup-agent/agent.py
+          deployment/backup-agent/executor.py
+          deployment/backup-agent/storage.py
+          deployment/backup-agent/verification.py
+          scripts/install/readbox-update.sh
+          .github/workflows/readbox-backup-ci.yml
+          deployment/backup-agent/restore.py
+          deployment/backup-agent/legacy_gpg.py
+          tests/backup/restore-contract.test.mjs
+          tests/backup/restore-failure.test.mjs
+          tests/backup/legacy-format.test.mjs
+          tests/ui/vcon-backup.test.tsx
+          tests/ui/app-shell.test.tsx
+          """.split())
+          notes=set("""
+          notes/backup-restore/003-PHASE-PROGRESS-AND-CHANGE-LOG.md
+          notes/backup-restore/004-ERROR-HANDLING-INVENTORY.md
+          notes/backup-restore/005-ACTUAL-WORKING-FEATURE-TRACKER.md
+          notes/backup-restore/006-RESTORE-R2-SECURITY-AND-DATA-CONTRACT.md
+          notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md
+          """.split())
+          tested="d4cc3ca386d64e9f9a3329b757881a280cb63a0e"
+          subprocess.run(["git","merge-base","--is-ancestor",tested,"HEAD"],check=True)
+          # Pin historical BR04 code to its verified candidate, not future phases.
+          changes=set(subprocess.check_output(["git","diff","--name-only",base,tested],text=True).splitlines())
+          code=changes-notes
+          if not code:
+              assert changes and changes<=notes,("BR04_NOTES_ONLY_SCOPE",changes-notes)
+              mode="notes"
+          else:
+              required={"deployment/backup-agent/restore.py",
+                        "tests/backup/restore-contract.test.mjs",
+                        "tests/backup/restore-failure.test.mjs",
+                        "tests/backup/legacy-format.test.mjs",
+                        ".github/workflows/readbox-backup-ci.yml"}
+              assert required<=code and code<=allowed,("BR04_SCOPE_ESCAPE",sorted(code-allowed))
+              assert changes-code<=notes,("BR04_NOTE_SCOPE_ESCAPE",sorted(changes-code-notes))
+              assert not code & {"docker-compose.yml","Dockerfile","prisma/schema.prisma",
+                  "src/core/auth/route-guards.ts","deployment/operations/compose_recovery.py",
+                  "deployment/backup-agent/r2.py","deployment/backup-agent/scheduler.py",
+                  "scripts/install/readbox-backup-agent-install.sh"}
+              mode="historical"
+          subprocess.run(["git","diff","--check",base,tested],check=True)
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as out:
+              out.write("mode="+mode+"\n")
+          print("BR04_EXACT_ALLOWLIST_SCOPE_PASS",len(changes),mode)
+          PY
+      - name: Pinned Python SDK and age host toolchain on isolated runner
+        if: steps.scope.outputs.mode == 'br04'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/readbox-br04-venv
+          /tmp/readbox-br04-venv/bin/python -m pip install --require-hashes --only-binary=:all: \
+            --no-input --disable-pip-version-check -r deployment/backup-agent/requirements.lock
+          /tmp/readbox-br04-venv/bin/python -m pip check
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age acl
+          /tmp/readbox-br04-venv/bin/python -m py_compile deployment/backup-agent/{agent,executor,storage,verification,restore,legacy_gpg,r2,scheduler}.py
+          bash -n scripts/install/readbox-update.sh
+          echo BR04_PINNED_SDK_AND_PYTHON_COMPILE_PASS
+      - name: Existing auth, UI, database contracts and frontend regression
+        if: steps.scope.outputs.mode == 'br04'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-fund --no-audit
+          npm run db:validate
+          npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts
+          node scripts/testing/r06-verify-lint-baseline.mjs
+          npm run typecheck
+          npm run test:unit
+          env -u DATABASE_URL npm run test:ui
+          node --test tests/operations/r05-contract.test.mjs
+          npm run build
+          echo BR04_AUTH_UI_BUILD_REGRESSION_PASS
+      - name: Guarded restore challenge, rollback-failure and legacy GPG negative tests
+        if: steps.scope.outputs.mode == 'br04'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo env PATH="/tmp/readbox-br04-venv/bin:$PATH" READBOX_BR02_DISPOSABLE=1 \
+            "$(command -v node)" --test \
+              tests/backup/restore-contract.test.mjs \
+              tests/backup/restore-failure.test.mjs \
+              tests/backup/legacy-format.test.mjs \
+              tests/backup/agent-protocol.test.mjs \
+              tests/backup/r2-integration.test.mjs \
+              tests/backup/scheduler.test.mjs
+          echo BR04_GUARDED_RESTORE_FAIL_CLOSED_REGRESSION_PASS
+      - name: Original R05 real disposable PostgreSQL/Maildir/queue/ACL restore and rollback
+        if: steps.scope.outputs.mode == 'br04'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deployment/operations/tests/r05-rehearsal.sh
+          echo BR04_R05_DISPOSABLE_ROLLBACK_ENGINE_PASS

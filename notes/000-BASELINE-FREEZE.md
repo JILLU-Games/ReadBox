@@ -1,57 +1,50 @@
-# 000 — ReadBox Baseline Freeze & Forensic Alignment
+# 000 — Baseline Freeze & Development Scope Governance
 
-**Freeze Status:** `FROZEN (Pre-Update Baseline)` | **Current Status:** `ALL 6 PHASES IMPLEMENTED & VERIFIED (FA-001 to FA-011 RESOLVED)`  
-**Application:** `readbox` (`package.json` `"version": "0.1.0"`)  
-**Runtime Stack:** Next.js `16.4.2` (App Router, Standalone), React `19.3.0`, Node.js `>=22.12.0`, Prisma `7.10.1` (`@prisma/adapter-pg`), PostgreSQL `16.14-alpine`, Tailwind CSS v4, NextAuth `5.0.0-beta.32`, Zod `4.6.7`.  
-**Git Status Note:** Workspace check (`git rev-parse --short HEAD`) returned `fatal: not a git repository`; therefore this baseline is anchored by file inventory, `package.json`, `prisma/schema.prisma`, `prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql`, and `notes/FORENSIC-AUDIT-REPORT.md`.
+**Freeze date:** 2026-11-17 (Asia/Dhaka)
+**Immutable Git commit:** `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c`
+**Immutable Git tree:** `9a3d935cfc66bcfc1f5f717d77b99bfd3006d63c`
+**Upstream:** https://github.com/JILLU-Games/ReadBox
+**Mirror:** https://github.com/vibtoolshq/ReadBox
+**Original forensic code baseline:** `810fb81c5ad4d1fafe4f1d255561dfcaa60707cb`
+**Source findings:** [VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md](VPS-PRODUCTION-FORENSIC-AUDIT-2026-11-17.md)
+**Release decision:** **NO-GO**; **no production fix started**.
 
----
+## Git baseline proof
 
-## 1. Frozen Core Inventory (Verified Current State)
+The two repositories were checked to have the same `refs/heads/main` SHA and tree above, with no additional refs. Recursive source tree: **950 entries; 716 tracked files**, including **206 `src/`**, **42 `tests/`**, **10 `scripts/`**, **391 `reference/`**, **12 `docs/`**, **8 `deployment/`** and **10 `prisma/`** blobs.
 
-### 1.1 Route & API Entry Points (`src/app`)
-- **Public Routes:** `/`, `/contact`, `/privacy`, `/sign-in`, `/sign-up`, `/reset-password`, `/vcon/login`, `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest`
-- **Public / Utility APIs:**
-  - `/api/auth/[...nextauth]`
-  - `/api/contact`, `/api/contact/csrf`, `/api/contact/health`
-  - `/api/site-settings`, `/api/media/[...path]`
-  - `/health/live`, `/health/ready`, `/health/site-settings`
-- **User Workspace Routes (`/users/*`):**
-  - `/users` (Overview), `/users/mailboxes` (Manage Mailboxes), `/users/inbox/[mailboxUuid]` (Inbox & Sandboxed Reader view), `/users/settings` (Profile, Password, Sessions & Security)
-  - APIs: `/api/messages/live`, `/api/messages/html/[messageUuid]`, `/api/messages/attachment/[attachmentUuid]`
-- **Admin Control Routes (`/vcon/*`):**
-  - `/vcon` (Overview), `/vcon/domains`, `/vcon/domains/new`, `/vcon/mailboxes`, `/vcon/mailboxes/new`, `/vcon/users`, `/vcon/users/new`, `/vcon/users/control`, `/vcon/operations`, `/vcon/audit`, `/vcon/settings`, `/vcon/system-update`
-  - APIs: `/api/vcon/domains/dns-preview`, `/api/vcon/domains/[uuid]/dns-status`, `/api/vcon/update/{check,preflight,start,status}`
-- **Global Error Boundaries:** `src/app/global-error.tsx`, `src/app/not-found.tsx`, `src/app/(workspace)/error.tsx`, `src/app/(workspace)/vcon/not-found.tsx`
+Git Compare from inspected code baseline `810fb81...` to the frozen commit `e28886e5e0f7a155cd64e23bc8ee8f6668d6699c` showed changes **only under `notes/`**. Therefore the prior forensic code findings still apply. The older report retains its own historical inspected SHA: do not silently rewrite it to this newer documentation-only freeze. Note that this planning-document commit creates a new HEAD but **does not move the immutable baseline**.
 
-### 1.2 Database & Storage Contract
-- **ORM & Single DB Policy:** Single PostgreSQL database via `prisma/schema.prisma` (`public` + `mailserver` schema, role `postfix_lookup` defined in `prisma/migrations/20261115000000_mailserver_schema_and_roles/migration.sql`).
-- **Docker / Coolify Files:** `Dockerfile`, `docker-compose.yml`, `compose.yaml`, `entrypoint.sh`, `.dockerignore`, `.env.example`.
+Previously verified GitHub CI: 167 unit/contract + 70 UI tests, `npm ci`, schema validation, typecheck, lint and Next.js production build passed. Evidence: https://github.com/JILLU-Games/ReadBox/actions/runs/44080430558. This is *not* a Docker/SMTP/live VPS or restore test.
 
----
+## Non-negotiable global Scope Lock
 
-## 2. Baseline ↔ Forensic Audit Alignment (`FORENSIC-AUDIT-REPORT.md`)
+1. Preserve the existing app UI/UX, screens/layout/CSS, route names, feature behavior, session/auth authorization, users/mailbox state and message/attachment data; exception only for a documented, approved, directly necessary release blocker.
+2. **One authoritative PostgreSQL database** with `public` and `mailserver` schemas (`AGENTS.md:1–3`). Prisma remains ORM. No MySQL, MariaDB, SQLite, Redis or second production data store.
+3. Canonical Maildir: `/var/vmail/<domain>/<local>/Maildir/{new,cur,tmp}`, canonical relative path `domain/local/Maildir/`, attachments `/var/lib/readbox/attachments`. No broad permission opening, silent data deletion or path rewrites.
+4. `reference/MailStack/` remains separate upstream reference with AGPL license/NOTICE; do not rewrite or remove third-party legal obligations.
+5. Each of **six** implementation phases must use only the allowed exact files/patterns in `002-PRODUCTION-PHASE-ROADMAP.md`. For shared files (e.g. `docker-compose.yml`), only the phase-owned section may change.
+6. **No implementation authorization is implied** by this roadmap. No application/config/schema edit, live VPS/DNS change, SMTP sending/receiving, real credential access, release/tag/publish or force-push in this documentation phase.
+7. Prior to implementation of each separately approved phase: verify current SHA, inspect relevant old behavior and commit changes only after one focused phase test + patch audit, record evidence, then fast-forward both repos to the same commit SHA.
+8. Preserve existing migrations; old applied migration files are immutable. Data-affecting work needs reversible steps and tested backups.
+9. Release **GO** is forbidden without real Postfix/Dovecot SMTP→LMTP→Maildir→UI acceptance plus negative, security and recovery evidence (`006`).
 
-Every defect recorded in `notes/FORENSIC-AUDIT-REPORT.md` (`FA-001` through `FA-011`) is matched 1:1 against the frozen baseline below:
+## Evidence/status vocabulary
 
-| Forensic ID | Severity | Baseline Status | Target Update Phase |
-| :--- | :--- | :--- | :--- |
-| **`FA-001`** | CRITICAL | `/reset-password` exposes plaintext token + `"Use token"` button in UI | **Phase 1** |
-| **`FA-002`** | HIGH | `AdminAccount` reset tokens & `/contact` CSRF/rate-limit stored in process memory; `ephemeralProductionSecret` fallback | **Phase 1** |
-| **`FA-003`** | HIGH | `MessageReaderView` bypasses `<iframe sandbox>` & `SAFE_HTML_CSP_POLICY` via `dangerouslySetInnerHTML` | **Phase 2** |
-| **`FA-004`** | HIGH | `docker-compose.yml` & `Dockerfile` lack Maildir ingestion worker, retention cron, Postfix/Dovecot, and `ingest.ts` runtime | **Phase 6** |
-| **`FA-005`** | HIGH | `runUpdatePreflight`, `env-schema.ts`, `restore.sh`, `update_worker.py` hardcoded to `systemd` + legacy `vibmail`/`mailstack.local` + `vmail` UID | **Phase 6** |
-| **`FA-006`** | HIGH | `UserAccessPolicy` defaults override global `UserControlSettings`; `runRetentionPurge` has zero callers | **Phase 2** (policy) & **Phase 3** (purge engine) |
-| **`FA-007`** | MEDIUM | `getPrismaClient()` & `/sign-up` & `users-control-policy` silently fall back to mock/demo data in `production` | **Phase 4** |
-| **`FA-008`** | MEDIUM | `/contact` inquiries saved in `audit_logs`, `listContactSubmissions()` built but has no `/vcon` admin UI | **Phase 5** |
-| **`FA-009`** | MEDIUM | `admin_accounts` audit `targetType` mismatch (`admin_account` / `user` / `admin`) + missing `authSource` in message/attachment routes + profile phone UI for admins | **Phase 1** (audit/authSource) & **Phase 5** (admin profile phone parity) |
-| **`FA-010`** | MEDIUM | `tryProvisionStarterMailbox()` fallback creates broken `mailbox` row without trailing `/`, `mailserver` sync, or Maildir on disk | **Phase 3** |
-| **`FA-011`** | MEDIUM | Partial/unwired items: `PublicSiteFooter` `sourceCodeUrl`, cold `manifest.ts`, `/health/ready` ignoring `mailServices.connected`, `verifyRoutingDns` `127.0.0.1` skip, raw `USE_X_ACCEL_REDIRECT`, `trusted-operations.ts` empty stubs | **Phase 3**, **Phase 4**, **Phase 6** |
+- **CONFIRMED STATIC:** source/config mismatch observed.
+- **VERIFIED CI:** test completed with a run URL and tested SHA.
+- **UNVERIFIED LIVE:** no real host/service/network evidence; not necessarily a reproduced failure.
+- **OPEN / IN PROGRESS / BLOCKED / VERIFIED CLOSED:** tracker states; all 32 findings currently **OPEN**.
+- A phase is not complete merely because code exists or a CI run for an earlier SHA passed.
 
----
+## Documentation index
 
-## 3. Baseline Test & Verification Commands (`package.json`)
-- Static Checks: `npm run typecheck`, `npm run lint`, `npm run db:validate`
-- Unit & Contract Suites: `npm run test:unit`, `npm run test:ui`
-- Production Build: `npm run build`
-- Infra Check: `docker compose config`
+- `001-PRODUCTION-RELEASE-BLOCKERS.md` — all 32 issue IDs, source-code excerpts, exact paths and acceptance criteria.
+- `002-PRODUCTION-PHASE-ROADMAP.md` — 6 ordered Scope-Locked phases and path allowlists.
+- `003-PHASE-PROGRESS-AND-CHANGE-LOG.md` — immutable phase completion ledger.
+- `004-ERROR-HANDLING-INVENTORY.md` — implemented error handlers vs unverified production errors.
+- `005-ACTUAL-IMPLEMENTATION-TRACKER.md` — present code vs CI-tested vs real-VPS tested.
+- `006-VERIFICATION-AND-RELEASE-GATES.md` — real GO/NO-GO test evidence.
+- `007-VPS-MAILSERVER-CONTRACTS.md` — DB, Maildir, SMTP, TLS, operator and ops boundaries.
+
+**Re-freeze policy:** Never overwrite the immutable commit/tree in this file after implementation. Append dated phase status to `003`. An approved new baseline requires a separate dated record.

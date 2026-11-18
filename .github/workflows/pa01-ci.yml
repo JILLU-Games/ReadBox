@@ -1,0 +1,98 @@
+name: ReadBox PA01 disposable host and offsite CI - NO deployment
+on:
+  push:
+    branches: [maintenance/readbox-pa01-ci-20261118]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: readbox-pa01-isolated
+  cancel-in-progress: true
+
+jobs:
+  pa01-disposable:
+    if: github.repository == 'JILLU-Games/ReadBox'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      READBOX_PA01_DISPOSABLE: "1"
+    steps:
+      - name: Checkout source with immutable history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Exact five-file CI Scope Lock including installer syntax correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          base="415acc331e2a37e3cff8e1f2e98b46c33f9d8276"
+          code={".github/workflows/pa01-ci.yml",
+                ".github/workflows/readbox-backup-ci.yml",
+                "scripts/testing/pa01-host-agent-rehearsal.sh",
+                "scripts/testing/pa01-offsite-rehearsal.sh",
+                "scripts/install/readbox-backup-agent-install.sh"}
+          notes={f"notes/backup-restore/00{i}-{name}.md" for i,name in [
+            (3,"PHASE-PROGRESS-AND-CHANGE-LOG"),(4,"ERROR-HANDLING-INVENTORY"),
+            (5,"ACTUAL-WORKING-FEATURE-TRACKER"),(6,"RESTORE-R2-SECURITY-AND-DATA-CONTRACT"),
+            (7,"VERIFICATION-AND-PRODUCTION-GATES")]}
+          subprocess.run(["git","merge-base","--is-ancestor",base,"HEAD"],check=True)
+          actual=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          assert code <= actual and actual <= code|notes,("PA01_SCOPE_ESCAPE",sorted(actual-code-notes))
+          subprocess.run(["git","diff","--check",base,"HEAD"],check=True)
+          print("PA01_EXACT_CI_SCOPE_PASS",len(actual))
+          PY
+
+      - name: Disposable systemd host prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age acl python3.12-venv
+          test "$(/usr/bin/python3 -c 'import sys; print(sys.version_info[:2] == (3, 12))')" = True
+          docker compose version
+          systemctl --version
+          bash -n scripts/testing/pa01-host-agent-rehearsal.sh scripts/testing/pa01-offsite-rehearsal.sh
+          echo PA01_PREREQUISITES_PASS
+
+      - name: Actual disposable installer, systemd, HMAC IPC, lock and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo env GITHUB_ACTIONS="$GITHUB_ACTIONS" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_WORKSPACE="$GITHUB_WORKSPACE" READBOX_PA01_DISPOSABLE=1 \
+            bash scripts/testing/pa01-host-agent-rehearsal.sh
+
+      - name: Mock R2, scheduler, BR04 negative and auth IPC regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo env PATH="/opt/readbox-backup-agent/current/bin:$PATH" READBOX_BR02_DISPOSABLE=1 \
+            "$(command -v node)" --test \
+            tests/backup/r2-integration.test.mjs tests/backup/scheduler.test.mjs \
+            tests/backup/agent-protocol.test.mjs tests/backup/restore-contract.test.mjs \
+            tests/backup/restore-failure.test.mjs tests/backup/legacy-format.test.mjs
+          echo PA01_MOCKED_R2_AND_BR04_REGRESSION_PASS
+
+      - name: Independent escrow, offsite-copy, lost volumes and real disposable R05 restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/testing/pa01-offsite-rehearsal.sh
+
+      - name: Existing R05 injected rollback and tamper regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deployment/operations/tests/r05-rehearsal.sh
+          echo PA01_R05_INJECTED_ROLLBACK_PASS
+
+      - name: Production gate remains NO-GO
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/testing/r06-release-gate.mjs --ci
+          test ! -e /etc/readbox-backup-restore.allow
+          echo PA01_CI_PASS_LIVE_R2_VPS_NOT_RUN_PRODUCTION_NO_GO

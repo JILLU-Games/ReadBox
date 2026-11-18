@@ -1,0 +1,43 @@
+[Unit]
+Description=ReadBox restricted encrypted backup broker (BR-03 pinned SDK runtime)
+Documentation=https://github.com/JILLU-Games/ReadBox
+Wants=docker.service
+After=docker.service
+ConditionPathExists=/opt/readbox/deployment/operations/compose_recovery.py
+ConditionPathExists=/var/lib/readbox-backup/identity.txt
+ConditionPathExists=/opt/readbox-backup-agent/current/bin/python
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/readbox
+EnvironmentFile=/etc/readbox-backup-agent.env
+Environment=PYTHONNOUSERSITE=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/readbox-backup-agent/current/bin/python /opt/readbox/deployment/backup-agent/agent.py --root /opt/readbox --project readbox --db-user readbox --db-name readbox --state-dir /var/lib/readbox-backup --archive-dir /var/backups/readbox-managed --lock-path /run/lock/readbox-backup-global.lock --socket-dir $READBOX_BACKUP_SOCKET_DIR
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=2400
+# Only signal the broker; allow the active R05 job to finish/restart writers.
+KillMode=mixed
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=full
+# The pinned Python runtime is root-only, immutable while this service runs.
+ReadOnlyPaths=/opt/readbox-backup-agent
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=4096
+# No public listener; Docker daemon access stays in this host-only unit.
+# The agent already polls UTC schedules internally every 15 seconds.
+# Never enable the optional systemd .timer: it is not a backup-job runner.
+
+[Install]
+WantedBy=multi-user.target

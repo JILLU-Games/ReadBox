@@ -1,0 +1,172 @@
+"""Allowlisted host backup/verify/guarded restore jobs. No arbitrary commands."""
+from __future__ import annotations
+
+import fcntl
+import os
+from pathlib import Path
+import re
+import signal
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timezone
+
+from storage import PrivateStore, now, valid_id
+from verification import verify_age_snapshot
+from restore import execute as execute_restore, RestoreError
+
+
+class BackupExecutionError(RuntimeError):
+    def __init__(self, code: str):
+        super().__init__("Backup operation failed")
+        self.code = code
+
+
+class BackupExecutor:
+    def __init__(self, root: Path, project: str, db_user: str, db_name: str,
+                 state: PrivateStore, archives: Path, lock_path: Path):
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{2,55}", project):
+            raise ValueError("Invalid project")
+        if not re.fullmatch(r"[A-Za-z0-9_]+", db_user + db_name):
+            raise ValueError("Invalid database configuration")
+        if root.is_symlink() or not (root / "docker-compose.yml").is_file():
+            raise ValueError("Real Compose root required")
+        self.root = root.resolve(strict=True)
+        # Production ALWAYS uses the audited production compose file. The fixture
+        # is reachable only in an explicit disposable CI project with the guard.
+        if project == "readboxbr02-ci" and os.environ.get("READBOX_BR02_DISPOSABLE") == "1":
+            self.compose_file = self.root / "deployment/operations/ci-compose.yml"
+        elif project.endswith("-ci"):
+            raise ValueError("Disposable CI Compose requires explicit guarded fixture")
+        else:
+            self.compose_file = self.root / "docker-compose.yml"
+        if self.compose_file.is_symlink() or not self.compose_file.is_file():
+            raise ValueError("Required fixed Compose file missing")
+        self.project = project
+        self.db_user = db_user
+        self.db_name = db_name
+        self.state = state
+        self.archives = archives
+        self.lock_path = lock_path
+        self.identity = state.root / "identity.txt"
+        self.recipient_file = state.root / "recipient.txt"
+
+    def _lock(self):
+        if self.lock_path.is_symlink():
+            raise ValueError("Unsafe maintenance lock")
+        self.lock_path.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(self.lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return fd
+
+    def _recipient(self) -> str:
+        if self.recipient_file.is_symlink() or not self.recipient_file.is_file():
+            raise ValueError("Recipient file missing")
+        recipient = self.recipient_file.read_text(encoding="utf-8").strip()
+        if not re.fullmatch(r"age1[023456789acdefghjklmnpqrstuvwxyz]{55,}", recipient):
+            raise ValueError("Invalid age recipient")
+        return recipient
+
+    def run(self, kind: str, job_id: str, backup_id: str | None = None,
+            expected_digest: str | None = None) -> dict:
+        if not valid_id(job_id) or (backup_id is not None and not valid_id(backup_id)):
+            raise ValueError("Invalid opaque identifier")
+        fd = self._lock()
+        try:
+            if kind == "backup":
+                return self._backup(job_id)
+            if kind == "verify" and backup_id is not None:
+                return self._verify(backup_id)
+            if kind == "restore" and backup_id is not None and expected_digest is not None:
+                return execute_restore(self, backup_id, job_id, expected_digest)
+            raise ValueError("Unsupported operation")
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    def _backup(self, identifier: str) -> dict:
+        # Fail closed before any service stops if storage or identity is missing.
+        if shutil.disk_usage(self.archives).free < 512 * 1024**2:
+            raise OSError("Insufficient free backup space")
+        recipient = self._recipient()
+        if not self.identity.is_file() or self.identity.is_symlink():
+            raise ValueError("Missing age identity")
+        archive = self.archives / (identifier + ".age")
+        if archive.exists() or archive.is_symlink():
+            raise ValueError("Backup archive already exists")
+        args = [
+            sys.executable, str(self.root / "deployment/operations/compose_recovery.py"),
+            "backup", "--compose-file", str(self.compose_file),
+            "--project", self.project, "--db-user", self.db_user, "--db-name", self.db_name,
+            "--recipient", recipient, "--output", str(archive), "--confirm-maintenance",
+        ]
+        stage = "R05_CAPTURE"
+        try:
+            # Do not capture/output arbitrary Docker stderr or sensitive mail content.
+            process = subprocess.Popen(
+                args, cwd=self.root, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, start_new_session=True,
+            )
+            try:
+                stage_output, diagnostic = process.communicate(timeout=1800)
+                exit_code = process.returncode
+            except subprocess.TimeoutExpired:
+                # Ask R05 frozen() to run its writer restart finally block.
+                try:
+                    os.killpg(process.pid, signal.SIGINT)
+                except ProcessLookupError:
+                    pass
+                try:
+                    process.communicate(timeout=90)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.communicate()
+                raise RuntimeError("R05 timed out; maintenance restart requested")
+            if exit_code:
+                # The existing R05 engine reports an exception *class only*.
+                # Do not forward arbitrary stderr, paths, Docker output or secrets.
+                safe = re.search(rb"R05_RECOVERY_BLOCKED: ([A-Za-z][A-Za-z0-9_]*)", diagnostic[-4096:])
+                allowed = {b"RuntimeError", b"ValueError", b"FileNotFoundError",
+                           b"PermissionError", b"OSError", b"CalledProcessError"}
+                suffix = safe.group(1).decode("ascii") if safe and safe.group(1) in allowed else "NONZERO"
+                # Only fixed presence flags: never emit subprocess output or arguments.
+                if b"R05_MAINTENANCE: stopping" not in stage_output:
+                    phase = "PREFLIGHT"
+                elif b"R05_MAINTENANCE: only previously-running services restarted" not in stage_output:
+                    phase = "SNAPSHOT_OR_RESTART"
+                else:
+                    phase = "ENCRYPT"
+                raise BackupExecutionError("R05_ENGINE_" + phase + "_" + suffix)
+            stage = "CIPHERTEXT_VERIFICATION"
+            verified = verify_age_snapshot(
+                root=self.root, archive=archive, identity=self.identity,
+                project=self.project, db_name=self.db_name
+            )
+            record = {
+                "id": identifier, "createdAt": now(), "state": "verified",
+                "bytes": verified["bytes"], "sha256": verified["sha256"],
+                "format": verified["format"], "level": verified["level"],
+                "includesQueue": verified["includesQueue"],
+                "includesHostSecrets": False,
+            }
+            stage = "JOURNAL_PUBLISH"
+            self.state.save_backup(record)
+            return record
+        except Exception as error:
+            # Remove only this unverified, newly generated artifact; never preexisting files.
+            if self.state.get_backup(identifier) is None and archive.is_file() and not archive.is_symlink():
+                archive.unlink(missing_ok=True)
+            if isinstance(error, BackupExecutionError):
+                raise
+            raise BackupExecutionError("BR02_" + stage + "_FAILED") from None
+
+    def _verify(self, backup_id: str) -> dict:
+        record = self.state.get_backup(backup_id)
+        if record is None:
+            raise ValueError("Unknown backup")
+        archive = self.archives / (backup_id + ".age")
+        outcome = verify_age_snapshot(
+            root=self.root, archive=archive, identity=self.identity,
+            project=self.project, db_name=self.db_name, expected_digest=record["sha256"],
+        )
+        return {"backupId": backup_id, "verified": True, "level": outcome["level"]}

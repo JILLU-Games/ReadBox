@@ -117,6 +117,55 @@ export function createPrismaSqlExecutor(
   };
 }
 
+export interface MailserverMigrationParity {
+  readonly ok: boolean;
+  readonly missing: readonly string[];
+  readonly unfinished: readonly string[];
+}
+
+/**
+ * Compare the actual Prisma migration ledger with the required checked-in
+ * migration names. Called by the R-02 integration contract; /health/ready
+ * integration is reserved by the R-04 Scope Lock.
+ */
+export async function verifyMailserverMigrationParity(
+  executor: SqlQueryExecutor,
+  expectedMigrationNames: readonly string[],
+): Promise<MailserverMigrationParity> {
+  if (
+    expectedMigrationNames.length === 0 ||
+    expectedMigrationNames.some((name) => !/^[0-9]{14}_[a-z0-9_]+$/.test(name)) ||
+    new Set(expectedMigrationNames).size !== expectedMigrationNames.length
+  ) {
+    throw new MailServerContractError("Invalid expected Prisma migration manifest.");
+  }
+
+  const ledger = await executor.query<{
+    migration_name: string;
+    finished_at: Date | string | null;
+    rolled_back_at: Date | string | null;
+  }>(
+    'SELECT "migration_name", "finished_at", "rolled_back_at" FROM "public"."_prisma_migrations" WHERE "migration_name" = ANY($1::text[])',
+    [expectedMigrationNames],
+  );
+  const successful = new Set(
+    ledger.rows
+      .filter((row) => row.finished_at !== null)
+      .map((row) => row.migration_name),
+  );
+  const missing = expectedMigrationNames.filter((name) => !successful.has(name));
+  const unfinished = [
+    ...new Set(
+      ledger.rows
+        .filter(
+          (row) => row.finished_at === null && row.rolled_back_at === null,
+        )
+        .map((row) => row.migration_name),
+    ),
+  ];
+  return { ok: missing.length === 0 && unfinished.length === 0, missing, unfinished };
+}
+
 export interface PostfixDomainQuery {
   readonly name: string;
 }

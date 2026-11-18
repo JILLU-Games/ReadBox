@@ -31,7 +31,9 @@ UPGRADE_SCRIPT = Path(
         else "/opt/vibmail/app/scripts/updater/upgrade.sh",
     )
 )
-GITHUB_REPO = os.environ.get("UPDATE_GITHUB_REPO", "vibtools/ReadBox")
+GITHUB_REPO = os.environ.get("UPDATE_GITHUB_REPO", "vibtoolshq/ReadBox")
+if GITHUB_REPO == "vibtools/ReadBox":
+    GITHUB_REPO = "vibtoolshq/ReadBox"
 
 
 def write_status(step: str, message: str, progress: int) -> None:
@@ -133,9 +135,9 @@ def process_request() -> None:
             check=False,
         )
         if result.returncode:
-            write_status("error", result.stderr.strip() or "Upgrade script failed.", -1)
-    except Exception as exc:
-        write_status("error", str(exc), -1)
+            write_status("error", "Verified upgrade failed. Inspect root-owned operator log.", -1)
+    except Exception:
+        write_status("error", "Updater request failed validation, download or execution.", -1)
     finally:
         with suppress(OSError):
             REQUEST_PATH.unlink()

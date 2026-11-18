@@ -30,7 +30,7 @@ PY
 BACKUP=$(realpath -e -- "$2")
 case "$BACKUP" in /|/etc|/opt|/var|/var/backups) printf 'Unsafe backup path refused.\n' >&2; exit 1;; esac
 
-REQUIRED=(postgres-database.sql.gz maildir.tar.gz attachments.tar.gz media.tar.gz configuration.tar.gz SHA256SUMS)
+REQUIRED=(postgres-database.sql.gz maildir.tar.gz attachments.tar.gz media.tar.gz configuration.tar.gz BACKUP_METADATA.json SHA256SUMS)
 for required in "${REQUIRED[@]}"; do
   [[ -f "$BACKUP/$required" ]] \
     || { printf 'Incomplete backup: %s is missing.\n' "$required" >&2; exit 1; }
@@ -41,6 +41,15 @@ validate_tar_archive "$BACKUP/maildir.tar.gz"
 validate_tar_archive "$BACKUP/attachments.tar.gz"
 validate_tar_archive "$BACKUP/media.tar.gz"
 validate_tar_archive "$BACKUP/configuration.tar.gz"
+# Disallow older backup formats with raw .env, Postfix SQL passwords and TLS keys.
+if ! tar -tzf "$BACKUP/configuration.tar.gz" | grep -Fxq CONFIGURATION_EXCLUDED.txt; then
+  echo "Restore refused: historic configuration archives may contain plaintext secrets." >&2
+  exit 1
+fi
+if tar -tzf "$BACKUP/configuration.tar.gz" | grep -Ev "^CONFIGURATION_EXCLUDED.txt$" | grep -q .; then
+  echo "Restore refused: unexpected config payload is not allowed." >&2
+  exit 1
+fi
 
 SERVICES=(postfix dovecot readbox-ingestion readbox-web vibmail-ingestion vibmail-web)
 ACTIVE_SERVICES=()
@@ -51,19 +60,27 @@ for service in "${SERVICES[@]}"; do
 done
 restart_services() {
   local index
+  local failed=0
   for ((index=${#ACTIVE_SERVICES[@]}-1; index>=0; index--)); do
-    systemctl start "${ACTIVE_SERVICES[$index]}.service" || true
+    systemctl start "${ACTIVE_SERVICES[$index]}.service" || failed=1
   done
+  return "$failed"
 }
 cleanup_on_exit() {
   local status=$?
-  restart_services
+  trap - EXIT INT TERM
+  restart_services || status=1
   exit "$status"
 }
 trap cleanup_on_exit EXIT INT TERM
 
-for service in "${SERVICES[@]}"; do
-  systemctl stop "$service.service" 2>/dev/null || true
+echo "[readbox-restore] Maintenance window: active mail/application services must stop; SMTP may be unavailable." >&2
+for service in "${ACTIVE_SERVICES[@]}"; do
+  systemctl stop "$service.service"
+  if systemctl is-active --quiet "$service.service"; then
+    echo "[readbox-restore] Service remained active; aborting unsafe restore." >&2
+    exit 1
+  fi
 done
 
 if [[ -n "${READBOX_ENV_FILE:-}" ]]; then
@@ -91,20 +108,17 @@ MAIL_STORAGE_ROOT=${MAIL_STORAGE_ROOT:-/var/vmail}
 ATTACHMENT_STORAGE_ROOT=${ATTACHMENT_STORAGE_ROOT:-/var/lib/readbox/attachments}
 MEDIA_ROOT=${MEDIA_ROOT:-/var/lib/readbox/media}
 
-tar --numeric-owner -C "$(dirname "$MAIL_STORAGE_ROOT")" -xzf "$BACKUP/maildir.tar.gz"
-tar --numeric-owner -C "$(dirname "$ATTACHMENT_STORAGE_ROOT")" -xzf "$BACKUP/attachments.tar.gz"
-tar --numeric-owner -C "$(dirname "$MEDIA_ROOT")" -xzf "$BACKUP/media.tar.gz"
-tar --numeric-owner -C / -xzf "$BACKUP/configuration.tar.gz"
-
-chown -R vmail:vmail "$MAIL_STORAGE_ROOT" "$ATTACHMENT_STORAGE_ROOT" "$MEDIA_ROOT"
-if [[ -e /etc/readbox/readbox.env ]]; then
-  chown root:vmail /etc/readbox/readbox.env
-  chmod 0640 /etc/readbox/readbox.env
-fi
-if [[ -e /etc/vibmail/vibmail.env ]]; then
-  chown root:vmail /etc/vibmail/vibmail.env
-  chmod 0640 /etc/vibmail/vibmail.env
-fi
+tar --acls --xattrs --same-owner --numeric-owner -C "$(dirname "$MAIL_STORAGE_ROOT")" -xzf "$BACKUP/maildir.tar.gz"
+tar --acls --xattrs --same-owner --numeric-owner -C "$(dirname "$ATTACHMENT_STORAGE_ROOT")" -xzf "$BACKUP/attachments.tar.gz"
+tar --acls --xattrs --same-owner --numeric-owner -C "$(dirname "$MEDIA_ROOT")" -xzf "$BACKUP/media.tar.gz"
+# Host configuration remains operator-managed; do not restore credential files
+# from archives and do not overwrite numeric ownership or POSIX ACLs.
+for target in "$MAIL_STORAGE_ROOT" "$ATTACHMENT_STORAGE_ROOT" "$MEDIA_ROOT"; do
+  if [[ -L "$target" || ! -d "$target" ]]; then
+    echo "[readbox-restore] Missing or linked restored directory." >&2
+    exit 1
+  fi
+done
 
 systemctl daemon-reload
 postfix check

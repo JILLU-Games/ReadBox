@@ -42,44 +42,8 @@ for command_name in pg_dump gzip tar sha256sum systemctl python3; do
     || { printf 'Required command is missing: %s\n' "$command_name" >&2; exit 1; }
 done
 
-CONFIG_PATHS=()
-if [[ -f "/etc/readbox/readbox.env" ]]; then
-  CONFIG_PATHS+=(etc/readbox/readbox.env)
-elif [[ -f "/etc/vibmail/vibmail.env" ]]; then
-  CONFIG_PATHS+=(etc/vibmail/vibmail.env)
-fi
-
-for svc in readbox-web vibmail-web; do
-  if [[ -f "/etc/systemd/system/${svc}.service" ]]; then
-    CONFIG_PATHS+=("etc/systemd/system/${svc}.service")
-    break
-  fi
-done
-
-for svc in readbox-ingestion vibmail-ingestion; do
-  if [[ -f "/etc/systemd/system/${svc}.service" ]]; then
-    CONFIG_PATHS+=("etc/systemd/system/${svc}.service")
-    break
-  fi
-done
-
-for pf in etc/postfix/main.cf etc/postfix/master.cf etc/postfix/pgsql-virtual-domains.cf etc/postfix/pgsql-virtual-mailboxes.cf etc/postfix/pgsql-virtual-aliases.cf; do
-  if [[ -f "/$pf" ]]; then
-    CONFIG_PATHS+=("$pf")
-  fi
-done
-
-if [[ -f /etc/nginx/sites-available/readbox-app.conf ]]; then
-  CONFIG_PATHS+=(etc/nginx/sites-available/readbox-app.conf)
-elif [[ -f /etc/nginx/sites-available/vibmail-app.conf ]]; then
-  CONFIG_PATHS+=(etc/nginx/sites-available/vibmail-app.conf)
-fi
-
-if [[ -f /etc/dovecot/conf.d/99-readbox.conf ]]; then
-  CONFIG_PATHS+=(etc/dovecot/conf.d/99-readbox.conf)
-elif [[ -f /etc/dovecot/conf.d/99-vibmail.conf ]]; then
-  CONFIG_PATHS+=(etc/dovecot/conf.d/99-vibmail.conf)
-fi
+# Confidential operator configuration, tokens, Postfix lookup secrets and TLS keys
+# are NOT part of a portable data backup. Export them through a secret manager.
 
 install -d -m 0700 "$DEST"
 
@@ -106,19 +70,27 @@ for service in "${SERVICES[@]}"; do
 done
 restart_services() {
   local index
+  local failed=0
   for ((index=${#ACTIVE_SERVICES[@]}-1; index>=0; index--)); do
-    systemctl start "${ACTIVE_SERVICES[$index]}.service" || true
+    systemctl start "${ACTIVE_SERVICES[$index]}.service" || failed=1
   done
+  return "$failed"
 }
 cleanup_on_exit() {
   local status=$?
-  restart_services
+  trap - EXIT INT TERM
+  restart_services || status=1
   exit "$status"
 }
 trap cleanup_on_exit EXIT INT TERM
 
-for service in "${SERVICES[@]}"; do
-  systemctl stop "$service.service" 2>/dev/null || true
+echo "[readbox-backup] Maintenance window: active Postfix, Dovecot, ingestion and web units will be stopped; inbound SMTP may be unavailable." >&2
+for service in "${ACTIVE_SERVICES[@]}"; do
+  systemctl stop "$service.service"
+  if systemctl is-active --quiet "$service.service"; then
+    echo "[readbox-backup] Could not quiesce $service; refusing inconsistent backup." >&2
+    exit 1
+  fi
 done
 
 # Single PostgreSQL database dump (includes both public and mailserver schemas per AGENTS.md)
@@ -136,8 +108,9 @@ tar --acls --xattrs --numeric-owner --one-file-system \
   -C "$(dirname "$ATTACHMENT_STORAGE_ROOT")" -czf "$DEST/attachments.tar.gz" "$(basename "$ATTACHMENT_STORAGE_ROOT")"
 tar --acls --xattrs --numeric-owner --one-file-system \
   -C "$(dirname "$MEDIA_ROOT")" -czf "$DEST/media.tar.gz" "$(basename "$MEDIA_ROOT")"
-tar --acls --xattrs --numeric-owner -C / \
-  -czf "$DEST/configuration.tar.gz" "${CONFIG_PATHS[@]}"
+printf "Credentials, TLS private keys and host configuration are excluded. Restore from independent approved secrets management.\n" > "$DEST/CONFIGURATION_EXCLUDED.txt"
+chmod 0600 "$DEST/CONFIGURATION_EXCLUDED.txt"
+tar -C "$DEST" -czf "$DEST/configuration.tar.gz" CONFIGURATION_EXCLUDED.txt
 
 python3 - "$DEST/BACKUP_METADATA.json" "$STAMP" "$MAIL_DOMAIN" "$APP_HOSTNAME" \
   "$MAIL_HOSTNAME" "$PG_DB_NAME" <<'PY'

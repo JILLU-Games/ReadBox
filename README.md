@@ -1,5 +1,9 @@
 # ReadBox
 
+> **QIS-01 quick-install onboarding (CI implementation only):** `bash scripts/install/readbox-install.sh` generates private database/auth/Postfix credentials and a one-time browser setup code, then starts PostgreSQL, web, worker and the private Postfix lookup role. An approved HTTPS proxy is required for `/initial-setup`; the installer does not publish SMTP, DNS or TLS. See [QIS-01 quick install and first admin](docs/QUICK-INSTALL-AND-FIRST-ADMIN.md).
+
+> **Deployment / production status (2026-11-17): NO-GO until external staging acceptance.** R-01–R-05 were verified in disposable CI; public TCP/25, DNS/MX/PTR, trusted TLS, real SMTP→LMTP→ingestion→authenticated inbox, offsite recovery, license signoff and final production approval are **not** evidenced. The R-06 workflow runs only isolated tests and **never releases or deploys**. Read the [17-gate staging runbook](docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md), [release governance](docs/RELEASE-GOVERNANCE.md) and [actual verification ledger](notes/006-VERIFICATION-AND-RELEASE-GATES.md) before following any production examples below. Run no live procedures without separate approval.
+
 <div align="center">
 
 # 📬 ReadBox
@@ -10,7 +14,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Organization](https://img.shields.io/badge/Maintained%20by-Vib%20Tools-6366f1.svg)](https://vib.tools/)
 [![GitHub](https://img.shields.io/badge/GitHub-vibtoolshq%2Freadbox-181717.svg?logo=github)](https://github.com/vibtoolshq)
-[![Framework](https://img.shields.io/badge/Framework-Next.js%2015%20App%20Router-black.svg?logo=next.js)](https://nextjs.org)
+[![Framework](https://img.shields.io/badge/Framework-Next.js%2016%20App%20Router-black.svg?logo=next.js)](https://nextjs.org)
 [![Runtime](https://img.shields.io/badge/Runtime-Node.js%2022%20LTS-339933.svg?logo=node.js)](https://nodejs.org)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL%2016-336791.svg?logo=postgresql)](https://www.postgresql.org)
 [![ORM](https://img.shields.io/badge/ORM-Prisma%207-2D3748.svg?logo=prisma)](https://www.prisma.io)
@@ -37,7 +41,7 @@
 ## 🔍 SEO & Semantic Search Meta
 
 > **Keywords:** `self-hosted webmail`, `open source mail server web client`, `postfix dovecot webmail`, `maildir web interface`, `docker email server webmail`, `coolify mail server webmail`, `private business email server`, `sandboxed email reader xss protection`, `spf dkim dmarc dns generator`, `nextjs webmail`, `vib tools`.  
-> **Description:** ReadBox is a fast, secure, privacy-first open-source webmail interface and mail server management platform by Vib Tools. Built on Next.js 15, PostgreSQL 16, and Tailwind CSS with sandboxed HTML email rendering, Maildir ingestion, and automated SPF/DKIM/DMARC deliverability verification.
+> **Description:** ReadBox is a fast, secure, privacy-first open-source webmail interface and mail server management platform by Vib Tools. Built on Next.js 16.4.5, PostgreSQL 16, and Tailwind CSS with sandboxed HTML email rendering, Maildir ingestion, and automated SPF/DKIM/DMARC deliverability verification.
 
 ---
 
@@ -193,52 +197,44 @@ Legacy webmail solutions (like Roundcube, SquirrelMail, or Horde) were built for
 
 ## 🚀 Quick Start with Docker Compose
 
-The fastest way to deploy ReadBox in production:
+**Scope:** This starts the ReadBox Next.js app, PostgreSQL 16 and Maildir ingestion worker. **It does NOT install or start Postfix/Dovecot and cannot receive Internet email by itself.** Full mailserver integration and public SMTP/DNS acceptance remain release blockers documented in [notes/001](notes/001-PRODUCTION-RELEASE-BLOCKERS.md). Production mailserver verdict: **NO-GO**.
 
-### 1. Clone the Repository
+### 1. Clone
 ```bash
-git clone https://github.com/vibtoolshq/readbox.git
-cd readbox
+git clone https://github.com/vibtoolshq/ReadBox.git
+cd ReadBox
 ```
 
-### 2. Configure Environment
+### 2. Configure secrets and hostnames
 ```bash
 cp .env.example .env
+# Generate TWO DIFFERENT secrets, for SERVICE_PASSWORD_DB and SERVICE_BASE64_64_SECRET:
+openssl rand -hex 32
+openssl rand -hex 48
 ```
-Edit `.env` to define your domain, PostgreSQL password, and security secrets:
-```dotenv
-DATABASE_URL="postgresql://readbox_app:StrongPassword123@db:5432/readbox?schema=public"
-NEXTAUTH_SECRET="your-32-char-random-secret-key-here"
-MAIL_DOMAIN="yourdomain.com"
-APP_HOSTNAME="mail.yourdomain.com"
+Set the generated values in your private `.env`; keep them stable across restarts and never commit them. Set real `MAIL_DOMAIN`, `MAIL_HOSTNAME`, `APP_HOSTNAME` and `SERVER_IP` before DNS/SMTP integration. The Docker runtime derives the PostgreSQL URL and percent-encodes passwords safely, including `@`, `#` and `%`. For Docker deployment do not set a second `DATABASE_URL` in Compose; the example `DATABASE_URL=` is for standalone local tooling only.
+
+### 3. Validate and launch the intended application stack
+```bash
+docker compose -f docker-compose.yml config --quiet
+docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml ps
 ```
 
-### 3. Launch Services
-```bash
-docker compose up -d
-```
+The services are `postgres`, `web` and `worker`. Do not use the development-only `compose.dev.yaml` for production; its password is intentionally insecure. The web image validates its authorization secret (32+ characters) and PostgreSQL credential inputs before starting; failures do not log secrets. Configure a secure HTTPS reverse proxy separately and never assume `expose: 3000` publishes a mail SMTP listener.
 
-### 4. Verify Services
-Check running containers:
-```bash
-docker compose ps
-```
-The compose stack launches three isolated services:
-1. **`app`**: The Next.js 15 production web application (`http://localhost:3000`).
-2. **`worker`**: The continuous Maildir ingestion and scheduled retention worker.
-3. **`db`**: PostgreSQL 16 database with persistent storage volumes.
+### 4. Operator setup and real-mail limitations
+The secure first administrator still requires the separate operator CLI `npm run auth:operator` in an appropriately configured runtime; production first-run operator orchestration is tracked for R-04. The application alone cannot receive mail: Postfix/Dovecot, SQL map access, Maildir permissions, public MX/PTR, inbound port 25 and TLS need separate integration and testing in R-02/R-03/R-06.
 
 ---
 
 ## 📦 Coolify Deployment Guide
 
-ReadBox is optimized for seamless one-click orchestration on [Coolify](https://coolify.io):
-
-1. **Create Application:** In your Coolify dashboard, select **New Resource** → **Docker Compose Application**.
-2. **Repository Source:** Connect the Git repository `https://github.com/vibtoolshq/readbox.git` (or your private fork).
-3. **Environment Variables:** Populate environment variables from `.env.example`.
-4. **Deploy:** Click **Deploy**. Coolify builds the multi-stage production Docker image and runs both the web application and background worker with shared volume mounts.
-5. **System Updates:** The `/vcon/system-update` console automatically detects Coolify orchestration and displays container status.
+1. Add `https://github.com/vibtoolshq/ReadBox.git` as a Docker Compose resource using **`docker-compose.yml`** (not `compose.dev.yaml`).
+2. Configure persistent `SERVICE_PASSWORD_DB` and `SERVICE_BASE64_64_SECRET`. Coolify may generate these when its service-secret conventions apply; verify both are non-empty and `AUTH_SECRET` is 32+ chars. Standalone Compose does **not** auto-generate them.
+3. Configure domain and public app reverse proxy in Coolify. The web is internal port 3000; `postgres` remains on the private Compose network.
+4. Deploy the application containers and inspect web + worker logs. This is **application staging**, **not** completed inbound mailserver setup.
+5. A working production inbound mailbox still requires a supported Postfix/Dovecot service, shared ownership-safe Maildir volume, SQL lookup network, DNS and an external mail acceptance test.
 
 ---
 
@@ -252,14 +248,14 @@ ReadBox is optimized for seamless one-click orchestration on [Coolify](https://c
 ### Setup Steps
 
 ```bash
-# 1. Install dependencies
-npm install
+# 1. Install exact locked dependencies
+npm ci
 
 # 2. Configure local environment
 cp .env.example .env.local
 
-# 3. Start local PostgreSQL
-docker compose up -d postgres
+# 3. Start local PostgreSQL (explicit development Compose)
+docker compose -f compose.dev.yaml up -d postgres
 
 # 4. Generate Prisma client & apply migrations
 npm run db:migrate
@@ -274,22 +270,22 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## ⚙️ Environment Configuration
 
-| Variable | Type | Default | Description |
-| :--- | :---: | :--- | :--- |
-| `DATABASE_URL` | String | *Required in Prod* | PostgreSQL connection string (`postgresql://user:pass@host:5432/db`). |
-| `NEXTAUTH_SECRET` | String | *Auto/Required* | 32+ character random secret for JWT and session signing. |
-| `NEXTAUTH_URL` | URL | `http://localhost:3000` | Canonical URL of the application. |
-| `NODE_ENV` | String | `development` | Set to `production` for strict fail-closed database mode. |
-| `DEV_AUTH_MODE` | String | `standard` | Set to `demo` in development only to enable test preview credentials. |
-| `MAIL_DOMAIN` | String | `readbox.local` | Default primary mail domain name. |
-| `MAIL_HOSTNAME` | String | `mail.readbox.local` | Mail server FQDN used for MX and DNS deliverability checks. |
-| `APP_HOSTNAME` | String | `app.readbox.local` | Application web hostname. |
-| `SERVER_IP` | IP | `""` | Public IPv4 address for DNS deliverability checks. |
-| `VMAIL_ROOT` | Path | `/var/vmail` | Filesystem root where Maildir folders reside. |
-| `ATTACHMENTS_ROOT` | Path | `/var/vmail/attachments` | Storage directory for extracted email attachments. |
-| `REQUIRE_INGESTION_READY`| Boolean| `false` | When `true`, `/health/ready` requires an active worker heartbeat. |
-| `USE_X_ACCEL_REDIRECT` | Boolean| `false` | Enable Nginx `X-Accel-Redirect` for high-performance attachment downloads. |
-| `CONTACT_SECRET_KEY` | String | *Optional* | Optional secret key for CSRF token signature verification. |
+| Variable | Required mode | Description |
+|---|---|---|
+| `SERVICE_PASSWORD_DB` | Standalone Compose / Coolify | Private PostgreSQL password, 24+ characters. Compose runtime URL-encodes arbitrary characters. |
+| `SERVICE_BASE64_64_SECRET` | Standalone Compose / Coolify | Auth signature secret, at least 32 characters. Never commit or print. |
+| `POSTGRES_USER` / `POSTGRES_DB` | Compose defaults `readbox` | Shared single PostgreSQL identity/database. |
+| `DATABASE_URL` | Local non-container execution | Local tooling connection string; **not** used directly in production Compose. |
+| `AUTH_SECRET` | Local non-container execution | Container maps `SERVICE_BASE64_64_SECRET` to `AUTH_SECRET`. |
+| `AUTH_URL` / `PUBLIC_SITE_ORIGIN` | Optional / production proxy | Canonical application origin, HTTPS recommended. |
+| `NODE_ENV` | Production auto-set | Always `production` in Docker; development-only demo auth remains disabled. |
+| `MAIL_DOMAIN` / `MAIL_HOSTNAME` | Configure before real mail | Mailbox domain and server MX target, not SMTP installation. |
+| `APP_HOSTNAME` / `SERVER_IP` | Configure before public DNS | Web domain and public IP for DNS display/verification. |
+| `MAIL_STORAGE_ROOT` | Docker defaults `/var/vmail` | Persisted canonical Maildir source shared with a future delivery service. |
+| `ATTACHMENT_STORAGE_ROOT` / `MEDIA_ROOT` | Container defaults | Persistent files, not another database. |
+| `REQUIRE_INGESTION_READY` | Default `false` | R-04 will tighten live worker readiness; green liveness is not SMTP proof. |
+
+The default `docker compose` detects `docker-compose.yml` because the development file is named `compose.dev.yaml`. Use explicit `-f` in all automated scripts to prevent future ambiguity. Never run real production restore/migrations with development data.
 
 ---
 

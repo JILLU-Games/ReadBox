@@ -19,6 +19,12 @@ import { delimiter, join, resolve } from "node:path";
 
 export const MIN_RUNTIME_FREE_BYTES = 100 * 1024 * 1024;
 
+/** The old Compose env default was a historical repo alias. Never follow it. */
+export function canonicalUpdateRepository(repo: string): string {
+  return repo === "vibtools/ReadBox" ? "vibtoolshq/ReadBox" : repo;
+}
+
+
 export interface PreflightCheckItem {
   readonly name: string;
   readonly passed: boolean;
@@ -191,7 +197,10 @@ export function isOfficialReleaseUrl(
 export async function checkLatestRelease(
   options?: UpdateRuntimeOptions,
 ): Promise<ReleaseCheckResult> {
-  const githubRepo = options?.githubRepo ?? env.updateGithubRepo;
+  const githubRepo = options?.githubRepo ??
+    (env.nodeEnv === "production"
+      ? canonicalUpdateRepository(env.updateGithubRepo)
+      : env.updateGithubRepo);
   const fetchFn = options?.fetchImpl ?? fetch;
   const url = `https://api.github.com/repos/${githubRepo}/releases/latest`;
 
@@ -676,7 +685,10 @@ export async function queueUpdateRequest(
   },
   options?: UpdateRuntimeOptions,
 ): Promise<QueueUpdateResult> {
-  const githubRepo = options?.githubRepo ?? env.updateGithubRepo;
+  const githubRepo = options?.githubRepo ??
+    (env.nodeEnv === "production"
+      ? canonicalUpdateRepository(env.updateGithubRepo)
+      : env.updateGithubRepo);
   const runtimeDir = options?.runtimeDir ?? env.updateRuntimeDir;
   const statusPath = join(runtimeDir, "update_status.json");
   const requestPath = join(runtimeDir, "update_request.json");

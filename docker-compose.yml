@@ -1,5 +1,8 @@
 # ==============================================================================
 # ReadBox Production Stack (PostgreSQL 16 + Next.js Web + Maildir Worker)
+# R-03 SMTP+LMTP containers are OPT-IN (--profile mailserver), not implicit services.
+# Default SMTP bind 127.0.0.1:25; explicit external-network approval required to expose it.
+# Default docker compose now selects THIS file; compose.dev.yaml is opt-in development.
 #
 # Postfix / Dovecot Host or Sidecar Integration Contract:
 # 1. Mount the `readbox_vmail` volume (or bind-mount `/var/vmail`) into both
@@ -29,6 +32,7 @@ services:
       start_period: 10s
 
   web:
+    user: "1001:1001"
     build:
       context: .
       dockerfile: Dockerfile
@@ -44,13 +48,18 @@ services:
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
 
-      # Database & Migrations (Coolify auto-generates SERVICE_PASSWORD_DB)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-readbox}:${SERVICE_PASSWORD_DB}@postgres:5432/${POSTGRES_DB:-readbox}?schema=public
+      # Database & Migrations: runtime encodes arbitrary DB password bytes safely.
+      READBOX_DB_USER: ${POSTGRES_USER:-readbox}
+      READBOX_DB_NAME: ${POSTGRES_DB:-readbox}
+      READBOX_DB_PASSWORD: ${SERVICE_PASSWORD_DB:?Set SERVICE_PASSWORD_DB in .env or Coolify}
       PRISMA_CLI_ALLOW_REMOTE: "true"
 
       # Authentication & Proxy Trust (Coolify auto-generates SERVICE_BASE64_64_SECRET)
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       AUTH_SECRET: ${SERVICE_BASE64_64_SECRET:?Coolify auto-generates SERVICE_BASE64_64_SECRET}
+      # QIS-01 owner code is never stored in plaintext; only hash/expiry enter web.
+      READBOX_SETUP_TOKEN_SHA256: ${READBOX_SETUP_TOKEN_SHA256:-}
+      READBOX_SETUP_TOKEN_EXPIRES_AT: ${READBOX_SETUP_TOKEN_EXPIRES_AT:-}
       CONTACT_SECRET_KEY: ${CONTACT_SECRET_KEY:-}
       AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
       TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-true}
@@ -74,6 +83,8 @@ services:
 
       # Persistent Storage Paths (backed by named volumes below)
       MAIL_STORAGE_ROOT: /var/vmail
+      MAILDIR_UID: "1001"
+      MAILDIR_GID: "1001"
       ATTACHMENT_STORAGE_ROOT: /var/lib/readbox/attachments
       MEDIA_ROOT: /var/lib/readbox/media
       MAILBOX_PROVISION_LOCK_ROOT: /var/lock/readbox-provision
@@ -99,6 +110,7 @@ services:
       - readbox_media:/var/lib/readbox/media
       - readbox_locks:/var/lock/readbox-provision
       - readbox_opendkim:/etc/opendkim/keys
+      - readbox_backup_ipc:/run/readbox-backup-agent:ro
     networks:
       - readbox_internal
     healthcheck:
@@ -109,6 +121,7 @@ services:
       start_period: 25s
 
   worker:
+    user: "1001:1001"
     build:
       context: .
       dockerfile: Dockerfile
@@ -131,7 +144,9 @@ services:
       NODE_ENV: production
       DOCKER_RUNTIME: "true"
       SKIP_MIGRATIONS: "true"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-readbox}:${SERVICE_PASSWORD_DB}@postgres:5432/${POSTGRES_DB:-readbox}?schema=public
+      READBOX_DB_USER: ${POSTGRES_USER:-readbox}
+      READBOX_DB_NAME: ${POSTGRES_DB:-readbox}
+      READBOX_DB_PASSWORD: ${SERVICE_PASSWORD_DB:?Set SERVICE_PASSWORD_DB in .env or Coolify}
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       AUTH_SECRET: ${SERVICE_BASE64_64_SECRET:?Coolify auto-generates SERVICE_BASE64_64_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -140,6 +155,8 @@ services:
       APP_HOSTNAME: ${APP_HOSTNAME:-app.readbox.local}
       SERVER_IP: ${SERVER_IP:-127.0.0.1}
       MAIL_STORAGE_ROOT: /var/vmail
+      MAILDIR_UID: "1001"
+      MAILDIR_GID: "1001"
       ATTACHMENT_STORAGE_ROOT: /var/lib/readbox/attachments
       MEDIA_ROOT: /var/lib/readbox/media
       MAILBOX_PROVISION_LOCK_ROOT: /var/lock/readbox-provision
@@ -158,11 +175,94 @@ services:
     networks:
       - readbox_internal
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'scripts/mail/ingest.ts' >/dev/null || exit 1"]
+      # App web liveness must remain independent to avoid worker startup deadlock.
+      # Worker health also requires the app's *full* DB/storage/ingestion readiness.
+      test: ["CMD-SHELL", "pgrep -f 'scripts/mail/ingest.ts' >/dev/null && node -e \"fetch('http://web:3000/health/ready', {signal: AbortSignal.timeout(3000)}).then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
+
+  # R-03: Dovecot LMTP uses only the internal Compose network.
+  # The same Maildir volume is shared with web+worker (numeric UID/GID 1001).
+  dovecot:
+    profiles: ["mailserver"]
+    build:
+      context: .
+      dockerfile: deployment/mailserver/dovecot/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-readbox.local}
+      VMAIL_UID: "1001"
+      VMAIL_GID: "1001"
+    volumes:
+      - readbox_vmail:/var/vmail
+    expose:
+      - "24"
+    networks:
+      - readbox_internal
+
+  # R-03: inbound SMTP ONLY; no AUTH/587/465/IMAP or outbound relay.
+  # Bind loopback by default; a separate approved VPS install may set
+  # SMTP_BIND_ADDRESS=0.0.0.0 after public port/TLS/DNS checks.
+  postfix:
+    profiles: ["mailserver"]
+    build:
+      context: .
+      dockerfile: deployment/mailserver/postfix/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+      dovecot:
+        condition: service_healthy
+    environment:
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.readbox.local}
+      POSTFIX_DB_HOST: postgres
+      POSTFIX_DB_PORT: "5432"
+      PG_DB_NAME: ${POSTGRES_DB:-readbox}
+      POSTFIX_LOOKUP_PASSWORD: ${POSTFIX_LOOKUP_PASSWORD:-}
+      MAIL_TLS_DIR: /run/readbox/tls
+    volumes:
+      - readbox_postfix_queue:/var/spool/postfix
+      - ${MAIL_TLS_DIR:-./deployment/mailserver/tls-not-configured}:/run/readbox/tls:ro
+    ports:
+      - "${SMTP_BIND_ADDRESS:-127.0.0.1}:${SMTP_PUBLISHED_PORT:-25}:25"
+    networks:
+      - readbox_internal
+
+  # One-shot private-network Postfix lookup password setup, opt-in only.
+  postfix-db-credential:
+    image: postgres:16.14-alpine
+    profiles: ["postfix-setup"]
+    restart: "no"
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-readbox}
+      PGDATABASE: ${POSTGRES_DB:-readbox}
+      PGPASSWORD: ${SERVICE_PASSWORD_DB:?Set SERVICE_PASSWORD_DB in .env or Coolify}
+      POSTFIX_LOOKUP_PASSWORD: ${POSTFIX_LOOKUP_PASSWORD:-}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        if [ "$${#POSTFIX_LOOKUP_PASSWORD}" -lt 24 ]; then
+          echo "[r02] Postfix lookup password is missing or too short." >&2
+          exit 1
+        fi
+        psql -q -v ON_ERROR_STOP=1 <<'SQL'
+        \getenv postfix_password POSTFIX_LOOKUP_PASSWORD
+        SET password_encryption = 'scram-sha-256';
+        SET log_statement = 'none';
+        ALTER ROLE "readbox_postfix" PASSWORD :'postfix_password';
+        SQL
+    networks:
+      - readbox_internal
 
 volumes:
   postgres_data:
@@ -171,6 +271,9 @@ volumes:
   readbox_media:
   readbox_locks:
   readbox_opendkim:
+  readbox_postfix_queue:
+  # BR-02: private Unix socket only; no Docker daemon mount.
+  readbox_backup_ipc:
 
 networks:
   readbox_internal:

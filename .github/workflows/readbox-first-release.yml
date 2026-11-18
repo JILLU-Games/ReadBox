@@ -1,0 +1,82 @@
+name: ReadBox first public candidate — gated by R06, NO stable production release
+on:
+  workflow_run:
+    workflows:
+      - "ReadBox R06 production readiness - CI only, NO release"
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: readbox-first-candidate-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  prerelease:
+    if: >-
+      github.repository == 'JILLU-Games/ReadBox' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == 'JILLU-Games/ReadBox'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+      TAG: v0.1.0-rc.1
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact tested source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact source SHA, current main and mirror, and formal NO-GO
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          test "$(gh api repos/JILLU-Games/ReadBox/git/ref/heads/main --jq '.object.sha')" = "$TARGET_SHA"
+          test "$(gh api repos/vibtoolshq/ReadBox/git/ref/heads/main --jq '.object.sha')" = "$TARGET_SHA"
+          node scripts/testing/r06-release-gate.mjs --ci > "$RUNNER_TEMP/release-gate-status.txt"
+          grep -Fxq 'R06_PRODUCTION_NO_GO' "$RUNNER_TEMP/release-gate-status.txt"
+          grep -Fxq 'R06_FINDINGS_OPEN=7' "$RUNNER_TEMP/release-gate-status.txt"
+          test "$(node -p 'require("./package.json").version')" = "0.1.0"
+          test -f docs/PRODUCTION-RELEASE-BASELINE.md
+          test -f notes/016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md
+          test ! -f .env
+          echo "EXACT_SHA_AND_MIRROR_PASS"
+          echo "FORMAL_STABLE_RELEASE_NO_GO_PRESERVED"
+      - name: Publish immutable SHA manifest as prerelease only (no image or deployment)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')" = "$TARGET_SHA"
+            test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isPrerelease --jq .isPrerelease)" = true
+            echo "EXISTING_EXACT_PRERELEASE_VERIFIED"
+            exit 0
+          fi
+          tree="$(git rev-parse HEAD^{tree})"
+          python3 - "$RUNNER_TEMP/RELEASE-MANIFEST.json" "$TARGET_SHA" "$tree" "$GITHUB_RUN_ID" <<'PY'
+          import json, sys
+          path, sha, tree, run_id = sys.argv[1:]
+          with open(path, "x") as out:
+              json.dump({
+                  "project":"ReadBox", "version":"0.1.0", "tag":"v0.1.0-rc.1",
+                  "release_kind":"prerelease-only", "formal_production_gate":"NO_GO",
+                  "source_repository":"JILLU-Games/ReadBox", "mirror_repository":"vibtoolshq/ReadBox",
+                  "source_sha":sha, "source_tree":tree,
+                  "ci_workflow_run":"https://github.com/JILLU-Games/ReadBox/actions/runs/"+run_id,
+                  "docker_image_published":False, "deployed":False
+              }, out, indent=2, sort_keys=True)
+              out.write("\n")
+          PY
+          gh release create "$TAG" "$RUNNER_TEMP/RELEASE-MANIFEST.json" \
+            --repo "$GITHUB_REPOSITORY" --target "$TARGET_SHA" \
+            --title "ReadBox v0.1.0-rc.1 — inbound-only candidate (production NO-GO)" \
+            --notes-file docs/PRODUCTION-RELEASE-BASELINE.md --prerelease
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')" = "$TARGET_SHA"
+          test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isPrerelease --jq .isPrerelease)" = true
+          echo "CANDIDATE_PRERELEASE_PUBLISHED_NO_PRODUCTION_GO"

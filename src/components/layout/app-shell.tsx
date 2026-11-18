@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   Globe,
+  HardDrive,
   Inbox,
   LayoutDashboard,
   LogOut,
@@ -113,6 +114,7 @@ const managementGroups = [
     items: [
       { href: "/vcon/settings", label: "Settings", icon: Settings },
       { href: "/vcon/system-update", label: "System update", icon: ArrowUpCircle },
+      { href: "/vcon/backup", label: "Backup", icon: HardDrive },
     ],
   },
 ] as const;

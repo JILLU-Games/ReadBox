@@ -3,14 +3,14 @@ Description=ReadBox Next.js Web Application
 After=network-online.target postgresql.service
 Wants=network-online.target
 Requires=postgresql.service
-RequiresMountsFor=/opt/vibmail/app /var/vmail /var/lib/readbox /run/vibmail
+RequiresMountsFor=/opt/readbox/app /var/vmail /var/lib/readbox /run/readbox
 
 [Service]
 Type=simple
 User=vmail
 Group=vmail
-WorkingDirectory=/opt/vibmail/app
-EnvironmentFile=/etc/vibmail/vibmail.env
+WorkingDirectory=/opt/readbox/app
+EnvironmentFile=/etc/readbox/readbox.env
 Environment=NODE_ENV=production
 Environment=PORT=3000
 ExecStart=/usr/bin/npm run start
@@ -20,7 +20,7 @@ UMask=0077
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/vmail /var/lib/readbox /var/lock /run/vibmail /tmp
+ReadWritePaths=/var/vmail /var/lib/readbox /var/lock /run/readbox /tmp
 NoNewPrivileges=true
 LockPersonality=true
 RestrictSUIDSGID=true

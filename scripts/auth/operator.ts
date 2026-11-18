@@ -1,5 +1,8 @@
 import { env } from "@/config/env";
-import { bootstrapInitialAccount } from "@/core/auth/operator-bootstrap";
+import {
+  bootstrapInitialAdminAccount,
+  getProductionAdminBootstrapError,
+} from "@/core/auth/operator-bootstrap";
 import { getOperatorEnvironmentError } from "@/core/auth/operator-environment";
 import {
   issueAdminPasswordResetToken,
@@ -34,13 +37,31 @@ function displayResetToken(token: string): void {
 }
 
 async function main(): Promise<void> {
-  assertLocalOperatorEnvironment();
+  const cliArguments = process.argv.slice(2);
+  const productionBootstrap =
+    cliArguments.length === 1 && cliArguments[0] === "--bootstrap-production";
+  if (cliArguments.length > 0 && !productionBootstrap) {
+    throw new Error("Unsupported operator arguments.");
+  }
+  if (productionBootstrap) {
+    const error = getProductionAdminBootstrapError({
+      nodeEnv: env.nodeEnv,
+      dockerRuntime: process.env.DOCKER_RUNTIME === "true",
+      interactive: stdin.isTTY === true && stdout.isTTY === true,
+      authEnabled: env.authEnabled,
+      authSecret: env.authSecret,
+      databaseUrl: env.databaseUrl,
+    });
+    if (error) throw new Error(error);
+  } else {
+    assertLocalOperatorEnvironment();
+  }
 
   const prompt = createInterface({ input: stdin, output: stdout });
   const prisma = getPrismaClient();
 
   try {
-    const action = await prompt.question("Action (bootstrap/reset): ");
+    const action = productionBootstrap ? "bootstrap" : await prompt.question("Action (bootstrap/reset): ");
 
     if (action === "bootstrap") {
       const details = accountDetailsSchema.safeParse({
@@ -62,13 +83,14 @@ async function main(): Promise<void> {
         return;
       }
 
-      const result = await bootstrapInitialAccount(prisma, details.data);
+      const result = await bootstrapInitialAdminAccount(prisma, details.data);
       if (!result) {
-        stdout.write("Bootstrap requires an empty local user table.\n");
+        stdout.write("Bootstrap rejected: a privileged account or conflicting username already exists.\n");
+        process.exitCode = 1;
         return;
       }
 
-      stdout.write("Initial account created with password reset required.\n");
+      stdout.write("Initial admin account created with password reset required.\n");
       displayResetToken(result.resetToken);
       return;
     }

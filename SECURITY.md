@@ -39,3 +39,19 @@ ReadBox implements strict defense-in-depth principles:
 - **Filesystem Path Confinement:** Every Maildir operation and attachment download enforces directory confinement checks, completely preventing directory traversal attacks (`../`).
 - **Durable CSRF & Rate-Limiting:** Public endpoints, including contact submissions, validate durable CSRF tokens against PostgreSQL records and apply time-windowed IP rate limits.
 - **Redacted Audit Trails:** Administrative operations, login attempts, and policy changes are logged to an append-only audit table with sensitive fields automatically redacted.
+
+## R-06 security and release approval boundary (2026-11-17)
+
+- **Automated CI passing is not a live production security review or release approval.** See [release governance](docs/RELEASE-GOVERNANCE.md) and [staging acceptance](docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md). No production deployments, external mail sends, TLS/DNS changes, or tag/release publication occur in the R-06 workflow.
+- Original findings `RB-P0-06`, `RB-P1-09`, `RB-P1-10`, `RB-P1-16`, `RB-P2-01`, `RB-P2-07`, `RB-P2-08` remain explicitly OPEN after R-05. No GO without external proof and independent human release authorization.
+- Keep all staging evidence private/sanitized: redact raw emails, passwords, cookies, bearer tokens, PostgreSQL DSNs, SMTP credentials, TLS/DKIM keys, backup identities and private IP/address details. Never post live secrets in issues, Actions logs, JSON evidence fixtures or commits.
+- Root ReadBox MIT and historical AGPL MailStack reference are separate legal scopes. [Provenance inventory](docs/THIRD-PARTY-PROVENANCE.md) is source-level only and not distribution clearance.
+- Public SMTP is inbound-only. Do not mistake CI self-signed TLS, application readiness or a container healthcheck for independent public TCP/25/MX/PTR trust, authenticated inbox arrival, TLS renewal or mailserver integrity.
+
+## QIS-01 standalone installer / browser onboarding security boundary
+
+- First install generates a private 0600 `.env` with independent random database/auth/Postfix credentials. The one-time owner code is shown only to the local operator; only its SHA-256 hash and UTC expiry reach the web container. Never place the code in URLs, logs, GitHub tickets or screenshots.
+- `/initial-setup` requires HTTPS same-origin, the valid 256-bit code, production auth, the private Compose PostgreSQL endpoint and an empty admin identity. Existing PostgreSQL transactional bootstrap and single-use forced admin password-reset logic remain authoritative. No default admin password or public account takeover.
+- The web service is not exposed outside its private Compose network. QIS-01 does not provision a trusted TLS proxy, DNS or public SMTP/port 25. Existing `.env`, volumes and users cannot be overwritten by install.
+- Expired/lost setup code requires secure existing operator recovery. Safe update requires approved age public-key backup material; no automatic destructive database rollback.
+- Original seven external release findings, legacy Nginx and two historical lint issues stay OPEN, production NO-GO.

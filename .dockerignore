@@ -40,7 +40,7 @@ tests
 reference
 docs
 notes
-compose.yaml
+compose.dev.yaml
 Dockerfile
 docker-compose.yml
 .dockerignore

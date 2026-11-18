@@ -173,7 +173,7 @@ interface InspectableSetupPrisma {
     ...values: unknown[]
   ) => Promise<unknown>;
   readonly adminAccount?: {
-    readonly count?: () => Promise<number>;
+    readonly count?: (args?: { where: { isActive: boolean; isSuperuser: boolean } }) => Promise<number>;
   };
 }
 
@@ -364,7 +364,7 @@ export async function runSetupVerificationInspection(options?: {
         dbDetail = "PostgreSQL client unavailable";
       }
     } catch (err) {
-      dbDetail = String(err instanceof Error ? err.message : err);
+      dbDetail = "PostgreSQL connection check failed";
     }
   } else {
     dbDetail = "Database not configured";
@@ -385,7 +385,7 @@ export async function runSetupVerificationInspection(options?: {
       schemaDetail = schemaCheck.detail;
     } catch (err) {
       schemaVerified = false;
-      schemaDetail = String(err instanceof Error ? err.message : err);
+      schemaDetail = "Schema verification failed";
     }
   }
   steps.push({
@@ -400,11 +400,13 @@ export async function runSetupVerificationInspection(options?: {
   if (dbVerified && resolvedClient) {
     try {
       if (typeof resolvedClient.adminAccount?.count === "function") {
-        const count = await resolvedClient.adminAccount.count();
+        const count = await resolvedClient.adminAccount.count({
+          where: { isActive: true, isSuperuser: true },
+        });
         adminCreated = count > 0;
         adminDetail = adminCreated
-          ? `Found ${count} admin account(s)`
-          : "No administrator accounts found";
+          ? `Found ${count} active superuser administrator account(s)`
+          : "No active superuser administrator accounts found";
       } else {
         adminCreated = false;
         adminDetail = "Administrator account delegate unavailable";
