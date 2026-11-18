@@ -1,7 +1,7 @@
 "use server";
 
 import { callBackupAgent, BackupAgentError } from "@/core/backup/agent-client";
-import type { BackupActionResult, R2Credentials, SchedulePublic } from "@/core/backup/contracts";
+import type { BackupActionResult, R2Credentials, SchedulePublic, RestorePreflight, RestorePermit } from "@/core/backup/contracts";
 import { requireBackupAdmin } from "@/core/backup/permissions";
 import { isBackupOpaqueId } from "@/core/backup/validation";
 
@@ -116,7 +116,7 @@ export async function testRestoreAction(backupId: string): Promise<BackupActionR
     return { ok: false, code: "RESTORE_INPUT_INVALID", message: "Invalid backup selection." };
   }
   try {
-    const reply = await callBackupAgent("restore.test", { backupId });
+    const reply = await callBackupAgent("restore.test", { backupId }) as unknown as { preflight?: RestorePreflight };
     if (!reply.preflight?.verified) return failure(null);
     return { ok: true, code: "RESTORE_PREFLIGHT_PASS",
       message: "Encrypted age archive and metadata preflight passed. No data was changed.",
@@ -134,7 +134,7 @@ export async function prepareRestoreAction(backupId: string): Promise<BackupActi
   try {
     const reply = await callBackupAgent("restore.prepare", {
       backupId, actor: String(admin.id),
-    });
+    }) as unknown as { preflight?: RestorePreflight; permit?: RestorePermit };
     if (!reply.permit || !reply.preflight?.verified) return failure(null);
     return { ok: true, code: "RESTORE_CONFIRMATION_READY",
       message: "Preflight verified. Confirm the exact backup ID before the 90-second permit expires.",

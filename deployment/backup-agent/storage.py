@@ -158,6 +158,7 @@ class PrivateStore:
                   job.get("result", {}).get("errorCode") in {
                      "RESTORE_ROLLBACK_CRITICAL", "RESTORE_FAILED_REVIEW_ROLLBACK",
                      "RESTORE_TIMEOUT_OPERATOR_REVIEW", "RESTORE_RESULT_UNVERIFIED",
+                     "RESTORE_ENGINE_UNAVAILABLE",
                   }))
                 for job in self._items(self.jobs)
             )

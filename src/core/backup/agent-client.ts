@@ -1,4 +1,4 @@
-import type { BackupDashboard, BackupJob, R2Public, SchedulePublic, RemoteBackupRecord, RestoreReadiness, RestorePreflight, RestorePermit } from "@/core/backup/contracts";
+import type { BackupDashboard, BackupJob, R2Public, SchedulePublic, RemoteBackupRecord } from "@/core/backup/contracts";
 import { UNAVAILABLE_BACKUP_DASHBOARD } from "@/core/backup/contracts";
 import { type AgentAction, validateAgentPayload } from "@/core/backup/validation";
 import { createHash, createHmac, randomBytes } from "node:crypto";
@@ -27,9 +27,6 @@ interface AgentReply {
   readonly schedule?: SchedulePublic;
   readonly remote?: readonly RemoteBackupRecord[];
   readonly test?: { readonly verified: boolean; readonly at: string };
-  readonly restore?: RestoreReadiness;
-  readonly preflight?: RestorePreflight;
-  readonly permit?: RestorePermit;
 }
 
 export async function callBackupAgent(
@@ -69,7 +66,7 @@ export async function callBackupAgent(
         socketPath: SOCKET,
         method: "POST",
         path: "/rpc",
-        timeout: action.startsWith("restore.") ? 120_000 : 15_000,
+        timeout: 15_000,
         headers: {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(body),
@@ -103,15 +100,6 @@ export async function callBackupAgent(
                 "R2_BACKUP_NOT_V2_VERIFIED", "R2_REMOTE_OBJECT_CONFLICT",
                 "R2_REMOTE_OBJECT_UNVERIFIED", "R2_UPLOAD_FAILED",
                 "SCHEDULE_INVALID", "R2_LOCAL_ARCHIVE_UNAVAILABLE",
-                "RESTORE_INPUT_INVALID", "RESTORE_BACKUP_NOT_FOUND",
-                "RESTORE_BACKUP_NOT_VERIFIED", "RESTORE_ARCHIVE_UNAVAILABLE",
-                "RESTORE_ARCHIVE_UNSAFE", "RESTORE_PREFLIGHT_FAILED",
-                "RESTORE_OPERATOR_GATE_CLOSED", "RESTORE_OPERATOR_REVIEW_REQUIRED",
-                "RESTORE_PERMIT_EXPIRED", "RESTORE_CONFIRMATION_REQUIRED",
-                "RESTORE_PERMIT_LIMIT", "RESTORE_INSUFFICIENT_SPACE",
-                "RESTORE_PROJECT_REFUSED", "RESTORE_SOURCE_CHANGED",
-                "RESTORE_FAILED_ROLLED_BACK", "RESTORE_ROLLBACK_CRITICAL",
-                "RESTORE_FAILED_REVIEW_ROLLBACK", "RESTORE_TIMEOUT_OPERATOR_REVIEW",
               ]);
               return fail(safeCodes.has(reply.error ?? "") ? reply.error! : "BACKUP_AGENT_UNAVAILABLE");
             }
@@ -137,7 +125,7 @@ export async function readBackupDashboard(): Promise<BackupDashboard> {
       return UNAVAILABLE_BACKUP_DASHBOARD;
     }
     return { connected: true, jobs: result.jobs, backups: result.backups,
-      r2: result.r2, schedule: result.schedule, restore: result.restore };
+      r2: result.r2, schedule: result.schedule };
   } catch {
     return UNAVAILABLE_BACKUP_DASHBOARD;
   }
