@@ -118,3 +118,23 @@ Previous seven original open R06 findings and historical baseline lint debt rema
 | Formal RG-01–17 and release | Independent live staging and human review missing | **PRODUCTION NO-GO** |
 
 Do not count mocked R2 or synthetic host-loss as actual offsite production recovery. No tag, release, VPS update or live restoration is part of this phase.
+
+## AU-01 Docker Admin Auto Update verification and remaining gates (2026-11-18)
+
+| Gate | Evidence | Status |
+|---|---|---|
+| Frozen source/mirror main baseline | Both \`f641339021029b09f1a785aa81f27908fe9b5911\` at entry | PASS |
+| Tested code SHA/tree | \`a466a829b4cabdd7554a81100475037ee5ab393b\` / \`fe8502f8154aedc8b171f73f27eccb6ee212ce4b\` | PASS |
+| One focused AU01 GitHub Actions run | [#44246833530](https://github.com/JILLU-Games/ReadBox/actions/runs/44246833530) exact tested code head | **SUCCESS** |
+| Scope/security diff | 13 changed approved code/test/docs paths, zero deletion or unauthorized source paths; closure adds only notes 003–007 | PASS |
+| Docker source/main parity, invalid SHA, source vs stable metadata | New Node tests and existing Phase6 admin regression | PASS (mock public responses) |
+| Typecheck, Prisma/admin route regression | CI typed server/admin checks | PASS (CI) |
+| Real disposable systemd host bridge and UID1001 container HMAC IPC | Root service on GitHub-hosted disposable Ubuntu runner; no VPS | PASS (disposable) |
+| Auth replay, forged RPC/URL/path, default-deny, interrupted update review | Python Unix socket negative tests | PASS (mocked host mutations) |
+| R05 encrypted restore regression | Original R05 disposable PostgreSQL/Maildir/ACL/queue tests | PASS (disposable) |
+| Real browser-to-host update with live Docker rebuild, DB migration edge cases and recovery | No authorized VPS test or live update | **NOT RUN** |
+| Real Cloudflare R2 update side effect, production key escrow, restore | Out of AU-01 | **NOT RUN** |
+| Source/mirror/local final exact main SHA/tree | Verify after notes-only closure and non-force sync | VERIFY POST-PUBLICATION |
+| RG-01–17, stable release/tag and production GO | Independent acceptance and human approval outstanding | **NO-GO** |
+
+A successful disposable bridge test is not a live production updater acceptance. No VPS operation, production restore, tag or release occurred during AU-01.
