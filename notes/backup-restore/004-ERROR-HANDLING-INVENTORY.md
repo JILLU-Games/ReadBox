@@ -59,3 +59,5 @@
 
 Never include decrypted credentials, pip index tokens, private age identity, raw mail content or subprocess stderr in operator-facing error codes. Root-only isolated interpreter does **not** make real Cloudflare API access or host-loss key recovery tested.
 
+
+**P-02 CI:** [Single disposable regression #44215136163](https://github.com/JILLU-Games/ReadBox/actions/runs/44215136163) PASS; the installer refusal/error paths are source-audited and have not been runtime fault-injected on a host. Do not mark rollback operationally proven.

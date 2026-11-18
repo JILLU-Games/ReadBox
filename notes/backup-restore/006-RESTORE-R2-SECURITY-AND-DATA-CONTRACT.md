@@ -45,3 +45,5 @@ No edits to `src/core/auth/**`, mailserver Postfix/Dovecot, Prisma schema/migrat
 - Source-only scheduler in agent.py remains the single queue runner; optional timer file exists but stays **uninstalled**. No production schedule set by P-02.
 - The local original root-only age identity, encrypted archives, environment and volumes are not backed up offsite by this packaging change. Real host failure/rollback and Cloudflare R2 need operator-granted acceptance.
 
+
+**P-02 audited baseline checksum:** original BR-02 service exact source SHA256 `d667df88d72dba84a8c99cb693b1db3b63ad0162ea459f3a0950cbf666028dd4` (1265 bytes), verified from frozen source. [R-06 disposable CI #44215136163](https://github.com/JILLU-Games/ReadBox/actions/runs/44215136163) PASS, not a host migration proof.

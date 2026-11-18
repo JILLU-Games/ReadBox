@@ -38,3 +38,5 @@
 - **Still not proven/activated:** no VPS installer run; R2 credentials, bucket, real uploads, offsite key custody, real service startup and rollback are not live-verified. Future operational acceptance must be separately approved. Existing BR-04 restore remains disabled.
 - **Other features:** auth/admin route/UI theme, mailserver, Docker Compose, Prisma schema, mail data, age identity, original backup archives untouched. `AGENTS.md` rules are the only explicitly approved non-host source change.
 
+
+**P-02 CI:** [Verified SUCCESS #44215136163](https://github.com/JILLU-Games/ReadBox/actions/runs/44215136163). Versioned Python runtime is implemented in installer source; actual VPS activation, rollback and R2 API are NOT RUN.
