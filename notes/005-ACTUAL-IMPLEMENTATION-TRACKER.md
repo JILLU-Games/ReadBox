@@ -277,3 +277,8 @@ Full run: https://github.com/JILLU-Games/ReadBox/actions/runs/44374235430. No co
 | Candidate 20 ahead / 0 behind JILLU main | VERIFIED at freeze |
 | Source/main/fork parity and branch protection | NOT VERIFIED / NO-GO |
 | VPS, DNS, R2, SMTP, production secrets, releases | NOT RUN |
+
+
+- **MG-04 VERIFIED CLOSED (test branch only):** `c240217e11f05dbe242c2204dbe5c77b60e41ca5`, [CI #44378305511](https://github.com/JILLU-Games/ReadBox/actions/runs/44378305511), 7/7 release-governance tests, scope 8/8, `MG04_PRERELEASE_DISABLED_AND_NO_GO_PASS`.
+- Automatic `readbox-first-release.yml` `prerelease` job is unconditionally disabled; historical release script/tag/assets unchanged. Other app source, full R06 workflow, DNS/DKIM/R2, license files, reference source, auth, mailserver and Prisma unchanged.
+- Read-only MG-04B reference inventory: 109 changed/added `reference/MailStack` paths; legal clearance OPEN. MG-04C candidate is 20 commits ahead / 0 behind JILLU main at frozen pre-patch baseline; source/fork mains differ and no cross-repository sync has occurred.
