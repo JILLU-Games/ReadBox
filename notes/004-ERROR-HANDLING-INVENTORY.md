@@ -149,3 +149,39 @@ PASS / FAIL / SKIPPED / NOT RUN:
 - New negative governance checks refused forged 17/17 PASS with unresolved original findings, duplicate/missing RG IDs, wrong SHA, unsafe userinfo/token links, future observations, missing observers and falsely claimed release permission. Current real report `R06_PRODUCTION_NO_GO` with seven original findings OPEN and **zero of 17 live gate PASS claims**. A complete document may be only `MANUAL_RELEASE_REVIEW_REQUIRED`, never an automatic publication.
 - Two pre-existing out-of-scope R-04 full-tree lint findings at `src/core/setup/trusted-operations.ts:366,386` remain; a strict lint-baseline negative gate proves exactly these two, while linting all other repository code. Do not infer full lint clean or waive them.
 - Release/deploy/DNS/source code mutation impossible through R-06 workflow; `permissions: contents: read`. R-06 live acceptance **blocked** pending separate user approval. 6/6 implementation scopes CI verified, original 7 OPEN, production NO-GO.
+
+## DKIM-01 — Explicit negative/failure handling (2026-11-18)
+
+- Unconfigured isolated DKIM agent/socket/token => sanitized `DKIM_AGENT_NOT_INSTALLED`/`DKIM_AGENT_UNAVAILABLE`; no key creation through Web and no privileged/container Docker access.
+- Invalid/weak RSA public key => `INVALID_PUBLIC_KEY`; public record without private identity, existing mismatched keypair, unsafe/symlink path => fail closed, **never overwrite, delete, rotate, or synthesize a private key for an existing public-only identity**.
+- Agent requests are single action `provision`, validated domain only, bounded message, SO_PEERCRED UID 1001, HMAC-SHA256 token, timestamp/nonce/replay guard and bounded socket read time. Per-domain key creation serializes with a locked root and uses atomic no-replace hard links.
+- Missing optional Cloudflare token/zone configuration => manual copy/export. Malformed zone, unrelated domain, wrong zone name, multiple/conflicting records, failed provider API => refuse DNS mutation. Only explicit DKIM TXT create is permitted, never PATCH/PUT/DELETE MX/SPF/DMARC.
+- Existing domain is never deleted/recreated if opt-in DKIM provisioning fails after domain creation; operator gets an actionable follow-up. Status distinguishes public key, DNS publication and **inactive** signing.
+- **Not yet proven:** live shared-volume ownership under an existing named-volume installation, the opt-in agent image Python tests, real network DNS propagation, pre-existing DNS record races and private-key escrow recovery. Preserve all failures for operator review, do not retry or force repair keys.
+
+## DKIM-02/FIX-01 — RSA key-header bug and safe failure contract (2026-11-18)
+
+- **Observed failure:** disposable image build with OpenSSL 3.x failed `test_key_generation_is_idempotent_and_private_not_public` and `test_conflicting_public_never_replaced` with `INVALID_PRIVATE_KEY`; the underlying RSA-2048 key could be valid but the key-size text parser rejected the comma/prime-count suffix.
+- **Fix:** anchored regex accepts exactly legacy `Private-Key: (2048 bit)` and OpenSSL 3 `Private-Key: (2048 bit, 2 primes)`-style headers. Invalid or malformed headers continue fail closed. The existing `int(bits.group(1)) < 2048` rejection remains in place.
+- **Regression:** embedded tests check both 2048-bit formats, explicitly reject 1024-bit legacy/v3, refuse malformed suffix and preserve original public-only conflict, conflicting public key, symlink/path and idempotency tests.
+- **Disposable validation:** Python test suite **6/6 OK** during isolated Docker image build; no retry of production image build or production container activation was used to establish PASS. Real public-DNS record, key escrow, Cloudflare writes, volume ownership and SMTP signing are outside FIX-01.
+- **Residual operator gates:** source candidate must be promoted via existing human-approved Admin Panel updater before a *separate* DKIM image build on the deployed SHA; any error must halt, without direct code patch in VPS, forcing Git, restoring production data or rotating/generating production keys.
+
+## DKIM-02/FIX-02 — Agent startup permission denial (2026-11-18)
+
+- **Runtime symptom:** `restarting/unhealthy`, exit code `2`, repeated `[Errno 13] Permission denied` opening `/usr/local/bin/dkim-agent.py` from the UID 1001 provisioner.
+- **Cause:** Docker image `COPY` did not explicitly guarantee non-root readable mode; root-owned build-time tests succeeded but normal runtime process could not read the entrypoint script.
+- **Fail-closed fix:** set only the image copy's agent script mode to `0644` (non-writable by UID 1001) and build-fail if UID 1001 cannot read and Python-compile that script. No blanket `chmod 777`, no privilege escalation, no agent network access, no runtime Docker socket or volume-permission workaround.
+- **Reproduction/acceptance:** prior container log captured exact permission denial. Isolated uncached Docker build passed six existing agent regression tests and non-root smoke check with `DKIM02_FIX02_NONROOT_BUILD_PASS`.
+- **Unverified until separate controlled rollout:** new production host image, container `healthy` state, IPC token/socket runtime startup. Do not infer live health from build success and do not generate a production DKIM key or publish DNS while encrypted private-key escrow remains missing.
+
+
+## DKIM-03 — Fail-closed escrow and recovery inventory (2026-11-18)
+
+- **No receipt/tampered receipt:** root ownership, mode 0644, bound domain, private PEM SHA256, RSA public DER SHA256, ciphertext SHA256, fixed immutable R2 key and verified marker are checked before agent can publish `mail.txt`. No receipt means new private material stays staged without public TXT; a mismatch blocks publication.
+- **Unsafe files/paths:** symlinked private key or receipt, invalid domain/traversal, missing identity, unsafe private-key mode, RSA size below 2048 and public-key conflict are rejected. Private key never leaves the host in plaintext via R2 or application API.
+- **Offsite conflict:** fixed `IfNoneMatch: *` conditional R2 write, immutable object path per domain/PEM hash; any existing mismatched remote bytes, digest, metadata or decrypt result rejects without overwrite or delete. Full streamed bounded remote GET SHA256 readback is required before receipt publication. Missing/rejected conditional write fails closed.
+- **Crash/retry:** lost PUT ACK is accepted only after a complete matching GET/readback; crashed-after-upload/before-receipt resumes using identical remote ciphertext rather than re-encrypting a new blob. Interrupted upload never publishes a receipt.
+- **Recovery:** only CI-disposable fresh directory; after deleting original fixture volume/receipt, recover from encrypted object + independent age identity, validate private digest and RSA public fingerprint, write mode 0600 without overwrite. Live recovery API/CLI is intentionally absent.
+- **Observed CI failure:** initial #44293943849 hit `SyntaxError` in an orphaned inner `try` at receipt writer. Single minimal in-scope repair committed, along with deterministic `chmod 0644` so UID1001 can read even if host umask is 077. Required recheck #44294483799 SUCCESS.
+- **Residual security boundary:** offline receipt reflects host-root verified R2 state when written; the non-networked DKIM agent does not independently query R2. A compromised trusted host or malicious writable DKIM private volume is outside the receipt-only threat model. Age identity and protected R2 credential recovery were **not** proven on a lost real VPS.

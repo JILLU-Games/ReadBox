@@ -151,3 +151,80 @@ Rollback contracts: no modifications to applied migrations; backup before changi
 - **Separated immutable Git range proofs:** `c3f9dd4..807ca9f` exact 11 R-06 implementation files; `807ca9f..fa774bd` exact 8 R-06 closure files; `fa774bd..2833f1f` exact 16 QIS-01 files; `2833f1f..4467636` exact 3 QIS-01 closure files. CI enforces full SHAs, ancestry, exact sets and whitespace audit, not a cross-phase moving HEAD allowlist.
 - **Observed CI markers:** `R06_HISTORICAL_IMPLEMENTATION_SCOPE_PASS 11`; `R06_HISTORICAL_NOTES_SCOPE_PASS 8`; `QIS01_APPROVED_IMPLEMENTATION_SCOPE_PASS 16`; `QIS01_APPROVED_NOTES_SCOPE_PASS 3`; `R06_QIS01_IMMUTABLE_SCOPE_AUDITS_PASS`; `R06_PRODUCTION_NO_GO`; `R06_FINDINGS_OPEN=7`; `R06_LIVE_GATE_PASS_CLAIMS=0/17`; `R06_ALL_CI_CONTRACTS_PASS_PRODUCTION_NO_GO`.
 - **Audit and boundaries:** Code change only `.github/workflows/r06-production-readiness.yml`; closure notes limited to 003 and 006. Existing source/UI/auth/migrations/mailserver/install/update code and old R-04 exact two-lint-error baseline unchanged. No real staging/production VPS, trusted public TLS/DNS, Internet TCP/25, inbox attachment delivery, offsite restoration, license signoff, Git tag or release. Original **7 findings OPEN**, formal **0/17 live gates PASS**, **PRODUCTION NO-GO**. Source/mirror exact closeout SHA must be compared after fast-forward.
+
+## DKIM-01 — Source, CI and live deployment gates (2026-11-18)
+
+| Gate | Result / evidence |
+|---|---|
+| Frozen main source/mirror/local SHA | `ea14efa5b5571b0ed1e00e211e07a7862f2b6a0f` at entry |
+| Candidate source/mirror tree equality | `3f6dc44bc96a0fa595fba0362012e5214a7b53fe` PASS |
+| Exact approved implementation patch | **13/13 approved paths**, no Prisma/SMTP/auth/backup/updater source changes |
+| DKIM unit/mocked Cloudflare/zone-export tests | **6/6 PASS** (no real provider calls) |
+| One final corrected disposable R06 run | [#44273197408](https://github.com/JILLU-Games/ReadBox/actions/runs/44273197408) **SUCCESS** |
+| Default app/UI/build, dependency audit, database and SMTP/LMTP | PASS in R06 |
+| Encrypted recovery/rollback and historic immutable release NO-GO | PASS in R06 |
+| Opt-in isolated DKIM image build/embedded Python tests | **NOT RUN by default R06**; mandatory isolated check before VPS activation |
+| Production secret/volume ownership and encrypted private key escrow | **NOT RUN / NOT COVERED** |
+| Real Cloudflare DNS create/verification | **NOT RUN**; requires distinct operator approval |
+| Production outbound signing | NOT IMPLEMENTED; inbound-only preserved |
+| Release tag/v1.0.0 production GO | **NO-GO** (historical 17 live acceptance gates remain separate) |
+
+CI candidate was amended only after focused failures: default create-domain payload, TypeScript test extensions, and default Compose service count. Only the final corrected candidate is counted as PASS. Final notes-only closure does not itself exercise live agent behavior. Verify source, mirror and local final main SHA/tree non-force before phase close.
+
+## DKIM-02/FIX-01 — Source acceptance and rollout boundary (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Frozen source/mirror/local main | `69b7f4c91100dd30c83ab56b24c29a4a0a9384b1` | PASS at entry |
+| Code Scope Lock | only `deployment/dkim/agent.py`, `deployment/dkim/test_agent.py` | PASS |
+| Candidate source/mirror exact tree | `c973d0db780939a5049d2366540b81e5f589738d` | PASS |
+| Focused R06 read-only app/UI/security/SMTP/recovery CI | [Run #44280725129](https://github.com/JILLU-Games/ReadBox/actions/runs/44280725129) mirror `5820255216293a7ad54b2ffe6e43c7dda8d62e37` | **SUCCESS** |
+| True disposable opt-in DKIM Docker image build | operator's exact candidate SHA/tree checkout, Alpine OpenSSL 3.5.9-r0 | **PASS** |
+| Embedded Python regression | `Ran 6 tests`, `OK`, `DKIM02_FIX01_DISPOSABLE_BUILD_PASS` | **PASS** |
+| Key protection / 1024-bit rejection / public conflicts | disposable tests | PASS |
+| Notes closure exact approved scope | `notes/003–007` only | PREPARED |
+| Final source/mirror/local main SHA/tree equality | verify after non-force publication | PENDING FINAL REF CHECK |
+| Live source deployment + new host image build | separate Admin Panel approval/action | **NOT RUN** |
+| Private-key escrow / key provision / real Cloudflare DNS | outside FIX-01 | **NOT RUN** |
+| Stable production release `v1.0.0` | formal R06 governance | **NO-GO** |
+
+The isolated image build was carried out in a temporary checkout on the VPS host; it did not update `/opt/readbox`, start the DKIM service or create a real domain key. Build-only verification must not be represented as live DNS/signing evidence.
+
+## DKIM-02/FIX-02 — Focused verification and phase gates (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Frozen main baseline | `ebb2e2bddd0ef26671b283a4f71bc4d35bb32dbd` source/mirror/local | PASS |
+| Exact code Scope Lock | only `deployment/dkim/Dockerfile` changed | PASS |
+| Source/mirror code tree | `d34e6b539e7ba3aae3a2f03f8046a5f2821dcfcf` | PASS |
+| Single disposable no-cache Docker build | temporary exact SHA checkout, `docker build --no-cache --progress=plain` | **PASS** |
+| Embedded Python tests | `Ran 6 tests`, `OK` | **6/6 PASS** |
+| Non-root UID1001 readable/compile smoke | final image `RUN python3 -B -c ... compile(p.read_bytes(), ...)` stage `[6/6]` | **PASS** |
+| Explicit disposable completion marker | `DKIM02_FIX02_NONROOT_BUILD_PASS` | **PASS** |
+| Documentation Scope Lock | only `notes/003–007` after code patch | PREPARED |
+| Git main source/mirror/local sync | verify exact SHA/tree after non-force promotion | PENDING FINAL REF CHECK |
+| Live VPS updated image and container healthy | separate approved Admin Panel rollout | **NOT RUN** |
+| Production DKIM keys, encrypted escrow/recovery and DNS publication | excluded | **NOT RUN** |
+| Tags, releases, stable production readiness | excluded; existing production release NO-GO | **NO ACTION** |
+
+Build-only PASS does not establish a running healthy provisioner or recovered private keys. Stopped unhealthy provisioner was not restarted in this FIX-02 source phase.
+
+
+## DKIM-03 — Focused CI and source-gate record (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Frozen source/mirror/local main | `d2faedcebd302f488c515daba57441f59ff3a687` | PASS |
+| Candidate identical code tree | `4cccc52ea7d92bdaf4a06b27fc15a8039aae8036` | PASS |
+| GitHub original focused CI | [#44293943849](https://github.com/JILLU-Games/ReadBox/actions/runs/44293943849) | FAIL: receipt Python SyntaxError |
+| Minimal one-file repair | corrected receipt `try`/mode under umask 077 | APPLIED |
+| One necessary focused CI recheck | [#44294483799](https://github.com/JILLU-Games/ReadBox/actions/runs/44294483799) exact tested mirror `bac871825fee87dda6a3bf74915832bee6ca4c5a` | **SUCCESS** |
+| Disposable real age + mocked immutable R2 cases | wrong identity, tamper, lost ACK, interruption, conflict, idempotency, complete original-volume loss | **11/11 PASS** |
+| Agent Docker RSA/receipt/public conflict tests | fresh Docker build + no-root read smoke | **8/8 PASS** |
+| Exact production Scope Lock | seven approved code/doc paths plus `notes/003–007` | PASS at tested candidate; audit final notes diff at closure |
+| Final Git main parity and clean local | verify non-force exact SHA/tree | PENDING final ref check |
+| Real production R2, private identity escrow and host-loss verification | separate operator approval/host proof | **NOT RUN** |
+| Live DKIM key generation, TXT DNS, VPS deployment | explicitly excluded | **NOT RUN** |
+| Tag, stable release, production GO | excluded | **NO-GO** |
+
+No second optional CI loop: after the syntax defect, only the necessary single focused recheck was performed. Notes-only closure does not create runtime proof. Fail closed on an unsupported R2 conditional PUT or missing independent identity custody.

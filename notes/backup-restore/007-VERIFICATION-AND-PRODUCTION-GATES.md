@@ -118,3 +118,59 @@ Previous seven original open R06 findings and historical baseline lint debt rema
 | Formal RG-01–17 and release | Independent live staging and human review missing | **PRODUCTION NO-GO** |
 
 Do not count mocked R2 or synthetic host-loss as actual offsite production recovery. No tag, release, VPS update or live restoration is part of this phase.
+
+## AU-01 Docker Admin Auto Update verification and remaining gates (2026-11-18)
+
+| Gate | Evidence | Status |
+|---|---|---|
+| Frozen source/mirror main baseline | Both `f641339021029b09f1a785aa81f27908fe9b5911` at entry | PASS |
+| Tested code SHA/tree | `a466a829b4cabdd7554a81100475037ee5ab393b` / `fe8502f8154aedc8b171f73f27eccb6ee212ce4b` | PASS |
+| One focused AU01 GitHub Actions run | [#44246833530](https://github.com/JILLU-Games/ReadBox/actions/runs/44246833530) exact tested code head | **SUCCESS** |
+| Scope/security diff | 13 changed approved code/test/docs paths, zero deletion or unauthorized source paths; closure adds only notes 003–007 | PASS |
+| Docker source/main parity, invalid SHA, source vs stable metadata | New Node tests and existing Phase6 admin regression | PASS (mock public responses) |
+| Typecheck, Prisma/admin route regression | CI typed server/admin checks | PASS (CI) |
+| Real disposable systemd host bridge and UID1001 container HMAC IPC | Root service on GitHub-hosted disposable Ubuntu runner; no VPS | PASS (disposable) |
+| Auth replay, forged RPC/URL/path, default-deny, interrupted update review | Python Unix socket negative tests | PASS (mocked host mutations) |
+| R05 encrypted restore regression | Original R05 disposable PostgreSQL/Maildir/ACL/queue tests | PASS (disposable) |
+| Real browser-to-host update with live Docker rebuild, DB migration edge cases and recovery | No authorized VPS test or live update | **NOT RUN** |
+| Real Cloudflare R2 update side effect, production key escrow, restore | Out of AU-01 | **NOT RUN** |
+| Source/mirror/local final exact main SHA/tree | Verify after notes-only closure and non-force sync | VERIFY POST-PUBLICATION |
+| RG-01–17, stable release/tag and production GO | Independent acceptance and human approval outstanding | **NO-GO** |
+
+A successful disposable bridge test is not a live production updater acceptance. No VPS operation, production restore, tag or release occurred during AU-01.
+
+## AU-01/UI-01 verification and release boundary (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Exact frozen baseline | `90e87acc8fe8ca0b0c89ee620e0aed8eeceab064` | PASS |
+| Candidate source/mirror Git tree parity | `6aa90839a2853a5129a32cb6eec20f5fee940848` | PASS |
+| Four approved code/docs paths | Exact Git comparison: two UI files, one focused UI test, one document | PASS |
+| CI TypeScript and UI-01 regression | [R06 #44258286499](https://github.com/JILLU-Games/ReadBox/actions/runs/44258286499), consolidated source/UI step | PASS |
+| No update-start request and stable mode preserved | New UI regression test with mocked read-only API | PASS |
+| No backend, host, Docker, auth, database, Backup/R2 changes | Exact code path diff | PASS |
+| Final notes-only closure and source/mirror/local fast-forward parity | Verify after closure commit and publish | POST-PUBLICATION |
+| VPS UI-01 deployment, live auto-update, restore, tag or release | No authorization | NOT RUN |
+| Full production readiness and release | Separate R06/RG gates | NO-GO |
+
+Do not treat this UI-only source fix or mocked API responses as a live production rollout. Broader R06 CI outcome must be checked independently of the focused UI step.
+
+## AU-02 — Disposable CI PASS / live acceptance PENDING (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Frozen source/mirror/local main | `2ff76300c3e8b6a8a9648d768b7b093ab878c352` | PASS at entry |
+| Exact marker-only source Scope Lock | `docs/ADMIN-SYSTEM-UPDATE.md` only; no executable code diff | PASS |
+| Git candidate commit/tree | `cd9c67a0b22893df600186dd2812083e0bd64ca0` / `891d2da61182c603db84309095970e3074f7c5cb` | PASS |
+| One read-only focused GitHub CI | [R06 #44261893409](https://github.com/JILLU-Games/ReadBox/actions/runs/44261893409) exact tested candidate | **SUCCESS** |
+| App/UI/build + security dependency advisories | Same disposable R06 | PASS |
+| PostgreSQL and Docker/SMTP/LMTP | Same disposable R06 | PASS |
+| Encrypted recovery/rollback and NO-GO | Same disposable R06 | PASS |
+| Notes closure scope | `notes/backup-restore/003–007` only after tested candidate | SOURCE PREPARED |
+| Source/mirror/local exact final main SHA/tree | Confirm after non-force sync | VERIFY AFTER PUBLICATION |
+| Production Admin Panel new update availability | Not yet checked on live VPS | **NOT RUN** |
+| Production browser-triggered update and durable status | Must be performed once by approved human operator | **NOT RUN** |
+| Current and final production SHA, all container health | Requires direct live evidence | **NOT RUN** |
+| v1.0.0 stable production release or tag | Formal RG release gate still independent | **NO-GO** |
+
+AU-02 documentation/CI acceptance is not the production updater E2E acceptance. Do not mark any missing live evidence PASS.

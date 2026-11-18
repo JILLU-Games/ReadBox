@@ -120,3 +120,71 @@ Source and mirrored SHA:
 - **Limits explicitly OPEN:** no real Internet MX/A/PTR/certificate or public port 25, no live SMTP→LMTP→actual authenticated inbox+attachment success, no real VPS/storage/reboot, no actual offsite retained encrypted restore, no final license distribution review, no user approval to publish. All 7 original findings remain OPEN; `RG-01..RG-17` external staging evidence not provided.
 - **Lint debt:** full-tree ESLint has exactly two earlier R-04 unused catch bindings; source excluded narrowly from R-06 lint and checked by separate strict two-error inventory. The full lint gate remains unmet, not presented as clean.
 - **Phase implementation:** 6/6 CI complete, **production GO/NO-GO = NO-GO**. No user/app/auth/mailserver data/UX changes. Next step is separate live staging authorization and, if needed, a narrow scope exception—not another default implementation phase.
+
+## DKIM-01 — Feature state and precise test boundary (2026-11-18)
+
+| Capability | Status |
+|---|---|
+| Isolated no-network RSA-2048 keypair implementation | SOURCE PRESENT; optional Docker profile not live-tested |
+| Private key storage separate from Web, public-only record mount | SOURCE PRESENT; Docker Compose/patch audit PASS |
+| Existing/new domain admin control, explicit opt-in | UI/source integrated; R06 UI regression PASS |
+| Zone-scoped Cloudflare DKIM TXT create/reconcile | SOURCE PRESENT; mocked tests PASS, **real API NOT RUN** |
+| Missing token manual TXT / zone export | SOURCE PRESENT; focused Node test PASS |
+| Duplicate requests/invalid public/foreign zone/conflict fail closed | Focused mock/negative tests PASS; live gates pending |
+| Independent key/public DNS/signing-status UI | SOURCE PRESENT; signer explicitly inactive |
+| Default Postfix/Dovecot service topology | Unchanged by `profiles: ["dkim"]`; R06 SMTP/LMTP PASS |
+| Private DKIM key encrypted backup/escrow/restore | **NOT IMPLEMENTED**; requires separate approved scope |
+| Live VPS deployment, Cloudflare write, real signing or outbound SMTP | **NOT RUN / NOT ENABLED** |
+
+Implementation is DKIM DNS *preparation*, not outbound DKIM signing. Exact CI candidate tree `3f6dc44bc96a0fa595fba0362012e5214a7b53fe`; R06 [#44273197408](https://github.com/JILLU-Games/ReadBox/actions/runs/44273197408) SUCCESS; local DKIM Node six focused cases PASS. The opt-in agent image build and its embedded Python unit tests are **not** part of the default CI run and must be verified in isolated deployment readiness.
+
+## DKIM-02/FIX-01 — Feature delta (2026-11-18)
+
+| Item | State |
+|---|---|
+| OpenSSL 3.x comma/prime-count RSA-size text compatibility | **IMPLEMENTED** in `deployment/dkim/agent.py` |
+| Legacy OpenSSL RSA-size header compatibility | **PRESERVED** |
+| RSA-2048 lower bound / malformed key rejection | **PRESERVED; TESTED** |
+| Idempotent key creation / never overwrite existing private or public conflict | **UNCHANGED; disposable test PASS** |
+| Embedded Python key-agent test suite | **6/6 PASS** in disposable Docker image build |
+| Existing application, UI, auth, Prisma, Compose and mailserver | **UNCHANGED** |
+| R06 read-only regression at mirror candidate | **SUCCESS**, [#44280725129](https://github.com/JILLU-Games/ReadBox/actions/runs/44280725129) |
+| Live key escrow, production DKIM key generation, provider DNS write | **NOT RUN / NOT APPROVED BY FIX-01** |
+| New feature source deploy to existing VPS via Admin Panel | **SEPARATE CONTROLLED ROLLOUT PENDING** |
+
+Frozen baseline `69b7f4c91100dd30c83ab56b24c29a4a0a9384b1`; tested implementation tree `c973d0db780939a5049d2366540b81e5f589738d`. Only the two approved Python files changed before documentation closure. DKIM signing/outbound SMTP remain disabled.
+
+## DKIM-02/FIX-02 — Implementation status (2026-11-18)
+
+| Item | State |
+|---|---|
+| Non-root-readable `/usr/local/bin/dkim-agent.py` at mode `0644` | **IMPLEMENTED** in `deployment/dkim/Dockerfile` |
+| Build-time user `1001:1001` Python read/compile smoke test | **IMPLEMENTED; PASS** |
+| Existing agent Python regression suite | **6/6 PASS** in single disposable uncached Docker build |
+| Existing `agent.py`, tests, Docker Compose and mailserver | **UNCHANGED** |
+| Existing UI/auth/Prisma, backup/R2, secrets and volumes | **UNCHANGED** |
+| Test output marker | `DKIM02_FIX02_NONROOT_BUILD_PASS` |
+| Live VPS deployment of FIX-02 and healthy-agent assertion | **NOT RUN — separate controlled update** |
+| Encrypted private-key escrow/recovery and domain DKIM generation/DNS | **NOT RUN — safety gate remains** |
+
+Frozen baseline `ebb2e2bddd0ef26671b283a4f71bc4d35bb32dbd`; code tree `d34e6b539e7ba3aae3a2f03f8046a5f2821dcfcf`. This is a runtime image permission compatibility fix, not outbound signing or DNS publishing.
+
+
+## DKIM-03 — Implemented versus not-run features (2026-11-18)
+
+| Contract | State |
+|---|---|
+| Offline DKIM key staging without public TXT before escrow | **IMPLEMENTED / disposable agent tests PASS** |
+| Per-domain root-issued SHA/fingerprint-bound immutable R2 receipt gate | **IMPLEMENTED / negative tests PASS** |
+| Host-only existing age recipient/identity plus protected R2 credentials reuse | **IMPLEMENTED; no real credentials accessed in CI** |
+| Fixed `readbox/dkim-escrow/v1/<domain>/<private SHA256>.age` immutable object | **IMPLEMENTED; mocked R2 verified** |
+| Local age decrypt + bounded remote ciphertext readback + public RSA fingerprint | **11/11 disposable escrow tests PASS** |
+| Lost upload ACK, interrupted upload, existing object conflict, crash-before-receipt | **PASS in mocked R2 cases** |
+| New disposable volume recovery after original key/receipt deletion | **PASS; no production restore path** |
+| Existing agent Docker RSA regression and non-root smoke | **8/8 tests + Docker build PASS** |
+| Existing R05/BR04 managed backups, UI/auth/Prisma/mailserver/Compose | **UNCHANGED** |
+| Real Cloudflare R2 API conditional PUT/GET and independent age-key custody | **NOT RUN; requires separately authorized operator acceptance** |
+| VPS DKIM03 source deploy / live key / real DNS / outbound signer | **NOT RUN** |
+
+Exact verified tested code tree: `4cccc52ea7d92bdaf4a06b27fc15a8039aae8036`.
+Final notes-only closure commits change documentation, not the tested code or frozen release gate.
