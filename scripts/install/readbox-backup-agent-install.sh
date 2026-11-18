@@ -253,8 +253,8 @@ GLOBAL_LOCK=/run/lock/readbox-backup-global.lock
 [[ ! -L "$GLOBAL_LOCK" ]] || { echo "BR03_GLOBAL_LOCK_UNSAFE" >&2; exit 2; }
 exec 9<>"$GLOBAL_LOCK"
 flock -n 9 || { echo "BR03_LIVE_MAINTENANCE_REFUSED" >&2; exit 2; }
-/usr/bin/python3 - "$STATE/jobs" <<'CHECK_JOBS' || {
-  echo "BR03_ACTIVE_JOB_OR_UNREADABLE_JOURNAL_REFUSED" >&2; exit 2;
+/usr/bin/python3 - "$STATE/jobs" <<'CHECK_JOBS' || { \
+  echo "BR03_ACTIVE_JOB_OR_UNREADABLE_JOURNAL_REFUSED" >&2; exit 2; \
 }
 import json, pathlib, sys
 directory = pathlib.Path(sys.argv[1])
