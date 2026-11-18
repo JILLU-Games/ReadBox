@@ -154,3 +154,23 @@ A successful disposable bridge test is not a live production updater acceptance.
 | Full production readiness and release | Separate R06/RG gates | NO-GO |
 
 Do not treat this UI-only source fix or mocked API responses as a live production rollout. Broader R06 CI outcome must be checked independently of the focused UI step.
+
+## AU-02 — Disposable CI PASS / live acceptance PENDING (2026-11-18)
+
+| Gate | Evidence | Result |
+|---|---|---|
+| Frozen source/mirror/local main | `2ff76300c3e8b6a8a9648d768b7b093ab878c352` | PASS at entry |
+| Exact marker-only source Scope Lock | `docs/ADMIN-SYSTEM-UPDATE.md` only; no executable code diff | PASS |
+| Git candidate commit/tree | `cd9c67a0b22893df600186dd2812083e0bd64ca0` / `891d2da61182c603db84309095970e3074f7c5cb` | PASS |
+| One read-only focused GitHub CI | [R06 #44261893409](https://github.com/JILLU-Games/ReadBox/actions/runs/44261893409) exact tested candidate | **SUCCESS** |
+| App/UI/build + security dependency advisories | Same disposable R06 | PASS |
+| PostgreSQL and Docker/SMTP/LMTP | Same disposable R06 | PASS |
+| Encrypted recovery/rollback and NO-GO | Same disposable R06 | PASS |
+| Notes closure scope | `notes/backup-restore/003–007` only after tested candidate | SOURCE PREPARED |
+| Source/mirror/local exact final main SHA/tree | Confirm after non-force sync | VERIFY AFTER PUBLICATION |
+| Production Admin Panel new update availability | Not yet checked on live VPS | **NOT RUN** |
+| Production browser-triggered update and durable status | Must be performed once by approved human operator | **NOT RUN** |
+| Current and final production SHA, all container health | Requires direct live evidence | **NOT RUN** |
+| v1.0.0 stable production release or tag | Formal RG release gate still independent | **NO-GO** |
+
+AU-02 documentation/CI acceptance is not the production updater E2E acceptance. Do not mark any missing live evidence PASS.

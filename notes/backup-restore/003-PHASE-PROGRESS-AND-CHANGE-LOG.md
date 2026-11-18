@@ -93,3 +93,11 @@
 - Fixed the historical Docker header alias and the Docker source-mode Up-to-Date dialog showing semantic version `0.1.0` instead of verified host SHA. Non-Docker legacy stable display is unchanged. No backend/updater/auth/Prisma/mailserver/Backup/R2 edits.
 - Existing read-only R06 PR CI [#44258286499](https://github.com/JILLU-Games/ReadBox/actions/runs/44258286499) includes the **successful** consolidated TypeScript, application/UI regression step with the new two-mode UI-01 test. This is disposable CI and is not live VPS acceptance; record aggregate R06 run outcome separately at closure.
 - No VPS deployment, live admin update, production backup/restore, R2, tag or release. Production NO-GO remains independent.
+
+## AU-02 — Controlled Admin Panel live auto-update E2E test preparation (2026-11-18)
+
+- Frozen source/mirror/local main at `2ff76300c3e8b6a8a9648d768b7b093ab878c352` (tree `fee7c20bd5ac8c05a1e90ac585a42ef25dfbf446`); documentation-only marker candidate `cd9c67a0b22893df600186dd2812083e0bd64ca0` (tree `891d2da61182c603db84309095970e3074f7c5cb`), marker `AU02-E2E-DOCS-ONLY-20261118`.
+- **One focused disposable CI:** [R06 #44261893409](https://github.com/JILLU-Games/ReadBox/actions/runs/44261893409) **SUCCESS** at exact marker candidate. Consolidated auth/UI/typecheck/build, dependency advisory check, disposable PostgreSQL migration/auth, isolated Docker/SMTP/LMTP, R05 encrypted recovery/rollback, and formal production NO-GO steps all passed.
+- Source-only change: `docs/ADMIN-SYSTEM-UPDATE.md` appends a safe marker; closure changes exactly five note files `003–007`. No package version, application source, updater/host agent, Compose, migrations, auth, mailserver, R2, secrets, tag or release altered.
+- **Live browser E2E remains PENDING:** a human must verify source and mirror exact main SHAs, 17/17 host preflight, new update discovery, explicitly approve exactly one Admin Panel update, and collect durable final status and Docker health. No production update is initiated by this documentation/CI closure.
+- After CI-only notes closure, source/mirror/local `main` must be non-force exact synchronized to one closure SHA/tree. The release stays `v0.1.0-rc.1`; formal `v1.0.0` production GO remains forbidden.

@@ -72,3 +72,10 @@
 - **CI UI regression verified:** the Docker System Update header renders `vibtoolshq/ReadBox` and the Up-to-Date dialog displays the same 12-hex host SHA as the installation card. Existing stable/systemd channel continues to display its configured repository and semantic package version. A missing source SHA is labelled `Unknown`.
 - The test is `tests/ui/vcon-system-update-ui01.test.tsx`, covered by the successful R06 consolidated app/UI step [#44258286499](https://github.com/JILLU-Games/ReadBox/actions/runs/44258286499) on candidate `3e8be000174de39d290bfcaec3778e1fc56d085a`. Code/test/docs diff confined to four approved paths.
 - **NOT LIVE VERIFIED by UI-01:** rebuilt VPS image, new Admin Panel rendering after future deployment, browser-triggered update, production migration and rollback, any R2 or restore work. AU-01 pre-existing live host preflight was user-observed before this UI-only source correction.
+
+## AU-02 — Feature state and acceptance boundary (2026-11-18)
+
+- **Source marker implemented/CI verified:** documentation-only immutable Git change provides a detectable change for the existing Docker `main`-SHA update discovery. [R06 CI #44261893409](https://github.com/JILLU-Games/ReadBox/actions/runs/44261893409) at `cd9c67a0b22893df600186dd2812083e0bd64ca0` succeeded.
+- **Already operational before AU-02:** previous user-observed Admin System Update UI showed `Ready (17/17)`, canonical `vibtoolshq/ReadBox`, current SHA `2ff76300c3e8`, and Up-to-Date modal. That does **not** establish completed browser-triggered upgrade.
+- **Not yet run at this ledger update:** new SHA discovery in production, browser confirmation, encrypted live pre-update backup, browser-driven Docker rebuild, and durable end-state acceptance. These require operator-collected evidence in the current conversation; do not mark them PASS based solely on repository CI.
+- Nothing was implemented in application/UI/host updater in AU-02. Existing live data, auth, Prisma, Postfix/Dovecot, R2 config, encrypted identities and volumes remain outside source Scope Lock.

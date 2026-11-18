@@ -86,3 +86,10 @@ No edits to `src/core/auth/**`, mailserver Postfix/Dovecot, Prisma schema/migrat
 - The page transforms a historical repository **display label** only when server preflight identifies the Docker runtime, using existing `canonicalUpdateRepository`. It does not alter the configured origin, GitHub fetch endpoint, trusted remotes, credentials or update execution contract.
 - The modal chooses an already verified `currentSha` only in the Docker source channel and preserves legacy semantic-version rendering elsewhere. It never invents a SHA; missing data renders `Unknown`.
 - No host bridge/root worker, IPC, Docker socket, update lock, age key, R05 backup, R2 scheduler, production database, volumes or mailserver changes are in the UI-01 patch. Read-only UI test mocks response metadata and asserts no start-update POST. The formal production release NO-GO gate is unchanged.
+
+## AU-02 — Scoped live E2E security contract (2026-11-18)
+
+- No direct privileged root web access, Docker socket or elevated container settings may be introduced. AU-02 modifies only a non-executable documentation marker and notes `003–007`. Existing approved AU-01 SHA-only authenticated Unix bridge remains the sole browser-to-root update path.
+- Source GitHub `main` and JILLU-Games mirror `main` require exact SHA match, otherwise host update must fail closed. Main SHA is a commit identity, **not** a signed production release; prerelease and stable release publication remain unchanged.
+- Before code mutation, root guarded updater must hold the original global backup/restore maintenance lock and create an age-encrypted pre-update backup in the pre-existing restricted host folder. Never publish age identity or rollback artifacts as CI evidence.
+- After invoking a single authorized live browser update, any failure is operator-review-only. No destructive DB rollback, production restore, volume deletion, tag/release or real R2 modification is approved. Report sanitized status and health only.
