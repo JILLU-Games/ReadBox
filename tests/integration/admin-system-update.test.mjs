@@ -91,7 +91,7 @@ test("AU01 Compose exposes only restricted updater IPC, not daemon socket or pri
   const compose = readFileSync("docker-compose.yml", "utf8");
   const web = compose.split("\n  web:\n")[1].split("\n  worker:\n")[0];
   assert.match(web, /readbox_update_ipc:\/run\/readbox-updater:ro/);
-  assert.match(compose, /\n  readbox_update_ipc:\n/);
+  assert.match(compose, /\n {2}readbox_update_ipc:\n/);
   assert.doesNotMatch(web, /docker\.sock|privileged:\s*true|user:\s*["']?0[:"]/);
   assert.match(readFileSync("scripts/install/readbox-update.sh", "utf8"),
     /READBOX_UPDATE_TARGET_SHA|AU01_SOURCE_MIRROR_SHA_MISMATCH/);

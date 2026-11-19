@@ -144,7 +144,7 @@ export function DomainForm({
       ? { id: rawBoundZone.id, name: rawBoundZone.name } : null;
   const [zoneId, setZoneId] = useState(boundZone?.id ?? "");
   const [zoneChoices, setZoneChoices] = useState<readonly { id: string; name: string }[]>([]);
-  const [zoneLoading, setZoneLoading] = useState(false);
+  const [zoneLoading, setZoneLoading] = useState(databaseConfigured);
   const [zoneError, setZoneError] = useState<string | null>(null);
   const [dkimStatus, setDkimStatus] = useState<DkimStatus | null>(null);
   const [dkimError, setDkimError] = useState<string | null>(null);
@@ -182,7 +182,6 @@ export function DomainForm({
   useEffect(() => {
     if (!databaseConfigured) return;
     let current = true;
-    setZoneLoading(true);
     fetch("/api/vcon/domains/cloudflare-zones", { cache: "no-store" })
       .then(async (res) => {
         const data = await res.json() as {
