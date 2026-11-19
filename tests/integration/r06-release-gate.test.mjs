@@ -126,9 +126,9 @@ test("R06 root MIT and historical MailStack AGPL files must both remain intact",
 
 test("NEXT-02 R06 runs read-only on authoritative Primary, never legacy JILLU", () => {
   const source = readFileSync(".github/workflows/r06-production-readiness.yml", "utf8");
-  assert.match(source, /^    if: github\.repository == 'vibtoolshq\/ReadBox'$/m);
+  assert.match(source, /^ {4}if: github\.repository == 'vibtoolshq\/ReadBox'$/m);
   assert.doesNotMatch(source, /github\.repository == 'JILLU-Games\/ReadBox'/);
-  assert.match(source, /^permissions:\r?\n  contents: read$/m);
+  assert.match(source, /^permissions:\r?\n {2}contents: read$/m);
   assert.doesNotMatch(source, /^\s+contents:\s*write\s*$/m);
   assert.doesNotMatch(source, /^\s+(?:deploy|publish|release):\s*$/m);
   assert.match(source, /R06_ALL_CI_CONTRACTS_PASS_PRODUCTION_NO_GO/);
