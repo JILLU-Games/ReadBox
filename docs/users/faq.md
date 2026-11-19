@@ -1,4 +1,9 @@
-# Frequently asked questions
+---
+title: "Frequently asked questions"
+description: "Answers to common ReadBox mailbox, DNS, backup, security, and release questions."
+order: 90
+draft: false
+---
 
 ### Does ReadBox send emails?
 
@@ -40,4 +45,4 @@ The 2026-11-20 operator evidence establishes **Manual Mode basic inbound live PA
 
 `vibtoolshq/ReadBox` `main`. At the 2026-11-20 pre-documentation audit, both dedicated backup branches on `JILLU-Games/ReadBox` and `MdNurnobi-Dev/ReadBox` pointed to the same `488f565a21f4434ed5a066c5d46794637520ddec` commit. Backup repository `main` branches are not the designated parity targets.
 
-**Further reading:** [Getting started](getting-started.md), [Architecture](../dev/architecture.md), [Production acceptance](../PRODUCTION-ACCEPTANCE-RUNBOOK.md).
+**Further reading:** [Getting started](getting-started.md), [Architecture](https://github.com/vibtoolshq/ReadBox/blob/main/docs/dev/architecture.md), [Production acceptance](https://github.com/vibtoolshq/ReadBox/blob/main/docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md).

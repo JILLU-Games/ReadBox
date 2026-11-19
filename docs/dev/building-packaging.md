@@ -1,4 +1,9 @@
-# Build, Docker deployment, safe updates and release boundaries
+---
+title: "Build, Docker deployment, safe updates and release boundaries"
+description: "ReadBox Next.js build, Docker services, guarded host updates and release limitations."
+order: 70
+draft: false
+---
 
 **Current implementation:** Next.js web runtime and ingestion worker share a multistage Docker build; the active Compose services are `postgres`, `web`, `worker`, opt-in `dovecot`/`postfix` mailserver, and opt-in DKIM components. A separate host backup agent and update bridge supply privileged operations. This documentation does **not** authorize or execute a live deployment.
 

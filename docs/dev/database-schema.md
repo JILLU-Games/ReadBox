@@ -1,4 +1,9 @@
-# PostgreSQL schema and persistence model
+---
+title: "PostgreSQL schema and persistence model"
+description: "Prisma models, PostgreSQL-only persistence, Maildir storage boundaries and migration safety."
+order: 50
+draft: false
+---
 
 **Authoritative source:** `prisma/schema.prisma` at the documented source baseline, with **18 Prisma models**. There is **one PostgreSQL database**; a separate `mailserver` schema/views and least-privilege database lookup role serve Postfix rather than introducing another database.
 

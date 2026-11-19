@@ -1,4 +1,9 @@
-# Troubleshooting ReadBox
+---
+title: "Troubleshooting ReadBox"
+description: "Diagnose ReadBox authentication, DNS, inbox, backup and update failures safely."
+order: 80
+draft: false
+---
 
 Use the narrowest safe check before making changes. **Do not delete Docker volumes, reset Git, rotate DKIM keys, restore a production backup or overwrite Cloudflare DNS records as a generic fix.**
 

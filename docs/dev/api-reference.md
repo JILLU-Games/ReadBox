@@ -1,4 +1,9 @@
-# API and server-action reference
+---
+title: "API and server-action reference"
+description: "ReadBox App Router HTTP endpoint contracts and protected server actions."
+order: 40
+draft: false
+---
 
 ReadBox uses **Next.js App Router** HTTP route handlers **and** colocated server actions. A route shown below is a real source file; this is an internal application API, **not** a separately versioned public SDK. Do not assume unspecified JSON properties or authorization outside the listed contracts.
 

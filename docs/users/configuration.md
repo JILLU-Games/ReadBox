@@ -1,6 +1,11 @@
-# Configuring a ReadBox installation
+---
+title: "Configuring a ReadBox installation"
+description: "Configure ReadBox host environment, authentication, mail domains, storage and safe operations."
+order: 30
+draft: false
+---
 
-Configuration is host-managed, **not** stored in the repository. The complete public template is [`.env.example`](../../.env.example); actual runtime validation is defined in `src/config/env-schema.ts`. Never publish a populated `.env`, authentication secrets, Cloudflare tokens or R2 secret access keys.
+Configuration is host-managed, **not** stored in the repository. The complete public template is [`.env.example`](https://github.com/vibtoolshq/ReadBox/blob/main/.env.example); actual runtime validation is defined in `src/config/env-schema.ts`. Never publish a populated `.env`, authentication secrets, Cloudflare tokens or R2 secret access keys.
 
 ## Essential settings
 
@@ -23,4 +28,4 @@ The authenticated **Admin → Settings** screen manages *site branding/contact/f
 
 Developer auth bypass and demo sessions are for development only; `src/auth.ts` and environment policy refuse unsafe production combinations. `SMTP_BIND_ADDRESS` in `docker-compose.yml` defaults to loopback; public port 25 exposure requires explicit networking and mail policy verification.
 
-Source: `src/config/env-schema.ts`, `src/config/env.ts`, `.env.example`, `docker-compose.yml`, `src/core/settings/service.ts`, `src/core/accounts/user-control-policy.ts`. For all settings see [configuration reference](../reference/configuration-reference.md).
+Source: `src/config/env-schema.ts`, `src/config/env.ts`, `.env.example`, `docker-compose.yml`, `src/core/settings/service.ts`, `src/core/accounts/user-control-policy.ts`. For all settings see [configuration reference](https://github.com/vibtoolshq/ReadBox/blob/main/docs/reference/configuration-reference.md).

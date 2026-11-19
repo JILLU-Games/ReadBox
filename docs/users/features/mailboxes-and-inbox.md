@@ -1,4 +1,9 @@
-# Mailboxes, inbox and safe message reading
+---
+title: "Mailboxes, inbox and safe message reading"
+description: "Create mailboxes, manage membership, receive messages, and safely view HTML and attachments."
+order: 20
+draft: false
+---
 
 ## Admin mailbox management
 

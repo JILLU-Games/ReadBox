@@ -1,4 +1,9 @@
-# Public website and contact inquiries
+---
+title: "Public website and contact inquiries"
+description: "Manage the ReadBox public website, branding, contact form, and administrator inquiries."
+order: 60
+draft: false
+---
 
 ReadBox includes public pages, even when the mailbox workspace requires authentication.
 

@@ -1,4 +1,9 @@
-# Contributing to ReadBox safely
+---
+title: "Contributing to ReadBox safely"
+description: "Source change control, repository mirrors, documentation standards and licensing boundaries."
+order: 90
+draft: false
+---
 
 ReadBox's root `AGENTS.md` governs all implementation work. Read it with `CONTRIBUTING.md`, `SECURITY.md` and the evidence notes before changing runtime behavior.
 

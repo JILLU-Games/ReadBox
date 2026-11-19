@@ -1,4 +1,9 @@
-# Local development environment
+---
+title: "Local development environment"
+description: "Verified local Node.js, PostgreSQL and Prisma development commands and test prerequisites."
+order: 30
+draft: false
+---
 
 **Do not connect test tasks to production PostgreSQL, customer Maildir or R2.** Use a disposable local database and separate mock/test fixtures.
 

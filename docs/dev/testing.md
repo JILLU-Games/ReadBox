@@ -1,4 +1,9 @@
-# Testing, CI and acceptance evidence
+---
+title: "Testing, CI and acceptance evidence"
+description: "Focused source test commands, CI workflow scope, and formal release evidence classification."
+order: 80
+draft: false
+---
 
 ReadBox uses TypeScript/Node's built-in test runner, Vitest for React UI, disposable Docker/PostgreSQL and mailserver rehearsals, and some focused Python tests for backup/DKIM host tooling. Tests in a source tree are **not** proof a live production operation was run.
 
@@ -30,7 +35,7 @@ ReadBox uses TypeScript/Node's built-in test runner, Vitest for React UI, dispos
 3. **Operator live PASS:** observed PuTTY/UI result on named host/domain; does not prove independently captured network/storage state.
 4. **Independent acceptance:** separately checked DNS/R2/TLS/restore, full negative cases, signed release gate.
 
-2026-11-20 operator evidence documents the Manual Mode path and Gmail inbound at `vibmail.my` and `pypal.pl` as **scoped live PASS**. DKIM authoritative TXT, complete attachment hashes and R2 disaster recovery remain unaccepted. Preserve the 17 formal release gates in [production acceptance](../PRODUCTION-ACCEPTANCE-RUNBOOK.md).
+2026-11-20 operator evidence documents the Manual Mode path and Gmail inbound at `vibmail.my` and `pypal.pl` as **scoped live PASS**. DKIM authoritative TXT, complete attachment hashes and R2 disaster recovery remain unaccepted. Preserve the 17 formal release gates in [production acceptance](https://github.com/vibtoolshq/ReadBox/blob/main/docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md).
 
 ## Phase verification rule
 

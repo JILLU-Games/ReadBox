@@ -1,4 +1,9 @@
-# Getting started with ReadBox
+---
+title: "Getting started with ReadBox"
+description: "Start using ReadBox: accounts, roles, assigned inboxes, and first administrator tasks."
+order: 10
+draft: false
+---
 
 ReadBox is an **inbound-mailbox** and team inbox application. It includes a public site, user account and mailbox workspaces, and a protected administrator panel. It receives mail through Postfix/Dovecot and indexes it from Maildir; **it is not an email-sending, IMAP, or POP3 product**.
 

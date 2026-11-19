@@ -1,4 +1,10 @@
-# ReadBox User and Administrator Guides
+---
+title: "ReadBox User and Administrator Guides"
+description: "ReadBox user, administrator, and operator documentation for inbound mail and self-hosted accounts."
+order: 0
+version: "0.1.0"
+draft: false
+---
 
 ReadBox is a receive-only mailbox web application. These guides explain the actual application controls for users, administrators and self-host operators.
 

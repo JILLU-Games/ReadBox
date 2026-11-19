@@ -1,4 +1,9 @@
-# ReadBox architecture and data flows
+---
+title: "ReadBox architecture and data flows"
+description: "Actual ReadBox runtime architecture, inbound mail processing and controlled backup system data flows."
+order: 10
+draft: false
+---
 
 **Source baseline:** `488f565a21f4434ed5a066c5d46794637520ddec` (documentation-only successor of deployed executable `9c3d99d4...`). The active product is a Next.js 16 App Router + React 19 application with Node.js 22 workers, a **single PostgreSQL** database managed through Prisma, Maildir file storage, and optional mailserver/backup Docker profiles.
 

@@ -1,4 +1,9 @@
-# Domains, Manual Mode, Cloudflare DNS and DKIM
+---
+title: "Domains, Manual Mode, Cloudflare DNS and DKIM"
+description: "Add ReadBox domains through automatic Cloudflare provisioning or Manual Mode and inspect DNS and DKIM."
+order: 10
+draft: false
+---
 
 **Who can use this:** administrators. These controls live at **Admin → Mail & Domains → Domains**. ReadBox is an **inbound-only** service: DKIM private-key provisioning makes a public TXT record available but does not enable outbound signing.
 
@@ -30,4 +35,4 @@ The green **DNS verified** badge on a domain is routing status; it is **not** au
 
 **Live scope:** 2026-11-20 operator evidence showed `vibmail.my` and `pypal.pl` Active with received Gmail test mail; this is not independent authoritative DKIM TXT or full release signoff.
 
-**Code:** `src/core/domains/service.ts`, `src/core/dns/{records,resolver,cloudflare-auto,domain-automation,dkim-provision}.ts`, `src/app/api/vcon/domains/[uuid]/dkim/route.ts`, `src/components/vcon/{domain-form,dns-records-panel}.tsx`. [Historical and live evidence](../../DOMAIN-AUTOMATION.md).
+**Code:** `src/core/domains/service.ts`, `src/core/dns/{records,resolver,cloudflare-auto,domain-automation,dkim-provision}.ts`, `src/app/api/vcon/domains/[uuid]/dkim/route.ts`, `src/components/vcon/{domain-form,dns-records-panel}.tsx`. [Historical and live evidence](https://github.com/vibtoolshq/ReadBox/blob/main/docs/DOMAIN-AUTOMATION.md).

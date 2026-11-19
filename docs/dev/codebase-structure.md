@@ -1,4 +1,9 @@
-# Active codebase map
+---
+title: "Active codebase map"
+description: "Active ReadBox source-code structure and ownership boundaries versus historical MailStack reference."
+order: 20
+draft: false
+---
 
 The repository contains **active ReadBox source**, retained **historical reference/MailStack**, production scripts, tests and documentation. Do **not** treat archived Django/MariaDB code under `reference/` as the running implementation.
 
@@ -32,4 +37,4 @@ The repository contains **active ReadBox source**, retained **historical referen
 
 Pages/actions call `src/core/` services; core accesses Prisma and file-service boundaries; mailserver and host agents run as separate processes. UI components must not gain a privileged Docker socket, raw R2 credentials or private DKIM keys.
 
-Detailed entry points: [API reference](api-reference.md); [Architecture](architecture.md); [Source coverage](../reference/coverage-and-verification.md).
+Detailed entry points: [API reference](api-reference.md); [Architecture](architecture.md); [Source coverage](https://github.com/vibtoolshq/ReadBox/blob/main/docs/reference/coverage-and-verification.md).

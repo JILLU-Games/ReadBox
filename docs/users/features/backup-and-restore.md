@@ -1,4 +1,9 @@
-# Encrypted backups, Cloudflare R2 and guarded restore
+---
+title: "Encrypted backups, Cloudflare R2 and guarded restore"
+description: "Configure encrypted Age backups, Cloudflare R2 uploads, scheduling and guarded recovery."
+order: 40
+draft: false
+---
 
 **Admin → System & Settings → Backup** is the UI for root-mediated backup jobs. The web container does **not** directly hold root, the Docker socket, Age private keys or Cloudflare R2 secrets. The backend forwards strictly allowlisted, signed requests over a private Unix socket to a host backup agent.
 

@@ -1,4 +1,9 @@
-# Practical ReadBox workflows
+---
+title: "Practical ReadBox workflows"
+description: "Verified administrator and mailbox workflows with security and verification boundaries."
+order: 40
+draft: false
+---
 
 These flows use controls present in the current application. Administrator actions require an authorized administrator session; user actions require mailbox access.
 

@@ -1,4 +1,9 @@
-# Operations, health monitoring and system updates
+---
+title: "Operations, health monitoring and system updates"
+description: "Inspect ReadBox health, perform guarded maintenance and use the safe system-update flow."
+order: 50
+draft: false
+---
 
 These actions are restricted to administrators. They affect live mail and storage, so use the application's safeguards and a maintenance window when required.
 

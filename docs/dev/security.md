@@ -1,4 +1,9 @@
-# Security architecture and trust boundaries
+---
+title: "Security architecture and trust boundaries"
+description: "ReadBox authentication, authorization, mail processing and privileged-host security boundaries."
+order: 60
+draft: false
+---
 
 ReadBox has distinct **public**, **authenticated user**, **administrator**, **mailserver** and **host-only privileged** boundaries. The source contains defense-in-depth controls; this document is not an independent penetration-test attestation.
 
@@ -29,4 +34,4 @@ ReadBox has distinct **public**, **authenticated user**, **administrator**, **ma
 
 The 2026-11-20 operator Manual Mode test evidenced basic inbound delivery to two domains; it did **not** independently prove authoritative DKIM TXT, all TLS/PTR/IPv6 paths, complete R2 restore, recovery under outages, MIME attachment matrices or the 17 formal stable-release gates. The root ReadBox MIT license does not automatically relicense historical AGPL reference files under `reference/MailStack`; human provenance/distribution review remains open.
 
-**Source:** `src/auth.ts`, `src/core/{auth,accounts,audit,dns,ingestion,messages,backup,updates}/`, `deployment/backup-agent/`, `docs/THIRD-PARTY-PROVENANCE.md`. See [release acceptance](../PRODUCTION-ACCEPTANCE-RUNBOOK.md).
+**Source:** `src/auth.ts`, `src/core/{auth,accounts,audit,dns,ingestion,messages,backup,updates}/`, `deployment/backup-agent/`, `docs/THIRD-PARTY-PROVENANCE.md`. See [release acceptance](https://github.com/vibtoolshq/ReadBox/blob/main/docs/PRODUCTION-ACCEPTANCE-RUNBOOK.md).

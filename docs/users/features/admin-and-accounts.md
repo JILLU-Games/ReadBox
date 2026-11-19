@@ -1,4 +1,9 @@
-# User accounts, administrators, permissions and audit
+---
+title: "User accounts, administrators, permissions and audit"
+description: "Manage ReadBox users, administrator accounts, permissions, sign-in policy, sessions, and auditing."
+order: 30
+draft: false
+---
 
 ReadBox separates the ordinary user workspace (`/users`) and protected management workspace (`/vcon`). The authenticated administrator has an Admin panel, while a normal user sees only assigned mailboxes and permitted actions.
 

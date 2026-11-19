@@ -1,4 +1,9 @@
-# Installation and first administrator setup
+---
+title: "Installation and first administrator setup"
+description: "Set up ReadBox using the guarded Docker installer and browser-based first administrator activation."
+order: 20
+draft: false
+---
 
 This guide covers the **existing standalone Docker Compose installer**, not an arbitrary server deployment. Perform any installation, firewall, DNS, secret or data operation only on an authorized host with a backup/rollback plan.
 
@@ -29,4 +34,4 @@ Do **not** rerun the fresh installer to update. The checked-in update path is `b
 
 The deployed ReadBox source observed on 2026-11-20 was `9c3d99d4...` with 6/6 healthy containers; the subsequent `488f565a...` commit changed documentation only. These are historical operator observations, not a guarantee about a future host.
 
-**Source:** `scripts/install/readbox-install.sh`, `scripts/install/readbox-update.sh`, `src/core/setup/first-admin-activation.ts`, `src/app/initial-setup/actions.ts`, `docker-compose.yml`. More: [Dev build/deployment](../dev/building-packaging.md).
+**Source:** `scripts/install/readbox-install.sh`, `scripts/install/readbox-update.sh`, `src/core/setup/first-admin-activation.ts`, `src/app/initial-setup/actions.ts`, `docker-compose.yml`. More: [Dev build/deployment](https://github.com/vibtoolshq/ReadBox/blob/main/docs/dev/building-packaging.md).
