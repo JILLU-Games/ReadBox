@@ -1,3 +1,5 @@
+> **LATEST CURRENT INDEX — 2026-11-19:** Authoritative Primary frozen input `6f3bc1e3aeb441956e1fd0f4d81558a6aba2945f` (tree `f82b07b6e0770850edd3431f041d5162848d442a`); latest disposable executable CI SHA `4d0b124af57c8d407bf609540b8b8b7a69a479b5`, [R06 PASS #44509947742](https://github.com/vibtoolshq/ReadBox/actions/runs/44509947742). At input freeze, both dedicated backup SHA refs matched (2/2); no assumption about refs after a new documentation commit. R-01–R-06 source/CI 6/6; NEXT-01/02 complete (2/4); **Phase-01=NEXT-03** then **Phase-02=NEXT-04** remain. Seven original findings OPEN, 17 human release gates not accepted, **NO-GO**. Start with [017 exact forensic code proof and path locks](017-CURRENT-FORENSIC-PATCH-REFERENCES-2026-11-19.md) and [018 phase execution/closure template](018-PHASE-EXECUTION-AND-CLOSURE-TEMPLATE.md), then authoritative historical [000–006](000-BASELINE-FREEZE.md). Existing earlier indexes remain preserved as dated history.
+
 # ReadBox — authoritative production-readiness notes index (2026-11-19)
 
 **PRIMARY:** https://github.com/vibtoolshq/ReadBox  
