@@ -1,5 +1,7 @@
 # MailStack Security Review for Node.js Migration
 
+> **Current-documentation reconciliation — 2026-11-20:** This document is a **dated phase/source-review snapshot**, not the up-to-date standalone operational guide. Statements about what had **not yet** been implemented or deployed refer to that frozen phase, not all later changes. The active ReadBox implementation now includes user registration, one-time browser admin setup, Manual Mode and automatic DNS paths, with limited operator-observed inbound delivery. For current behavior use the [feature guides](users/features/index.md), [architecture](dev/architecture.md), and [coverage/evidence limitations](reference/coverage-and-verification.md). The full 17-gate stable release remains **NO-GO**; the original reference/MailStack AGPL material is not the active runtime.
+
 > **Authoritative database policy:** ReadBox uses exactly one PostgreSQL database for all application and database-backed mail-server management data. Prisma remains the application ORM. Any future Postfix/Dovecot database integration must use this same PostgreSQL database, with separate schemas and least-privilege roles where supported, after installed versions, configuration, schema, and lookup contract are verified. Do not add or connect MariaDB, MySQL, SQLite, or a second database. Maildir and message/attachment files remain on the filesystem. Any legacy multi-database descriptions below are historical/source context only and are superseded as target architecture.
 
 ## Scope and Security Posture

@@ -1,5 +1,7 @@
 # ReadBox first-release baseline — frozen 2026-11-18
 
+> **Current-documentation reconciliation — 2026-11-20:** Keep this document as a **dated technical, operator or release-governance record**. Its frozen code SHA and statements about what was source-only or not yet live are historical to that phase. The current source is the [documented audited baseline](index.md); consult [current user/operator guides](users/index.md) and [technical coverage](reference/coverage-and-verification.md) for subsequent implemented features and limited inbound operator evidence. No new stable-release or legal sign-off is implied: **R-06 formal 17-gate decision remains NO-GO**, and MIT/legacy AGPL distribution clearance requires separate human review.
+
 **Software package version:** `0.1.0` (unchanged).
 **First GitHub candidate tag:** `v0.1.0-rc.1` (prerelease only).
 **Formal stable production-release decision:** **NO-GO**. Do not call this v1.0.0 or a production-certified release.

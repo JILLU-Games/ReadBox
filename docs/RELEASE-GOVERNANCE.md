@@ -1,5 +1,7 @@
 # ReadBox R-06 final production release governance — NO-GO by default
 
+> **Current-documentation reconciliation — 2026-11-20:** Keep this document as a **dated technical, operator or release-governance record**. Its frozen code SHA and statements about what was source-only or not yet live are historical to that phase. The current source is the [documented audited baseline](index.md); consult [current user/operator guides](users/index.md) and [technical coverage](reference/coverage-and-verification.md) for subsequent implemented features and limited inbound operator evidence. No new stable-release or legal sign-off is implied: **R-06 formal 17-gate decision remains NO-GO**, and MIT/legacy AGPL distribution clearance requires separate human review.
+
 **As of 2026-11-17, no live VPS, DNS, SMTP transport, backup restore or release has been authorized or operated during R-06.** The ReadBox project has 25/32 original findings CI-verified and 7 OPEN at the R-05 baseline. R-06 adds final automated regression/acceptance gates and manual governance; it does **not** confer release approval.
 
 ## CI workflow: non-publishing and isolated

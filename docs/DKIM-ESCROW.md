@@ -1,5 +1,7 @@
 # DKIM-03 — Host-only encrypted escrow and isolated recovery
 
+> **Current-documentation reconciliation — 2026-11-20:** This document is a **dated phase/source-review snapshot**, not the up-to-date standalone operational guide. Statements about what had **not yet** been implemented or deployed refer to that frozen phase, not all later changes. The active ReadBox implementation now includes user registration, one-time browser admin setup, Manual Mode and automatic DNS paths, with limited operator-observed inbound delivery. For current behavior use the [feature guides](users/features/index.md), [architecture](dev/architecture.md), and [coverage/evidence limitations](reference/coverage-and-verification.md). The full 17-gate stable release remains **NO-GO**; the original reference/MailStack AGPL material is not the active runtime.
+
 ## Status and boundary
 
 **Source implementation only.** Frozen baseline:

@@ -1,5 +1,7 @@
 # ReadBox R-06 staging acceptance runbook (NO-GO unless separately authorized)
 
+> **Current-documentation reconciliation — 2026-11-20:** Keep this document as a **dated technical, operator or release-governance record**. Its frozen code SHA and statements about what was source-only or not yet live are historical to that phase. The current source is the [documented audited baseline](index.md); consult [current user/operator guides](users/index.md) and [technical coverage](reference/coverage-and-verification.md) for subsequent implemented features and limited inbound operator evidence. No new stable-release or legal sign-off is implied: **R-06 formal 17-gate decision remains NO-GO**, and MIT/legacy AGPL distribution clearance requires separate human review.
+
 **Current 2026-11-17 verdict: NO-GO.** This is a manual staging acceptance contract; **not** proof that any VPS, public DNS, Internet SMTP or production mail has been touched.
 
 ## Permission and safety

@@ -1,5 +1,7 @@
 # MailStack Architecture Audit and Target Proposal
 
+> **Current-documentation reconciliation — 2026-11-20:** This page preserves a **historical design, migration, or phase snapshot**. Its dated status, legacy Django/MariaDB references, proposed tasks, and older runtime descriptions are **not current ReadBox implementation claims**. The active product is Next.js 16 / React 19 with one PostgreSQL database, inbound-only Postfix/Dovecot, the implemented browser first-admin flow, and optional Manual Mode DNS onboarding. Consult the [current architecture](dev/architecture.md), [current feature guides](users/features/index.md), and [verification report](reference/coverage-and-verification.md) for code-backed behavior. The 17-gate stable production-release decision remains **NO-GO**.
+
 > **Authoritative database policy:** ReadBox uses exactly one PostgreSQL database for all application and database-backed mail-server management data. Prisma remains the application ORM. Any future Postfix/Dovecot database integration must use this same PostgreSQL database, with separate schemas and least-privilege roles where supported, after installed versions, configuration, schema, and lookup contract are verified. Do not add or connect MariaDB, MySQL, SQLite, or a second database. Maildir and message/attachment files remain on the filesystem. Any legacy multi-database descriptions below are historical/source context only and are superseded as target architecture.
 
 ## Status and Architectural Boundary
@@ -10,7 +12,7 @@ The inspected source snapshot reports version `1.3.5.5` in both `reference/MailS
 
 Read-only Git verification found branch `main`, HEAD `72bb6f796dc4934ee3ea3fa3cb3ed5c6f678c97d`, tree `39da28340e9625f7afa6237f05cbfcb055a1ec92`, up to date with `origin/main`. The working tree is not clean: `reference/MailStack/MEMORY.md` is modified. This audit did not change it. Treat the checked code HEAD as the source baseline and explicitly exclude or resolve that local documentation diff before freezing an archive/checksum.
 
-Primary evidence includes the original [architecture guide](../reference/MailStack/docs/ARCHITECTURE.md), [API reference](../reference/MailStack/docs/API_REFERENCE.md), [feature matrix](../reference/MailStack/docs/FEATURE_MATRIX.md), [configuration guide](../reference/MailStack/docs/CONFIGURATION.md), application modules under `reference/MailStack/mailbox-app/apps/`, deployment templates under `reference/MailStack/deployment/templates/`, and the original test suites.
+Primary evidence includes the original [archived architecture guide](../reference/MailStack/mailbox-app/docs/ARCHITECTURE.md), `API_REFERENCE.md` (not present in the tracked historical reference snapshot), `FEATURE_MATRIX.md` (not present in the tracked historical reference snapshot), [archived configuration guide](../reference/MailStack/mailbox-app/docs/CONFIGURATION.md), application modules under `reference/MailStack/mailbox-app/apps/`, deployment templates under `reference/MailStack/deployment/templates/`, and the original test suites.
 
 ## Historical Source Architecture
 
