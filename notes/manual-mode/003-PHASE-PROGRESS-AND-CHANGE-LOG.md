@@ -6,9 +6,9 @@
 
 | Dimension | Completed | Remaining | Truth |
 |---|---:|---:|---|
-| Manual Mode MM Phase-01 source implementation | 0/1 | 1/1 | PLANNED; checkbox not in inspected app |
+| Manual Mode MM Phase-01 source implementation | 1/1 | 0/1 | SOURCE IMPLEMENTED and CI verified; backup parity pending |
 | Recorded existing automatic domains | 3/3 user/operator reported | 0 domain re-onboard required | mailiq.shop, softlo.com, mailvib.com; separate from this feature |
-| Manual Mode focused acceptance tests | 0/1 | 1 | NOT RUN; no patch authorized yet |
+| Manual Mode focused acceptance tests | 1/1 source UI CI | 0 source UI CI | R06 CI SUCCESS, standalone 53 checks; Node r03 CLI not separately run |
 | R-01–R-06 historical source/CI phases | 6/6 | 0 | Preserve previous CI evidence; not release GO |
 | Overall production release | n/a | 7 original OPEN findings and independent gates | NO-GO; outside this feature |
 
@@ -47,3 +47,17 @@
 - No app code patch, Manual checkbox, exporter fix, targeted app CI, VPS/domain/R2 action, production restore, release or tag executed.
 - Manual Mode Phase-01 stays **PLANNED 0/1, 1 remaining**. Three recorded automatic domains remain separate historical operator evidence. No new live test asserted; global production NO-GO unchanged.
 - Backup dedicated-branch SHA parity **not verified at new notes-only HEAD**; do not call this docs update mirrored without actual non-force sync/readback.
+
+---
+
+## Current verified implementation status
+
+### MM-01 actual implementation and CI evidence — 2026-11-19
+
+- **Source implementation:** [`55ea7dbc97ff78e8c537bfecf3975923639a854b`](https://github.com/vibtoolshq/ReadBox/commit/55ea7dbc97ff78e8c537bfecf3975923639a854b); exact Git tree `e0789807d0b6128e3a60593acc25e03a4b5e1de8`, from previous Primary head `4303b66bfb85f8062bc6cca025f3bbe5d6abfab5`. Exactly **five approved executable/test files** changed: `src/components/vcon/domain-form.tsx`, `src/core/dns/records.ts`, `tests/dns/r03-advisory-contract.test.ts`, `tests/ui/domain-zone-selection.test.tsx`, `tests/ui/vcon-phase3.test.tsx`. No other source, backend, secrets, schema, mailserver, R2 objects or DNS provider operations.
+- **Existing read-only CI:** [R06 SUCCESS, run 44576640402](https://github.com/vibtoolshq/ReadBox/actions/runs/44576640402), verification PR [#3](https://github.com/vibtoolshq/ReadBox/pull/3), head `ff48998e8dc0d46c35c433d55ed50f689dcab278` with the **identical complete source tree** `e0789807d0b6128e3a60593acc25e03a4b5e1de8`. Verified npm CI source/lint, TypeScript typecheck, UI unit/Vitest regressions, build, dependency audit, disposable PostgreSQL/SMTP/LMTP/restore, immutable R06 gates; 0 CI failures. PR commit only adds an **empty-tree-delta** CI trigger, not application file modifications. No CI workflow file changed.
+- **Focused functionality check:** 53 readback assertions PASS against minimally transpiled, *actual committed* `records.ts` export functions and UI source guards; foreign-zone mail-host A/AAAA owner absent, external MX retained for all three recorded domains on IPv4/IPv6, in-zone owner retained, SPF/DMARC/DKIM TXT and DKIM 255-octet segments preserved. This standalone check is **not** an independent live DNS test or the Node r03 test runner. The newly added `tests/dns/r03-advisory-contract.test.ts` cases were committed and typechecked but were **not separately executed** by the R06 workflow; do not mislabel them as a CLI Node test PASS.
+- **Diff/security audit:** compare previous head..source commit gave exactly 5/5 allowlisted paths. Independent source blob readback shows `src/core/dns/domain-automation.ts`, `src/app/(workspace)/vcon/domains/actions.ts`, DKIM API route, DNS download panel and R2 agent-client **unchanged**. Private DKIM keys remain escrow-gated. No Prisma migration or new provider API.
+- **Mirror closure BLOCKED:** dedicated `backup/dns-final-primary-20261119` refs in `JILLU-Games/ReadBox` and `MdNurnobi-Dev/ReadBox` were read at `6f3bc1e3aeb441956e1fd0f4d81558a6aba2945f`, **not** `55ea7dbc97ff78e8c537bfecf3975923639a854b`. Primary connector can write only Primary; alternate account can write JILLU-Games but **neither connected account has push permission to MdNurnobi-Dev**. These independent repositories also lack the newer Primary commit objects. Therefore **zero of two backup refs have verified exact latest SHA parity**. No attempt to force-push, rewrite backup history, claim parity, or create misleading unequal-SHA mirror commits. Finish exact **non-force fast-forward git object transfer** with authorized backup credentials and reread both refs; until then status is **SOURCE VERIFIED / EXACT MIRROR SYNC BLOCKED**, not fully closed.
+- **Live environment:** no VPS, no real-domain DNS write, no live R2 operation, no deployment, no tag/release. The three preexisting domain successes are still **operator/chat-recorded**, not re-run or independently revalidated by this Phase-01. Original production 7 OPEN findings / 17 independent gates are unchanged; release remains **NO-GO**.
+
