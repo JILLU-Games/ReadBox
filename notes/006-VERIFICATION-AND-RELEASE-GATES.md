@@ -355,3 +355,14 @@ Do not bypass ESLint or edit unapproved files. Separate explicit approval needed
 | Source/backup promotion | **WITHHELD**; Primary main and both dedicated backup refs remain `1393c48fdc821756213e9c0ca87dd166ee3f6b75` |
 
 **Release/security boundary:** `GITHUB_ACTIONS=true` and actual authoritative `GITHUB_REPOSITORY=vibtoolshq/ReadBox` must be checked by the scripts themselves. Do not override environment repository identity, loosen target protections, run scripts on live VPS, or count unexecuted CI as PASS. Separate approval of only the two script guard predicates is required before further implementation/recheck. Candidate remains in draft PR; no force-push/tag/release/restore.
+
+---
+
+## NEXT-02 FINAL disposable Primary CI verification — 2026-11-19
+
+- **Frozen original base:** `1393c48fdc821756213e9c0ca87dd166ee3f6b75`; **CI-tested code SHA:** `4d0b124af57c8d407bf609540b8b8b7a69a479b5`; **CI code tree:** `136c011b54687017aedaf35fd35397afaf1824b6`.
+- **Single focused approved CI:** [Primary run #44509947742](https://github.com/vibtoolshq/ReadBox/actions/runs/44509947742) `completed/success`, `consolidated-acceptance` **PASS**, no SKIP. Steps and log markers prove app, lint, typecheck, unit/UI and static Nginx negatives; npm production dependency audit; ephemeral PostgreSQL auth/migration; loopback SMTP→LMTP/Maildir and negative relay checks; encrypted ACL backup/restore/rollback; historical immutable R06/QIS01 scope audits; `R06_ALL_CI_CONTRACTS_PASS_PRODUCTION_NO_GO`; sanitized artifact upload SUCCESS.
+- **Fail-closed negatives:** wrong/non-CI R06 script identity rejected (exit 2); legacy JILLU repository refused; no live/staging run. Nginx template contract rejects legacy upstream/log/proxy and invalid internals. R06 governance rejects fabricated stage evidence and leaves production **NO_GO**.
+- **Exact allowlist/security patch audit:** 13/13 paths (original NEXT-02 9 including notes + 2 approved lint paths + 2 approved guard scripts); no unexpected paths, no detected secret patterns, single-name substitution only in two guard scripts; `permissions: contents: read` and existing release workflow unchanged.
+- **Original findings/gates:** 32 original findings, 7 OPEN; RG-01..RG-17 present with zero independent live acceptance during this phase. **NO_GO** until NEXT-03/NEXT-04 plus separate release approval.
+- **Post-closure ref status must be recorded separately after actual publication:** do not declare the two backup branch SHAs equal the new Primary until remote readbacks confirm. No existing backup `main`, tag/release or VPS/live data changes authorized.

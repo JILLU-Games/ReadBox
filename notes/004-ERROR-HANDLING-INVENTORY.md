@@ -266,3 +266,17 @@ NEXT-01 exact Git object/ref SHA and denied permission path; NEXT-02 R06 Primary
 - **Scope exception REQUIRED:** only `scripts/testing/r06-ephemeral-postgres.sh` and `scripts/testing/r06-smtp-rehearsal.sh`, guarded Primary repository identity check, **retain `GITHUB_ACTIONS=true`**, unchanged secure ephemeral DB, no live targets. Never impersonate legacy JILLU in workflow env or suppress guards.
 - **Negative tests to preserve:** non-CI execution must still abort, wrong repository must abort, only Primary CI may proceed with ephemeral service; retain local `compose.yaml` overwrite refusal and existing target-guarding tests.
 - **Status:** NEXT-02 still **BLOCKED** because the additional two files are outside original + approved lint exception allowlist. Need new user approval before editing them.
+
+---
+
+## 2026-11-19 NEXT-02 — final error/guard correction and release boundary (LATEST)
+
+**Earlier lint and JILLU-only checks were real blockers and were not bypassed.** Final code SHA `4d0b124af57c8d407bf609540b8b8b7a69a479b5`, [R06 #44509947742](https://github.com/vibtoolshq/ReadBox/actions/runs/44509947742), **SUCCESS**. Verified:
+- `scripts/testing/r06-ephemeral-postgres.sh:5`: match **actual Primary CI only**, still require `GITHUB_ACTIONS=true` and fail closed with exit 2 for wrong context. Original isolated ephemeral DB create/target cleanup unchanged. PostgreSQL migration/auth tests PASS.
+- `scripts/testing/r06-smtp-rehearsal.sh:6`: same narrow CI identity correction; original greeting timeout/SMTP→LMTP tests remain unchanged. Disposable SMTP rehearsal PASS.
+- The regression `tests/integration/r06-release-gate.test.mjs` spawns each script in **non-CI**, **legacy-JILLU**, and **wrong-repo** environment and expects a safe refusal (exit 2) *before* Docker or live operation. Test PASS on CI.
+- Nginx host template changes are source/static and cannot prove a deployed `/var/log/readbox` directory or real reverse-proxy TLS readiness. No host reload/config deployment.
+- User-visible domain form zone-loading initialized from the existing `databaseConfigured` prop instead of synchronous React state update; fetch/error completion unchanged. CI lint/typecheck/UI PASS. Admin update test regex `{2}` matched old semantics. No weak lint suppression.
+- The full disposable R06 runner includes negative SMTP/LMTP checks, encrypted backup restore/rollback and release NO-GO evidence; all PASS. The original release blockers (7) and independent 17 staging gates remain untouched. **Production NO-GO**, no automatic publish or deployment enabled.
+
+**Do not treat this CI-only result as external domain DNS/DKIM/R2 proof, production host/TLS proof, independent AGPL legal approval or offsite recovery acceptance.** Provenance and gate closure still require NEXT-03/NEXT-04 and separate user approvals.

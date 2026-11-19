@@ -292,3 +292,20 @@ Candidate code SHA: `3adff246beec44c685d8885875a9d94f41dece4a` ([failed CI #4450
 | External staging and production | No authorized operations | Unchanged; seven original findings still OPEN, release NO-GO |
 
 **Next:** exact 2-file guard-only exception to make actual Primary GitHub Actions eligible, with fail-closed protections preserved. No DNS domain or VPS required for this CI fix.
+
+---
+
+## NEXT-02 actual feature/status correction — 2026-11-19 latest evidence
+
+| Verified item | Actual outcome at tested code SHA `4d0b124af57c8d407bf609540b8b8b7a69a479b5` |
+|---|---|
+| Primary R06 eligibility and literal shell newlines | **PASS**: read-only Primary R06 job ran, lint/typecheck were actual executable statements |
+| Initial zone-loading and Admin Update test lint exceptions | **PASS**: scoped source/test changes; lint, TS, UI/test/build all successful in CI |
+| R06 host Nginx legacy names and negative static contract | **PASS source/CI only**: matching upstream/cache/log/proxy refs; actual host Nginx not tested |
+| Disposable PostgreSQL integration | **PASS**: Primary-specific shell gate, ephemeral target, migrations/auth tests |
+| Disposable SMTP/LMTP/Maildir and negative cases | **PASS**: loopback Docker image rehearsal; **not an external production mail acceptance** |
+| Isolated encrypted backup/restore, ACL and rollback | **PASS** in disposable CI; offsite custody/live restore **NOT TESTED** |
+| NO-GO governance and original security/provenance | **PASS fail-closed CI enforcement**: 7 original findings still OPEN, 17 live-stage gates still unaccepted |
+| NEXT-01 dedicated backup branches | **Previous 2/2 PASS at earlier Primary SHA** `1393c48fdc821756213e9c0ca87dd166ee3f6b75`; new source-ref parity must be verified **after** NEXT-02 Primary promotion |
+
+**Canonical verification:** [Primary R06 #44509947742](https://github.com/vibtoolshq/ReadBox/actions/runs/44509947742) SUCCESS on `4d0b124af57c8d407bf609540b8b8b7a69a479b5`. This section supersedes historical NEXT-02 "BLOCKED" status entries after the new guarded source tests passed. Next operation is non-force Primary/backup ref synchronization, then separately approved NEXT-03 controlled test domain; production NO-GO remains.
