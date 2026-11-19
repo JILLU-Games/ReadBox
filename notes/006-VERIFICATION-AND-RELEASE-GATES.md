@@ -319,3 +319,21 @@ declared ready until its own MX/mail-host routing verification succeeds.
 - Preserve original DB migrations, Maildir, backups, DKIM private keys and R2 objects. On failed deploy/test, retain encrypted rollback and original config; no silent public mail exposure, secret logging or destructive DNS overwrite.
 - A documentation-only commit does not reproduce CI at its new SHA. Record the immutable **inspected source** SHA and later documentation HEAD separately; read-only manual status check may be made but must not be called CI if not executed.
 - If any phase is FAIL/BLOCKED, stop, log evidence and give the next narrow approval command. No repeated verification loops, extra speculative phases, force-push, or automatic release.
+
+---
+
+## NEXT-02 CI Gate — BLOCKED (2026-11-19)
+
+| Exact run/evidence | Result |
+|---|---|
+| Frozen Primary main | `1393c48fdc821756213e9c0ca87dd166ee3f6b75`, unchanged |
+| First candidate | `a3ce6ac1f2e7621e6a97b894917b535b5f24ac62`, [R06 #44505642726](https://github.com/vibtoolshq/ReadBox/actions/runs/44505642726) **FAIL**: 4 ESLint errors |
+| Narrow in-scope R06 test regex repair | `3adff246beec44c685d8885875a9d94f41dece4a` |
+| One necessary focused recheck | [R06 #44505932658](https://github.com/vibtoolshq/ReadBox/actions/runs/44505932658) **FAIL**: 2 out-of-scope lint errors |
+| Passed before failure | Checkout, npm clean install, Prisma schema validation |
+| Executed and failed | ESLint: `src/components/vcon/domain-form.tsx:185:5` React setState-in-effect; `tests/integration/admin-system-update.test.mjs:94:25` no-regex-spaces |
+| NOT RUN in current candidate CI | Typecheck, new Nginx contract tests, unit/UI, Docker image, disposable PostgreSQL, SMTP/LMTP, encrypted restore, R06 final `NO_GO` assertion |
+| Source/mirror ref promotion | **WITHHELD**: no main/backup update on FAIL; only isolated draft PR candidate |
+| Release disposition | **NO-GO** unchanged; all original 7 OPEN, none of RG-01..17 newly independently accepted |
+
+Do not bypass ESLint or edit unapproved files. Separate explicit approval needed for precisely the two offending files, minimal behavior-preserving fix and one focused recheck. Only after successful CI and exact patch/security audit may non-force Primary main and two dedicated backup branches be synchronized. No VPS, DNS/R2, live SMTP, tag/release or production restore.

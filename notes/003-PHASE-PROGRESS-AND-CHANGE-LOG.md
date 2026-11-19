@@ -244,3 +244,17 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 - **Current code unchanged:** `src/**`, `deployment/**`, `prisma/**`, `.github/workflows/**`, `scripts/**`, `reference/**`, LICENSE, Docker/Compose, auth and live mailbox volumes are out of scope.
 - **Documentation validation required:** all 32 historic `### RB-Pxx-xx —` headings preserved, exactly 17 unique RG table definitions, 6 historical R phase records, 4 prospective NEXT work packages, every referenced current SHA and GitHub run verified; exact changed path list must be docs-only.
 - **Evidence closure rule:** record generated documentation-only commit HEAD **separately** from the inspected immutable source SHA. If a branch/ref push fails, mark document phase BLOCKED, not synced/published. No CI job is labeled success unless it actually executed.
+
+---
+
+## NEXT-01 exact Git closure / NEXT-02 blocked attempt — 2026-11-19
+
+**Current Primary main (unchanged):** `1393c48fdc821756213e9c0ca87dd166ee3f6b75`; tree `90b8ab4d7ec2b1965d3aa51fb83c474d6856cb58`. Original R-01..R-06 implementation 6/6 CI-verified; **new NEXT packages 1/4 completed (NEXT-01), NEXT-02 BLOCKED, NEXT-03/04 NOT RUN**. Original release findings 7 OPEN; formal production **NO-GO**.
+
+- **NEXT-01 VERIFIED 2/2:** GitHub readbacks confirm `JILLU-Games/ReadBox` and `MdNurnobi-Dev/ReadBox` dedicated `backup/dns-final-primary-20261119` branches both at exact Primary SHA `1393c48fdc821756213e9c0ca87dd166ee3f6b75`. Their divergent `main` heads remain untouched. Read-only MIT vs AGPL/NOTICE provenance inventory completed; legal clearance `RB-P2-08` remains OPEN.
+- **NEXT-02 code candidate:** isolated [Primary draft PR #1](https://github.com/vibtoolshq/ReadBox/pull/1), first commit `a3ce6ac1f2e7621e6a97b894917b535b5f24ac62`; one focused [CI #44505642726](https://github.com/vibtoolshq/ReadBox/actions/runs/44505642726) **FAILED**. The job executed (not SKIPPED), but lint reported four errors: two new scoped R06 test regex style and two in out-of-scope files.
+- **One minimal in-scope fix:** corrected those two R06 test regex literal-space formats. Candidate `3adff246beec44c685d8885875a9d94f41dece4a`. Necessary [recheck CI #44505932658](https://github.com/vibtoolshq/ReadBox/actions/runs/44505932658) **FAILED** with exactly two unrelated/out-of-scope lint errors at `src/components/vcon/domain-form.tsx:185:5` (`react-hooks/set-state-in-effect`) and `tests/integration/admin-system-update.test.mjs:94:25` (`no-regex-spaces`). No suppression or unapproved edits applied.
+- **NEXT-02 five code/docs candidate paths:** `.github/workflows/r06-production-readiness.yml`, `deployment/templates/nginx/app.conf.tpl`, `tests/integration/r06-release-gate.test.mjs`, new `tests/deployment/readbox-nginx-template-contract.test.mjs`, `docs/RELEASE-GOVERNANCE.md`; this record updates only notes/003–006.
+- **Verified by CI:** runner checkout, dependency install, Prisma validate and actual lint invocation. **NOT executed/passed:** typecheck, new Nginx tests, remaining app/isolated SMTP/PostgreSQL/restore/full R06 release gates.
+- **Source main publish and backup promotion WITHHELD:** mandatory CI failed; Primary and both backup refs remain at `1393c48...`; no VPS, secrets, DNS/R2, SMTP, release/tag or backup-main changes.
+- **Required next authorization:** smallest NEXT-02/BLOCKER-LINT-01 exception covering ONLY the two failing files above, preserving domain UI behavior and update test semantics. One bounded recheck and scope audit then normal closure; do not silently start NEXT-03.

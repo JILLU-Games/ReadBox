@@ -244,3 +244,14 @@ PASS / FAIL / SKIPPED / NOT RUN:
 ### One focused negative verification per approved NEXT work package
 
 NEXT-01 exact Git object/ref SHA and denied permission path; NEXT-02 R06 Primary eligibility/NO-GO and Nginx generated-config negative; NEXT-03 wrong zone/conflict/token outage/DKIM escrow/partial-publication on one authorized test domain; NEXT-04 independent SMTP reject/MIME/worker outage/offsite restore hash/ACL and 17 formal gates. Tests must report real results with SHA/run links; **none is executed by this documentation phase**.
+
+---
+
+## NEXT-02 focused failure / error handling record — 2026-11-19
+
+- **RN-01 Primary R06 repository guard (candidate fix):** `github.repository == 'vibtoolshq/ReadBox'` makes [CI #44505642726](https://github.com/vibtoolshq/ReadBox/actions/runs/44505642726) actually execute rather than SKIP. No automatic tag, release or deploy authorization.
+- **Shell literal-newline defect (candidate fix):** four literal backslash-n tokens in YAML shell comment separated into executable lint, lint-baseline and TypeScript lines; CI now demonstrably executes ESLint. Typecheck was **not reached**.
+- **EH-N11 Nginx legacy mismatch (candidate fix):** `vibmail_web` -> `readbox_web` with three matching proxy targets, `VIBMAILTLS` -> `READBOXTLS`, `/var/log/vibmail` -> `/var/log/readbox`. New static negative tests exist but were **not reached by CI**. Host log directory must be provisioned at separately approved deployment; no actual Nginx host test.
+- **NEXT-02/BLOCKER-LINT-01 CONFIRMED out-of-scope:** `src/components/vcon/domain-form.tsx:185:5` existing React setState-in-effect violation. An approved behavior-preserving UI-state correction is needed; **no blanket rule disable/ignore-file workaround permitted**.
+- **NEXT-02/BLOCKER-LINT-02 CONFIRMED out-of-scope:** `tests/integration/admin-system-update.test.mjs:94:25` regex-space syntax violation; an approved one-regex formatting correction is needed. Do not modify underlying updater.
+- First [CI #44505642726](https://github.com/vibtoolshq/ReadBox/actions/runs/44505642726) had 4 ESLint failures, 2 were in-scope test-format and corrected. One necessary [CI #44505932658](https://github.com/vibtoolshq/ReadBox/actions/runs/44505932658) confirmed **only the above 2 out-of-scope errors remain**. No successful full R06 accepted. Fail closed; request separate exact file exception rather than weakening validation.

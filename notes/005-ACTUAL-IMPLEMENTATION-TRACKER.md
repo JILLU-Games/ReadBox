@@ -260,3 +260,19 @@ Final notes-only closure commits change documentation, not the tested code or fr
 ### Per-update actual-working reporting contract
 
 After NEXT-01..NEXT-04 only, append a dated subsection with: exact Primary code SHA/tree; changed path list; feature behavior observed before and after; one focused CI run URL or approved operator test evidence; sanitized negative cases; persisted data/rollback outcome; **CODE, CI, OPERATOR PARTIAL, INDEPENDENT LIVE** states; changed backup SHA/ref parity; remaining 7 findings and next fixed work package. Do **not** change an original feature state until evidence supports it.
+
+---
+
+## NEXT-01/NEXT-02 feature reality — 2026-11-19
+
+| Feature/condition | Actual status |
+|---|---|
+| Exact Primary Git backup to both independent repositories | **PASS / NEXT-01 CLOSED** — both dedicated backup branches at `1393c48fdc821756213e9c0ca87dd166ee3f6b75`, existing `main` unchanged |
+| R06 job execution on Primary | **RUN CONFIRMED in isolated candidate PR**; first source CI and focused recheck **FAILED** at ESLint, so NOT full-R06 accepted or promoted to main |
+| Separate R06 lint/typecheck commands | **CODE PRESENT in candidate**; lint actually ran and failed, typecheck NOT RUN |
+| Host Nginx renamed upstream/cache/log paths | **CODE PRESENT in candidate ONLY**; static test source present, CI test NOT RUN, no live Nginx host validation |
+| Two existing unrelated lint blockers | **CONFIRMED** `domain-form.tsx:185` and `admin-system-update.test.mjs:94`; exact minimal scope exception pending |
+| App UI/auth/Prisma/Compose/mailserver/DNS/DKIM/R2 | **UNMODIFIED** in NEXT-02 candidate |
+| Formal production readiness | **NO-GO**; 7 original findings OPEN, 17 individual live gates not accepted |
+
+Candidate code SHA: `3adff246beec44c685d8885875a9d94f41dece4a` ([failed CI #44505932658](https://github.com/vibtoolshq/ReadBox/actions/runs/44505932658)). No source promotion or backup branch update. NEW notes-only candidate closure does not make those unexecuted tests PASS.
