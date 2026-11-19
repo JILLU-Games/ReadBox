@@ -36,3 +36,14 @@
 - Global release findings: <still OPEN / independently accepted changes only>
 - Next action: <separate user approval if any new scope required>
 ~~~
+
+---
+
+## Documentation planning publication — 2026-11-19
+
+- Frozen inspected executable source SHA: `2f1d16b2cd373cd332e79ddae2ef771deaf52928`; tree `7be1bd36a312c780ea17b587f5525769fc2761d2`.
+- First notes-only forensic/roadmap document commit: [`87af1d60a0102173fca80133b33f2d4ad7dc72d3`](https://github.com/vibtoolshq/ReadBox/commit/87af1d60a0102173fca80133b33f2d4ad7dc72d3). **18 changed files, all notes/**, including nine new `notes/manual-mode/**` Markdown files.
+- One read-only focused Git comparison and document integrity audit PASS: 18/18 notes-only paths; original 32 release findings and 17 RG definitions preserved; all nine new Manual Mode documents have balanced Markdown source fences. Exact new notes index and this closure entry are a subsequent documentation-only commit.
+- No app code patch, Manual checkbox, exporter fix, targeted app CI, VPS/domain/R2 action, production restore, release or tag executed.
+- Manual Mode Phase-01 stays **PLANNED 0/1, 1 remaining**. Three recorded automatic domains remain separate historical operator evidence. No new live test asserted; global production NO-GO unchanged.
+- Backup dedicated-branch SHA parity **not verified at new notes-only HEAD**; do not call this docs update mirrored without actual non-force sync/readback.
