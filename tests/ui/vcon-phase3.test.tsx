@@ -171,8 +171,8 @@ describe("Phase 3 /vcon/domains and /vcon/mailboxes UI", () => {
     await user.click(screen.getByRole("button", { name: "Add domain" }));
     expect(onCreate).not.toHaveBeenCalled();
 
-    // Manual DNS remains supported, but automatic Cloudflare is now default.
-    await user.click(screen.getByLabelText(/Automatic setup:/i));
+    // Explicit Manual Mode must reuse the existing manual DNS submission contract.
+    await user.click(screen.getByLabelText("Manual Mode — Use another Cloudflare account"));
     await user.click(
       screen.getByLabelText(/I have reviewed the DNS records above/i),
     );

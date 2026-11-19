@@ -56,6 +56,72 @@ describe("DOMAIN-AUTO-02 Cloudflare zone selector", () => {
     }));
   });
 
+  it("Manual Mode skips Cloudflare zone and requires DNS review before saving", async () => {
+    const create = vi.fn(async () => ({ ok: true as const,
+      data: { uuid: "11111111-1111-4111-8111-111111111111", name: "external.test" } }));
+    const api = vi.fn(zoneApi);
+    vi.stubGlobal("fetch", api);
+    const user = userEvent.setup();
+    render(<DomainForm mode="create" databaseConfigured onCreate={create} />);
+    await user.type(screen.getByLabelText(/Domain name/i), "external.test");
+    await user.click(screen.getByLabelText("Manual Mode — Use another Cloudflare account"));
+    expect(screen.queryByLabelText("Select an active Cloudflare zone")).not.toBeInTheDocument();
+    expect(screen.getByText(/Cloudflare zone selection skipped/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add domain" }));
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/I have reviewed the DNS records above/i)).toBeInTheDocument();
+    await user.click(screen.getByLabelText(/I have reviewed the DNS records above/i));
+    await user.click(screen.getByRole("button", { name: "Add domain" }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith({
+      name: "external.test", dnsConfirmed: true,
+    }));
+    expect(api.mock.calls.filter(([input, opts]) =>
+      String(input).includes("cloudflare") && opts?.method === "POST")).toHaveLength(0);
+  });
+
+  it("switching Manual Mode OFF restores automatic zone guard and payload", async () => {
+    const create = vi.fn(async () => ({ ok: true as const,
+      data: { uuid: "11111111-1111-4111-8111-111111111111", name: "example.test" } }));
+    vi.stubGlobal("fetch", vi.fn(zoneApi));
+    const user = userEvent.setup();
+    render(<DomainForm mode="create" databaseConfigured onCreate={create} />);
+    await user.type(screen.getByLabelText(/Domain name/i), "example.test");
+    const manual = screen.getByLabelText("Manual Mode — Use another Cloudflare account");
+    await user.click(manual);
+    await user.click(manual);
+    expect(screen.getByLabelText("Select an active Cloudflare zone")).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Add domain" }));
+    expect(create).not.toHaveBeenCalled();
+    await user.selectOptions(screen.getByLabelText("Select an active Cloudflare zone"), id);
+    await user.click(screen.getByRole("button", { name: "Add domain" }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith({
+      name: "example.test", dnsConfirmed: true, autoDkim: true, zoneId: id,
+    }));
+  });
+
+  it("provisions manually without zoneId when DKIM publish is unchecked", async () => {
+    const api = vi.fn(zoneApi);
+    vi.stubGlobal("fetch", api);
+    const user = userEvent.setup();
+    render(<DomainForm mode="edit" databaseConfigured
+      initialDomain={{
+        id: "1", uuid: "11111111-1111-4111-8111-111111111111",
+        name: "external.test", status: "disabled",
+        verificationStatus: "pending", isDefault: false,
+        lastCheckedAt: null, mailboxCount: 0, totalMailboxCount: 0,
+        verificationDetails: {},
+      }}
+      onPreviewDns={async () => ({ ok: true, records: [] })}
+    />);
+    expect(screen.getByText(/Using another Cloudflare account/i)).toBeInTheDocument();
+    await user.click(screen.getByLabelText(/Publish DKIM TXT to configured Cloudflare zone/i));
+    await user.click(screen.getByRole("button", { name: "Provision / Repair DKIM" }));
+    await waitFor(() => expect(api.mock.calls.some(([input, opts]) =>
+      String(input).endsWith("/dkim") &&
+      opts?.method === "POST" &&
+      JSON.stringify(JSON.parse(String(opts.body))) === '{"publish":false}')).toBe(true));
+  });
+
   it("preserves an immutable bound zone in the repair API request", async () => {
     const fetchMock = vi.fn(zoneApi);
     vi.stubGlobal("fetch", fetchMock);

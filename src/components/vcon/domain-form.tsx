@@ -135,6 +135,7 @@ export function DomainForm({
   );
   const [dnsConfirmed, setDnsConfirmed] = useState(false);
   const [autoDkim, setAutoDkim] = useState(true);
+  const [manualMode, setManualMode] = useState(false);
   const [dkimPublish, setDkimPublish] = useState(true);
   const rawBoundZone = initialDomain?.verificationDetails.cloudflareZone;
   const boundZone = rawBoundZone && typeof rawBoundZone === "object" &&
@@ -631,12 +632,38 @@ export function DomainForm({
           </PanelBody>
         </Panel>
 
-        {(isCreate ? autoDkim : dkimPublish) ? (
+        {(isCreate || dkimPublish) ? (
           <Panel data-testid="cloudflare-zone-panel">
             <PanelHeader>
               <SectionTitle>Cloudflare zone for this domain</SectionTitle>
             </PanelHeader>
             <PanelBody className="space-y-2 p-4">
+              {isCreate ? (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="domain-manual-mode"
+                    checked={manualMode}
+                    onChange={(event) => {
+                      const enabled = event.target.checked;
+                      setManualMode(enabled);
+                      setAutoDkim(!enabled);
+                      setFieldErrors({});
+                    }}
+                  />
+                  <Label htmlFor="domain-manual-mode" className="font-normal">
+                    Manual Mode — Use another Cloudflare account
+                  </Label>
+                </div>
+              ) : null}
+              {isCreate && manualMode ? (
+                <p className="text-xs text-muted-foreground">
+                  Cloudflare zone selection skipped. Review the DNS records and add the domain.
+                  On the next page, uncheck Publish DKIM TXT, then use Provision / Repair DKIM.
+                  After encrypted escrow verification, download the updated Cloudflare zone file,
+                  import it in the other account, run DNS verification and enable the domain.
+                </p>
+              ) : null}
+              {(!isCreate || autoDkim) ? (
               <FormField
                 id="domain-cloudflare-zone"
                 label="Select an active Cloudflare zone"
@@ -656,10 +683,11 @@ export function DomainForm({
                     <option key={zone.id} value={zone.id}>{zone.name}</option>)}
                 </Select>
               </FormField>
-              {zoneLoading ? <p className="text-xs text-muted-foreground">Loading Cloudflare zones...</p> : null}
-              {zoneError ? <AlertBanner variant="warning">{zoneError}. Manual DNS setup remains available.</AlertBanner> : null}
+              ) : null}
+              {(!isCreate || autoDkim) && zoneLoading ? <p className="text-xs text-muted-foreground">Loading Cloudflare zones...</p> : null}
+              {(!isCreate || autoDkim) && zoneError ? <AlertBanner variant="warning">{zoneError}. Manual DNS setup remains available.</AlertBanner> : null}
               {boundZone ? <p className="text-xs text-muted-foreground">Bound zone: {boundZone.name}</p> : null}
-              {!zoneLoading && !zoneError && !visibleZones.length
+              {(!isCreate || autoDkim) && !zoneLoading && !zoneError && !visibleZones.length
                 ? <p className="text-xs text-muted-foreground">No active zone matches this domain.</p> : null}
             </PanelBody>
           </Panel>
@@ -703,6 +731,13 @@ export function DomainForm({
                     Publish DKIM TXT to configured Cloudflare zone (otherwise manual copy)
                   </Label>
                 </div>
+                {!boundZone ? (
+                  <p className="text-xs text-muted-foreground">
+                    Using another Cloudflare account? Uncheck Publish DKIM TXT, then
+                    provision the key. After escrow succeeds, download the updated DNS
+                    zone file, import it manually and run routing verification.
+                  </p>
+                ) : null}
                 {dkimError ? <AlertBanner variant="warning">{dkimError}</AlertBanner> : null}
               </div>
             ) : null}
@@ -730,13 +765,16 @@ export function DomainForm({
                     verification is required before enabling mail delivery.
                   </Label>
                 </div>}
-                <div className="flex items-start gap-2">
+                {!manualMode && <div className="flex items-start gap-2">
                   <Checkbox id="domain-dkim-auto" checked={autoDkim}
-                    onChange={(event) => setAutoDkim(event.target.checked)} />
+                    onChange={(event) => {
+                      setAutoDkim(event.target.checked);
+                      setManualMode(false);
+                    }} />
                   <Label htmlFor="domain-dkim-auto" className="font-normal">
                     Automatic setup: DKIM key, encrypted R2 escrow, Cloudflare DNS and routing verification (requires scoped Cloudflare token)
                   </Label>
-                </div>
+                </div>}
                 {fieldErrors.dnsConfirmed && !autoDkim ? (
                   <p
                     id="domain-dns-confirmed-error"

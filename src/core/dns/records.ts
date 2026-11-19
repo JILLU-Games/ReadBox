@@ -128,6 +128,12 @@ export function buildCloudflareZoneFile(
   ];
 
   for (const record of records) {
+    // A/AAAA owners outside this zone must never be imported into another account.
+    // The MX target may legitimately point to a shared, external mail hostname.
+    if (record.type === "A" || record.type === "AAAA") {
+      const owner = normalizeDnsHost(record.host);
+      if (owner !== domain && !owner.endsWith(`.${domain}`)) continue;
+    }
     const cleanValue = sanitizeZoneToken(record.value);
     const hostFqdn = ensureFqdn(record.host);
 
