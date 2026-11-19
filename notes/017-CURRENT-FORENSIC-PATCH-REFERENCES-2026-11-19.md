@@ -208,3 +208,22 @@ git diff --check
 ```
 
 Follow [018](018-PHASE-EXECUTION-AND-CLOSURE-TEMPLATE.md) for per-phase recording. This planning freeze did not run app tests or any live probes. No tag/release/deployment is authorized.
+
+---
+
+## 2026-11-20 — NEXT-03 current Primary immutable proof addendum (BLOCKED preflight)
+
+**Snapshot/provenance:** Primary `vibtoolshq/ReadBox/main` `b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9`, tree `120c6b99fbcd2cbd7fe299aeff87893d678b80a6`. At read-only freeze both `JILLU-Games/ReadBox` and `MdNurnobi-Dev/ReadBox` dedicated `backup/dns-final-primary-20261119` refs matched this input commit. Historical excerpts above remain frozen at their stated SHA.
+
+| Evidence type | Actual current source proof | Interpretation |
+|---|---|---|
+| Public IP/zone before DKIM key stage | [domain-automation.ts:L31-L40](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/src/core/dns/domain-automation.ts#L31-L40) `PUBLIC_MAIL_IP_REQUIRED`, `resolveSelectedCloudflareZone` | Source guard exists, live zone not selected |
+| Root-only escrow must verify before DNS release | [domain-automation.ts:L41-L69](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/src/core/dns/domain-automation.ts#L41-L69) `callBackupAgent("dkim.escrow", { domain })`, `verified`/`verified_existing` | Source contract present; no host-side R2 object receipt independently tested |
+| Zone/refusal/readback | [cloudflare-auto.ts:L148-L216](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/src/core/dns/cloudflare-auto.ts#L148-L216) `CLOUDFLARE_ZONE_MISMATCH`, `CLOUDFLARE_DNS_RECORD_CONFLICT`, `CLOUDFLARE_DNS_READBACK_FAILED` | Safe additive preflight present; no provider mutation or idempotent live replay |
+| DKIM API origin + binding | [route.ts:L21-L38](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/src/app/api/vcon/domains/%5Buuid%5D/dkim/route.ts#L21-L38), [L85-L138](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/src/app/api/vcon/domains/%5Buuid%5D/dkim/route.ts#L85-L138) | Source fail-closed; no live authorization test |
+| Agent public error and SMTP default | [agent-client.ts:L13-L48](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/src/core/backup/agent-client.ts#L13-L48), [Compose:L264-L265](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/docker-compose.yml#L264-L265) | Redacted errors and loopback binding; no claim of provider availability/public TCP |
+| Inbound-only signing status | [dkim-provision.ts:L204-L211](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/src/core/dns/dkim-provision.ts#L204-L211) `signing: "inactive"` | Outbound signing is intentionally not a NEXT-03 live acceptance claim |
+
+**Scope/stop root cause:** NEXT-03 approval is conditional upon a separately named disposable domain and explicit Cloudflare active zone/delegation + DNS owner list, approved staging VPS/hostname/public IP and authorized R2 escrow/key custody. None were supplied for this step. Existing operator-recorded domains are production observations, not disposable test fixtures. Therefore **stop before all live writes**, classify NEXT-03 **BLOCKED**, and do not describe missing independent evidence as an implementation failure.
+
+**Focused scope/security audit:** Documentation-only intended change paths are the exact five approved `notes/{003,004,005,006,017}` Markdown files. No source, tests, workflow, auth, Prisma, mailserver, UI, mail data, provider API, secrets or private keys modified; no host/DNS/R2/TLS operation. No fresh CI execution or independent gate PASS inferred. Next resume requires named fixtures and distinct external authorization; a reproduced source bug requires an explicit one-defect code patch exception. Original 32 finding headings, canonical 17 RG definitions and historical code/CI references are preserved. Source/backup post-commit exact SHA parity must be verified separately; never claim it from this input-snapshot evidence.
