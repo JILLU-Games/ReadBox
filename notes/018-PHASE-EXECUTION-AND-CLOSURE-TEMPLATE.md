@@ -1,5 +1,8 @@
 # 018 — Scope-Locked Phase Execution, Error Handling and Closure Template
 
+> **MANUAL MODE HANDOFF (2026-11-19):** For the latest small feature, use the one-phase narrow implementation contract in [manual-mode/002](manual-mode/002-PHASE-ROADMAP-AND-SCOPE-LOCK.md) and [manual-mode/003](manual-mode/003-PHASE-PROGRESS-AND-CHANGE-LOG.md). This older broader execution template is retained for historical production release work, not permission to perform NEXT-03 VPS/domain acceptance in the Manual Mode phase.
+
+
 **Current planning input:** 6f3bc1e3aeb441956e1fd0f4d81558a6aba2945f, tree `f82b07b6e0770850edd3431f041d5162848d442a`; tested executable revision 4d0b124af57c8d407bf609540b8b8b7a69a479b5; R06 CI [#44509947742](https://github.com/vibtoolshq/ReadBox/actions/runs/44509947742). Baseline snapshot is immutable even when notes-only HEAD advances.
 
 ## Step-by-step production-update protocol
