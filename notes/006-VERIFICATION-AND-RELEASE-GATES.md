@@ -337,3 +337,21 @@ declared ready until its own MX/mail-host routing verification succeeds.
 | Release disposition | **NO-GO** unchanged; all original 7 OPEN, none of RG-01..17 newly independently accepted |
 
 Do not bypass ESLint or edit unapproved files. Separate explicit approval needed for precisely the two offending files, minimal behavior-preserving fix and one focused recheck. Only after successful CI and exact patch/security audit may non-force Primary main and two dedicated backup branches be synchronized. No VPS, DNS/R2, live SMTP, tag/release or production restore.
+
+---
+
+## NEXT-02 / BLOCKER-LINT-01 recheck and new R06 CI guard blocker (2026-11-19)
+
+| Gate | Actual verified |
+|---|---|
+| Isolated user-approved two-file lint fix | `7ed2997d110ed30a6ec5dd901eff67bce1904c5f` |
+| Focused Primary PR R06 | [#44507511633](https://github.com/vibtoolshq/ReadBox/actions/runs/44507511633) **completed FAILURE** |
+| Full consolidated software regression | **PASS**: lint, typecheck, unit, UI, R06 negative/security and Nginx static tests, production build |
+| Dependency security audit | **PASS**, 0 production vulnerabilities |
+| Ephemeral PostgreSQL step | **REFUSED BEFORE DB EXECUTION**: `scripts/testing/r06-ephemeral-postgres.sh:5-8` hardcodes JILLU-only `GITHUB_REPOSITORY`; exit 2 |
+| SMTP rehearsal preflight | `scripts/testing/r06-smtp-rehearsal.sh:6-9` independently contains same JILLU-only guard; actual step SKIPPED |
+| Disposable DB tests, SMTP/LMTP, encrypted restore/rollback, final R06 NO_GO artifact | **NOT VERIFIED**; all skipped downstream |
+| Release status | **NO-GO**, 7 original findings OPEN, 17 independent live gates NOT accepted |
+| Source/backup promotion | **WITHHELD**; Primary main and both dedicated backup refs remain `1393c48fdc821756213e9c0ca87dd166ee3f6b75` |
+
+**Release/security boundary:** `GITHUB_ACTIONS=true` and actual authoritative `GITHUB_REPOSITORY=vibtoolshq/ReadBox` must be checked by the scripts themselves. Do not override environment repository identity, loosen target protections, run scripts on live VPS, or count unexecuted CI as PASS. Separate approval of only the two script guard predicates is required before further implementation/recheck. Candidate remains in draft PR; no force-push/tag/release/restore.

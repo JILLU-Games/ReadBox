@@ -276,3 +276,19 @@ After NEXT-01..NEXT-04 only, append a dated subsection with: exact Primary code 
 | Formal production readiness | **NO-GO**; 7 original findings OPEN, 17 individual live gates not accepted |
 
 Candidate code SHA: `3adff246beec44c685d8885875a9d94f41dece4a` ([failed CI #44505932658](https://github.com/vibtoolshq/ReadBox/actions/runs/44505932658)). No source promotion or backup branch update. NEW notes-only candidate closure does not make those unexecuted tests PASS.
+
+---
+
+## NEXT-02 source/CI actual-working truth — 2026-11-19
+
+| Capability | Evidence | Outcome |
+|---|---|---|
+| React domain-zone loading and Admin Update regex corrections | `7ed2997d110ed30a6ec5dd901eff67bce1904c5f`, isolated source | Applied only in candidate; zone fetch/error and updater semantics unchanged; independently deployed behavior NOT tested |
+| Full Primary R06 app regression and TypeScript check | [CI #44507511633](https://github.com/vibtoolshq/ReadBox/actions/runs/44507511633) | **PASS**: lint, typecheck, unit/UI, R06 negative contracts, Nginx static contracts, Next.js build |
+| Production dependency advisories | Same CI, `npm audit --omit=dev` | **PASS**, reported 0 vulnerabilities at tested source SHA |
+| Ephemeral PostgreSQL | Same CI | **NOT STARTED**; repository guard blocked before Docker/DB tests |
+| Loopback SMTP->LMTP, encrypted restore, final NO_GO gate | Same CI | **NOT RUN** (skipped after PostgreSQL gate fail) |
+| Candidate code and notes | Isolated draft PR #1 | NOT merged; Primary `main` and both backup SHA refs remain `1393c48...` |
+| External staging and production | No authorized operations | Unchanged; seven original findings still OPEN, release NO-GO |
+
+**Next:** exact 2-file guard-only exception to make actual Primary GitHub Actions eligible, with fail-closed protections preserved. No DNS domain or VPS required for this CI fix.
