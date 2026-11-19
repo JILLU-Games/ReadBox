@@ -2,7 +2,7 @@
 # R-06 verified local PostgreSQL integration target (DISPOSABLE CI ONLY).
 # Original application schema/Prisma migrations and test guard remain unchanged.
 set -Eeuo pipefail
-if [[ "${GITHUB_ACTIONS:-}" != "true" || "${GITHUB_REPOSITORY:-}" != "JILLU-Games/ReadBox" ]]; then
+if [[ "${GITHUB_ACTIONS:-}" != "true" || "${GITHUB_REPOSITORY:-}" != "vibtoolshq/ReadBox" ]]; then
   echo "R06: refusing non-CI PostgreSQL integration target" >&2
   exit 2
 fi

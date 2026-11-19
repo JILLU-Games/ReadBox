@@ -3,7 +3,7 @@
 # It injects a bounded Postfix greeting readiness probe into a disposable
 # temporary script; the tracked R-03 mailserver implementation is untouched.
 set -Eeuo pipefail
-if [[ "${GITHUB_ACTIONS:-}" != "true" || "${GITHUB_REPOSITORY:-}" != "JILLU-Games/ReadBox" ]]; then
+if [[ "${GITHUB_ACTIONS:-}" != "true" || "${GITHUB_REPOSITORY:-}" != "vibtoolshq/ReadBox" ]]; then
   echo "R06: SMTP smoke is limited to the isolated source CI runner." >&2
   exit 2
 fi

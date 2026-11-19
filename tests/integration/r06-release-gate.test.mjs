@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
@@ -155,5 +156,31 @@ test("NEXT-02 literal backslash-n cannot swallow R06 lint and typecheck", () => 
     const index = step.indexOf("\n          " + command);
     assert.ok(index > previous, "command must be a standalone ordered line");
     previous = index;
+  }
+});
+
+
+test("NEXT-02 R06 disposable scripts require Primary CI and refuse legacy/wrong repository", () => {
+  for (const path of [
+    "scripts/testing/r06-ephemeral-postgres.sh",
+    "scripts/testing/r06-smtp-rehearsal.sh",
+  ]) {
+    const shell = readFileSync(path, "utf8");
+    assert.match(shell, /GITHUB_ACTIONS:-\}" != "true"/);
+    assert.match(shell, /GITHUB_REPOSITORY:-\}" != "vibtoolshq\/ReadBox"/);
+    assert.doesNotMatch(shell, /GITHUB_REPOSITORY:-\}" != "JILLU-Games\/ReadBox"/);
+    for (const environment of [
+      { GITHUB_ACTIONS: "false", GITHUB_REPOSITORY: "vibtoolshq/ReadBox" },
+      { GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: "JILLU-Games/ReadBox" },
+      { GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: "other-owner/ReadBox" },
+    ]) {
+      const run = spawnSync("bash", [path], {
+        encoding: "utf8",
+        timeout: 5000,
+        env: { PATH: process.env.PATH, ...environment },
+      });
+      assert.equal(run.status, 2, path + " must refuse mismatched CI identity");
+      assert.match(run.stderr, /refusing non-CI|limited to the isolated source CI runner/);
+    }
   }
 });
