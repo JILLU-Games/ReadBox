@@ -349,3 +349,17 @@ Candidate code SHA: `3adff246beec44c685d8885875a9d94f41dece4a` ([failed CI #4450
 - **NEXT-03 status:** **BLOCKED AFTER READ-ONLY PREFLIGHT**. No named disposable domain, Cloudflare zone/record list, staging host, authorized public IP or root-only R2 custodian; therefore no live DNS/DKIM/R2/TLS/provider action and no runtime acceptance results. Source edits **0**, UI/auth/Prisma/production files unchanged.
 - **Global truth unchanged:** R-01 through R-06 source/CI 6/6 implemented, Manual Mode MM-01 source and exact two-backup notes sync previously closed, NEXT-01/02 2/4 work packages completed, NEXT-03 and NEXT-04 not completed. Seven original production findings OPEN; 17 formal release gates pending; **PRODUCTION NO-GO**.
 - **Next safe work:** same NEXT-03 bounded controlled acceptance only after a separately named disposable environment and live-operation permissions. No speculative bugfix phase.
+---
+
+## 2026-11-20 — Current real deployed working features (operator evidence)
+
+| Feature | Live observed status | Limit |
+|---|---|---|
+| Controlled ReadBox update | Source SHA `9c3d99d4...`; clean VPS worktree; 6/6 Docker healthy; encrypted pre-update backup emitted | PuTTY operator output |
+| Manual external-account domain add | `vibmail.my` and `pypal.pl` Active / routing verified | UI screenshots, not an independently audited provider write log |
+| Manual DKIM key generation | `vibmail.my`: copyable public TXT; `DKIM key: ready` | Public TXT authoritative verification and external R2 DKIM receipt not independently evidenced |
+| Inbox creation and external Gmail receipt | One displayed inbound email each for `vibmail.my`, `pypal.pl` | Basic inbound only; attachments/MIME/digests not re-tested |
+| Offsite backup and recovery | Agent automatic R2 schedule ON; three historical remote-verified receipts; encrypted escrow privately recoverable and matching VPS identity | No fresh remote GET or isolated restore of current snapshot |
+| Universal production release | Original 7 OPEN items and 17 formal release gates remain independently unsigned | **NO-GO** |
+
+**MM-01 implementation/deployment/live basic inbound: CLOSED for this feature's operator-approved use.** Other NEXT-03/NEXT-04 and R-06 acceptance remains open. Inbound-only product does not perform outbound DKIM signing. No application changes made in this documentation step.

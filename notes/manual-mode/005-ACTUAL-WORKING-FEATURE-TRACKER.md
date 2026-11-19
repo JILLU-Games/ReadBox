@@ -34,4 +34,16 @@
 - **Diff/security audit:** compare previous head..source commit gave exactly 5/5 allowlisted paths. Independent source blob readback shows `src/core/dns/domain-automation.ts`, `src/app/(workspace)/vcon/domains/actions.ts`, DKIM API route, DNS download panel and R2 agent-client **unchanged**. Private DKIM keys remain escrow-gated. No Prisma migration or new provider API.
 - **Mirror closure BLOCKED:** dedicated `backup/dns-final-primary-20261119` refs in `JILLU-Games/ReadBox` and `MdNurnobi-Dev/ReadBox` were read at `6f3bc1e3aeb441956e1fd0f4d81558a6aba2945f`, **not** `55ea7dbc97ff78e8c537bfecf3975923639a854b`. Primary connector can write only Primary; alternate account can write JILLU-Games but **neither connected account has push permission to MdNurnobi-Dev**. These independent repositories also lack the newer Primary commit objects. Therefore **zero of two backup refs have verified exact latest SHA parity**. No attempt to force-push, rewrite backup history, claim parity, or create misleading unequal-SHA mirror commits. Finish exact **non-force fast-forward git object transfer** with authorized backup credentials and reread both refs; until then status is **SOURCE VERIFIED / EXACT MIRROR SYNC BLOCKED**, not fully closed.
 - **Live environment:** no VPS, no real-domain DNS write, no live R2 operation, no deployment, no tag/release. The three preexisting domain successes are still **operator/chat-recorded**, not re-run or independently revalidated by this Phase-01. Original production 7 OPEN findings / 17 independent gates are unchanged; release remains **NO-GO**.
+---
 
+## 2026-11-20 — Post-deployment live feature observation
+
+| Manual Mode behavior | Actual result | Proof boundary |
+|---|---|---|
+| Save new domain without a Cloudflare zone binding | `vibmail.my` and `pypal.pl` saved, later active and routing verified | Operator UI; no external provider write log |
+| Existing manual DKIM provision path | `vibmail.my` key public TXT became copyable, `DKIM key: ready` | Authoritative TXT and specific DKIM R2 receipt not independently audited |
+| Manual DNS setup / routing check | Both domain-level MX + mail-host routing verified | Does not establish all five deliverability records |
+| Create mailbox / external inbound | One Gmail-sent email shown inside authenticated mailbox for each domain | Basic message; no attachment digest verification |
+| Current VPS deployed executable SHA | `9c3d99d4...`, clean, six containers healthy, encrypted pre-update backup present | Operator PuTTY |
+
+**MM-01 source + operator-observed live inbound accepted and functionally CLOSED.** Global stable product release remains separately gated.

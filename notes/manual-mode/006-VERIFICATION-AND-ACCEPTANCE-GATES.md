@@ -43,4 +43,16 @@ The command spelling is grounded in the inspected package.json scripts; CI/local
 - **Diff/security audit:** compare previous head..source commit gave exactly 5/5 allowlisted paths. Independent source blob readback shows `src/core/dns/domain-automation.ts`, `src/app/(workspace)/vcon/domains/actions.ts`, DKIM API route, DNS download panel and R2 agent-client **unchanged**. Private DKIM keys remain escrow-gated. No Prisma migration or new provider API.
 - **Mirror closure BLOCKED:** dedicated `backup/dns-final-primary-20261119` refs in `JILLU-Games/ReadBox` and `MdNurnobi-Dev/ReadBox` were read at `6f3bc1e3aeb441956e1fd0f4d81558a6aba2945f`, **not** `55ea7dbc97ff78e8c537bfecf3975923639a854b`. Primary connector can write only Primary; alternate account can write JILLU-Games but **neither connected account has push permission to MdNurnobi-Dev**. These independent repositories also lack the newer Primary commit objects. Therefore **zero of two backup refs have verified exact latest SHA parity**. No attempt to force-push, rewrite backup history, claim parity, or create misleading unequal-SHA mirror commits. Finish exact **non-force fast-forward git object transfer** with authorized backup credentials and reread both refs; until then status is **SOURCE VERIFIED / EXACT MIRROR SYNC BLOCKED**, not fully closed.
 - **Live environment:** no VPS, no real-domain DNS write, no live R2 operation, no deployment, no tag/release. The three preexisting domain successes are still **operator/chat-recorded**, not re-run or independently revalidated by this Phase-01. Original production 7 OPEN findings / 17 independent gates are unchanged; release remains **NO-GO**.
+---
 
+## 2026-11-20 — Additional operator-live acceptance after source CI
+
+| Gate / outcome | Operator observation | Acceptance |
+|---|---|---|
+| MM-G02/G03 manual save without bound zone | `vibmail.my` and `pypal.pl` added using manual DNS and became Active | **PASS — screenshot** |
+| MM-G05 public DKIM material | `vibmail.my` `DKIM key: ready`, copyable public TXT after zone publishing OFF | **PASS — key generation**, independent R2 custody/public DNS unverified |
+| MM-G06/G07 foreign-zone export guard | Original source/export tests passed; both domains routing verified after manual DNS | **PASS — source; uploaded zone file not independently inspected** |
+| MM-G08 publish-without-zone refusal | UI displayed controlled warning when Publish checked and no matching zone | **PASS — observed guard only** |
+| MM-G10 deployment + functional inbound | Exact deployed `9c3d99d4...`, clean, all 6 Docker healthy; Gmail email visible in both new inboxes | **PASS — operator live basic inbound** |
+
+**MM-01 release decision:** source implemented/CI supported; deployed manual external-account **inbound** flow operator-verified and **closed/approved for observed production use**. Public authoritative DKIM TXT, independent fresh R2 GET/restore, automated Cloudflare publication, end-to-end attachments and formal RG-01..17 are **not accepted** by this limited evidence. Full product release remains NO-GO; no new CI/tag/release was performed for these append-only docs.

@@ -142,3 +142,16 @@ session/auth policies.
 
 This merge-gate is source-only. R06 staging/production acceptance remains
 separately gated and cannot be inferred from mocked/CI tests.
+---
+
+## 2026-11-20 — Live operator runbook: Manual Mode (external Cloudflare account)
+
+**Observed scope:** Manual Mode is installed on ReadBox VPS at executable source `9c3d99d4ec26707c2aec3a5c9ee959dea39dcbb5`. In the operator-provided live UI, `vibmail.my` and `pypal.pl` reached **Active / MX+A routing verified** and both newly created mailboxes received a Gmail test message. This is accepted for this inbound manual-mode use case, **not** an unconditional all-product R-06 production release.
+
+1. **Admin > Mail & Domains > Domains > Add domain:** enter the bare domain, turn **Manual Mode — Use another Cloudflare account** ON. Do not select the ReadBox configured Cloudflare zone or enable Automatic setup. Click **Preview DNS**, inspect expected owner, target and TXT values, check **I have reviewed the DNS records**, then **Add domain**. The newly created domain stays Disabled until verified.
+2. **Manage & DNS:** when an external Cloudflare account owns the domain, **UNCHECK** `Publish DKIM TXT to configured Cloudflare zone (otherwise manual copy)`; then click `Provision / Repair DKIM`. If the option is checked and no zone matches, the server correctly warns `Select a Cloudflare zone before publishing DNS.` Do not treat it as a missing backend feature or rotate the key.
+3. Wait for DKIM public material to become available after encrypted escrow-gated provision. Only **then** use `Download Cloudflare zone` to get the **updated** records. Manually review/import or add these records inside the external account without overwriting unrelated data. An MX target may point to the central mail hostname `mail.anyinbox.cc`; its A/AAAA owner belongs in that hostname's **own DNS zone**, not in the imported domain's zone. The safe export omits foreign A/AAAA owners while retaining MX and DNS TXT records.
+4. After manual DNS propagation, use **Inspect all DNS records** for routing and deliverability status separately, then **Run routing check**. Only enable the domain when MX + mail-host A/AAAA route is verified. Create one mailbox and send one authorized test message from an external sender; inspect the authenticated inbox for receipt.
+5. **Do not over-claim:** green domain `DNS: verified` is routing verification, not proof of authoritative SPF/DKIM/DMARC TXT matching. `DKIM key: ready` only proves the public material is available; this inbound-only product reports `Signing: inactive`. Record any independent R2 object readback, DKIM TXT authority, public TLS/PTR and disaster recovery separately before full release approval. Never upload credentials, private keys or raw mailbox data to source control.
+
+**Evidence and remaining release gates:** [live deployment notes](../notes/016-LIVE-INBOUND-DEPLOYMENT-ACCEPTANCE.md), [Manual Mode acceptance](../notes/manual-mode/006-VERIFICATION-AND-ACCEPTANCE-GATES.md), [production release gates](../notes/006-VERIFICATION-AND-RELEASE-GATES.md). Historical sections above remain past snapshots.

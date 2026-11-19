@@ -325,3 +325,8 @@ Frozen code/ref snapshot: `b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9` (tree `120c
 | Default SMTP bind remains loopback `127.0.0.1`; not proof of external ingress | [docker-compose.yml:L264-L265](https://github.com/vibtoolshq/ReadBox/blob/b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9/docker-compose.yml#L264-L265) | External trusted TLS, TCP/25/provider/PTR **NOT RUN** |
 
 **Reason for BLOCKED:** The approval explicitly forbids choosing an existing production domain and the NEXT-03 disposable domain/zone, staging VPS and R2 custodian are not named. No attempted negative external call failed: this is an authorization/preflight stop, not an application bug. Do not close RB-P1-09, RB-P1-10 or RB-P2-07 on source-presence evidence.
+---
+
+## 2026-11-20 — Manual DKIM zone validation: expected safeguard
+
+Observed `vibmail.my` edit page showed `Select a Cloudflare zone before publishing DNS.` because **Publish DKIM TXT to configured Cloudflare zone** was selected while no matching zone was available. This is intended fail-closed UI validation, **not** a reproduced backend bug. For another account, operator unchecked Publish and used `Provision / Repair DKIM`; subsequent screenshot showed a ready key and copyable public TXT. Domain-level `DNS: verified` is routing verification only; authoritative DKIM TXT and negative external provider cases remain unverified. No source/error-handler edits were authorized.

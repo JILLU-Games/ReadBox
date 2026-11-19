@@ -405,3 +405,18 @@ Do not bypass ESLint or edit unapproved files. Separate explicit approval needed
 - **NEXT-03 requested live gate results:** Cloudflare zone/delegation/token scope **NOT RUN**; existing DNS conflict refusal **NOT RUN**; safe publish+provider readback **NOT RUN**; same-key idempotent retry **NOT RUN**; encrypted R2 escrow receipt and offsite custody **NOT RUN**; public MX/A/SPF/DKIM/DMARC propagation **NOT RUN**; trusted TLS/certificate renewal **NOT RUN**; externally reachable port 25/provider firewall/PTR **NOT RUN**. Overall phase **BLOCKED** because its disposable domain, Cloudflare zone, test VPS and escrow custodian were not specified.
 - **Independent formal release gates:** `RG-08` and `RG-09` remain **NOT independently accepted**; offsite custody component of `RG-14` remains **NOT independently accepted**. Original `RG-01..RG-17` table is preserved; **no new PASS** claimed on this halted preflight. Seven original findings stay OPEN: `RB-P0-06`, `RB-P1-09`, `RB-P1-10`, `RB-P1-16`, `RB-P2-01`, `RB-P2-07`, `RB-P2-08`. **NO-GO**.
 - **No publication:** No live domain, VPS, TLS secret, SMTP, DB, backup or R2 operation, tag or release. Changes to this document are evidence notes only. New Primary notes SHA and two-backup non-force exact-SHA parity require an actual post-publication readback; until then SYNC PENDING is truthful. User must separately identify/authorize NEXT-03 test fixtures to unblock live work.
+---
+
+## 2026-11-20 — Manual Mode operator-live acceptance evidence (not general R-06 GO)
+
+| Scope/gate | Actual operator evidence | Decision |
+|---|---|---|
+| Source and host update | Exact `9c3d99d4...` deployed via guarded updater; encrypted pre-update snapshot logged; 6/6 containers healthy; worktree clean | **PASS — PuTTY** |
+| Manual domain and basic DNS | `vibmail.my`, `pypal.pl` Active and green routing verified in Admin UI | **PASS — UI** |
+| Manual DKIM creation | `vibmail.my` moved from key missing to ready and copyable public TXT after Publish disabled | **PASS for key-public-material stage only** |
+| Mailbox + real Gmail receipt | Authenticated inbox displays one test Gmail message for each new domain | **PASS — operator UI, basic inbound** |
+| R2 custody | Agent journal: 3 older `remoteVerifiedAt` receipts; Windows passphrase escrow decodes to same VPS age recipient | **PARTIAL — no fresh R2 object GET/isolated restore** |
+| DKIM TXT authority, SPF/DMARC five-record verification, external TLS/PTR/IPv6 and automatic Cloudflare zone writing | No independent current end-to-end proof supplied | **UNVERIFIED** |
+| Attachments/MIME/digest, controlled outage/rollback, offsite full restore, provenance and RG-01..RG-17 signoff | Not run in this manual feature test | **OPEN / product release NO-GO** |
+
+**Scope-locked conclusion:** Manual Mode **inbound deployment and live function = operator-PASS / approved for this observed use case**. The prior R-01..R-06 six source phases remain completed; historical formal RG rows and original finding IDs remain intact, **not** blanket closed by these screenshots. No new CI result is asserted for documentation-only update.
