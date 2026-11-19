@@ -304,3 +304,15 @@ Copy this after a **separately authorized** R-XX implementation; never fill it b
 | Original release findings | 25/32 CI-contract verified | 7 OPEN | Production NO-GO |
 
 **THIS DOCUMENTATION UPDATE:** only `notes/**`; no application code/CI workflow change; historical evidence preserved; no app tests or live probes executed here. Exact documentation commit SHA, changed-path readback and backup parity after publication must be appended/verified separately, not invented in advance. Future completion records must use [018](018-PHASE-EXECUTION-AND-CLOSURE-TEMPLATE.md); next separately approved step is **Phase-01 / NEXT-03**.
+
+---
+
+## DOC-FREEZE-20261119 — Published documentation closure evidence
+
+- **Immutable inspected Primary code baseline:** `6f3bc1e3aeb441956e1fd0f4d81558a6aba2945f`; tree `f82b07b6e0770850edd3431f041d5162848d442a`.
+- **Source application CI baseline:** `4d0b124af57c8d407bf609540b8b8b7a69a479b5`, Primary R06 [#44509947742](https://github.com/vibtoolshq/ReadBox/actions/runs/44509947742), **SUCCESS**. Exact comparison to inspected baseline showed **one notes-only commit**.
+- **Documentation commit:** [`c03d13520797f583a57a4b83b48df1cbeaccc879`](https://github.com/vibtoolshq/ReadBox/commit/c03d13520797f583a57a4b83b48df1cbeaccc879), normal non-force Primary `main` fast-forward.
+- **Exact committed paths 10/10:** `notes/000`–`notes/006` (seven named Markdown files), `notes/README.md`, new `notes/017-CURRENT-FORENSIC-PATCH-REFERENCES-2026-11-19.md`, new `notes/018-PHASE-EXECUTION-AND-CLOSURE-TEMPLATE.md`; **zero executable/config/test/source paths changed**.
+- **One focused post-commit read-only audit:** `git compare` API shows only 10 `notes/**` paths, one fast-forward commit. `notes/001` still has exactly **32** original `### RB-P*-*` headings, `notes/006` exactly **17 distinct** formal gate table rows, and new documentation code fences are balanced. Source application tests were **not** rerun solely for docs; no live DNS/R2, TLS, SMTP, VPS or restore test was run in this documentation phase.
+- **Backup snapshot at frozen input:** both `JILLU-Games/ReadBox` and `MdNurnobi-Dev/ReadBox` dedicated `backup/dns-final-primary-20261119` branches match `6f3bc1e3aeb441956e1fd0f4d81558a6aba2945f`; the new documentation commit is **not yet mirrored**. No backup repository main or tag was touched.
+- **Final planning state:** historical R 6/6 CI-implemented; NEXT 2/4 accepted, **2/4 remaining**; Phase-01 = NEXT-03 is PLANNED, Phase-02 = NEXT-04 is PLANNED; 7 original findings OPEN; release **NO-GO**. First actual implementation requires new exact environment and user approval, per [017](017-CURRENT-FORENSIC-PATCH-REFERENCES-2026-11-19.md) and [018](018-PHASE-EXECUTION-AND-CLOSURE-TEMPLATE.md).
