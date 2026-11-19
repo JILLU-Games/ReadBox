@@ -12,7 +12,7 @@ server {
     ssl_reject_handshake on;
 }
 
-upstream vibmail_web {
+upstream readbox_web {
     server 127.0.0.1:3000 fail_timeout=0;
 }
 
@@ -41,7 +41,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/{{CERT_NAME}}/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_session_timeout 1d;
-    ssl_session_cache shared:VIBMAILTLS:10m;
+    ssl_session_cache shared:READBOXTLS:10m;
     ssl_session_tickets off;
 
     client_max_body_size 10m;
@@ -51,8 +51,8 @@ server {
     add_header Referrer-Policy same-origin always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
 
-    access_log /var/log/vibmail/nginx-access.log;
-    error_log /var/log/vibmail/nginx-error.log warn;
+    access_log /var/log/readbox/nginx-access.log;
+    error_log /var/log/readbox/nginx-error.log warn;
 
     location ~ /\.(?!well-known/) { return 404; }
 
@@ -70,7 +70,7 @@ server {
         deny all;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_pass http://vibmail_web;
+        proxy_pass http://readbox_web;
     }
 
     location = /health/ready/ {
@@ -79,7 +79,7 @@ server {
         deny all;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_pass http://vibmail_web;
+        proxy_pass http://readbox_web;
     }
 
     location / {
@@ -89,6 +89,6 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_redirect off;
         proxy_read_timeout 60s;
-        proxy_pass http://vibmail_web;
+        proxy_pass http://readbox_web;
     }
 }

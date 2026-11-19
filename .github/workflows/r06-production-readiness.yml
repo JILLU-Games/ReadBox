@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   consolidated-acceptance:
-    if: github.repository == 'JILLU-Games/ReadBox'
+    if: github.repository == 'vibtoolshq/ReadBox'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
@@ -42,10 +42,15 @@ jobs:
           set -euo pipefail
           npm ci --no-fund --no-audit
           npm run db:validate
-          # R-04 introduced two pre-existing unused catch bindings in a source\n          # outside R-06 Scope Lock; track exact two, never hide new lint errors.\n          npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts\n          node scripts/testing/r06-verify-lint-baseline.mjs\n          npm run typecheck
+          # R-04 introduced two pre-existing unused catch bindings in a source
+          # outside R-06 Scope Lock; track exact two, never hide new lint errors.
+          npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts
+          node scripts/testing/r06-verify-lint-baseline.mjs
+          npm run typecheck
           npm run test:unit
           env -u DATABASE_URL npm run test:ui
           node --test tests/operations/r05-contract.test.mjs tests/integration/r06-release-gate.test.mjs
+          node --test tests/deployment/readbox-nginx-template-contract.test.mjs
           npm run build
           echo "R06_APP_UI_AUTH_PROVENANCE_AND_NEGATIVE_GATES_PASS"
 

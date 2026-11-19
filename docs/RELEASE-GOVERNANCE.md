@@ -35,3 +35,13 @@ The [17-gate runbook](PRODUCTION-ACCEPTANCE-RUNBOOK.md) maps RG-01–RG-17 to in
 Separate user authorization is required first for live VPS/staging and DNS/SMTP operations. Independently observe the staging tests and offsite restore, resolve original findings, approve immutable image digest, map exact source/mirror SHA/tree, obtain license/security review and a formal human production GO decision. A **second, separate explicit command** is required to create a tag, GitHub Release, public image or actual deploy. Until then: **NO-GO**.
 
 ReadBox is inbound-only (no public SMTP submission, IMAP or POP3); R-06 cannot add those features, alter UI/UX, authentication, existing mailserver transport or migrations.
+
+
+## NEXT-02 — authoritative Primary read-only R06 and host Nginx contract (2026-11-19)
+
+- Current source of truth is `vibtoolshq/ReadBox` (not historical JILLU-Games).
+- Historical R06 workflow had a JILLU-only job guard, so Primary runs were **SKIPPED**, not PASS. NEXT-02 binds the read-only R06 job to the Primary repository only. The first consolidated Primary run must be observed on the exact source/test SHA and must report `NO_GO` at the formal production gate.
+- The workflow's combined shell comment had four literal backslash-n sequences that swallowed lint, lint-baseline and typecheck commands. NEXT-02 separates these as executable shell lines and adds one static/parsed Nginx contract test.
+- Host-only template `deployment/templates/nginx/app.conf.tpl` replaces legacy upstream/cache/log identifiers consistently with ReadBox names. No proxy route, TLS version, access control or attachment path change is authorized. Before separately approved host deployment, an operator must ensure `/var/log/readbox` exists with suitable Nginx permissions. This source patch does **not** create that directory or reload Nginx on a VPS.
+- Original application, one PostgreSQL, Prisma migrations, Postfix/Dovecot, DKIM/R2, live secrets, release workflow and release tags remain unchanged. Seven original release findings remain OPEN; `RB-P2-01` host correction is **source/CI-level only** until actual host evidence.
+- This is source/CI implementation only. Even successful disposable Primary R06 **does not** authorize production deployment, automatic release, real DNS/R2 writes or make `RG-01..17` PASS.

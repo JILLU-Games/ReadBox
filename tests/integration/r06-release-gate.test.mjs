@@ -122,3 +122,38 @@ test("R06 root MIT and historical MailStack AGPL files must both remain intact",
     dockerignore: "reference\n",
   }), false);
 });
+
+
+test("NEXT-02 R06 runs read-only on authoritative Primary, never legacy JILLU", () => {
+  const source = readFileSync(".github/workflows/r06-production-readiness.yml", "utf8");
+  assert.match(source, /^    if: github\.repository == 'vibtoolshq\/ReadBox'$/m);
+  assert.doesNotMatch(source, /github\.repository == 'JILLU-Games\/ReadBox'/);
+  assert.match(source, /^permissions:\r?\n  contents: read$/m);
+  assert.doesNotMatch(source, /^\s+contents:\s*write\s*$/m);
+  assert.doesNotMatch(source, /^\s+(?:deploy|publish|release):\s*$/m);
+  assert.match(source, /R06_ALL_CI_CONTRACTS_PASS_PRODUCTION_NO_GO/);
+  assert.match(source, /grep -Fq '"status": "NO_GO"'/);
+  assert.match(source, /grep -Fq '"open": 7'/);
+});
+
+test("NEXT-02 literal backslash-n cannot swallow R06 lint and typecheck", () => {
+  const source = readFileSync(".github/workflows/r06-production-readiness.yml", "utf8");
+  const step = source.split("- name: Consolidated source, R06 negative gates and regression")[1]
+    ?.split("- name: Current production dependency advisories")[0];
+  assert.ok(step, "R06 consolidated run step must exist");
+  assert.doesNotMatch(step, /\\n/, "literal backslash-n embedded in shell script");
+  const commands = [
+    "npm run lint -- --ignore-pattern src/core/setup/trusted-operations.ts",
+    "node scripts/testing/r06-verify-lint-baseline.mjs",
+    "npm run typecheck",
+    "node --test tests/deployment/readbox-nginx-template-contract.test.mjs",
+  ];
+  let previous = -1;
+  const lines = step.split("\n").map((line) => line.trim());
+  for (const command of commands) {
+    assert.ok(lines.includes(command), "missing executable line: " + command);
+    const index = step.indexOf("\n          " + command);
+    assert.ok(index > previous, "command must be a standalone ordered line");
+    previous = index;
+  }
+});
