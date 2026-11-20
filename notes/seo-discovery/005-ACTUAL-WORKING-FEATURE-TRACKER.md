@@ -26,3 +26,11 @@ For each implemented feature write source SHA, CI URL/negative cases, actual liv
 - SOURCE CANDIDATE branch `implementation/readbox-seo01-20261120` contains separate `SiteSeoSettings` model/table, safe admin update action, `SeoSettingsConsole` sibling, optional override for Home/Contact/Privacy metadata and optional restricted same-origin image path. UI and unit focused tests passed at `b01d40a6`.
 - STATUS: **IMPLEMENTED IN CANDIDATE / CI INCOMPLETE / NOT IN MAIN / NOT LIVE**. No production migration has run and no admin user has saved a live SEO value. Existing branding remains untouched.
 - The follow-up lint-only correction is not CI-verified. Health-readiness fixture and build/typecheck gates pending; Phase-01 0/2 closed; Phase-02 remains NOT STARTED.
+
+## 2026-11-20 — Actual candidate feature status after CI success
+
+**SOURCE + CI VERIFIED at `610ff3670911cd61b403513c4a74400f64fae361`, NOT DEPLOYED:** the independent SEO field model/database migration, approved admin-only SEO sibling panel, validated write/read service, page SEO overrides for Home/Contact/Privacy, and optional restricted same-origin existing social image path. Existing Settings UI and legacy public metadata fallbacks are covered by unit/UI/build gates.
+- 6/6 SEO unit and metadata PASS; 7/7 SEO+legacy UI PASS; 7/7 readiness PASS; lint/typecheck/build PASS. Existing unapproved public copy, auth, mail and DNS code untouched.
+- No production schema migration applied. A fresh deployment of candidate without running migrations will show legacy metadata/fail-close SEO writes until migration is separately approved and applied.
+- **Actual live feature status = NOT TESTED**. No real Admin save in anyinbox.cc, search-engine/AI indexing acceptance, OG asset fetch, or VPS operation occurred.
+- SEO-02 features and AI discovery page/crawl policy **remain pending**.

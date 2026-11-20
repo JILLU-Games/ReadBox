@@ -128,3 +128,19 @@ Before Phase-01 code edits, re-fetch current code; these frozen line addresses a
 - `src/app/(workspace)/vcon/settings/seo-actions.ts`: `requireAdminUser` before write; origin check moved to `src/core/seo/validation.ts` to comply with async-only server-action export rule.
 - Runtime persistence, actual live SQL migration, typecheck and build remain unverified. Original Health readiness migration fixture mismatch must be fixed with **explicit additional single-test allowlist**; do not silently edit `tests/admin/phase6-settings-update-health.test.ts`.
 - Full source/mirror parity withheld while CI FAIL; no force pushes, production actions or tags.
+
+## 2026-11-20 — Approved one-line exception and exact patch/security proof
+
+**Original test file:** `tests/admin/phase6-settings-update-health.test.ts` baseline migrated-ready fixture. User explicitly approved this single file exception.
+
+```diff
+       "20261117010000_postfix_login_identity",
++      "20261120000000_seo01_site_seo_settings",
+     ].map((migration_name) => ({
+```
+
+Commit: `bd516a5fb2da3d5a4a3558af116ee21e40893b65` (1 addition, 0 deletion, no other files). The migration itself was newly added, so existing hardcoded migration readiness mock otherwise reported `not_ready`.
+
+**Scoped workflow proof:** `.github/workflows/seo01-disposable-ci.yml` adds `tests/admin/phase6-settings-update-health.test.ts` to the existing branch trigger and exact changed-path Python allowlist; commit `610ff3670911cd61b403513c4a74400f64fae361` modifies this workflow only. Workflow still least-privilege `contents: read`, `persist-credentials: false`, no deploy/tag/secrets.
+
+**Exact frozen-to-tested diff:** GitHub compare `8e5b01b65c6f451dbbfabef64ca429687592e455...610ff3670911cd61b403513c4a74400f64fae361`: 27 paths; 10 planning/forensic documentation files plus 17 source/test/workflow paths; no `src/core/auth/`, `src/core/dns/`, `src/core/mailboxes/`, mailserver, deployment, original migrations, `.env`, Docker/Compose or privacy body modification. `prisma/schema.prisma` append-only new model; no existing table rewrite. Settings app page adds a separate sibling component; original `src/components/vcon/settings-console.tsx` unchanged. Public page changes limited to metadata imports/optional resolution; H1/body/FAQ untouched. All other source effects out of scope.

@@ -37,3 +37,10 @@ Exercise anonymous/non-admin save, cross-origin request, overlong Unicode, newli
 - Lint `no-control-regex` on safeCopy failed in second CI run, then source expression replaced with Unicode codepoint enumeration in a `[skip ci]` minimal correction. This **is unverified** by CI.
 - Existing readiness health fixture 2026-11-15 migration list omits new `20261120000000_seo01_site_seo_settings`. CI #44710248931 FAIL, requires narrow test-only exception outside approved allowlist. Actual production health behavior not tested.
 - Missing independent spoof-origin UI/action test and full typecheck/build acceptance; DO NOT mark all errors verified. No external/live audit conducted.
+
+## 2026-11-20 — Verified error-handling evidence and limits
+
+- Run [44712027972](https://github.com/vibtoolshq/ReadBox/actions/runs/44712027972) at `610ff3670911cd61b403513c4a74400f64fae361`: SEO unit 6/6 PASS, including invalid public page, unsafe image paths, unsupported schemes, markup/control characters, absent/failed database, transactional audit failure and default metadata fallback.
+- Current candidate returns user-facing field errors from `src/core/seo/validation.ts`, admin guard/origin refusal from `src/app/(workspace)/vcon/settings/seo-actions.ts`, transactional fail-closed write + redacted logging in `src/core/seo/service.ts`. IDs listed earlier in the planning table are **acceptance labels**, not necessarily literal runtime error-code strings.
+- Pre-existing Settings tests remain PASS; newly added readiness migration name now matches the expected schema list. No live DB write/migration was tested. Do not assert every possible CSRF proxy situation, image accessibility or concurrent admin edit is exhaustively covered.
+- Original app error handling in unrelated modules unchanged.

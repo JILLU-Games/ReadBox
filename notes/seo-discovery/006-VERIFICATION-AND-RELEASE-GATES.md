@@ -34,3 +34,20 @@ After each grouped phase: exact modified-path allowlist, `git diff --check`, sec
 | [44710700637](https://github.com/vibtoolshq/ReadBox/actions/runs/44710700637) | `b01d40a6f49fef03bf247b97bf9c18388b199625` | scope PASS, Prisma schema PASS, SEO unit 6/6 PASS, UI SEO+legacy 7/7 PASS, lint `no-control-regex` FAIL | **FAIL** |
 
 **Typecheck, production build, final regex correction and original readiness regression not passed in second run.** The final lint correction is explicitly CI NOT TESTED; do not infer success from the earlier passing unit/UI stages. No production database migration applied. Release/SEO deploy gate **NO-GO**; full ReadBox acceptance still NO-GO.
+
+## 2026-11-20 — Focused closure gate evidence (source only)
+
+| Gate | Verified result |
+|---|---|
+| [SEO01 GitHub run #44712027972](https://github.com/vibtoolshq/ReadBox/actions/runs/44712027972) | `SUCCESS` at `610ff3670911cd61b403513c4a74400f64fae361` |
+| Ancestry, exact changed-path allowlist, `git diff --check` | PASS — 27 allowed source+notes paths; only one approved out-of-allowlist legacy fixture |
+| Locked dependency install + Prisma schema | PASS |
+| SEO unit/metadata | 6/6 PASS |
+| New + old Settings UI | 7/7 PASS |
+| Scoped ESLint, TypeScript, Next production build | PASS |
+| Existing readiness regression | 7/7 PASS after 1-line migration fixture |
+| No-deploy final CI step | PASS |
+| Production DB migration / VPS / actual public SEO indexing | NOT RUN, not authorized |
+| Backup repositories exact-SHA sync | PENDING external Git object propagation and permission; no assumed parity |
+
+**One run on final executable revision**, previous run failures preserved in ledger. Warnings in Next.js build are not ignored, but did not fail build; no new release gate asserted. Full ReadBox production GO stays denied. Post-CI documentation-only commits must not be relabeled as CI-tested executable changes; compare changed paths and preserve evidence SHA.
