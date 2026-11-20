@@ -131,3 +131,67 @@ The update preflight must read the same immutable commit from:
 The backup repositories' `main` branches intentionally remain unchanged. The web API, root worker, and pinned shell updater independently verify all three refs, accept only the identical lowercase 40-hex SHA, and refuse unavailable/invalid/mismatched refs. URL/ref lists are fixed in source; no user-provided ref or URL can be executed. The host origin allowlist, HMAC/UID/nonce policy, global maintenance lock, encrypted pre-update snapshot, non-force fast-forward, and no-destructive-rollback rules remain unchanged.
 
 This correction does **not** install or trigger an update, migrate a database, or evidence live VPS readiness. A separate user-approved host operation and recovery plan remain mandatory; formal ReadBox release remains NO-GO.
+
+## AU-R2-UPDATE-01 — guarded one-command source workflow (2026-11-20)
+
+**Source implementation only.** The new host runner is intentionally NOT a command
+to run against an older \`/opt/readbox\` checkout. First install the audited
+guarded runner, Python R2 helper and compatible existing updater/host worker
+through a separately authorized, integrity-pinned operator staging procedure.
+The runner explicitly refuses an older updater without an R2 receipt guard.
+Do not use \`curl | bash\`, a force push, or an unchecked Git object.
+
+Approved exact SHA contract: \`vibtoolshq/ReadBox:main\` plus both
+\`backup/dns-final-primary-20261119\` dedicated backup refs. Root-only
+entrypoint (after staged, explicit host approval):
+
+\`\`\`sh
+sudo bash /opt/readbox/scripts/install/readbox-guarded-update.sh --target-sha <verified-40-hex-target>
+\`\`\`
+
+The single command performs bounded, ordered gates:
+1. **Read-only preflight:** approved \`/opt/readbox\` root, clean \`main\`,
+   exact 3/3 ref equality, Docker/Compose/recovery image, existing healthy
+   core service inventory, private \`.env\`, active installed backup agent,
+   root-owned age identity and 0700 managed archive directory, configured
+   existing R2 credentials, no active/restore-review backup job and backup space.
+   No Cloudflare write is performed at this step.
+2. **Fresh local V2 archive:** existing HMAC Unix backup broker
+   \`backup.create\` → durable job completion → \`backup.verify\` completed.
+   The local \`/var/backups/readbox-managed/<backup-id>.age\` is a
+   root-owned mode-0600 ciphertext. Validate its SHA256 and record;
+   never export private identity.
+3. **Offsite proof:** existing \`r2.upload\` on that exact backup ID only,
+   bounded wait, adapter's remote HEAD + streamed GET SHA256 and V2 receipt
+   \`remoteState=remote_verified\`, matching owned remote key, verified UTC
+   timestamp and preserved local ciphertext. R2 403, network error, missing
+   or mismatched receipt → STOP before Git or Compose mutation.
+4. **Existing safe update:** release the backup agent's global maintenance lock
+   after its job, then let \`readbox-update.sh\` acquire the existing global
+   lock, produce its independent encrypted pre-update rollback snapshot under
+   \`/root/.readbox-secrets/pre-update\` (0700), re-attest the managed
+   R2 receipt, and perform pinned non-force Git FF + existing Compose rebuild.
+   A competing backup/restore stops the update; no deadlock or silent retry.
+5. **Bounded health and manual gate:** exact clean target Git SHA, all
+   previously-running Compose services (strict health for postgres/web/worker),
+   internal \`/health/live\` and \`/health/ready\` status, Prisma \`migrate status\`
+   and backup-agent availability; report fixed markers
+   \`AU_R2_UPDATE_HEALTH_PASS\` and
+   \`AU_R2_UPDATE_MANUAL_ACCEPTANCE_PENDING\`.
+   Host health and human acceptance are separate from 17 formal release gates.
+
+**Fail-safe rules:** no implicit update when prerequisites, R2 or checksum are
+unverified. A failed backup or R2 upload preserves local archives. A failed
+build, migration or health check preserves both backup artifacts and requires
+operator-directed review; **never automatically reset Git, delete volumes or
+restore live production data**. Backup bundles deliberately exclude secrets
+and are not full host disaster recovery. The age identity and encrypted R2
+credential master key require independently retained custody. No UI/auth/Prisma,
+mailserver, DNS or unrelated data contract changes.
+
+**Operator final handoff:** after approved host operation, provide sanitized
+SHA, backup ID and checksum confirmation, R2 receipt, Compose/Prisma/readiness
+and manual inbox/auth/media acceptance results. Only after manual PASS and
+permitted notes/SHA reconciliation may the live operation be labelled CLOSED.
+The formal R-06 RG-01..17 release review remains **NO-GO** until separately
+approved evidence and human signoff.

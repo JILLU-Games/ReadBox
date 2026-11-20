@@ -1,0 +1,98 @@
+name: ReadBox AU-R2-UPDATE-01 focused disposable CI (NO LIVE UPDATE)
+on:
+  push:
+    branches: [implementation/readbox-au-r2-update01-20261120]
+    paths:
+      - 'scripts/install/readbox-guarded-update.sh'
+      - 'scripts/updater/backup_r2_gate.py'
+      - 'scripts/install/readbox-update.sh'
+      - 'scripts/updater/compose_host_worker.py'
+      - 'tests/integration/au-r2-guarded-update.test.mjs'
+      - '.github/workflows/au-r2-guarded-update-ci.yml'
+      - 'docs/ADMIN-SYSTEM-UPDATE.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  au-r2:
+    if: github.repository == 'vibtoolshq/ReadBox'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GIT_TERMINAL_PROMPT: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Read-only exact source checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Frozen baseline, exact scope, secret and safety audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=4694d8cc20eec4392ebb5883b4c197e1bf6ee7da
+          git merge-base --is-ancestor "$base" HEAD
+          git diff --check "$base" HEAD
+          python3 - <<'PY'
+          import subprocess
+          baseline="4694d8cc20eec4392ebb5883b4c197e1bf6ee7da"
+          allowed={
+            "scripts/install/readbox-guarded-update.sh",
+            "scripts/updater/backup_r2_gate.py",
+            "scripts/install/readbox-update.sh",
+            "scripts/updater/compose_host_worker.py",
+            "tests/integration/au-r2-guarded-update.test.mjs",
+            ".github/workflows/au-r2-guarded-update-ci.yml",
+            "docs/ADMIN-SYSTEM-UPDATE.md",
+            "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/004-ERROR-HANDLING-INVENTORY.md",
+            "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
+            "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
+            "notes/backup-restore/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/backup-restore/005-ACTUAL-WORKING-FEATURE-TRACKER.md",
+            "notes/backup-restore/006-RESTORE-R2-SECURITY-AND-DATA-CONTRACT.md",
+            "notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md",
+          }
+          changed=set(subprocess.check_output(
+            ["git","diff","--name-only",baseline,"HEAD"],text=True).splitlines())
+          assert changed <= allowed, ("AU_R2_SCOPE_ESCAPE",sorted(changed-allowed))
+          assert {"scripts/install/readbox-guarded-update.sh",
+                  "scripts/updater/backup_r2_gate.py",
+                  "tests/integration/au-r2-guarded-update.test.mjs"} <= changed
+          assert not any(path.startswith(("prisma/","src/","deployment/","reference/"))
+                         for path in changed)
+          diff=subprocess.check_output(["git","diff","--unified=0",baseline,"HEAD","--",
+            "scripts/install/readbox-update.sh",
+            "scripts/updater/compose_host_worker.py"],text=True)
+          assert "git reset --hard" not in diff and "docker compose down -v" not in diff
+          print("AU_R2_EXACT_SCOPE_PASS",len(changed))
+          PY
+      - name: Syntax and gated mock failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/updater/backup_r2_gate.py scripts/updater/compose_host_worker.py
+          bash -n scripts/install/readbox-guarded-update.sh scripts/install/readbox-update.sh
+          test "$(git ls-files -s scripts/install/readbox-guarded-update.sh | cut -d' ' -f1)" = 100755
+          echo AU_R2_PYTHON_BASH_SYNTAX_PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Focused mocked agent, updater and existing Admin parity regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          node --conditions=react-server --import tsx --test \
+            tests/integration/au-r2-guarded-update.test.mjs \
+            tests/integration/admin-system-update.test.mjs
+          npm run typecheck
+          echo AU_R2_MOCKED_REGRESSION_AND_TYPECHECK_PASS
+      - name: Absolute no-deployment gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = vibtoolshq/ReadBox
+          echo AU_R2_DISPOSABLE_ONLY_NO_VPS_NO_R2_NO_RELEASE_PASS
