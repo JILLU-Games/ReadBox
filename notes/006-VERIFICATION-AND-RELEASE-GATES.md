@@ -429,3 +429,11 @@ Do not bypass ESLint or edit unapproved files. Separate explicit approval needed
 - Security inventory: zero modifications outside approved runtime ref-verification sections, related tests/workflow, Admin System Update docs and these notes. No Prisma/schema/auth/DNS/mailserver/backups/Compose/source tag release change; no new secrets. Source tests do NOT prove production live updater operation.
 - Final documentation-only commit requires exact non-force Primary and both approved dedicated backup SHA parity readback before **VERIFIED CLOSED**. Until then **SOURCE VERIFIED, SYNC PENDING**.
 - Full production R-06 formal GO remains NO-GO; no release, DNS, VPS, data migration or live backup/restore.
+
+## AU-R2-UPDATE-01 — actual CI ledger & release gates (2026-11-20)
+
+- Frozen baseline 3/3 matching `4694d8cc20eec4392ebb5883b4c197e1bf6ee7da`. Approved Scope Lock is 7 runtime/test/CI/docs paths plus specified root/backup notes; no changes to `src/**`, `deployment/**`, Prisma migrations, Docker Compose, auth, UI, mailserver or R2 SDK.
+- [CI 44826716030](https://github.com/vibtoolshq/ReadBox/actions/runs/44826716030) FAIL: exact 7-path diff PASS, Bash syntax FAIL due duplicate trailing runner block.
+- [Necessary CI recheck 44826908089](https://github.com/vibtoolshq/ReadBox/actions/runs/44826908089) FAIL: exact 7-path diff PASS, `py_compile` and `bash -n` PASS, Node 9/10 PASS, 1 isolated fixture `ROOT` unbound; TypeScript and final no-deploy steps NOT RUN.
+- Final small source+test correction `3f377dd6836c9726492eaaade451895c9595b9b4` NOT VERIFIED by CI. Both allowed CI attempts consumed. No passing CI, no main publication, no backup-ref parity at a new SHA; **BLOCKED** pending separate final CI authorization.
+- Required future acceptance: 10/10+ existing updater tests, app typecheck, scope/diff/security audit, no-deploy marker, 3/3 ref sync, and separately authorized host operation, R2 receipt and live manual health acceptance. R-06 formal 17 gates remain NO-GO.

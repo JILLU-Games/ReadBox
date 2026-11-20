@@ -79,3 +79,7 @@
 - **Already operational before AU-02:** previous user-observed Admin System Update UI showed `Ready (17/17)`, canonical `vibtoolshq/ReadBox`, current SHA `2ff76300c3e8`, and Up-to-Date modal. That does **not** establish completed browser-triggered upgrade.
 - **Not yet run at this ledger update:** new SHA discovery in production, browser confirmation, encrypted live pre-update backup, browser-driven Docker rebuild, and durable end-state acceptance. These require operator-collected evidence in the current conversation; do not mark them PASS based solely on repository CI.
 - Nothing was implemented in application/UI/host updater in AU-02. Existing live data, auth, Prisma, Postfix/Dovecot, R2 config, encrypted identities and volumes remain outside source Scope Lock.
+
+## AU-R2-UPDATE-01 — actual working versus source candidate (2026-11-20)
+
+The existing deployed Backup page and R2 integration were **NOT changed or tested live**. The new one-command runner remains on implementation branch, not Primary. A previous hosted R2 record is not a fresh remote proof. Mocked existing agent V2 create, verify, upload, invalid/missing receipts and remote refusal passed in CI recheck; isolated shell test fixture failed, and final fix remains untested. No current new automated VPS update, manual acceptance or production release is claimed. Existing encrypted archives and R2 objects preserved.

@@ -374,3 +374,16 @@ Candidate code SHA: `3adff246beec44c685d8885875a9d94f41dece4a` ([failed CI #4450
 | Full ReadBox release | Still R-06 NO-GO | Seven historic OPEN and incomplete RG-01..17 remain |
 
 Only the verified fixed-ref contract was changed. Existing mail/domain/manual-mode/SEO features were not retested by this scoped workflow. Dedicated backup ref sync is an independent required publication gate.
+
+## AU-R2-UPDATE-01 — feature truth (2026-11-20)
+
+| Capability | Current evidence |
+|---|---|
+| One-command fixed-SHA VPS preflight → managed backup → verified R2 receipt → legacy safe FF → health | Implemented on source branch only; candidate unverified; not on Primary |
+| Root HMAC broker backup/verify/R2, locally verified age ciphertext and remote streamed SHA receipt | Existing tested backup agent reused, new helper mocked 1st and 2nd CI; no real host/R2 operation |
+| Mandatory opt-in receipt re-attestation before Git mutation | New approved shell patch; final candidate not CI tested |
+| App readiness + Prisma migrate status + existing Compose service health and backup agent | Source code only; no live health evidence |
+| Scope closure, Primary+dedicated backup refs | Pending; do not sync failing candidate |
+| Full ReadBox production release | R-06 NO-GO; production restore not approved |
+
+Minimal test fixture and preflight ordering corrections staged as `3f377dd6836c9726492eaaade451895c9595b9b4`; separate approval required for one final focused CI. Source work is not live acceptance.

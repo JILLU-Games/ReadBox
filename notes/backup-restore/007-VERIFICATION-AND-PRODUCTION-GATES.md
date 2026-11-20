@@ -174,3 +174,7 @@ Do not treat this UI-only source fix or mocked API responses as a live productio
 | v1.0.0 stable production release or tag | Formal RG release gate still independent | **NO-GO** |
 
 AU-02 documentation/CI acceptance is not the production updater E2E acceptance. Do not mark any missing live evidence PASS.
+
+## AU-R2-UPDATE-01 — focused CI and production gate separation (2026-11-20)
+
+[CI 44826716030](https://github.com/vibtoolshq/ReadBox/actions/runs/44826716030) FAIL at Bash syntax. [Necessary recheck 44826908089](https://github.com/vibtoolshq/ReadBox/actions/runs/44826908089) FAIL at one isolated shell fixture; 9/10 Node tests PASS and exact scope/Python/Bash syntax PASS, typecheck NOT RUN. After approved in-scope fixture/preflight correction `3f377dd6836c9726492eaaade451895c9595b9b4` no further CI was permitted. State **BLOCKED / final code unverified**. No VPS backup upload, no remote checksum, no actual migration, no complete post-update health gate, no formal RG-14 or full R-06 GO. Require independent approval of exactly one final focused CI and publish/sync after PASS, before requesting separate host execution approval.
