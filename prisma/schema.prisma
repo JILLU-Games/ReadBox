@@ -366,3 +366,13 @@ model SiteSettings {
 
   @@map("site_settings")
 }
+
+model SiteSeoSettings {
+  pageKey     String   @id @map("page_key") @db.VarChar(32)
+  title       String   @default("") @db.VarChar(120)
+  description String   @default("") @db.VarChar(320)
+  imagePath   String   @default("") @map("image_path") @db.VarChar(255)
+  updatedAt   DateTime @updatedAt @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("site_seo_settings")
+}

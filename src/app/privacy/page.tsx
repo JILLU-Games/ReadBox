@@ -10,6 +10,7 @@ import {
 } from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
+import { getPageSeoMetadata } from "@/core/seo/metadata";
 import { LogIn, UserPlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -29,8 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `Privacy Policy — ${siteName}`;
   const description = `Learn how ${siteName} handles workspace accounts, mailboxes, automated message retention, and support inquiries.`;
   const baseUrl = resolvePublicBaseUrl();
-
-  return {
+  const baseMetadata: Metadata = {
     title: {
       absolute: title,
     },
@@ -47,6 +47,7 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "en_US",
     },
   };
+  return getPageSeoMetadata("privacy", baseMetadata, baseUrl);
 }
 
 export default async function PublicPrivacyPage() {

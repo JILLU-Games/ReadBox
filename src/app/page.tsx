@@ -15,6 +15,7 @@ import {
 } from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
+import { getPageSeoMetadata } from "@/core/seo/metadata";
 import {
   ArrowRight,
   Building2,
@@ -53,8 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
     settings.footerDescription ||
     `${siteName} provides self-service user sign-up, custom-domain mailboxes, shared team inboxes, and automated message retention.`;
   const baseUrl = resolvePublicBaseUrl();
-
-  return {
+  const baseMetadata: Metadata = {
     title: {
       absolute: title,
     },
@@ -88,6 +88,7 @@ export async function generateMetadata(): Promise<Metadata> {
       follow: true,
     },
   };
+  return getPageSeoMetadata("home", baseMetadata, baseUrl);
 }
 
 const CAPABILITY_MODULES = [

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
+import { getPageSeoMetadata } from "@/core/seo/metadata";
 import {
   CheckCircle2,
   LogIn,
@@ -39,8 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `Contact & Support — ${siteName}`;
   const description = `Contact the ${siteName} team for custom domain onboarding, team workspace setup, or support.`;
   const baseUrl = resolvePublicBaseUrl();
-
-  return {
+  const baseMetadata: Metadata = {
     title: {
       absolute: title,
     },
@@ -62,6 +62,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
     },
   };
+  return getPageSeoMetadata("contact", baseMetadata, baseUrl);
 }
 
 export default async function PublicContactPage(props: {
