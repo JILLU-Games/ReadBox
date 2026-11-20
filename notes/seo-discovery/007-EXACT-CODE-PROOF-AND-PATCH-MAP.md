@@ -119,3 +119,12 @@ return {
 | NEW `tests/seo/**`, `tests/ui/seo-*.test.tsx` | both | scoped tests | broad test rewrites |
 
 Before Phase-01 code edits, re-fetch current code; these frozen line addresses are reference anchors, not blanket permission for neighboring sections.
+
+## Proposed vs actual patch audit — 2026-11-20 candidate
+- GitHub commit `f5bdf26768b9fcc01d92e66436270e4bc326f2a6` lists 16 exactly allowlisted executable/test/workflow paths. Planning commit `0345664e67108aeac3b83c5f6c0b352c550909cb` added 10 new notes files only. Scoped `git diff --check` and path guard passed in both CI attempts.
+- `prisma/schema.prisma`: append isolated `SiteSeoSettings` only; `prisma/migrations/20261120000000_seo01_site_seo_settings/migration.sql` new table only. Existing `SiteSettings` model and migrations unchanged.
+- `src/app/(workspace)/vcon/settings/page.tsx` adds a sibling SEO panel; original `src/components/vcon/settings-console.tsx` file unchanged.
+- `src/app/{page,contact/page,privacy/page}.tsx` edits restricted to imports and `generateMetadata` optional override; no public H1/FAQ/CTA/body changes.
+- `src/app/(workspace)/vcon/settings/seo-actions.ts`: `requireAdminUser` before write; origin check moved to `src/core/seo/validation.ts` to comply with async-only server-action export rule.
+- Runtime persistence, actual live SQL migration, typecheck and build remain unverified. Original Health readiness migration fixture mismatch must be fixed with **explicit additional single-test allowlist**; do not silently edit `tests/admin/phase6-settings-update-health.test.ts`.
+- Full source/mirror parity withheld while CI FAIL; no force pushes, production actions or tags.

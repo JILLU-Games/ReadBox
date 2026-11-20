@@ -26,3 +26,11 @@
 
 ## Audit/stop conditions
 After each grouped phase: exact modified-path allowlist, `git diff --check`, secret scan, provenance, deployment skip/no destructive action, one CI run with tested SHA and URL. On scoped failure perform minimal fix and one necessary recheck, otherwise mark BLOCKED/FAILED. No tag/release/VPS migration/live DNS/email or force-push.
+
+## Actual CI attempt ledger (2026-11-20)
+| Run | SHA | Scoped evidence | Result |
+|---|---|---|---|
+| [44710248931](https://github.com/vibtoolshq/ReadBox/actions/runs/44710248931) | `f5bdf26768b9fcc01d92e66436270e4bc326f2a6` | exact 26-path scope PASS, Prisma validate PASS, SEO unit PASS, unrelated readiness fixture `not_ready` vs `ready` | **FAIL** |
+| [44710700637](https://github.com/vibtoolshq/ReadBox/actions/runs/44710700637) | `b01d40a6f49fef03bf247b97bf9c18388b199625` | scope PASS, Prisma schema PASS, SEO unit 6/6 PASS, UI SEO+legacy 7/7 PASS, lint `no-control-regex` FAIL | **FAIL** |
+
+**Typecheck, production build, final regex correction and original readiness regression not passed in second run.** The final lint correction is explicitly CI NOT TESTED; do not infer success from the earlier passing unit/UI stages. No production database migration applied. Release/SEO deploy gate **NO-GO**; full ReadBox acceptance still NO-GO.

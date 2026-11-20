@@ -30,3 +30,10 @@
 Exercise anonymous/non-admin save, cross-origin request, overlong Unicode, newlines/control bytes, unsafe schemes, offsite image, path traversal, SQL/HTML/script injection, invalid page, DB outage, no-row fallback, concurrently edited record, and invalid JSON-LD; confirm prior SiteSettings, auth, media, Maildir, DNS and message records unchanged. Scope errors to their own code; no broad unplanned error-handler rewrites.
 
 **Unknown:** Browserless 429 source not diagnosed; do not classify 429 as confirmed application regression. Every added handler's status changes from PLANNED to VERIFIED only with exact tests and SHA.
+
+## 2026-11-20 SEO-01 attempted implementation evidence
+- Added server-side validation for SEO page allowlist, title/description, control bytes, path whitelist; admin-action origin check and requireAdminUser; transaction-wrapped write/audit with DB missing/table missing fallback read.
+- SEO unit tests `6/6` PASS at CI SHA `b01d40a6`; save audit failure and DB outage negative paths mock-verified. UI tests `7/7` PASS.
+- Lint `no-control-regex` on safeCopy failed in second CI run, then source expression replaced with Unicode codepoint enumeration in a `[skip ci]` minimal correction. This **is unverified** by CI.
+- Existing readiness health fixture 2026-11-15 migration list omits new `20261120000000_seo01_site_seo_settings`. CI #44710248931 FAIL, requires narrow test-only exception outside approved allowlist. Actual production health behavior not tested.
+- Missing independent spoof-origin UI/action test and full typecheck/build acceptance; DO NOT mark all errors verified. No external/live audit conducted.

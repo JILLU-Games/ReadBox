@@ -2,7 +2,11 @@ import { SEO_PAGE_KEYS } from "./types";
 import { z } from "zod";
 
 const safeCopy = (value: string): boolean =>
-  !/[\u0000-\u001F\u007F<>]/u.test(value);
+  !/[<>]/u.test(value) &&
+  Array.from(value).every((char) => {
+    const code = char.codePointAt(0) ?? 0;
+    return code > 31 && code !== 127;
+  });
 
 export const seoPageKeySchema = z.enum(SEO_PAGE_KEYS);
 

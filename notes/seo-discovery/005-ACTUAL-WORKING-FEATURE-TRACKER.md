@@ -21,3 +21,8 @@ Use truth labels: **SOURCE PRESENT**, **LIVE OBSERVED**, **NOT TESTED**, **MISSI
 
 ## Per-phase update record
 For each implemented feature write source SHA, CI URL/negative cases, actual live/Not Tested and feature limitations. Current SEO feature additions = **zero**. ReadBox's existing inbox, domain and DKIM capabilities are historical/source/previous operator evidence and **not retested** during this audit.
+
+## SEO-01 candidate implementation (2026-11-20) — not accepted
+- SOURCE CANDIDATE branch `implementation/readbox-seo01-20261120` contains separate `SiteSeoSettings` model/table, safe admin update action, `SeoSettingsConsole` sibling, optional override for Home/Contact/Privacy metadata and optional restricted same-origin image path. UI and unit focused tests passed at `b01d40a6`.
+- STATUS: **IMPLEMENTED IN CANDIDATE / CI INCOMPLETE / NOT IN MAIN / NOT LIVE**. No production migration has run and no admin user has saved a live SEO value. Existing branding remains untouched.
+- The follow-up lint-only correction is not CI-verified. Health-readiness fixture and build/typecheck gates pending; Phase-01 0/2 closed; Phase-02 remains NOT STARTED.
