@@ -125,7 +125,7 @@ if [[ "${READBOX_R2_GUARDED:-0}" == 1 ]]; then
     receipt_helper="$READBOX_AU_STAGE_DIR/scripts/updater/backup_r2_gate.py"
     [[ -f "$receipt_helper" && ! -L "$receipt_helper" &&
        "$(stat -c '%u:%a' "$receipt_helper")" == 0:600 &&
-       "$(git hash-object -- "$receipt_helper")" ==
+       "$(git hash-object -- "$receipt_helper")" == \
          "$(git rev-parse "$expected:scripts/updater/backup_r2_gate.py")" ]] || {
       echo "AU_BOOTSTRAP_STAGED_RECEIPT_UNTRUSTED" >&2; exit 2;
     }

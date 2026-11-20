@@ -64,7 +64,7 @@ case "$entry" in
       stop BOOTSTRAP_ENTRY_UNSAFE ;;
   *) stop BOOTSTRAP_ENTRY_OUTSIDE_ALLOWED_PATH ;;
 esac
-[[ "$(git hash-object -- "$entry")" ==
+[[ "$(git hash-object -- "$entry")" == \
    "$(git rev-parse "$target:scripts/install/readbox-update-bootstrap.sh")" ]] ||
   stop BOOTSTRAP_ENTRY_SHA_MISMATCH
 # Private staging is never inside the tracked checkout. A controlled trap
