@@ -39,3 +39,17 @@ For each implemented feature write source SHA, CI URL/negative cases, actual liv
 - No production schema migration applied. A fresh deployment of candidate without running migrations will show legacy metadata/fail-close SEO writes until migration is separately approved and applied.
 - **Actual live feature status = NOT TESTED**. No real Admin save in anyinbox.cc, search-engine/AI indexing acceptance, OG asset fetch, or VPS operation occurred.
 - SEO-02 features and AI discovery page/crawl policy **remain pending**.
+
+## 2026-11-20 — SEO-02 actual feature tracker update
+
+| Feature | Actual evidence | Live status |
+|---|---|---|
+| AnyInbox branded H1/FAQ, generic ReadBox fallback | SOURCE + CI VERIFIED | NOT DEPLOYED |
+| Script-safe JSON-LD and visible FAQ parity | SOURCE + CI VERIFIED | NOT DEPLOYED |
+| /about and footer link | SOURCE + CI VERIFIED (build + UI) | NOT DEPLOYED |
+| Public-only sitemap/no fabricated lastModified | SOURCE + CI VERIFIED | NOT DEPLOYED |
+| Robots policy and auth-page noindex | SOURCE + CI VERIFIED | NOT DEPLOYED |
+| Conditional PWA favicon | SOURCE + CI VERIFIED; live installation untested | NOT DEPLOYED |
+| Search engine/AI indexing | No external acceptance evidence | NOT VERIFIED |
+
+No SEO-02 Prisma change, Admin brand-data rewrite, mailserver or UI redesign. SEO-01 migration and production rollout still need independent authorization.

@@ -49,3 +49,13 @@ Forensic proof/2-phase plan documented. No application or production changes. Ne
 - Explicit **NOT LIVE ACCEPTED**: no public-site rollout, production Prisma migrate, external crawler tests, admin real DB save, primary-site verification, DNS/mail delivery or release. Existing ReadBox full product NO-GO is unchanged.
 - **Code-only source progress:** SEO-01 source gates PASS; SEO-02 NOT STARTED. **Final phase closure requires verified Primary + authorized dedicated mirror exact ref readback**. If mirrors cannot be updated, mark Phase-01 SYNC BLOCKED despite source-CI PASS; next work is mirror-sync remediation, not SEO-02.
 - Do not rewrite the earlier FAILED CI attempts; they remain forensic history above.
+
+## 2026-11-20 — SEO-02 implementation and focused-CI status
+
+- Baseline: `1485258654c36d27d9b2c2e51942072aaa66e346`, previously verified 3/3 Primary/dedicated backup parity (the earlier mirror BLOCKED entry is historical).
+- Implementation: `0b8cb55d20b5ab7c517bf7ff025d6811ce58dfa2`; grouped tests/CI/notes: `7726ea2a2f104d261a6ac2eb3c2442463341e1e7`.
+- CI attempt [44717874056](https://github.com/vibtoolshq/ReadBox/actions/runs/44717874056) failed due one test assuming a collapsed FAQ answer was visible. Correction ONLY `tests/ui/seo-public-pages.test.tsx`: expand accordion before assertion; commit `9071cff59de8f553a65115b41d36d592fc6c189f`.
+- One necessary focused recheck [44718103147](https://github.com/vibtoolshq/ReadBox/actions/runs/44718103147) SUCCESS at exact tested executable SHA `9071cff59de8f553a65115b41d36d592fc6c189f`.
+- Scope guard 19/19 allowed paths; existing SEO-01 tests 6 unit + 7 UI PASS, SEO-02 tests 5 unit + 2 UI PASS, readiness 7 PASS; Prisma validation, ESLint, TypeScript, Next build PASS.
+- Source implementation: AnyInbox-specific H1/FAQ, safe JSON-LD, /about, sitemap cleanup, narrow public asset crawler access, auth noindex, conditional PWA favicon, About footer link. No production migration/deployment.
+- Progress: 2/2 SOURCE + CI VERIFIED, 1/2 formally closed and SEO-02 **MIRROR PARITY PENDING** until final doc-only commit is fast-forwarded on Primary and both dedicated backup branches. No further development phase is planned in SEO-01/02. Live deployment/acceptance is independent.

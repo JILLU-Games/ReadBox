@@ -31,3 +31,9 @@ Public page body is authoritative: one concise H1, original usable copy, real fe
 Readable server-rendered HTML, clean page architecture, factual About page and normal search-engine crawling matter more than metadata tricks. `llms.txt` is optional and **out of scope**; it is not a required Google AI Search condition or an indexing guarantee. Keep `/users/`, `/vcon/`, private API, message bodies, user identities and support inquiries protected. Robots policy and private-route noindex are distinct controls; test accordingly.
 
 No public OG asset upload/edit, new analytics tracker, search crawler API, SEO ping or content management system is authorized in planning. Phase-02 wording needs an explicit final editorial/claim check before publication.
+
+## 2026-11-20 — SEO-02 approved brand facts implemented
+
+For exact HTTPS origin anyinbox.cc (or www), public display name `AnyInbox`, headline `Your Email. One Simple Workspace.`, five inbound-only FAQs and compact factual About page; other origins preserve original ReadBox landing H1 and FAQs.
+FAQPage schema uses the same visible FAQ source; serialized JSON-LD script content escapes HTML breakout. No outbound send/SMTP, public IMAP/POP3, guaranteed delivery or indexation claims.
+Existing SEO-01 metadata rows/Admin siteName remain unchanged. Exact visible brand naming in live metadata and deployment configuration requires later operator validation. No `llms.txt`, new SEO Admin fields, DB migration, analytics or external crawler submission included.

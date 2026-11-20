@@ -50,3 +50,12 @@ Exercise anonymous/non-admin save, cross-origin request, overlong Unicode, newli
 - Current candidate returns user-facing field errors from `src/core/seo/validation.ts`, admin guard/origin refusal from `src/app/(workspace)/vcon/settings/seo-actions.ts`, transactional fail-closed write + redacted logging in `src/core/seo/service.ts`. IDs listed earlier in the planning table are **acceptance labels**, not necessarily literal runtime error-code strings.
 - Pre-existing Settings tests remain PASS; newly added readiness migration name now matches the expected schema list. No live DB write/migration was tested. Do not assert every possible CSRF proxy situation, image accessibility or concurrent admin edit is exhaustively covered.
 - Original app error handling in unrelated modules unchanged.
+
+## 2026-11-20 — SEO-02 error and security handling verified in focused CI
+
+- `isAnyInboxOrigin` accepts only exact HTTPS public hosts (anyinbox.cc/www), rejects HTTP/spoofed suffixes and keeps generic ReadBox defaults.
+- `serializeJsonLdForHtml` escapes script-sensitive HTML characters, tested with `</script><script>` payload while maintaining JSON parse compatibility; FAQ schema uses same visible FAQ values.
+- Robots preserves `/vcon/`, `/users/` and `/api/` disallow, narrowly allows public `/api/media/site-settings/`; no backend authorization changed.
+- Sign-in/sign-up metadata noindex test PASS, without modifying credentials, sessions or forms.
+- Original UI test failed on collapsed FAQ; test-only correction verified. No newly introduced server error handler or database action.
+- Public HTTP, CDN 429, crawler fetch, live icon installation and Search Console NOT TESTED.

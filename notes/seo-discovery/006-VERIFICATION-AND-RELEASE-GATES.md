@@ -55,3 +55,12 @@ After each grouped phase: exact modified-path allowlist, `git diff --check`, sec
 | Backup repositories exact-SHA sync | PENDING external Git object propagation and permission; no assumed parity |
 
 **One run on final executable revision**, previous run failures preserved in ledger. Warnings in Next.js build are not ignored, but did not fail build; no new release gate asserted. Full ReadBox production GO stays denied. Post-CI documentation-only commits must not be relabeled as CI-tested executable changes; compare changed paths and preserve evidence SHA.
+
+## 2026-11-20 — SEO-02 focused release-gate evidence
+
+- [CI 44717874056](https://github.com/vibtoolshq/ReadBox/actions/runs/44717874056): FAIL only in FAQ UI test assumption.
+- One in-scope test-only fix and [CI 44718103147](https://github.com/vibtoolshq/ReadBox/actions/runs/44718103147): SUCCESS, tested SHA `9071cff59de8f553a65115b41d36d592fc6c189f`.
+- `SEO_EXACT_SCOPE_PASS SEO02 19`; Prisma schema valid, 6/6 existing SEO tests + 7/7 Settings UI, 5/5 new discovery unit, 2/2 new public UI, 7/7 readiness, lint, typecheck, production build, CI no-deploy step ALL PASS.
+- Non-fatal pre-existing health/ready-related build warnings; no fresh production acceptance inferred.
+- Exact allowed paths only, 0 Prisma/auth/DNS/mailserver/deployment changes. Post-tested notes-only commits are NOT new executable tests.
+- Remaining: Primary and dedicated mirrors exact final SHA parity; separate live deployment/DB migration/public HTML/robots/sitemap/AI search acceptance. Full ReadBox production GO remains separate.
