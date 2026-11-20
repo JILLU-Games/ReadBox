@@ -92,6 +92,23 @@ python3 deployment/operations/compose_recovery.py backup \
   --db-user readbox --db-name readbox --recipient "$recipient" \
   --output "$snapshot" --confirm-maintenance
 echo "QIS01_ENCRYPTED_PRE_UPDATE_BACKUP_READY"
+# AU-R2-UPDATE-01: new guarded entrypoint revalidates the specific verified
+# managed R2 receipt AFTER local rollback capture, BEFORE Git or Compose writes.
+# Existing legacy/manual invocation remains unchanged unless explicitly opted in.
+if [[ "${READBOX_R2_GUARDED:-0}" == 1 ]]; then
+  [[ "${READBOX_UPDATE_REQUIRE_PARITY:-0}" == 1 &&
+     -n "$expected" &&
+     "${READBOX_R2_BACKUP_ID:-}" =~ ^[0-9a-f]{32}$ &&
+     "${READBOX_R2_BACKUP_SHA256:-}" =~ ^[0-9a-f]{64}$ ]] || {
+    echo "AU_R2_GUARDED_RECEIPT_REQUIRED" >&2; exit 2;
+  }
+  python3 "$ROOT/scripts/updater/backup_r2_gate.py" attest \
+    "$READBOX_R2_BACKUP_ID" "$READBOX_R2_BACKUP_SHA256" >/dev/null || {
+    echo "AU_R2_GUARDED_RECEIPT_UNVERIFIED" >&2; exit 2;
+  }
+elif [[ "${READBOX_R2_GUARDED:-0}" != 0 ]]; then
+  echo "AU_R2_GUARDED_MODE_INVALID" >&2; exit 2
+fi
 git merge --ff-only "$after"
 if ! docker compose --project-name "$PROJECT" -f docker-compose.yml up -d --build postgres web worker; then
   echo "QIS01_UPDATE_FAILED: the encrypted rollback artifact is preserved." >&2

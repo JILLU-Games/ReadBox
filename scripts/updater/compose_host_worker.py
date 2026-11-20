@@ -155,6 +155,12 @@ def host_check(include_remote: bool = False) -> tuple[list[dict], str, str]:
     check("existing guarded Compose updater",
           safe_path(ROOT / "scripts/install/readbox-update.sh"),
           "scripts/install/readbox-update.sh")
+    check("mandatory R2 guarded runner",
+          safe_path(ROOT / "scripts/install/readbox-guarded-update.sh"),
+          "scripts/install/readbox-guarded-update.sh")
+    check("authenticated backup R2 receipt helper",
+          safe_path(ROOT / "scripts/updater/backup_r2_gate.py"),
+          "scripts/updater/backup_r2_gate.py")
     if include_remote and all(c["passed"] for c in checks):
         try:
             target = remote_main_refs()
@@ -183,7 +189,7 @@ def do_update(target_sha: str) -> None:
             return
         # Existing updater performs the global maintenance lock, encrypted R05
         # snapshot, clean fast-forward, Compose rebuild and bounded health.
-        atomic_status("update", "Creating encrypted backup and deploying verified main", 15,
+        atomic_status("update", "Creating verified encrypted R2 backup and guarded update", 15,
                       target_sha=target_sha)
         recipient = run(["age-keygen", "-y", "/var/lib/readbox-backup/identity.txt"], 5)
         if not re.fullmatch(r"age1[023456789acdefghjklmnpqrstuvwxyz]{55,}", recipient):
@@ -195,9 +201,10 @@ def do_update(target_sha: str) -> None:
                    "READBOX_COMPOSE_PROJECT": "readbox",
                    "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
         proc = subprocess.run(
-            ["/bin/bash", str(ROOT / "scripts/install/readbox-update.sh")],
+            ["/bin/bash", str(ROOT / "scripts/install/readbox-guarded-update.sh"),
+             "--target-sha", target_sha],
             cwd=ROOT, env=run_env, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, timeout=1200, check=False)
+            stderr=subprocess.DEVNULL, timeout=5400, check=False)
         if proc.returncode:
             raise RuntimeError("SAFE_COMPOSE_UPDATE_FAILED")
         if run(["git", "rev-parse", "HEAD"], 8) != target_sha:

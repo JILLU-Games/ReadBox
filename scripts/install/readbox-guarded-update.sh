@@ -39,7 +39,11 @@ backup_ref=refs/heads/backup/dns-final-primary-20261119
 read_ref() {
   local output
   output="$(git ls-remote --exit-code "$1" "$2")" || die GIT_REF_UNAVAILABLE
-  [[ "$output" == "$target" ]] || die GIT_REF_SHA_MISMATCH
+  local returned_sha returned_ref
+  returned_sha="$(printf '%s\n' "$output" | cut -f1)"
+  returned_ref="$(printf '%s\n' "$output" | cut -f2)"
+  [[ "$returned_sha" == "$target" && "$returned_ref" == "$2" ]] ||
+    die GIT_REF_SHA_MISMATCH
 }
 read_ref https://github.com/vibtoolshq/ReadBox.git "$source_ref"
 read_ref https://github.com/JILLU-Games/ReadBox.git "$backup_ref"
