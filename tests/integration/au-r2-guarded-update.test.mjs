@@ -21,7 +21,7 @@ test("guarded shell refuses incomplete or rejected R2 receipt before git merge",
   const end=old.indexOf('git merge --ff-only "$after"',start);
   assert.ok(start>=0 && end>start);
   const gate=old.slice(start,end);
-  assert.match(gate,/backup_r2_gate\.py" attest/);
+  assert.match(gate,/python3 "\$receipt_helper" attest/);
   assert.doesNotMatch(gate,/git merge|docker compose up/);
   const script=[
     "set -Eeuo pipefail",
