@@ -454,3 +454,10 @@ Do not bypass ESLint or edit unapproved files. Separate explicit approval needed
 - Exact changed-path review: only 7 approved script/test/workflow/doc paths in tested candidate; documentation addendum in approved 7 note files only. No src/, Prisma, deployment/, new R2 credentials, auth, mailserver, data, tag or release modifications.
 - One CI + one necessary recheck used. **BLOCKED.** No Primary publish and no mirror sync. Current Primary + 2 dedicated backups must remain at baseline SHA unless independently changed; re-read at handoff. Further exact one-fixture correction needs new approval.
 - Source CI is NOT operational approval. Real VPS preflight/encrypted backup/R2/migration/health/manual acceptance and R-06 17 gates NOT RUN; formal release NO-GO.
+
+## AU-R2-BOOTSTRAP-01 — final F-TEST-01 verified gates (2026-11-20)
+
+- Baseline Primary + both dedicated backups at approval: `72c139f4e96838ef0ed3476a8d4af91327b4fd42`. First CI #44831028239 failed Bash syntax; minimal correction #44831164135 passed syntax but failed one stale literal-path test (13/14). User separately approved a strictly one-line assertion correction, with one final disposable CI.
+- Final code/test SHA `f6fceeafc5933b1fdb8327e2589be825183bd5a9`; GitHub Actions [#44832329196](https://github.com/vibtoolshq/ReadBox/actions/runs/44832329196) **SUCCESS**. Job log: `AU_BOOTSTRAP_EXACT_SCOPE_PASS 14` (all previously approved files), `AU_BOOTSTRAP_SYNTAX_PASS`, **# tests 14 / # pass 14 / # fail 0**, `AU_BOOTSTRAP_FOCUSED_VERIFY_PASS` (Node regression and TypeScript), `AU_BOOTSTRAP_DISPOSABLE_NO_VPS_NO_R2_NO_RELEASE_PASS`.
+- Exact F-TEST-01 source patch: `tests/integration/au-r2-guarded-update.test.mjs:24` only. Seven approved notes record this result; no new workflow/runtime changes in the final correction. Last notes-only commit must undergo exact changed-path and non-force source/dedicated-backup ref audit.
+- **GATE: source CI verified.** Production staging/backup/R2/restore/DB migration/Compose/health/manual acceptance are NOT RUN. R-06 formal RG-01..17 remain NO-GO.

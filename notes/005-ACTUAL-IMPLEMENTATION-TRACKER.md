@@ -411,3 +411,15 @@ The unverified `3f377dd` note above is superseded by successful final focused CI
 | Release and live operational acceptance | NO-GO | All 17 full-production gates remain independent |
 
 Do not call AU-R2-BOOTSTRAP-01 CLOSED until a separately approved recheck is green and final exact 3/3 SHA parity is verified.
+
+## AU-R2-BOOTSTRAP-01 F-TEST-01 — actual source working truth (2026-11-20)
+
+| Item | Verified source/CI status | Operational evidence |
+|---|---|---|
+| Canonical pinned fetch despite stale mirror `main` | CI VERIFIED at `f6fceeaf...` | Live VPS origin uninspected |
+| Root-only immutable, external Git object stage for clean old checkout | CI VERIFIED by disposable old-checkout, ref negative, stage/missing/tamper contracts | No host bootstrap performed |
+| Existing managed V2 encrypted backup → R2 receipt → R05 rollback → post-update health | Source contracts retained; combined 14/14 tests PASS | No real R2/backup/migration/health acceptance |
+| Approved code/test closure | **SUCCESS** [CI #44832329196](https://github.com/vibtoolshq/ReadBox/actions/runs/44832329196) | Final 3/3 Git SHA parity required separately |
+| Formal ReadBox production release | NO-GO | RG-01..RG-17 independent |
+
+Earlier historical BLOCKED snapshot was accurately reported before approval; final verification now supersedes it for source-only CI.

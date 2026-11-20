@@ -91,3 +91,7 @@ The source code candidate is **CI-VERIFIED** at exact executable SHA `3f377dd683
 ## AU-R2-BOOTSTRAP-01 — actual backup/update behavior limit (2026-11-20)
 
 A new canonical fetch + root-only external staging bootstrap is source present on a private implementation branch, not on Primary or any live host. Existing BR-02/03/04 backup/R2 agent SDK, encryption identity, R2 objects, jobs and recovery data were not altered. Required V2 and R2 receipt gates remain in guarded updater. CI #44831164135 passed 13/14 focused tests but failed an old static string assertion; no final green regression. There is no new VPS snapshot, Cloudflare R2 upload, migrated database, post-update health or manually accepted update evidence. Formal source closure withheld.
+
+## AU-R2-BOOTSTRAP-01 — corrected feature evidence, source-only (2026-11-20)
+
+Source-only bootstrap, immutable staging and canonical Primary pinned fetch are **CI-VERIFIED** by [#44832329196](https://github.com/vibtoolshq/ReadBox/actions/runs/44832329196) at `f6fceeafc5933b1fdb8327e2589be825183bd5a9` with 14/14 passing tests. The original R2 agent, remote encrypted object and PrivateStore contract were not edited. The previously reported 13/14 failure was a stale literal fixture and is superseded. **Not live verified**: original VPS checkout clean state, root-only service/agent permissions, real backup/R2 remote checksum, database migration, mail/attachment reception, actual health or manual operator acceptance. Formal R-06 NO-GO unchanged.

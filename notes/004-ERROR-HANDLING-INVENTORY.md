@@ -358,3 +358,9 @@ Observed `vibmail.my` edit page showed `Select a Cloudflare zone before publishi
 - CI #44831028239: `readbox-update.sh:128` unsupported line break inside Bash comparison caused syntax failure. Minimal two-line continuation fix landed in candidate `18e507c...`.
 - CI #44831164135: parser PASS, 13 tests PASS, one assertion FAIL: prior literal `backup_r2_gate.py" attest` no longer matches deliberately variable-based `python3 "$receipt_helper" attest`. This is reproducible test-contract drift; independent end-to-end staging not fully green. No authorization for additional patch/recheck remains.
 - Runtime wrong SHA, missing object/ref, dirty checkout, tampered blob, symlink, missing R2 receipt and lock conflict are designed fail-closed. Their complete acceptance cannot be claimed while CI red. No production update/restore executed.
+
+## AU-R2-BOOTSTRAP-01 F-TEST-01 — stale static assertion resolved (2026-11-20)
+
+- Prior CI failure: `tests/integration/au-r2-guarded-update.test.mjs:24` asserted a literal helper pathname; the new approved updater calls its verified staged helper through `python3 "$receipt_helper" attest`. Existing runtime logic was not defective in that particular assertion.
+- User approved one and only one fixture correction: `assert.match(gate,/python3 "\$receipt_helper" attest/);` with the matching shell marker. The rest of the test, including the negative receipt refusal, stays intact.
+- [Final focused CI #44832329196](https://github.com/vibtoolshq/ReadBox/actions/runs/44832329196) **SUCCESS** at `f6fceeafc5933b1fdb8327e2589be825183bd5a9`: syntax, 14/14 tests, typecheck, exact scope and CI-only/no-deploy marker passed. This supersedes previous CI-blocked source status. It does **not** establish live R2 receipt, offsite restore or VPS update readiness.
