@@ -83,3 +83,7 @@
 ## AU-R2-UPDATE-01 — actual working versus source candidate (2026-11-20)
 
 The existing deployed Backup page and R2 integration were **NOT changed or tested live**. The new one-command runner remains on implementation branch, not Primary. A previous hosted R2 record is not a fresh remote proof. Mocked existing agent V2 create, verify, upload, invalid/missing receipts and remote refusal passed in CI recheck; isolated shell test fixture failed, and final fix remains untested. No current new automated VPS update, manual acceptance or production release is claimed. Existing encrypted archives and R2 objects preserved.
+
+## AU-R2-UPDATE-01 — actual feature report after successful focused CI (2026-11-20)
+
+The source code candidate is **CI-VERIFIED** at exact executable SHA `3f377dd6836c9726492eaaade451895c9595b9b4`, [run #44827143074](https://github.com/vibtoolshq/ReadBox/actions/runs/44827143074) SUCCESS (10/10 focused tests). The previously noted missing ROOT fixture failure is resolved. The new root-only script does not modify the existing deployed Backup page; it requires fresh managed V2 age backup and existing R2 remote checksum proof as mandatory future operator update gate. **No new VPS command executed, no real R2 connection tested, no independent offsite restore, no new live backup.** Final 3/3 publication readback remains pending.

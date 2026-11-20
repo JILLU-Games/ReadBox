@@ -387,3 +387,15 @@ Only the verified fixed-ref contract was changed. Existing mail/domain/manual-mo
 | Full ReadBox production release | R-06 NO-GO; production restore not approved |
 
 Minimal test fixture and preflight ordering corrections staged as `3f377dd6836c9726492eaaade451895c9595b9b4`; separate approval required for one final focused CI. Source work is not live acceptance.
+
+## AU-R2-UPDATE-01 — Tested implementation status addendum (2026-11-20)
+
+| Capability | Verified evidence | Remaining |
+|---|---|---|
+| Guarded single command, fixed 3/3 refs, root path and private preflight | Source audit, disposable CI #44827143074 | Host staging and live permission checks NOT RUN |
+| HMAC broker fresh V2, local SHA256, existing managed R2 streamed GET receipt | Mocked positive and error paths, 10/10 combined tests PASS | Live backup/R2 receipt NOT RUN |
+| Pre-merge R2 attest, independent encrypted local rollback and non-force update | Source + shell gate negative contracts PASS | Live Compose/migration NOT RUN |
+| Post-update app/live/ready, migrate status, Compose and backup-agent | Source code, syntax/type regression PASS | Live health/manual acceptance NOT RUN |
+| Full ReadBox release | R-06 NO-GO unchanged | 17 independent gates and separate release approval |
+
+The unverified `3f377dd` note above is superseded by successful final focused CI [#44827143074](https://github.com/vibtoolshq/ReadBox/actions/runs/44827143074). Final source SHA sync is separate and pending.

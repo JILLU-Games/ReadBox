@@ -437,3 +437,11 @@ Do not bypass ESLint or edit unapproved files. Separate explicit approval needed
 - [Necessary CI recheck 44826908089](https://github.com/vibtoolshq/ReadBox/actions/runs/44826908089) FAIL: exact 7-path diff PASS, `py_compile` and `bash -n` PASS, Node 9/10 PASS, 1 isolated fixture `ROOT` unbound; TypeScript and final no-deploy steps NOT RUN.
 - Final small source+test correction `3f377dd6836c9726492eaaade451895c9595b9b4` NOT VERIFIED by CI. Both allowed CI attempts consumed. No passing CI, no main publication, no backup-ref parity at a new SHA; **BLOCKED** pending separate final CI authorization.
 - Required future acceptance: 10/10+ existing updater tests, app typecheck, scope/diff/security audit, no-deploy marker, 3/3 ref sync, and separately authorized host operation, R2 receipt and live manual health acceptance. R-06 formal 17 gates remain NO-GO.
+
+## AU-R2-UPDATE-01 — Final permitted CI gate result (2026-11-20)
+
+- Source baseline `4694d8cc20eec4392ebb5883b4c197e1bf6ee7da`; final corrected executable `3f377dd6836c9726492eaaade451895c9595b9b4`.
+- [GitHub Actions #44827143074](https://github.com/vibtoolshq/ReadBox/actions/runs/44827143074): **SUCCESS**, exact approved corrected executable SHA. Job logs: `AU_R2_EXACT_SCOPE_PASS 7`, `AU_R2_PYTHON_BASH_SYNTAX_PASS`, **10 tests / 10 pass / 0 fail**, `AU_R2_MOCKED_REGRESSION_AND_TYPECHECK_PASS` (includes typecheck), `AU_R2_DISPOSABLE_ONLY_NO_VPS_NO_R2_NO_RELEASE_PASS`.
+- Existing prior two CI failures were not ignored; ROOT fixture and accidental duplicate shell tail were corrected. This verified run supersedes their source-only BLOCKED status.
+- Final change audit after notes-only commit must show 7 approved source/test/workflow/docs paths and exactly eight approved notes, no protected paths, clean non-force ancestry. Until final Primary + two dedicated backup refs match exactly, **SOURCE VERIFIED; GIT SYNC PENDING**, not CLOSED.
+- VPS execution, R2 access, production encrypted backup, migration, live health, independent restore, RG-14 and R-06 release GO were NOT RUN/NOT APPROVED.
