@@ -499,6 +499,7 @@ test("Health readiness snapshot and PostgreSQL VPS templates verify production i
       "20261116000000_phase1_admin_reset_and_security",
       "20261116010000_phase2_user_access_policy_inheritance",
       "20261117010000_postfix_login_identity",
+      "20261120000000_seo01_site_seo_settings",
     ].map((migration_name) => ({
       migration_name,
       finished_at: new Date("2026-11-15T11:59:00.000Z"),
