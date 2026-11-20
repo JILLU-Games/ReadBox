@@ -87,3 +87,7 @@ The existing deployed Backup page and R2 integration were **NOT changed or teste
 ## AU-R2-UPDATE-01 — actual feature report after successful focused CI (2026-11-20)
 
 The source code candidate is **CI-VERIFIED** at exact executable SHA `3f377dd6836c9726492eaaade451895c9595b9b4`, [run #44827143074](https://github.com/vibtoolshq/ReadBox/actions/runs/44827143074) SUCCESS (10/10 focused tests). The previously noted missing ROOT fixture failure is resolved. The new root-only script does not modify the existing deployed Backup page; it requires fresh managed V2 age backup and existing R2 remote checksum proof as mandatory future operator update gate. **No new VPS command executed, no real R2 connection tested, no independent offsite restore, no new live backup.** Final 3/3 publication readback remains pending.
+
+## AU-R2-BOOTSTRAP-01 — actual backup/update behavior limit (2026-11-20)
+
+A new canonical fetch + root-only external staging bootstrap is source present on a private implementation branch, not on Primary or any live host. Existing BR-02/03/04 backup/R2 agent SDK, encryption identity, R2 objects, jobs and recovery data were not altered. Required V2 and R2 receipt gates remain in guarded updater. CI #44831164135 passed 13/14 focused tests but failed an old static string assertion; no final green regression. There is no new VPS snapshot, Cloudflare R2 upload, migrated database, post-update health or manually accepted update evidence. Formal source closure withheld.

@@ -399,3 +399,15 @@ Minimal test fixture and preflight ordering corrections staged as `3f377dd6836c9
 | Full ReadBox release | R-06 NO-GO unchanged | 17 independent gates and separate release approval |
 
 The unverified `3f377dd` note above is superseded by successful final focused CI [#44827143074](https://github.com/vibtoolshq/ReadBox/actions/runs/44827143074). Final source SHA sync is separate and pending.
+
+## AU-R2-BOOTSTRAP-01 — feature truth on BLOCKED source branch (2026-11-20)
+
+| Item | Source status | Verified limit |
+|---|---|---|
+| Canonical pinned fetch instead of mirror origin/main | CODE PRESENT in implementation branch | Not published to Primary; complete CI not PASS |
+| External root-only immutable Git object staging for old checkout | CODE PRESENT | Host/VPS installation and live execution NOT RUN |
+| Existing HMAC agent / verified R2 upload / encrypted R05 rollback | SOURCE UNCHANGED | Live offsite backup NOT RUN |
+| Disposable old-checkout, fixed refs and stage tamper contracts | 13 of 14 combined tests PASS on CI #44831164135 | One stale R2 fixture FAIL |
+| Release and live operational acceptance | NO-GO | All 17 full-production gates remain independent |
+
+Do not call AU-R2-BOOTSTRAP-01 CLOSED until a separately approved recheck is green and final exact 3/3 SHA parity is verified.

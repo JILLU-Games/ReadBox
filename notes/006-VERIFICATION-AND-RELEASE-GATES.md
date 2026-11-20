@@ -445,3 +445,12 @@ Do not bypass ESLint or edit unapproved files. Separate explicit approval needed
 - Existing prior two CI failures were not ignored; ROOT fixture and accidental duplicate shell tail were corrected. This verified run supersedes their source-only BLOCKED status.
 - Final change audit after notes-only commit must show 7 approved source/test/workflow/docs paths and exactly eight approved notes, no protected paths, clean non-force ancestry. Until final Primary + two dedicated backup refs match exactly, **SOURCE VERIFIED; GIT SYNC PENDING**, not CLOSED.
 - VPS execution, R2 access, production encrypted backup, migration, live health, independent restore, RG-14 and R-06 release GO were NOT RUN/NOT APPROVED.
+
+## AU-R2-BOOTSTRAP-01 — exact verification and release gates (2026-11-20)
+
+- Frozen Primary + JILLU-Games/MdNurnobi-Dev dedicated backup SHA `72c139f4e96838ef0ed3476a8d4af91327b4fd42` (3/3 at phase start).
+- GitHub #44831028239 (SHA `85c64c36bae86acbf28ebd197e0f307addb43073`) FAIL: Scope Lock 7 PASS, Bash syntax FAIL, downstream test/typecheck/no-deploy NOT RUN.
+- GitHub #44831164135 (SHA `18e507c68c1a807201bc92fc4e698701a666e755`) FAIL: Scope Lock 7 PASS, Bash/Python syntax PASS; Node 14 tests/13 PASS/1 FAIL, stale prior test literal `backup_r2_gate.py" attest` on `tests/integration/au-r2-guarded-update.test.mjs:24`; typecheck and no-deployment job gate SKIPPED.
+- Exact changed-path review: only 7 approved script/test/workflow/doc paths in tested candidate; documentation addendum in approved 7 note files only. No src/, Prisma, deployment/, new R2 credentials, auth, mailserver, data, tag or release modifications.
+- One CI + one necessary recheck used. **BLOCKED.** No Primary publish and no mirror sync. Current Primary + 2 dedicated backups must remain at baseline SHA unless independently changed; re-read at handoff. Further exact one-fixture correction needs new approval.
+- Source CI is NOT operational approval. Real VPS preflight/encrypted backup/R2/migration/health/manual acceptance and R-06 17 gates NOT RUN; formal release NO-GO.
