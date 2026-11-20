@@ -1,0 +1,83 @@
+name: ReadBox AU-PARITY-01 dedicated refs disposable CI
+on:
+  push:
+    branches: [implementation/readbox-au-parity-01-20261120]
+    paths:
+      - 'src/core/updates/service.ts'
+      - 'scripts/updater/compose_host_worker.py'
+      - 'scripts/install/readbox-update.sh'
+      - 'tests/integration/admin-system-update.test.mjs'
+      - 'tests/operations/updater-ref-parity.test.mjs'
+      - 'docs/ADMIN-SYSTEM-UPDATE.md'
+      - '.github/workflows/au-ref-parity-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  au-parity:
+    if: github.repository == 'vibtoolshq/ReadBox'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GIT_TERMINAL_PROMPT: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Exact baseline/allowlist/security guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=ddc3674ec1af0cccb2b4d93fc29edd3bffabbc4a
+          git merge-base --is-ancestor "$base" HEAD
+          git diff --check "$base" HEAD
+          python3 - <<'PY'
+          import subprocess
+          base="ddc3674ec1af0cccb2b4d93fc29edd3bffabbc4a"
+          allowed={
+            "src/core/updates/service.ts",
+            "scripts/updater/compose_host_worker.py",
+            "scripts/install/readbox-update.sh",
+            "tests/integration/admin-system-update.test.mjs",
+            "tests/operations/updater-ref-parity.test.mjs",
+            ".github/workflows/au-ref-parity-ci.yml",
+            "docs/ADMIN-SYSTEM-UPDATE.md",
+            "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/004-ERROR-HANDLING-INVENTORY.md",
+            "notes/005-ACTUAL-WORKING-FEATURE-TRACKER.md",
+            "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
+            "notes/seo-discovery/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/seo-discovery/006-VERIFICATION-AND-RELEASE-GATES.md",
+          }
+          changed=set(subprocess.check_output(
+            ["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          assert changed <= allowed, ("AU_PARITY_SCOPE_ESCAPE",sorted(changed-allowed))
+          assert not any(p.startswith(("prisma/","src/core/auth/","src/core/dns/",
+            "deployment/","src/core/mailboxes/","reference/")) for p in changed)
+          print("AU_PARITY_EXACT_SCOPE_PASS",len(changed))
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Focused web/host/shell security and TypeScript regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          python3 -m py_compile scripts/updater/compose_host_worker.py
+          bash -n scripts/install/readbox-update.sh
+          node --conditions=react-server --import tsx --test \
+            tests/integration/admin-system-update.test.mjs \
+            tests/operations/updater-ref-parity.test.mjs
+          npx eslint src/core/updates/service.ts \
+            tests/integration/admin-system-update.test.mjs \
+            tests/operations/updater-ref-parity.test.mjs
+          npm run typecheck
+          echo AU_PARITY_FOCUSED_VERIFY_PASS
+      - name: No production deployment or release
+        run: |
+          test "$GITHUB_REPOSITORY" = vibtoolshq/ReadBox
+          echo AU_PARITY_CI_ONLY_NO_DEPLOYMENT_PASS
