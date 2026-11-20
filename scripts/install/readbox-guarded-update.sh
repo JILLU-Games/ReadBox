@@ -64,6 +64,11 @@ mapfile -t before_services < <(docker compose --project-name readbox -f docker-c
 for service in postgres web worker; do
   [[ " ${before_services[*]} " == *" $service "* ]] || die REQUIRED_SERVICE_NOT_RUNNING
 done
+# All storage/rollback prerequisites are checked before fresh backup creation.
+[[ -d /root/.readbox-secrets/pre-update &&
+   ! -L /root/.readbox-secrets/pre-update &&
+   "$(stat -c %a /root/.readbox-secrets/pre-update)" == 700 ]] ||
+  die PRIVATE_ROLLBACK_DIRECTORY_REQUIRED
 # Read-only, no R2 test probe/PUT at this stage.
 python3 scripts/updater/backup_r2_gate.py preflight >/dev/null ||
   die BACKUP_R2_PREFLIGHT_FAILED
@@ -76,10 +81,6 @@ read -r backup_id digest extra <<< "$gate"
 [[ "$backup_id" =~ ^[0-9a-f]{32}$ && "$digest" =~ ^[0-9a-f]{64}$ && -z "${extra:-}" ]] ||
   die GUARDED_RECEIPT_INVALID
 echo AU_R2_MANAGED_LOCAL_AND_REMOTE_SHA256_PASS
-[[ -d /root/.readbox-secrets/pre-update &&
-   ! -L /root/.readbox-secrets/pre-update &&
-   "$(stat -c %a /root/.readbox-secrets/pre-update)" == 700 ]] ||
-  die PRIVATE_ROLLBACK_DIRECTORY_REQUIRED
 # PUBLIC age recipient only; private identity never leaves host or logs.
 recipient="$(age-keygen -y /var/lib/readbox-backup/identity.txt)" ||
   die AGE_RECIPIENT_UNAVAILABLE

@@ -25,6 +25,7 @@ test("guarded shell refuses incomplete or rejected R2 receipt before git merge",
   assert.doesNotMatch(gate,/git merge|docker compose up/);
   const script=[
     "set -Eeuo pipefail",
+    "ROOT=/opt/readbox",
     "python3() { [[ \"$DENY\" != 1 ]]; }",
     gate,
     "echo AU_R2_SHELL_GATE_PASS",
