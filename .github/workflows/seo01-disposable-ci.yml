@@ -14,6 +14,7 @@ on:
       - 'prisma/migrations/20261120000000_seo01_site_seo_settings/**'
       - 'tests/seo/**'
       - 'tests/ui/seo-settings.test.tsx'
+      - 'tests/admin/phase6-settings-update-health.test.ts'
       - '.github/workflows/seo01-disposable-ci.yml'
   workflow_dispatch:
 permissions:
@@ -54,7 +55,8 @@ jobs:
             "src/app/(workspace)/vcon/settings/page.tsx",
             "src/app/page.tsx","src/app/contact/page.tsx","src/app/privacy/page.tsx",
             "tests/seo/seo-settings.test.ts","tests/seo/page-metadata.test.ts",
-            "tests/ui/seo-settings.test.tsx",".github/workflows/seo01-disposable-ci.yml",
+            "tests/ui/seo-settings.test.tsx","tests/admin/phase6-settings-update-health.test.ts",
+            ".github/workflows/seo01-disposable-ci.yml",
           }
           changed=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
           assert changed <= allowed | {p for p in changed if p.startswith("notes/seo-discovery/")}, sorted(changed-allowed)
