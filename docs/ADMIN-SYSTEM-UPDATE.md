@@ -195,3 +195,37 @@ and manual inbox/auth/media acceptance results. Only after manual PASS and
 permitted notes/SHA reconciliation may the live operation be labelled CLOSED.
 The formal R-06 RG-01..17 release review remains **NO-GO** until separately
 approved evidence and human signoff.
+
+## AU-R2-BOOTSTRAP-01 — Canonical pinned Git fetch and private host staging
+
+Previous `readbox-update.sh` fetched `origin/main` even when `origin` was an
+approved mirror with a deliberately lagging `main` branch. Additionally, the
+new guarded scripts do not yet exist in a clean legacy checkout. The approved
+fix preserves its clean `main` checkout, fetches a pinned target ONLY from
+`https://github.com/vibtoolshq/ReadBox.git refs/heads/main`, and executes
+verified exact-commit Git objects from a newly-created root-only `/run` staging
+directory. Unpinned legacy/manual update behavior remains unchanged.
+
+All three fixed refs—Primary `main` and JILLU-Games/MdNurnobi-Dev dedicated
+`backup/dns-final-primary-20261119`—must advertise the identical target SHA.
+The bootstrap validates itself and all staged code blobs against the same
+commit, refuses dirty/non-main checkouts and non-fast-forward history, and
+never overwrites old tracked files before the original V2/R2+R05 gates. Staged
+files are mode-0600, private directory mode-0700, and deleted from that
+directory on process exit; no user-provided Git source or script path is
+permitted. The new runner and helper remain root-only, with all original
+maintenance-lock, encrypted backup, R2 receipt, health and manual gates.
+
+**Future live operator command (NOT approved to execute by this source phase):**
+After a separate host-specific approval and independent 3/3 SHA verification,
+replace `AUDITED_TARGET_SHA` with the final approved 40-character commit.
+Run once against a named Ubuntu ReadBox host (not in CI):
+
+```bash
+sudo bash -c 'set -Eeuo pipefail; cd /opt/readbox; t="$1"; [[ "$t" =~ ^[0-9a-f]{40}$ ]]; git -c gc.auto=0 -c maintenance.auto=false fetch --no-auto-gc --no-tags https://github.com/vibtoolshq/ReadBox.git refs/heads/main; [[ "$(git rev-parse FETCH_HEAD)" == "$t" ]]; entry="$(mktemp /run/readbox-au-r2-entry.XXXXXXXX)"; trap '\\''rm -f -- "$entry"'\\'' EXIT; chmod 0600 "$entry"; git cat-file blob "$t:scripts/install/readbox-update-bootstrap.sh" > "$entry"; [[ "$(git hash-object -- "$entry")" == "$(git rev-parse "$t:scripts/install/readbox-update-bootstrap.sh")" ]]; bash "$entry" --target-sha "$t"' _ AUDITED_TARGET_SHA
+```
+
+Never substitute `curl | bash` or copy tracked updater files over an old
+checkout. Source CI is not real Cloudflare R2 connectivity, migration, host
+health or manual acceptance. No production DB, DNS, mailserver, credentials
+or restore is changed by this source phase. Formal ReadBox R-06 remains NO-GO.

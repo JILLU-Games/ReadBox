@@ -57,10 +57,10 @@ test("single-command preflight precedes fresh backup and update; readiness follo
   assert.ok(pos("read_ref https://github.com/vibtoolshq/ReadBox.git")>=0);
   assert.ok(pos("read_ref https://github.com/JILLU-Games/ReadBox.git")>=0);
   assert.ok(pos("read_ref https://github.com/MdNurnobi-Dev/ReadBox.git")>=0);
-  assert.ok(pos("backup_r2_gate.py preflight")<pos("backup_r2_gate.py run"));
-  assert.ok(pos("backup_r2_gate.py run")<pos("bash scripts/install/readbox-update.sh"));
-  assert.ok(pos("bash scripts/install/readbox-update.sh")<pos('"/health/live"'));
-  assert.ok(pos("bash scripts/install/readbox-update.sh")<pos("migrate status"));
+  assert.ok(pos('"$gate_script" preflight')<pos('"$gate_script" run'));
+  assert.ok(pos('"$gate_script" run')<pos('bash "$update_script"'));
+  assert.ok(pos('bash "$update_script"')<pos('"/health/live"'));
+  assert.ok(pos('bash "$update_script"')<pos("migrate status"));
   assert.match(guard,/flock -n 8/);
   assert.match(guard,/POST_UPDATE_MIGRATION_STATUS_FAILED/);
   assert.match(guard,/AU_R2_UPDATE_MANUAL_ACCEPTANCE_PENDING/);

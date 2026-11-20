@@ -1,0 +1,92 @@
+name: ReadBox AU-R2-BOOTSTRAP-01 source-only disposable CI
+on:
+  push:
+    branches: [implementation/readbox-au-r2-bootstrap01-20261120]
+    paths:
+      - 'scripts/install/readbox-update.sh'
+      - 'scripts/install/readbox-guarded-update.sh'
+      - 'scripts/install/readbox-update-bootstrap.sh'
+      - 'tests/integration/au-r2-guarded-update.test.mjs'
+      - 'tests/operations/au-r2-bootstrap.test.mjs'
+      - '.github/workflows/au-r2-bootstrap-ci.yml'
+      - 'docs/ADMIN-SYSTEM-UPDATE.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bootstrap:
+    if: github.repository == 'vibtoolshq/ReadBox'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GIT_TERMINAL_PROMPT: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Frozen baseline and exact scope/security audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=72c139f4e96838ef0ed3476a8d4af91327b4fd42
+          git merge-base --is-ancestor "$base" HEAD
+          git diff --check "$base" HEAD
+          python3 - <<'PY'
+          import subprocess
+          base="72c139f4e96838ef0ed3476a8d4af91327b4fd42"
+          allowed={
+            "scripts/install/readbox-update.sh",
+            "scripts/install/readbox-guarded-update.sh",
+            "scripts/install/readbox-update-bootstrap.sh",
+            "tests/integration/au-r2-guarded-update.test.mjs",
+            "tests/operations/au-r2-bootstrap.test.mjs",
+            ".github/workflows/au-r2-bootstrap-ci.yml",
+            "docs/ADMIN-SYSTEM-UPDATE.md",
+            "notes/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/004-ERROR-HANDLING-INVENTORY.md",
+            "notes/005-ACTUAL-IMPLEMENTATION-TRACKER.md",
+            "notes/006-VERIFICATION-AND-RELEASE-GATES.md",
+            "notes/backup-restore/003-PHASE-PROGRESS-AND-CHANGE-LOG.md",
+            "notes/backup-restore/005-ACTUAL-WORKING-FEATURE-TRACKER.md",
+            "notes/backup-restore/007-VERIFICATION-AND-PRODUCTION-GATES.md",
+          }
+          changed=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          assert changed <= allowed, ("AU_BOOTSTRAP_SCOPE_ESCAPE",sorted(changed-allowed))
+          must={"scripts/install/readbox-update.sh","scripts/install/readbox-guarded-update.sh",
+                "scripts/install/readbox-update-bootstrap.sh","tests/operations/au-r2-bootstrap.test.mjs"}
+          assert must <= changed, ("AU_BOOTSTRAP_REQUIRED_PATH_MISSING",sorted(must-changed))
+          assert not any(p.startswith(("src/","prisma/","deployment/","reference/")) for p in changed)
+          for path in ("scripts/install/readbox-guarded-update.sh",
+                       "scripts/install/readbox-update-bootstrap.sh"):
+            mode=subprocess.check_output(["git","ls-files","-s",path],text=True).split()[0]
+            assert mode=="100755",("SCRIPT_MODE_INVALID",path,mode)
+          print("AU_BOOTSTRAP_EXACT_SCOPE_PASS",len(changed))
+          PY
+      - name: Syntax/security contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/install/readbox-update.sh scripts/install/readbox-guarded-update.sh scripts/install/readbox-update-bootstrap.sh
+          python3 -m py_compile scripts/updater/backup_r2_gate.py
+          echo AU_BOOTSTRAP_SYNTAX_PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Disposable target/staging and existing updater regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          node --conditions=react-server --import tsx --test \
+            tests/integration/au-r2-guarded-update.test.mjs \
+            tests/operations/au-r2-bootstrap.test.mjs \
+            tests/integration/admin-system-update.test.mjs
+          npm run typecheck
+          echo AU_BOOTSTRAP_FOCUSED_VERIFY_PASS
+      - name: No live deployment or release
+        run: |
+          test "$GITHUB_REPOSITORY" = vibtoolshq/ReadBox
+          echo AU_BOOTSTRAP_DISPOSABLE_NO_VPS_NO_R2_NO_RELEASE_PASS
