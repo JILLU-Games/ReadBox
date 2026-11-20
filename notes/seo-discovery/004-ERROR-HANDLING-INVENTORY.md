@@ -1,3 +1,9 @@
+## SEO-02 planned error handling (source patch candidate, not CI-verified)
+- Public brand detection requires exact HTTPS anyinbox.cc or www hostname; spoofed suffixes and other OSS installations must fall back to ReadBox.
+- Inline JSON-LD serializes HTML-script-sensitive characters as Unicode escapes; malicious closing script sequence must not execute.
+- Robots must continue disallowing /api/, /users/, /vcon/ except explicitly public site-settings media; no access to private messages.
+- No SEO-02 write action, database migration, new secrets or state mutation. CI must prove actual behavior before changing status to VERIFIED.
+
 # 004 — Existing Error Handling & SEO Negative-Case Plan
 
 ## Actual source implementations (not freshly rerun)

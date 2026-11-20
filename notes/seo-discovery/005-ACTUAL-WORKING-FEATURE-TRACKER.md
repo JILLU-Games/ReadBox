@@ -1,3 +1,8 @@
+## SEO-02 candidate functionality — NOT YET CI VERIFIED
+- Added source-only public site identity helper for AnyInbox origin, five factual inbound-only FAQs, safe JSON-LD, compact /about page, sitemap change without synthetic dates, route-level sign-in/sign-up noindex, public branding image crawl exception, and conditional manifest favicon.
+- Existing branded Admin SEO settings remain unchanged; new About content is source-managed, not a new Admin CMS.
+- Default ReadBox origin retains original visible Homepage H1 and FAQ. SiteName stored in Admin settings remains unchanged; Home metadata override still uses SEO-01 configuration.
+
 # 005 — Actual Feature Inventory
 
 Use truth labels: **SOURCE PRESENT**, **LIVE OBSERVED**, **NOT TESTED**, **MISSING SOURCE**, **CI VERIFIED**, **LIVE ACCEPTED**. A code path or rendered HTML is not proof of end-to-end business operation.

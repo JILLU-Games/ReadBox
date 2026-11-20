@@ -1,7 +1,7 @@
-name: ReadBox SEO-01 scoped disposable CI (no deployment)
+name: ReadBox SEO-01/02 scoped disposable CI (no deployment)
 on:
   push:
-    branches: [implementation/readbox-seo01-20261120]
+    branches: [implementation/readbox-seo01-20261120, implementation/readbox-seo02-20261120]
     paths:
       - 'src/core/seo/**'
       - 'src/app/(workspace)/vcon/settings/page.tsx'
@@ -15,6 +15,15 @@ on:
       - 'tests/seo/**'
       - 'tests/ui/seo-settings.test.tsx'
       - 'tests/admin/phase6-settings-update-health.test.ts'
+      - 'src/app/about/page.tsx'
+      - 'src/app/robots.ts'
+      - 'src/app/sitemap.ts'
+      - 'src/app/manifest.ts'
+      - 'src/app/sign-in/page.tsx'
+      - 'src/app/sign-up/page.tsx'
+      - 'src/components/public/public-site-footer.tsx'
+      - 'tests/seo/ai-discovery.test.ts'
+      - 'tests/ui/seo-public-pages.test.tsx'
       - '.github/workflows/seo01-disposable-ci.yml'
   workflow_dispatch:
 permissions:
@@ -40,29 +49,54 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor 8e5b01b65c6f451dbbfabef64ca429687592e455 HEAD
-          git diff --check 8e5b01b65c6f451dbbfabef64ca429687592e455 HEAD
+          if [ "$GITHUB_REF_NAME" = "implementation/readbox-seo02-20261120" ]; then
+            export SEO_BASE=1485258654c36d27d9b2c2e51942072aaa66e346
+          else
+            export SEO_BASE=8e5b01b65c6f451dbbfabef64ca429687592e455
+          fi
+          git merge-base --is-ancestor "$SEO_BASE" HEAD
+          git diff --check "$SEO_BASE" HEAD
           python3 - <<'PY'
-          import subprocess
-          base="8e5b01b65c6f451dbbfabef64ca429687592e455"
-          allowed={
+          import os, subprocess
+          is_seo02 = os.environ["GITHUB_REF_NAME"] == "implementation/readbox-seo02-20261120"
+          base = os.environ["SEO_BASE"]
+          seo01 = {
             "prisma/schema.prisma",
             "prisma/migrations/20261120000000_seo01_site_seo_settings/migration.sql",
-            "src/core/seo/types.ts","src/core/seo/validation.ts",
-            "src/core/seo/service.ts","src/core/seo/metadata.ts",
+            "src/core/seo/types.ts", "src/core/seo/validation.ts",
+            "src/core/seo/service.ts", "src/core/seo/metadata.ts",
             "src/app/(workspace)/vcon/settings/seo-actions.ts",
             "src/components/vcon/seo-settings-console.tsx",
             "src/app/(workspace)/vcon/settings/page.tsx",
-            "src/app/page.tsx","src/app/contact/page.tsx","src/app/privacy/page.tsx",
-            "tests/seo/seo-settings.test.ts","tests/seo/page-metadata.test.ts",
-            "tests/ui/seo-settings.test.tsx","tests/admin/phase6-settings-update-health.test.ts",
+            "src/app/page.tsx", "src/app/contact/page.tsx", "src/app/privacy/page.tsx",
+            "tests/seo/seo-settings.test.ts", "tests/seo/page-metadata.test.ts",
+            "tests/ui/seo-settings.test.tsx", "tests/admin/phase6-settings-update-health.test.ts",
             ".github/workflows/seo01-disposable-ci.yml",
           }
-          changed=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
-          assert changed <= allowed | {p for p in changed if p.startswith("notes/seo-discovery/")}, sorted(changed-allowed)
-          assert all(not p.startswith(("src/core/auth/","src/core/dns/","src/core/mailboxes/","reference/","deployment/")) for p in changed)
-          assert subprocess.check_output(["git","diff","--name-only",base,"--","prisma/migrations"],text=True).strip()=="prisma/migrations/20261120000000_seo01_site_seo_settings/migration.sql"
-          print("SEO01_EXACT_SCOPE_PASS",len(changed))
+          seo02 = {
+            "src/app/page.tsx",
+            "src/core/seo/brand.ts", "src/core/seo/structured-data.ts",
+            "src/app/about/page.tsx", "src/app/sitemap.ts", "src/app/robots.ts",
+            "src/app/sign-in/page.tsx", "src/app/sign-up/page.tsx",
+            "src/app/manifest.ts", "src/components/public/public-site-footer.tsx",
+            "src/components/vcon/seo-settings-console.tsx",
+            "tests/seo/ai-discovery.test.ts", "tests/ui/seo-public-pages.test.tsx",
+            ".github/workflows/seo01-disposable-ci.yml",
+          }
+          changed = set(subprocess.check_output(
+            ["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines())
+          notes = {path for path in changed if path.startswith("notes/seo-discovery/")}
+          allowed = seo02 if is_seo02 else seo01
+          assert changed <= allowed | notes, sorted(changed - allowed - notes)
+          assert all(not path.startswith(("src/core/auth/", "src/core/dns/",
+            "src/core/mailboxes/", "reference/", "deployment/")) for path in changed)
+          if is_seo02:
+            assert not any(path.startswith("prisma/") for path in changed)
+          else:
+            assert subprocess.check_output(["git", "diff", "--name-only",
+              base, "--", "prisma/migrations"], text=True).strip() == \
+              "prisma/migrations/20261120000000_seo01_site_seo_settings/migration.sql"
+          print("SEO_EXACT_SCOPE_PASS", "SEO02" if is_seo02 else "SEO01", len(changed))
           PY
       - name: Locked Node dependencies and schema validation
         run: |
@@ -76,6 +110,15 @@ jobs:
           node --conditions=react-server --import tsx --test tests/seo/seo-settings.test.ts tests/seo/page-metadata.test.ts
           npx vitest run --config vitest.config.mts             tests/ui/seo-settings.test.tsx tests/ui/vcon-phase6.test.tsx
           npx eslint src/core/seo src/components/vcon/seo-settings-console.tsx             'src/app/(workspace)/vcon/settings/page.tsx'             'src/app/(workspace)/vcon/settings/seo-actions.ts'             src/app/page.tsx src/app/contact/page.tsx src/app/privacy/page.tsx             tests/seo tests/ui/seo-settings.test.tsx
+          if [ "$GITHUB_REF_NAME" = "implementation/readbox-seo02-20261120" ]; then
+            node --conditions=react-server --import tsx --test tests/seo/ai-discovery.test.ts
+            npx vitest run --config vitest.config.mts tests/ui/seo-public-pages.test.tsx
+            npx eslint src/core/seo/brand.ts src/core/seo/structured-data.ts \
+              src/app/about/page.tsx src/app/robots.ts src/app/sitemap.ts \
+              src/app/manifest.ts src/app/sign-in/page.tsx src/app/sign-up/page.tsx \
+              src/components/public/public-site-footer.tsx tests/seo/ai-discovery.test.ts \
+              tests/ui/seo-public-pages.test.tsx
+          fi
           npm run typecheck
           npm run build
           echo SEO01_FOCUSED_REGRESSION_AND_BUILD_PASS

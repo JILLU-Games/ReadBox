@@ -1,3 +1,12 @@
+## SEO-02 exact patch ownership and retained behaviors
+- Baseline `1485258654c36d27d9b2c2e51942072aaa66e346`; planned/implementation branch `implementation/readbox-seo02-20261120`.
+- `src/app/page.tsx`: replace fixed public H1 and FAQ data use with site-specific copy, feed same FAQs to JSON-LD. Keep generateMetadata, existing CSS/layout/CTA, user-facing panels, links and mail logic untouched.
+- `src/core/seo/brand.ts`: isolate AnyInbox to exact HTTPS origin, retain ReadBox H1/FAQ defaults. `structured-data.ts`: script-safe JSON-LD serialization.
+- `src/app/about/page.tsx`: new minimal public factual page; `sitemap.ts`: add About, omit unverified lastModified; `robots.ts`: narrowly allow site settings public assets and keep private API deny; `sign-in/sign-up`: metadata-only noindex.
+- `src/app/manifest.ts`: if AnyInbox branded favicon exists, omit ReadBox fallback icons; default OSS install behavior stays.
+- `src/components/public/public-site-footer.tsx`: optional About link only; no redesign.
+- CI branch-specific diff against exact 1485258 baseline; no Prisma files allowed. SEO-01 previous CI contract preserved.
+
 # 007 — Immutable Code Blocks, Patch Ownership and Regression Map
 
 **All excerpts below are existing source evidence at `8e5b01b65c6f451dbbfabef64ca429687592e455`. They are NOT implementation diff.** Base link format: `https://github.com/vibtoolshq/ReadBox/blob/8e5b01b65c6f451dbbfabef64ca429687592e455/PATH#LNUMBER`.

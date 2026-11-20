@@ -1,3 +1,9 @@
+## SEO-02 Editorial approval scope — 2026-11-20
+- User explicitly approved implementation of the previously proposed AnyInbox brand-specific content, factual About and inbound-only FAQ.
+- Canonical deployment hostname is exact HTTPS `anyinbox.cc` (and www variant). Open-source ReadBox defaults are not renamed.
+- Existing Admin `siteName` value and SEO-01 metadata rows are not written or normalized by SEO-02 source-only patch. Brand copy is conditional; production owner must review configured Site Name/SEO fields at deployment stage.
+- No AI/Google indexing promises, outbound mail claims, public IMAP/POP3, CMS or `llms.txt`.
+
 # 008 — AnyInbox Brand, SEO Copy and AI-readable Facts
 
 **AnyInbox is a branded deployment of ReadBox.** The reusable open-source ReadBox product, default site settings, repository license and documentation must not be globally renamed.
