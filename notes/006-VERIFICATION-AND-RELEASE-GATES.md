@@ -420,3 +420,12 @@ Do not bypass ESLint or edit unapproved files. Separate explicit approval needed
 | Attachments/MIME/digest, controlled outage/rollback, offsite full restore, provenance and RG-01..RG-17 signoff | Not run in this manual feature test | **OPEN / product release NO-GO** |
 
 **Scope-locked conclusion:** Manual Mode **inbound deployment and live function = operator-PASS / approved for this observed use case**. The prior R-01..R-06 six source phases remain completed; historical formal RG rows and original finding IDs remain intact, **not** blanket closed by these screenshots. No new CI result is asserted for documentation-only update.
+
+## AU-PARITY-01 — reproducible verification and release gates (2026-11-20)
+
+- Primary freeze `ddc3674ec1af0cccb2b4d93fc29edd3bffabbc4a` (3/3 dedicated backups matching at phase start).
+- [CI #44723090499](https://github.com/vibtoolshq/ReadBox/actions/runs/44723090499) PASS at `d289016340a70686febe9e014f8bb0d554ba37f4`, followed by minimal new CI notes/005 allowlist path correction.
+- [Necessary CI recheck #44723412617](https://github.com/vibtoolshq/ReadBox/actions/runs/44723412617) SUCCESS at `8d61704595a67cb97ae53d794be99198c45a64a3`. Exact baseline+7-path allowlist, `git diff --check`, mocked positive/negative 3-ref host/shell/web contracts, 10/10 Node tests, Python compile, Bash syntax, ESLint, TypeScript and CI no-deploy marker all PASS.
+- Security inventory: zero modifications outside approved runtime ref-verification sections, related tests/workflow, Admin System Update docs and these notes. No Prisma/schema/auth/DNS/mailserver/backups/Compose/source tag release change; no new secrets. Source tests do NOT prove production live updater operation.
+- Final documentation-only commit requires exact non-force Primary and both approved dedicated backup SHA parity readback before **VERIFIED CLOSED**. Until then **SOURCE VERIFIED, SYNC PENDING**.
+- Full production R-06 formal GO remains NO-GO; no release, DNS, VPS, data migration or live backup/restore.

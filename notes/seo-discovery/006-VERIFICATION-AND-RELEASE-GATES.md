@@ -64,3 +64,7 @@ After each grouped phase: exact modified-path allowlist, `git diff --check`, sec
 - Non-fatal pre-existing health/ready-related build warnings; no fresh production acceptance inferred.
 - Exact allowed paths only, 0 Prisma/auth/DNS/mailserver/deployment changes. Post-tested notes-only commits are NOT new executable tests.
 - Remaining: Primary and dedicated mirrors exact final SHA parity; separate live deployment/DB migration/public HTML/robots/sitemap/AI search acceptance. Full ReadBox production GO remains separate.
+
+## AU-PARITY-01 — SEO deployment dependency, source-only gate (2026-11-20)
+
+Primary plus two dedicated backup refs were equal at baseline `ddc3674ec1af0cccb2b4d93fc29edd3bffabbc4a`. The source updater previously demanded the unrelated JILLU `main`, which remained behind. New three-ref updater contract verified at `8d61704595a67cb97ae53d794be99198c45a64a3`: [CI #44723412617](https://github.com/vibtoolshq/ReadBox/actions/runs/44723412617) SUCCESS, scope 7 files, tests 10/10, no deploy marker PASS. Full final docs SHA parity must still be independently read back after non-force backup push. SEO source phases remain 2/2 COMPLETE; actual production SEO migration, live admin values, public HTML/robots/sitemap/manifest and search indexing remain NOT LIVE VERIFIED. Full ReadBox R-06 remains NO-GO.

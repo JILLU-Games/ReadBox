@@ -330,3 +330,11 @@ Frozen code/ref snapshot: `b4265e8fb6d8d32ebf08a12e4857bb6f10e536c9` (tree `120c
 ## 2026-11-20 — Manual DKIM zone validation: expected safeguard
 
 Observed `vibmail.my` edit page showed `Select a Cloudflare zone before publishing DNS.` because **Publish DKIM TXT to configured Cloudflare zone** was selected while no matching zone was available. This is intended fail-closed UI validation, **not** a reproduced backend bug. For another account, operator unchecked Publish and used `Provision / Repair DKIM`; subsequent screenshot showed a ready key and copyable public TXT. Domain-level `DNS: verified` is routing verification only; authoritative DKIM TXT and negative external provider cases remain unverified. No source/error-handler edits were authorized.
+
+## AU-PARITY-01 — fail-closed updater ref evidence (2026-11-20)
+
+- Three fixed refs: Primary `vibtoolshq/ReadBox:main`, `JILLU-Games/ReadBox:backup/dns-final-primary-20261119`, `MdNurnobi-Dev/ReadBox:backup/dns-final-primary-20261119`. Backup repository `main` is deliberately NOT consulted.
+- `src/core/updates/service.ts` returns `NO_COMPATIBLE_RELEASE` (409) for mismatched/invalid SHA and `UPSTREAM_UNAVAILABLE` (503) for unavailable/403/missing source; no download/update occurs.
+- Host `remote_main_refs()` permits only hard-coded exact remote/ref pairs and valid full 40-hex SHA, requires equality across all 3, otherwise fails closed as `UNTRUSTED_REMOTE_REF`, `SOURCE_MIRROR_MISMATCH` or host command failure. Authenticated RPC action/permissions/nonce checks remain untouched.
+- Opt-in pinned shell update gate validates all three refs against the approved target and returns `AU01_SOURCE_MIRROR_SHA_MISMATCH` on mismatch; inaccessible/missing `git ls-remote --exit-code` fails before snapshot/merge/Compose under `set -Eeuo pipefail`.
+- Source/CI proof [44723412617](https://github.com/vibtoolshq/ReadBox/actions/runs/44723412617): 10/10 Node tests; host Python mock and shell fake-Git negative cases exercised with no live Git/VPS/DNS/R2. Actual production host behavior remains NOT LIVE VERIFIED.

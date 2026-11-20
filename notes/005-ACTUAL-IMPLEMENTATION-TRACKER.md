@@ -363,3 +363,14 @@ Candidate code SHA: `3adff246beec44c685d8885875a9d94f41dece4a` ([failed CI #4450
 | Universal production release | Original 7 OPEN items and 17 formal release gates remain independently unsigned | **NO-GO** |
 
 **MM-01 implementation/deployment/live basic inbound: CLOSED for this feature's operator-approved use.** Other NEXT-03/NEXT-04 and R-06 acceptance remains open. Inbound-only product does not perform outbound DKIM signing. No application changes made in this documentation step.
+
+## AU-PARITY-01 — actual feature/status addendum (2026-11-20)
+
+| Capability | Source result | Reality limit |
+|---|---|---|
+| Primary main + two dedicated backups exact immutable SHA check | CI-VERIFIED, web + host + pinned shell | No production updater invocation performed |
+| Invalid/missing/inaccessible/mismatched ref fail-closed | CI-VERIFIED (mocked) | Real GitHub outage/rate limit not deliberately induced |
+| Existing web auth, host HMAC/UID, encrypted pre-update snapshot and guarded rollback | SOURCE UNCHANGED + focused static contracts | No live deployment, backup, restore, or update |
+| Full ReadBox release | Still R-06 NO-GO | Seven historic OPEN and incomplete RG-01..17 remain |
+
+Only the verified fixed-ref contract was changed. Existing mail/domain/manual-mode/SEO features were not retested by this scoped workflow. Dedicated backup ref sync is an independent required publication gate.
