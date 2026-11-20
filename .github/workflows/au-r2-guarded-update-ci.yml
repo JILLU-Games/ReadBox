@@ -1,3 +1,4 @@
+# AU-R2-UPDATE-01: one final explicitly approved CI verification of corrected source+notes candidate.
 name: ReadBox AU-R2-UPDATE-01 focused disposable CI (NO LIVE UPDATE)
 on:
   push:
