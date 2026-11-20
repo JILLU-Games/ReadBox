@@ -1,7 +1,7 @@
 import { PublicFaqAccordion } from "@/components/public/public-faq-accordion";
 import { PublicSiteFooter } from "@/components/public/public-site-footer";
 import { getPublicBrandPresentation } from "@/core/seo/brand";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 afterEach(cleanup);
@@ -24,6 +24,7 @@ describe("SEO-02 public UI regression", () => {
     render(<PublicFaqAccordion items={brand.faqItems} />);
     expect(screen.getByText("What is AnyInbox used for?")).toBeInTheDocument();
     expect(screen.getByText(/AnyInbox helps you manage custom-domain mailboxes/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Can AnyInbox send outbound email/ }));
     expect(screen.getByText(/SMTP submission/)).toBeInTheDocument();
   });
 });
