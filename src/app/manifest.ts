@@ -3,6 +3,8 @@ import {
   getSiteSettings,
 } from "@/core/settings/service";
 import type { MetadataRoute } from "next";
+import { env } from "@/config/env";
+import { getPublicBrandPresentation } from "@/core/seo/brand";
 
 function inferManifestIconType(iconUrl: string): string {
   const lower = iconUrl.toLowerCase();
@@ -29,6 +31,10 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     description = cached.siteTagline || description;
   }
 
+  const publicOrigin = env.publicSiteOrigin || "https://" + env.mailDomain;
+  const brand = getPublicBrandPresentation(siteName, publicOrigin);
+  siteName = brand.displayName;
+
   const icons: NonNullable<MetadataRoute.Manifest["icons"]> = [
     {
       src: "/icons/readbox-192.png",
@@ -50,6 +56,11 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     },
   ];
 
+  // On the AnyInbox deployment, the configured public favicon replaces
+  // ReadBox fallback icons; ordinary ReadBox installations retain their originals.
+  if (brand.isAnyInbox && customFaviconUrl) {
+    icons.length = 0;
+  }
   if (customFaviconUrl) {
     icons.unshift({
       src: customFaviconUrl,

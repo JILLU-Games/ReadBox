@@ -1,5 +1,4 @@
 import { PublicFaqAccordion } from "@/components/public/public-faq-accordion";
-import { PUBLIC_FAQ_ITEMS } from "@/components/public/public-faq-data";
 import { PublicSiteFooter } from "@/components/public/public-site-footer";
 import { PublicSiteHeader } from "@/components/public/public-site-header";
 import {
@@ -16,6 +15,8 @@ import {
 import { env } from "@/config/env";
 import { getSiteSettings } from "@/core/settings/service";
 import { getPageSeoMetadata } from "@/core/seo/metadata";
+import { getPublicBrandPresentation } from "@/core/seo/brand";
+import { buildPublicSiteStructuredData, serializeJsonLdForHtml } from "@/core/seo/structured-data";
 import {
   ArrowRight,
   Building2,
@@ -234,59 +235,26 @@ const SECURITY_PILLARS = [
 
 export default async function PublicLandingPage() {
   const settings = await getSiteSettings();
-  const siteName = settings.siteName || "ReadBox";
   const mailDomain = env.mailDomain || "readbox.local";
   const baseUrl = resolvePublicBaseUrl();
+  const brand = getPublicBrandPresentation(settings.siteName, baseUrl);
+  const siteName = brand.displayName;
+  const faqItems = brand.faqItems;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": `${baseUrl}/#organization`,
-        name: siteName,
-        url: `${baseUrl}/`,
-        description:
-          settings.siteTagline ||
-          "Self-service custom-domain mailboxes, shared team inboxes, and private webmail workspaces.",
-        ...(settings.supportEmail ? { email: settings.supportEmail } : {}),
-        ...(settings.contactPhone ? { telephone: settings.contactPhone } : {}),
-        contactPoint: [
-          {
-            "@type": "ContactPoint",
-            contactType: "customer support and domain onboarding",
-            url: `${baseUrl}/contact`,
-            availableLanguage: ["en"],
-          },
-        ],
-      },
-      {
-        "@type": "WebApplication",
-        name: siteName,
-        applicationCategory: "BusinessApplication",
-        operatingSystem: "All",
-        url: `${baseUrl}/`,
-      },
-      {
-        "@type": "FAQPage",
-        "@id": `${baseUrl}/#faq`,
-        mainEntity: PUBLIC_FAQ_ITEMS.map((item) => ({
-          "@type": "Question",
-          name: item.question,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: item.answer,
-          },
-        })),
-      },
-    ],
-  };
+  const jsonLd = buildPublicSiteStructuredData({
+    baseUrl,
+    siteName,
+    siteTagline: settings.siteTagline,
+    supportEmail: settings.supportEmail,
+    contactPhone: settings.contactPhone,
+    faqItems,
+  });
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLdForHtml(jsonLd) }}
       />
 
       <PublicSiteHeader
@@ -303,8 +271,7 @@ export default async function PublicLandingPage() {
               <div className="flex min-w-0 flex-col justify-between lg:col-span-7">
                 <div>
                   <PageTitle className="text-balance">
-                    Self-service custom-domain mailboxes and private team
-                    workspaces.
+                    {brand.heroTitle}
                   </PageTitle>
 
                   <p
@@ -669,7 +636,7 @@ export default async function PublicLandingPage() {
               </SectionTitle>
             </div>
 
-            <PublicFaqAccordion items={PUBLIC_FAQ_ITEMS} />
+            <PublicFaqAccordion items={faqItems} />
           </div>
         </section>
 

@@ -14,8 +14,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/contact", "/privacy"],
-        disallow: ["/vcon/", "/users/", "/api/", "/sign-in", "/reset-password"],
+        allow: ["/", "/contact", "/privacy", "/about", "/api/media/site-settings/"],
+        disallow: ["/vcon/", "/users/", "/api/", "/reset-password"],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

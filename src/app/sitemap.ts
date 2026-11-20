@@ -10,26 +10,27 @@ function resolvePublicBaseUrl(): string {
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = resolvePublicBaseUrl();
-  const lastModified = new Date("2026-04-12T00:00:00.000Z");
 
   return [
     {
       url: `${baseUrl}/`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 1.0,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified,
       changeFrequency: "yearly",
       priority: 0.4,
+    },
+    {
+      url: `${baseUrl}/about`,
+      changeFrequency: "monthly",
+      priority: 0.5,
     },
   ];
 }

@@ -134,6 +134,11 @@ export function PublicSiteFooter({
             <SectionTitle>Support &amp; Legal</SectionTitle>
             <ul className="mt-2 space-y-1.5">
               <li>
+                <Link href="/about" className="hover:text-foreground">
+                  About
+                </Link>
+              </li>
+              <li>
                 <Link
                   href="/contact"
                   className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary"

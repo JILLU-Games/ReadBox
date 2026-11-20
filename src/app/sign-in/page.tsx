@@ -29,6 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
       absolute: `User sign in | ${siteName}`,
     },
     referrer: "same-origin",
+    robots: { index: false, follow: false },
   };
 }
 
