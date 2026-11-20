@@ -207,10 +207,13 @@ def receipt(client: Client, backup_id: str, digest: str) -> dict:
     record = next((item for item in entries if item.get("id") == backup_id), None)
     require(isinstance(record, dict), "AU_R2_RECEIPT_NOT_FOUND")
     local_archive(backup_id, record, digest)
+    remote_at = record.get("remoteVerifiedAt")
+    # PrivateStore.now() writes UTC ISO 8601 strings, not integer timestamps.
     require(record.get("remoteState") == "remote_verified" and
             record.get("remoteKey") == "readbox/managed/" + backup_id + ".age" and
-            isinstance(record.get("remoteVerifiedAt"), (int, float)) and
-            record["remoteVerifiedAt"] > 0, "AU_R2_REMOTE_RECEIPT_MISSING")
+            isinstance(remote_at, str) and
+            re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.+\-]+", remote_at) is not None,
+            "AU_R2_REMOTE_RECEIPT_MISSING")
     return record
 
 
