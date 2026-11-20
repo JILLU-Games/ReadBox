@@ -19,6 +19,27 @@ export const seoPageInputSchema = z.object({
       "Use an existing public PNG, WebP, or JPEG under /icons/ or /api/media/site-settings/."),
 });
 
+export function isTrustedSeoActionOrigin(
+  requestHeaders: Pick<Headers, "get">,
+  expectedPublicOrigin?: string | null,
+): boolean {
+  try {
+    const origin = requestHeaders.get("origin");
+    const host = requestHeaders.get("host");
+    if (!origin || !host) return false;
+    const actual = new URL(origin);
+    if (!["https:", "http:"].includes(actual.protocol) || actual.username || actual.password) {
+      return false;
+    }
+    const expected = expectedPublicOrigin
+      ? new URL(expectedPublicOrigin).origin
+      : `${actual.protocol}//${host}`;
+    return actual.origin === expected && new URL(`${actual.protocol}//${host}`).host === actual.host;
+  } catch {
+    return false;
+  }
+}
+
 export type SeoPageInput = z.infer<typeof seoPageInputSchema>;
 
 export function seoValidationErrors(error: z.ZodError): Record<string, string> {

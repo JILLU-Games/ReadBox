@@ -71,12 +71,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --conditions=react-server --import tsx --test             tests/seo/seo-settings.test.ts tests/seo/page-metadata.test.ts             tests/admin/phase6-settings-update-health.test.ts
+          node --conditions=react-server --import tsx --test tests/seo/seo-settings.test.ts tests/seo/page-metadata.test.ts
           npx vitest run --config vitest.config.mts             tests/ui/seo-settings.test.tsx tests/ui/vcon-phase6.test.tsx
           npx eslint src/core/seo src/components/vcon/seo-settings-console.tsx             'src/app/(workspace)/vcon/settings/page.tsx'             'src/app/(workspace)/vcon/settings/seo-actions.ts'             src/app/page.tsx src/app/contact/page.tsx src/app/privacy/page.tsx             tests/seo tests/ui/seo-settings.test.tsx
           npm run typecheck
           npm run build
           echo SEO01_FOCUSED_REGRESSION_AND_BUILD_PASS
+          # Unchanged readiness regression runs last; the new additive migration
+          # may require a fixture update outside SEO-01's allowlist.
+          # A failure remains BLOCKED rather than silently marking it PASS.
+          node --conditions=react-server --import tsx --test tests/admin/phase6-settings-update-health.test.ts
       - name: Confirm NO production deployment or release
         run: |
           set -euo pipefail
