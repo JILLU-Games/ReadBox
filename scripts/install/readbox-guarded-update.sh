@@ -10,11 +10,23 @@ target="$2"
 [[ -d "$ROOT/.git" && -f "$ROOT/docker-compose.yml" && ! -L "$ROOT" ]] ||
   die APPROVED_COMPOSE_ROOT_REQUIRED
 cd "$ROOT"
-[[ -f scripts/updater/backup_r2_gate.py && ! -L scripts/updater/backup_r2_gate.py &&
-   -f scripts/install/readbox-update.sh && ! -L scripts/install/readbox-update.sh ]] ||
+# A clean old checkout can use source-verified scripts staged outside Git.
+# The bootstrap is the sole producer of this private 0700 directory.
+source_root="$ROOT"
+if [[ -n "${READBOX_AU_STAGE_DIR:-}" ]]; then
+  [[ "${READBOX_AU_STAGE_DIR}" =~ ^/run/readbox-au-r2-bootstrap\.[A-Za-z0-9]{8}$ &&
+     -d "${READBOX_AU_STAGE_DIR}" && ! -L "${READBOX_AU_STAGE_DIR}" &&
+     "$(stat -c '%u:%a' "${READBOX_AU_STAGE_DIR}")" == 0:700 ]] ||
+    die STAGED_SOURCE_DIRECTORY_UNSAFE
+  source_root="$READBOX_AU_STAGE_DIR"
+fi
+gate_script="$source_root/scripts/updater/backup_r2_gate.py"
+update_script="$source_root/scripts/install/readbox-update.sh"
+[[ -f "$gate_script" && ! -L "$gate_script" &&
+   -f "$update_script" && ! -L "$update_script" ]] ||
   die GUARDED_UPDATER_FILES_REQUIRED
-# Never silently use an older updater that ignores the new R2 receipt gate.
-grep -Fq READBOX_R2_GUARDED scripts/install/readbox-update.sh ||
+# Never run an older updater without the mandatory R2 receipt gate.
+grep -Fq READBOX_R2_GUARDED "$update_script" ||
   die GUARDED_UPDATER_VERSION_REQUIRED
 for cmd in git docker python3 age-keygen flock stat sha256sum; do
   command -v "$cmd" >/dev/null 2>&1 || die HOST_PREREQUISITE_MISSING
@@ -48,6 +60,19 @@ read_ref() {
 read_ref https://github.com/vibtoolshq/ReadBox.git "$source_ref"
 read_ref https://github.com/JILLU-Games/ReadBox.git "$backup_ref"
 read_ref https://github.com/MdNurnobi-Dev/ReadBox.git "$backup_ref"
+# Reject any staged binary/script that is not the exact Git blob at target.
+if [[ "$source_root" != "$ROOT" ]]; then
+  for path in scripts/install/readbox-guarded-update.sh \
+              scripts/install/readbox-update.sh \
+              scripts/updater/backup_r2_gate.py; do
+    entry="$source_root/$path"
+    [[ -f "$entry" && ! -L "$entry" &&
+       "$(stat -c '%u:%a' "$entry")" == 0:600 ]] ||
+      die STAGED_SOURCE_FILE_UNSAFE
+    [[ "$(git hash-object -- "$entry")" == "$(git rev-parse "$target:$path")" ]] ||
+      die STAGED_SOURCE_SHA_MISMATCH
+  done
+fi
 current="$(git rev-parse HEAD)"
 [[ "$current" =~ ^[0-9a-f]{40}$ ]] || die CURRENT_SHA_INVALID
 if [[ "$current" == "$target" ]]; then
@@ -70,12 +95,12 @@ done
    "$(stat -c %a /root/.readbox-secrets/pre-update)" == 700 ]] ||
   die PRIVATE_ROLLBACK_DIRECTORY_REQUIRED
 # Read-only, no R2 test probe/PUT at this stage.
-python3 scripts/updater/backup_r2_gate.py preflight >/dev/null ||
+python3 "$gate_script" preflight >/dev/null ||
   die BACKUP_R2_PREFLIGHT_FAILED
 echo AU_R2_PREFLIGHT_PASS
 # The agent uses the global maintenance lock for each backup/verify/R2 job.
 # Do not hold that lock here: the existing updater acquires it afterwards.
-gate="$(python3 scripts/updater/backup_r2_gate.py run)" ||
+gate="$(python3 "$gate_script" run)" ||
   die ENCRYPTED_R2_BACKUP_NOT_VERIFIED
 read -r backup_id digest extra <<< "$gate"
 [[ "$backup_id" =~ ^[0-9a-f]{32}$ && "$digest" =~ ^[0-9a-f]{64}$ && -z "${extra:-}" ]] ||
@@ -92,7 +117,7 @@ READBOX_UPDATE_TARGET_SHA="$target" READBOX_UPDATE_REQUIRE_PARITY=1 \
 READBOX_R2_GUARDED=1 READBOX_R2_BACKUP_ID="$backup_id" \
 READBOX_R2_BACKUP_SHA256="$digest" READBOX_BACKUP_RECIPIENT="$recipient" \
 READBOX_BACKUP_DIR=/root/.readbox-secrets/pre-update \
-READBOX_COMPOSE_PROJECT=readbox bash scripts/install/readbox-update.sh ||
+READBOX_COMPOSE_PROJECT=readbox bash "$update_script" ||
   die COMPOSE_UPDATE_FAILED_PRESERVE_BACKUPS
 # One bounded consolidated post-update gate. No automatic DB restore/reset.
 [[ "$(git rev-parse HEAD)" == "$target" && -z "$(git status --porcelain)" ]] ||

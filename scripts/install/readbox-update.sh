@@ -3,6 +3,16 @@
 set -Eeuo pipefail
 umask 077
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+# A pinned root-only bootstrap may run this verified script from private /run staging.
+# It does NOT overwrite a tracked updater in the still-clean old checkout.
+if [[ -n "${READBOX_AU_STAGE_DIR:-}" ]]; then
+  [[ "${READBOX_AU_STAGE_DIR}" =~ ^/run/readbox-au-r2-bootstrap\.[A-Za-z0-9]{8}$ &&
+     -d "${READBOX_AU_STAGE_DIR}" && ! -L "${READBOX_AU_STAGE_DIR}" &&
+     "$(stat -c '%u:%a' "${READBOX_AU_STAGE_DIR}")" == 0:700 ]] || {
+    echo "AU_BOOTSTRAP_STAGING_UNTRUSTED" >&2; exit 2;
+  }
+  ROOT=/opt/readbox
+fi
 cd "$ROOT"
 PROJECT="${READBOX_COMPOSE_PROJECT:-readbox}"
 ENV="$ROOT/.env"
@@ -69,7 +79,15 @@ if [[ "${READBOX_UPDATE_REQUIRE_PARITY:-0}" == 1 ]]; then
   }
 fi
 before="$(git rev-parse HEAD)"
-git fetch --no-tags origin main
+# AU-R2-BOOTSTRAP-01: a pinned update is fetched ONLY from canonical Primary,
+# never an approved mirror's intentionally stale origin/main. Legacy unpinned
+# manual mode retains its existing origin behavior.
+if [[ -n "$expected" ]]; then
+  git -c gc.auto=0 -c maintenance.auto=false fetch --no-auto-gc --no-tags \
+    https://github.com/vibtoolshq/ReadBox.git refs/heads/main
+else
+  git fetch --no-tags origin main
+fi
 after="$(git rev-parse FETCH_HEAD)"
 if [[ -n "$expected" && "$after" != "$expected" ]]; then
   echo "AU01_FETCHED_SHA_MISMATCH" >&2; exit 2
@@ -102,7 +120,17 @@ if [[ "${READBOX_R2_GUARDED:-0}" == 1 ]]; then
      "${READBOX_R2_BACKUP_SHA256:-}" =~ ^[0-9a-f]{64}$ ]] || {
     echo "AU_R2_GUARDED_RECEIPT_REQUIRED" >&2; exit 2;
   }
-  python3 "$ROOT/scripts/updater/backup_r2_gate.py" attest \
+  receipt_helper="$ROOT/scripts/updater/backup_r2_gate.py"
+  if [[ -n "${READBOX_AU_STAGE_DIR:-}" ]]; then
+    receipt_helper="$READBOX_AU_STAGE_DIR/scripts/updater/backup_r2_gate.py"
+    [[ -f "$receipt_helper" && ! -L "$receipt_helper" &&
+       "$(stat -c '%u:%a' "$receipt_helper")" == 0:600 &&
+       "$(git hash-object -- "$receipt_helper")" ==
+         "$(git rev-parse "$expected:scripts/updater/backup_r2_gate.py")" ]] || {
+      echo "AU_BOOTSTRAP_STAGED_RECEIPT_UNTRUSTED" >&2; exit 2;
+    }
+  fi
+  python3 "$receipt_helper" attest \
     "$READBOX_R2_BACKUP_ID" "$READBOX_R2_BACKUP_SHA256" >/dev/null || {
     echo "AU_R2_GUARDED_RECEIPT_UNVERIFIED" >&2; exit 2;
   }
