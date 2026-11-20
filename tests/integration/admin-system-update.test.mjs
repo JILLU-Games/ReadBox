@@ -9,10 +9,16 @@ import {
 const SAME_SHA = "a".repeat(40);
 const OTHER_SHA = "b".repeat(40);
 
-function refsFetch(source, mirror, releaseStatus = 404) {
+function refsFetch(source, mirror, backup = mirror, releaseStatus = 404, unavailable = "") {
   return async (url) => {
-    if (url.endsWith("/git/ref/heads/main")) {
-      const sha = url.includes("JILLU-Games") ? mirror : source;
+    if (url.includes("/git/ref/heads/")) {
+      const expected = url.includes("vibtoolshq/ReadBox")
+        ? "/git/ref/heads/main"
+        : "/git/ref/heads/backup/dns-final-primary-20261119";
+      assert.ok(url.endsWith(expected), "Must not consult backup repository main");
+      if (unavailable && url.includes(unavailable)) return { ok: false, status: 403 };
+      const sha = url.includes("JILLU-Games") ? mirror
+        : url.includes("MdNurnobi-Dev") ? backup : source;
       return { ok: true, status: 200, json: async () => ({ object: { sha } }) };
     }
     if (url.endsWith("/releases/latest")) {
@@ -42,7 +48,7 @@ test("AU01 Docker source discovery verifies matching official main refs without 
 
 test("AU01 Docker source channel keeps stable release discovery informational", async () => {
   const out = await checkLatestRelease({
-    containerRuntime: true, fetchImpl: refsFetch(SAME_SHA, SAME_SHA, 200),
+    containerRuntime: true, fetchImpl: refsFetch(SAME_SHA, SAME_SHA, SAME_SHA, 200),
   });
   assert.equal(out.ok, true);
   if (!out.ok) return;
@@ -51,14 +57,30 @@ test("AU01 Docker source channel keeps stable release discovery informational", 
   assert.equal(out.target_sha, SAME_SHA);
 });
 
-test("AU01 mismatched source and mirror fail closed before any update action", async () => {
-  const out = await checkLatestRelease({
-    containerRuntime: true, fetchImpl: refsFetch(SAME_SHA, OTHER_SHA),
-  });
-  assert.equal(out.ok, false);
-  if (out.ok) return;
-  assert.equal(out.code, "NO_COMPATIBLE_RELEASE");
-  assert.match(out.error, /mismatch/);
+test("AU01 each independently mismatched or invalid backup refuses an update", async () => {
+  for (const fixtures of [
+    [SAME_SHA, OTHER_SHA, SAME_SHA],
+    [SAME_SHA, SAME_SHA, OTHER_SHA],
+    [OTHER_SHA, SAME_SHA, SAME_SHA],
+    [SAME_SHA, "", SAME_SHA],
+    [SAME_SHA, SAME_SHA, "invalid-sha"],
+  ]) {
+    const out = await checkLatestRelease({
+      containerRuntime: true, fetchImpl: refsFetch(...fixtures),
+    });
+    assert.equal(out.ok, false);
+    if (!out.ok) assert.equal(out.code, "NO_COMPATIBLE_RELEASE");
+  }
+});
+
+test("AU01 unavailable dedicated ref fails closed before any update", async () => {
+  for (const unavailable of ["JILLU-Games", "MdNurnobi-Dev", "vibtoolshq"]) {
+    const out = await checkLatestRelease({
+      containerRuntime: true, fetchImpl: refsFetch(SAME_SHA, SAME_SHA, SAME_SHA, 404, unavailable),
+    });
+    assert.equal(out.ok, false);
+    if (!out.ok) assert.equal(out.code, "UPSTREAM_UNAVAILABLE");
+  }
 });
 
 test("AU01 Docker API refuses arbitrary ZIP URLs and invalid pinned SHAs", async () => {

@@ -53,7 +53,7 @@ docker image inspect ubuntu:24.04 >/dev/null || {
   echo "Pre-pull and audit ubuntu:24.04 recovery sidecar before updating." >&2; exit 2
 }
 docker compose --project-name "$PROJECT" -f docker-compose.yml config --quiet
-# AU-01 bridge pins an exact verified main SHA and independent mirror parity.
+# AU-PARITY-01: pinned Primary main and both dedicated backup refs.
 # Legacy manual invocation remains allowed without the opt-in pin.
 expected="${READBOX_UPDATE_TARGET_SHA:-}"
 if [[ -n "$expected" && ! "$expected" =~ ^[0-9a-f]{40}$ ]]; then
@@ -62,8 +62,9 @@ fi
 if [[ "${READBOX_UPDATE_REQUIRE_PARITY:-0}" == 1 ]]; then
   [[ -n "$expected" ]] || { echo "AU01_TARGET_REQUIRED" >&2; exit 2; }
   source_sha="$(git ls-remote --exit-code https://github.com/vibtoolshq/ReadBox.git refs/heads/main | cut -f1)"
-  mirror_sha="$(git ls-remote --exit-code https://github.com/JILLU-Games/ReadBox.git refs/heads/main | cut -f1)"
-  [[ "$source_sha" == "$expected" && "$mirror_sha" == "$expected" ]] || {
+  mirror_sha="$(git ls-remote --exit-code https://github.com/JILLU-Games/ReadBox.git refs/heads/backup/dns-final-primary-20261119 | cut -f1)"
+  backup_sha="$(git ls-remote --exit-code https://github.com/MdNurnobi-Dev/ReadBox.git refs/heads/backup/dns-final-primary-20261119 | cut -f1)"
+  [[ "$source_sha" == "$expected" && "$mirror_sha" == "$expected" && "$backup_sha" == "$expected" ]] || {
     echo "AU01_SOURCE_MIRROR_SHA_MISMATCH" >&2; exit 2
   }
 fi

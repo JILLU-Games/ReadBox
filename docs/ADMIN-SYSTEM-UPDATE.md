@@ -28,7 +28,7 @@ rebuild. No automatic destructive database rollback is attempted.
 - A single persisted root-only status file records lifecycle, sanitized error
   or success; an interrupted update becomes operator-review-required and
   cannot be retried from the UI.
-- When starting, the host verifies BOTH official main Git SHA values independently,
+- When starting, the host verifies Primary main and BOTH dedicated backup SHA refs independently,
   refuses mismatch, checks a clean main checkout, private environment/key,
   recovery image, private backup folder and existing guarded updater, before
   executing scripts/install/readbox-update.sh with a pinned target.
@@ -55,7 +55,7 @@ Admin Panel's Recheck Preflight.
 
 ## Browser flow
 1. Authorized admin opens System Update and selects Check for Updates.
-2. Docker mode reads the source and mirror GitHub main refs; a mismatch
+2. Docker mode reads Primary main and both dedicated backup GitHub refs; a mismatch
    BLOCKS update. If an approved stable release is present it is displayed
    as informational metadata only: the Docker flow uses verified source SHA,
    not untrusted ZIP assets or an implicit stable-release claim.
@@ -64,7 +64,7 @@ Admin Panel's Recheck Preflight.
 4. After explicit admin confirmation, the server routes a SHA-only request
    through the authenticated root Unix socket; it never accepts remote URLs
    or shell arguments in Docker mode.
-5. The root worker independently checks both refs and the host preflight,
+5. The root worker independently checks all three fixed refs and the host preflight,
    obtains encrypted pre-update backup, runs safe fast-forward/Compose update,
    bounds the health gate and records sanitized durable status. A failed
    backup prevents code mutation. A failed build/migration preserves the
@@ -103,12 +103,13 @@ Admin Panel's Recheck Preflight.
 
 - Marker ID: `AU02-E2E-DOCS-ONLY-20261118`. This approved documentation-only
   source change creates one new immutable Git main SHA after focused CI.
-- The live ReadBox Docker updater compares independently verified source/mirror
-  `main` SHA values with the current host SHA; this marker **is not** a stable
+- The historic AU-02 marker was created when the updater required both
+  source/mirror `main` refs; AU-PARITY-01 supersedes that check with the Primary
+  `main` and both dedicated backup refs. This marker **is not** a stable
   `v1.0.0` release, a feature change, a database migration, or a signed bundle.
 - The next update is **not automatically started** by this marker or Git sync.
   A human must first verify the 17/17 host preflight, the matching new SHA in
-  both official repositories, and an existing encrypted-backup prerequisite.
+  all three approved refs, and an existing encrypted-backup prerequisite.
 - An authorized administrator may then explicitly confirm a **single** browser
   update. Its guarded host updater must obtain the global maintenance lock,
   create the encrypted pre-update snapshot, fast-forward main without rewriting
@@ -119,3 +120,14 @@ Admin Panel's Recheck Preflight.
 - The resulting Git/CI verification and the eventual live browser execution
   are **separate gates**. The latter must remain NOT RUN until actual evidence
   confirms it. The formal `v1.0.0` production release remains NO-GO.
+
+## AU-PARITY-01 — Fixed three-ref compatibility, source-only (2026-11-20)
+
+The update preflight must read the same immutable commit from:
+- `vibtoolshq/ReadBox:refs/heads/main` (authoritative source).
+- `JILLU-Games/ReadBox:refs/heads/backup/dns-final-primary-20261119`.
+- `MdNurnobi-Dev/ReadBox:refs/heads/backup/dns-final-primary-20261119`.
+
+The backup repositories' `main` branches intentionally remain unchanged. The web API, root worker, and pinned shell updater independently verify all three refs, accept only the identical lowercase 40-hex SHA, and refuse unavailable/invalid/mismatched refs. URL/ref lists are fixed in source; no user-provided ref or URL can be executed. The host origin allowlist, HMAC/UID/nonce policy, global maintenance lock, encrypted pre-update snapshot, non-force fast-forward, and no-destructive-rollback rules remain unchanged.
+
+This correction does **not** install or trigger an update, migrate a database, or evidence live VPS readiness. A separate user-approved host operation and recovery plan remain mandatory; formal ReadBox release remains NO-GO.

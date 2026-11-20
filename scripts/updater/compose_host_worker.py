@@ -3,7 +3,7 @@
 
 No arbitrary commands, URLs, paths, git refs, shell arguments or network
 listeners are accepted from the web application. The host independently pins
-two trusted main refs and delegates to the existing guarded Compose updater.
+three fixed trusted refs and delegates to the existing guarded Compose updater.
 """
 from __future__ import annotations
 
@@ -34,6 +34,13 @@ TOKEN_NAME = "access.token"
 ALLOWED_REPOS = (
     "https://github.com/vibtoolshq/ReadBox.git",
     "https://github.com/JILLU-Games/ReadBox.git",
+)
+# Host origin allowlist above remains unchanged; these are read-only parity refs.
+TRUSTED_UPDATE_REFS = (
+    (ALLOWED_REPOS[0], "refs/heads/main"),
+    (ALLOWED_REPOS[1], "refs/heads/backup/dns-final-primary-20261119"),
+    ("https://github.com/MdNurnobi-Dev/ReadBox.git",
+     "refs/heads/backup/dns-final-primary-20261119"),
 )
 SHA = re.compile(r"^[0-9a-f]{40}$")
 LOCK = threading.Lock()
@@ -88,14 +95,15 @@ def read_status() -> dict:
 
 
 def remote_main_refs() -> str:
+    """Read only the fixed Primary main plus two dedicated backup refs."""
     heads = []
-    for remote in ALLOWED_REPOS:
-        out = run(["git", "ls-remote", "--exit-code", remote, "refs/heads/main"], 25)
-        sha = out.split()[0] if out else ""
-        if not SHA.fullmatch(sha):
+    for remote, ref in TRUSTED_UPDATE_REFS:
+        out = run(["git", "ls-remote", "--exit-code", remote, ref], 25)
+        fields = out.split()
+        if len(fields) != 2 or not SHA.fullmatch(fields[0]) or fields[1] != ref:
             raise RuntimeError("UNTRUSTED_REMOTE_REF")
-        heads.append(sha)
-    if heads[0] != heads[1]:
+        heads.append(fields[0])
+    if len(set(heads)) != 1:
         raise RuntimeError("SOURCE_MIRROR_MISMATCH")
     return heads[0]
 
@@ -150,9 +158,9 @@ def host_check(include_remote: bool = False) -> tuple[list[dict], str, str]:
     if include_remote and all(c["passed"] for c in checks):
         try:
             target = remote_main_refs()
-            check("source and mirror main parity", True, target[:12])
+            check("Primary and dedicated backups parity", True, target[:12])
         except (OSError, RuntimeError, subprocess.TimeoutExpired):
-            check("source and mirror main parity", False,
+            check("Primary and dedicated backups parity", False,
                   "Remote refs unavailable or mismatched")
     else:
         target = ""

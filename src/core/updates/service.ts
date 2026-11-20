@@ -260,26 +260,30 @@ export function isOfficialReleaseUrl(
   return true;
 }
 
-// Docker channel: a source SHA is not a stable release. The source and mirror
-// must independently advertise the identical immutable main head.
+// Docker channel: a source SHA is not a stable release. The Primary main
+// and two dedicated backup refs must independently advertise the same commit.
 async function checkVerifiedMainSource(
   fetchFn: typeof fetch,
 ): Promise<ReleaseCheckResult> {
-  const mainRef = (repo: string) =>
-    "https://api.github.com/repos/" + repo + "/git/ref/heads/main";
+  const refUrl = (repo: string, ref: string) =>
+    "https://api.github.com/repos/" + repo + "/git/ref/heads/" + ref;
+  const verifiedRefs = [
+    refUrl("vibtoolshq/ReadBox", "main"),
+    refUrl("JILLU-Games/ReadBox", "backup/dns-final-primary-20261119"),
+    refUrl("MdNurnobi-Dev/ReadBox", "backup/dns-final-primary-20261119"),
+  ] as const;
   const headers = { Accept: "application/vnd.github+json", "User-Agent": "ReadBox-Updater" };
   try {
-    const [sourceRes, mirrorRes] = await Promise.all([
-      fetchFn(mainRef("vibtoolshq/ReadBox"), { headers, signal: AbortSignal.timeout(10_000), cache: "no-store" }),
-      fetchFn(mainRef("JILLU-Games/ReadBox"), { headers, signal: AbortSignal.timeout(10_000), cache: "no-store" }),
-    ]);
-    if (!sourceRes.ok || !mirrorRes.ok) throw new Error("REMOTE_UNAVAILABLE");
-    const source = (await sourceRes.json()) as { object?: { sha?: unknown } };
-    const mirror = (await mirrorRes.json()) as { object?: { sha?: unknown } };
-    const sha = source.object?.sha;
-    if (typeof sha !== "string" || !SHA40.test(sha) || sha !== mirror.object?.sha) {
+    const responses = await Promise.all(verifiedRefs.map((url) =>
+      fetchFn(url, { headers, signal: AbortSignal.timeout(10_000), cache: "no-store" })));
+    if (responses.some((response) => !response.ok)) throw new Error("REMOTE_UNAVAILABLE");
+    const refs = await Promise.all(responses.map(async (response) =>
+      (await response.json()) as { object?: { sha?: unknown } }));
+    const sha = refs[0].object?.sha;
+    if (typeof sha !== "string" || !SHA40.test(sha) ||
+        refs.some((ref) => ref.object?.sha !== sha)) {
       return { ok: false, code: "NO_COMPATIBLE_RELEASE", status: 409,
-        error: "Source/mirror main SHA mismatch; automatic updates are refused." };
+        error: "Primary/dedicated backup SHA mismatch or invalid ref; automatic updates are refused." };
     }
     let stableDetail = "No approved stable release artifact is assumed.";
     try {
@@ -306,13 +310,13 @@ async function checkVerifiedMainSource(
     return {
       ok: true, latest_version: sha.slice(0, 12), mode: "source",
       target_sha: sha, current_sha: currentSha,
-      release_notes: "Verified source and mirror main: " + sha +
+      release_notes: "Verified Primary main and two dedicated backups: " + sha +
         ". This is a verified source channel, NOT a stable release. " + stableDetail,
       archive_url: "", checksum_url: "", published_at: "",
     };
   } catch {
     return { ok: false, code: "UPSTREAM_UNAVAILABLE", status: 503,
-      error: "Cannot verify both official GitHub main refs." };
+      error: "Cannot verify Primary main and both dedicated backup refs." };
   }
 }
 
