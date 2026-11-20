@@ -364,3 +364,10 @@ Observed `vibmail.my` edit page showed `Select a Cloudflare zone before publishi
 - Prior CI failure: `tests/integration/au-r2-guarded-update.test.mjs:24` asserted a literal helper pathname; the new approved updater calls its verified staged helper through `python3 "$receipt_helper" attest`. Existing runtime logic was not defective in that particular assertion.
 - User approved one and only one fixture correction: `assert.match(gate,/python3 "\$receipt_helper" attest/);` with the matching shell marker. The rest of the test, including the negative receipt refusal, stays intact.
 - [Final focused CI #44832329196](https://github.com/vibtoolshq/ReadBox/actions/runs/44832329196) **SUCCESS** at `f6fceeafc5933b1fdb8327e2589be825183bd5a9`: syntax, 14/14 tests, typecheck, exact scope and CI-only/no-deploy marker passed. This supersedes previous CI-blocked source status. It does **not** establish live R2 receipt, offsite restore or VPS update readiness.
+
+## OPS-CMD-FIX-01 — exact cause, negative contract and correction (2026-11-20)
+
+- Before fix, nested `sudo bash -c` command in `docs/ADMIN-SYSTEM-UPDATE.md` used incorrectly escaped single-quote segments around `trap`, causing argument splitting (expected five), rather than one safe shell script argument. The user approved **documentation, test and workflow trigger** only.
+- Corrected one-code-example fragment to `trap "rm -f -- \\"$entry\\"" EXIT`, whose inner Bash command retains shell quoting for a single root-only temporary entry path.
+- The targeted test shadows `sudo` with a local shell function (never executes sudo), asserts exact argc=5 and argv boundaries, validates extracted inner shell via `bash -n`, and simulates EXIT trap cleanup for a disposable temporary file with spaces on both status 0 and status 19. All pre-existing tests remain unchanged.
+- Verified [focused CI #44836416395](https://github.com/vibtoolshq/ReadBox/actions/runs/44836416395): 15/15 PASS; Bash/Python syntax, TypeScript, no-deployment and scope all PASS. No real VPS or production credentials/data involved; live operator success is unverified.

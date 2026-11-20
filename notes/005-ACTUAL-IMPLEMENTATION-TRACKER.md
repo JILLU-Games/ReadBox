@@ -423,3 +423,15 @@ Do not call AU-R2-BOOTSTRAP-01 CLOSED until a separately approved recheck is gre
 | Formal ReadBox production release | NO-GO | RG-01..RG-17 independent |
 
 Earlier historical BLOCKED snapshot was accurately reported before approval; final verification now supersedes it for source-only CI.
+
+## OPS-CMD-FIX-01 — actual implementation truth (2026-11-20)
+
+| Item | Evidence | Boundary |
+|---|---|---|
+| Correct published one-command quoting | Source doc narrow patch + mock 5-argument regression | Not executed on VPS |
+| EXIT trap cleanup | Local disposable success/failure test PASS, including spaced path | Does not prove host/run permissions |
+| Existing updater/agent/R2/DB/mailserver | Exact unchanged runtime paths | Host live backup/R2/health NOT RUN |
+| Focused verification | [Actions #44836416395](https://github.com/vibtoolshq/ReadBox/actions/runs/44836416395), 15/15 PASS at `0c38a51ff65d5461fb5020d943863586ed8ffc18` | Final publication and backup SHA readback still required |
+| Production release | R-06 NO-GO | RG-01..17 independently pending |
+
+The source operator-document defect is fixed and CI-verified; this is not a claim of production update or live acceptance.

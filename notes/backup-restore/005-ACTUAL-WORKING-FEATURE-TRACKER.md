@@ -95,3 +95,7 @@ A new canonical fetch + root-only external staging bootstrap is source present o
 ## AU-R2-BOOTSTRAP-01 — corrected feature evidence, source-only (2026-11-20)
 
 Source-only bootstrap, immutable staging and canonical Primary pinned fetch are **CI-VERIFIED** by [#44832329196](https://github.com/vibtoolshq/ReadBox/actions/runs/44832329196) at `f6fceeafc5933b1fdb8327e2589be825183bd5a9` with 14/14 passing tests. The original R2 agent, remote encrypted object and PrivateStore contract were not edited. The previously reported 13/14 failure was a stale literal fixture and is superseded. **Not live verified**: original VPS checkout clean state, root-only service/agent permissions, real backup/R2 remote checksum, database migration, mail/attachment reception, actual health or manual operator acceptance. Formal R-06 NO-GO unchanged.
+
+## OPS-CMD-FIX-01 — actual backup/R2 evidence boundary (2026-11-20)
+
+Published operator shell example has corrected nested quoting; focused CI [#44836416395](https://github.com/vibtoolshq/ReadBox/actions/runs/44836416395) tests mocked sudo argc=5, inner shell parser and EXIT trap cleanup on both success/failure. This fixes an operator-documentation bug only. Existing managed V2 archive/R2 service, private key, remote objects, scheduler and restoration were not modified or exercised. Actual VPS environment, fresh offsite checksum receipt and operational acceptance are NOT RUN.
