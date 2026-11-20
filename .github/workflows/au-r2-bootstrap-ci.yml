@@ -1,7 +1,7 @@
 name: ReadBox AU-R2-BOOTSTRAP-01 source-only disposable CI
 on:
   push:
-    branches: [implementation/readbox-au-r2-bootstrap01-20261120]
+    branches: [implementation/readbox-au-r2-bootstrap01-20261120, implementation/readbox-ops-cmd-fix01-20261120]
     paths:
       - 'scripts/install/readbox-update.sh'
       - 'scripts/install/readbox-guarded-update.sh'

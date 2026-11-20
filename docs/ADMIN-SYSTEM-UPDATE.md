@@ -222,7 +222,7 @@ replace `AUDITED_TARGET_SHA` with the final approved 40-character commit.
 Run once against a named Ubuntu ReadBox host (not in CI):
 
 ```bash
-sudo bash -c 'set -Eeuo pipefail; cd /opt/readbox; t="$1"; [[ "$t" =~ ^[0-9a-f]{40}$ ]]; git -c gc.auto=0 -c maintenance.auto=false fetch --no-auto-gc --no-tags https://github.com/vibtoolshq/ReadBox.git refs/heads/main; [[ "$(git rev-parse FETCH_HEAD)" == "$t" ]]; entry="$(mktemp /run/readbox-au-r2-entry.XXXXXXXX)"; trap '\\''rm -f -- "$entry"'\\'' EXIT; chmod 0600 "$entry"; git cat-file blob "$t:scripts/install/readbox-update-bootstrap.sh" > "$entry"; [[ "$(git hash-object -- "$entry")" == "$(git rev-parse "$t:scripts/install/readbox-update-bootstrap.sh")" ]]; bash "$entry" --target-sha "$t"' _ AUDITED_TARGET_SHA
+sudo bash -c 'set -Eeuo pipefail; cd /opt/readbox; t="$1"; [[ "$t" =~ ^[0-9a-f]{40}$ ]]; git -c gc.auto=0 -c maintenance.auto=false fetch --no-auto-gc --no-tags https://github.com/vibtoolshq/ReadBox.git refs/heads/main; [[ "$(git rev-parse FETCH_HEAD)" == "$t" ]]; entry="$(mktemp /run/readbox-au-r2-entry.XXXXXXXX)"; trap "rm -f -- \"$entry\"" EXIT; chmod 0600 "$entry"; git cat-file blob "$t:scripts/install/readbox-update-bootstrap.sh" > "$entry"; [[ "$(git hash-object -- "$entry")" == "$(git rev-parse "$t:scripts/install/readbox-update-bootstrap.sh")" ]]; bash "$entry" --target-sha "$t"' _ AUDITED_TARGET_SHA
 ```
 
 Never substitute `curl | bash` or copy tracked updater files over an old

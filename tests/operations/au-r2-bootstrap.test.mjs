@@ -131,3 +131,47 @@ test("root-only immutable staging, verified R2 receipt and non-force update reta
   for(const code of [bootstrap,guard,updater])
     assert.doesNotMatch(code,/git reset --hard|docker compose down -v|docker volume (?:rm|prune)/);
 });
+
+test("OPS-CMD-FIX-01 safe sudo argument boundary and cleanup without executing sudo or VPS commands", () => {
+  const doc = readFileSync("docs/ADMIN-SYSTEM-UPDATE.md", "utf8");
+  const section = doc.split("## AU-R2-BOOTSTRAP-01 — Canonical pinned Git fetch and private host staging")[1];
+  assert.ok(section, "approved operator section must exist");
+  const commandLine = section.split("\n").find(s => s.startsWith("sudo bash -c '"));
+  assert.ok(commandLine, "exact one-line operator command is required");
+  const target = "a".repeat(40);
+  const shellCommand = commandLine.replace("AUDITED_TARGET_SHA", target);
+  assert.doesNotMatch(shellCommand, /curl\s*\|\s*bash|git reset --hard|docker compose down -v/);
+  // Function shadows sudo: only argument parsing, never executes the inner script.
+  const capture = [
+    'sudo() { printf "argc=%s\\n" "$#"; printf "arg=%s\\n" "$@"; }',
+    shellCommand,
+  ].join("\n");
+  const result = run("bash", ["-c", capture]);
+  assert.equal(result.status, 0, result.stderr);
+  const lines = result.stdout.trimEnd().split("\n");
+  assert.equal(lines[0], "argc=5", "sudo must receive bash,-c,one script,_,target only");
+  const args = lines.slice(1).map(s => s.slice(4));
+  assert.equal(args.length, 5);
+  assert.deepEqual(args.slice(0, 2), ["bash", "-c"]);
+  assert.deepEqual(args.slice(3), ["_", target]);
+  const inner = args[2];
+  const syntax = run("bash", ["-n", "-c", inner]);
+  assert.equal(syntax.status, 0, syntax.stderr);
+  assert.match(inner, /https:\/\/github\.com\/vibtoolshq\/ReadBox\.git refs\/heads\/main/);
+  assert.match(inner, /git hash-object -- "\$entry"/);
+  const trapLine = inner.split("; ").find(s => s.startsWith("trap "));
+  assert.equal(trapLine, 'trap "rm -f -- \\"$entry\\"" EXIT');
+  const dir = mkdtempSync(join(tmpdir(), "au-bootstrap-trap-"));
+  try {
+    for (const status of [0, 19]) {
+      const entry = join(dir, "mock entry " + status + " with spaces");
+      writeFileSync(entry, "disposable-only");
+      const isolated = 'set -Eeuo pipefail; entry="$1"; ' + trapLine + "; exit " + status;
+      const probe = run("bash", ["-c", isolated, "_", entry]);
+      assert.equal(probe.status, status, probe.stderr);
+      assert.throws(() => lstatSync(entry), { code: "ENOENT" }, "cleanup must remove exact own entry only");
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
