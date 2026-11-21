@@ -197,3 +197,17 @@ The approved documentation/test/branch-trigger-only patch at `0c38a51ff65d5461fb
 
 ## AU-PRISMA-CLI-01 — backup/production gate remains NOT RUN (2026-11-21 UTC)
 Frozen Primary/JILLU/MdNurnobi 3/3 baseline `84ca61c657e35b8f207d0ea1a4248834bb1f59db`. Patch CI [#44844643775](https://github.com/vibtoolshq/ReadBox/actions/runs/44844643775) SUCCESS at `9e0b4a9e8463d3a86a83b156f079e9ffb3296447`: 16/16 tests PASS, Bash/Python syntax PASS, TypeScript PASS, no-live action PASS. Only guarded status invocation, focused fixture and branch trigger changed; seven notes add evidence. Live backup/R2 remote attest, production Git/Compose update, post-update Prisma/health/manual review remain NOT RUN; RG-14 and formal R-06 17 release gates remain NO-GO. Final notes-only SHA and dedicated backup parity must be independently read back before declaring source CLOSED.
+
+## LIVE-VPS-UPDATE-01 — verification gates and limitations (2026-11-21 UTC)
+| Gate | Evidence | Status |
+|---|---|---|
+| Approved host and target | vmi3585287, /opt/readbox; update from `9c3d99d...` to `54e15dd...` FF-only | PASS |
+| Before-update preflight, fixed 3 refs | Exact target SHA/tree verified; environment/key/archive/mount/locks and agent checks PASS | PASS |
+| Fresh managed V2 and remote receipt | `AU_R2_MANAGED_LOCAL_AND_REMOTE_SHA256_PASS` from authenticated root gate | PASS, receipt ID intentionally unrecorded |
+| R05 rollback escrow | `R05_ENCRYPTED_BACKUP_PASS` | PASS, not restored |
+| Six Compose services / app / backup agent | All healthy; `POST_UPDATE_HEALTH_CHECK_PASS`; agent `active` | PASS |
+| Database migration status | 8 migrations up-to-date; `PRISMA_STATUS_EXIT=0` with `SKIP_MIGRATIONS=true` | PASS (separate status; no deploy) |
+| Original automatic final-marker gate | `timeout`/Docker client processes stopped; only later manual recovery passes | NOT PRINTED / CLI SUSPENDED |
+| User functional acceptance | Five requested login/inbox/attachment/send-receive/logout cases | USER-CONFIRMED 5/5 PASS |
+| Independent offsite host restore, full release-signoff | No such test or decision | NOT RUN / R-06 NO-GO |
+No new production changes, CLI regression patch, tag or release authorized in this notes-only closure. Full ReadBox R-06 RG-01..17 stays NO-GO.

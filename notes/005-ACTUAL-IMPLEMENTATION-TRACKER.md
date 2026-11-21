@@ -445,3 +445,16 @@ The source operator-document defect is fixed and CI-verified; this is not a clai
 | Focused source CI | [run #44844643775](https://github.com/vibtoolshq/ReadBox/actions/runs/44844643775), tested SHA `9e0b4a9e8463d3a86a83b156f079e9ffb3296447`, 16/16 PASS | Notes-only closure and 3/3 final sync pending |
 | LIVE-VPS-UPDATE-01 | Operator preflight R2 configured/agent idle and services/readiness PASS before defect | Fresh managed V2/R2 upload, guarded update, post-update Prisma/manual acceptance NOT RUN |
 Formal release RG-01..17 remains NO-GO.
+
+## LIVE-VPS-UPDATE-01 — actual observed operational status (2026-11-21 UTC)
+| Item | Operator evidence | Outcome |
+|---|---|---|
+| Pinned host update | `9c3d99d...` → `54e15dd...` via `git merge --ff-only`; worktree clean after | PASS |
+| Fresh managed V2 encrypted local archive | `AU_R2_MANAGED_LOCAL_AND_REMOTE_SHA256_PASS` followed gated agent create/verify/remote receipt | PASS by logged authenticated gate; independent restore NOT RUN |
+| Independent R05 rollback snapshot | `R05_ENCRYPTED_BACKUP_PASS` and `QIS01_ENCRYPTED_PRE_UPDATE_BACKUP_READY` | PASS |
+| Compose | `QIS01_SAFE_COMPOSE_UPDATE_COMPLETED`; six services healthy at later snapshot | PASS |
+| Final Prisma | Separate `SKIP_MIGRATIONS=true` status at `postgres:5432`; eight migrations; exit 0 | PASS (read-only recovery, not original automatic marker) |
+| App and host agent | `POST_UPDATE_HEALTH_CHECK_PASS`, both readiness endpoints PASS, agent active | PASS |
+| User manual acceptance | Login, inbox, existing mail/attachment, test send/receive, logout/re-login | 5/5 USER-CONFIRMED PASS |
+| Destructive restore / independent external DR exercise | Not conducted | NOT RUN |
+Notes-only successor Git commit documents evidence and should not change VPS deployed SHA. Full R-06 release NO-GO.
