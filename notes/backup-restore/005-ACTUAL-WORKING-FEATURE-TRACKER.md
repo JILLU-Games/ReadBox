@@ -99,3 +99,6 @@ Source-only bootstrap, immutable staging and canonical Primary pinned fetch are 
 ## OPS-CMD-FIX-01 — actual backup/R2 evidence boundary (2026-11-20)
 
 Published operator shell example has corrected nested quoting; focused CI [#44836416395](https://github.com/vibtoolshq/ReadBox/actions/runs/44836416395) tests mocked sudo argc=5, inner shell parser and EXIT trap cleanup on both success/failure. This fixes an operator-documentation bug only. Existing managed V2 archive/R2 service, private key, remote objects, scheduler and restoration were not modified or exercised. Actual VPS environment, fresh offsite checksum receipt and operational acceptance are NOT RUN.
+
+## AU-PRISMA-CLI-01 — verified source boundary (2026-11-21 UTC)
+The guarded updater's read-only Prisma status now invokes `./readbox-start.sh` with `SKIP_MIGRATIONS=true`, preserving existing protected database, agent, encrypted archive and R2 behavior. CI [#44844643775](https://github.com/vibtoolshq/ReadBox/actions/runs/44844643775) PASS (16/16 tests, syntax, TypeScript, no-deploy marker); no VPS update, production migration, fresh managed V2 backup or remote checksum was run. P1001 incident is source-addressed but still needs separately approved live acceptance; no stable release readiness claim.

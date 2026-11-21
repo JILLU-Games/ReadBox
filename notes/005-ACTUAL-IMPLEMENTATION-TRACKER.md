@@ -435,3 +435,13 @@ Earlier historical BLOCKED snapshot was accurately reported before approval; fin
 | Production release | R-06 NO-GO | RG-01..17 independently pending |
 
 The source operator-document defect is fixed and CI-verified; this is not a claim of production update or live acceptance.
+
+## AU-PRISMA-CLI-01 — actual implementation vs unverified operations (2026-11-21 UTC)
+| Check | Evidence | Limit |
+|---|---|---|
+| Post-update Prisma `migrate status` now gets DB URL | Guarded shell invokes immutable existing `./readbox-start.sh`; mocked argv PASS | Not executed on VPS |
+| `SKIP_MIGRATIONS=true` prevents implicit deploy in status call | Existing `entrypoint.sh` branch + focused regression | No production database write/test |
+| Failure retains explicit STOP | `POST_UPDATE_MIGRATION_STATUS_FAILED` tested in negative mock | Actual host not verified |
+| Focused source CI | [run #44844643775](https://github.com/vibtoolshq/ReadBox/actions/runs/44844643775), tested SHA `9e0b4a9e8463d3a86a83b156f079e9ffb3296447`, 16/16 PASS | Notes-only closure and 3/3 final sync pending |
+| LIVE-VPS-UPDATE-01 | Operator preflight R2 configured/agent idle and services/readiness PASS before defect | Fresh managed V2/R2 upload, guarded update, post-update Prisma/manual acceptance NOT RUN |
+Formal release RG-01..17 remains NO-GO.
