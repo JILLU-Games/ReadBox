@@ -146,8 +146,9 @@ docker compose --project-name readbox -f docker-compose.yml exec -T web node -e 
 })().catch(() => process.exit(1));
 ' >/dev/null || die POST_UPDATE_APP_READINESS_FAILED
 # Read-only migration status. Web boot has already applied migrations.
-timeout 60 docker compose --project-name readbox -f docker-compose.yml exec -T web \
-  node ./node_modules/prisma/build/index.js migrate status >/dev/null ||
+timeout 60 docker compose --project-name readbox -f docker-compose.yml \
+  exec -T -e SKIP_MIGRATIONS=true web \
+  ./readbox-start.sh node ./node_modules/prisma/build/index.js migrate status >/dev/null ||
   die POST_UPDATE_MIGRATION_STATUS_FAILED
 systemctl is-active --quiet readbox-backup-agent.service ||
   die POST_UPDATE_BACKUP_AGENT_INACTIVE

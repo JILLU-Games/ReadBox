@@ -70,6 +70,45 @@ test("single-command preflight precedes fresh backup and update; readiness follo
   assert.match(python,/AU_R2_LOCAL_CHECKSUM_MISMATCH/);
 });
 
+test("AU-PRISMA-CLI-01 passes runtime DB URL via startup wrapper, skips deploy, and fails closed", () => {
+  const marker="# Read-only migration status. Web boot has already applied migrations.";
+  const start=guard.indexOf(marker);
+  const end=guard.indexOf("systemctl is-active --quiet readbox-backup-agent.service",start);
+  assert.ok(start>=0 && end>start, "exact bounded post-update status gate exists");
+  const snippet=guard.slice(start,end);
+  assert.match(snippet,/exec -T -e SKIP_MIGRATIONS=true web/);
+  assert.match(snippet,/\.\/readbox-start\.sh node \.\/node_modules\/prisma\/build\/index\.js migrate status/);
+  assert.doesNotMatch(snippet,/migrate deploy|git merge|docker compose (?:up|down)/);
+  const wrapper=readFileSync("Dockerfile","utf8");
+  const entrypoint=readFileSync("entrypoint.sh","utf8");
+  assert.match(wrapper,/cat > \.\/readbox-start\.sh/);
+  assert.match(wrapper,/export DATABASE_URL/);
+  assert.match(wrapper,/exec \.\/entrypoint\.sh "\$@"/);
+  assert.match(entrypoint,/SKIP_MIGRATIONS:-false/);
+  assert.match(entrypoint,/skipping Prisma migrate deploy/);
+  const harness=[
+    "set -Eeuo pipefail",
+    "timeout() { [[ \"$1\" == 60 ]] || return 90; shift; \"$@\"; }",
+    "docker() {",
+    "  [[ \"$*\" == 'compose --project-name readbox -f docker-compose.yml exec -T -e SKIP_MIGRATIONS=true web ./readbox-start.sh node ./node_modules/prisma/build/index.js migrate status' ]] || return 91",
+    "  [[ \"$FAIL_MIGRATE\" != 1 ]] || return 92",
+    "  printf 'MOCK_WRAPPER_OK\n' >&2",
+    "}",
+    "die() { printf 'GATE_STOP:%s\n' \"$1\"; exit 2; }",
+    snippet,
+    "echo MIGRATION_GATE_PASS",
+  ].join("\n");
+  for(const [fail,pass] of [["0",true],["1",false]]) {
+    const result=spawnSync("bash",["-c",harness],{
+      encoding:"utf8",env:{...process.env,FAIL_MIGRATE:fail}
+    });
+    assert.equal(result.status===0,pass,result.stderr);
+    assert.equal(result.stdout.includes("MIGRATION_GATE_PASS"),pass);
+    assert.equal(result.stdout.includes("GATE_STOP:POST_UPDATE_MIGRATION_STATUS_FAILED"),!pass);
+    assert.doesNotMatch(result.stdout+result.stderr,/migrate deploy.*executed/);
+  }
+});
+
 /* PYTHON_START
 import hashlib, importlib.util, tempfile
 from pathlib import Path
